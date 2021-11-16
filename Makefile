@@ -4,6 +4,8 @@ BIN=$(PROJECT).bin
 
 CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
+GDB=arm-none-eabi-gdb
+SIZE=arm-none-eabi-size
 
 CFLAGS=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
@@ -90,6 +92,6 @@ astyle:
 	astyle -r --exclude=lib --exclude=platform --style=linux --suffix=none --indent=tab=8  *.c *.h
 
 size:
-	$(SIZE)  $(ELF)
+	$(SIZE) $(ELF)
 
 .PHONY:all clean flash openocd gdbauto
