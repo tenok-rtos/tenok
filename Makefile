@@ -15,10 +15,10 @@ CFLAGS+=-D STM32F4xx
 CFLAGS+=-D __FPU_PRESENT=1 \
         -D ARM_MATH_CM4 \
 	-D __FPU_USED=1
-
 CFLAGS+=-Wl,-T,startup/stm32_flash.ld
 
 ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
+
 CFLAGS+=-I./lib/CMSIS/ST/STM32F4xx/Include
 CFLAGS+=-I./lib/CMSIS/Include
 CFLAGS+=-I$(ST_LIB)/inc
@@ -35,34 +35,61 @@ SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_flash.c \
 	$(ST_LIB)/src/stm32f4xx_gpio.c \
 	$(ST_LIB)/src/stm32f4xx_usart.c \
-	$(ST_LIB)/src/stm32f4xx_tim.c\
-	$(ST_LIB)/src/stm32f4xx_spi.c\
+	$(ST_LIB)/src/stm32f4xx_tim.c \
+	$(ST_LIB)/src/stm32f4xx_spi.c \
 	$(ST_LIB)/src/stm32f4xx_i2c.c
 
 SRC+=./src/task.c \
 	./src/uart.c \
 	./src/main.c
 
+OBJS=$(SRC:.c=.o)
+DEPEND=$(SRC:.c=.d)
+
 STARTUP=./startup/startup_stm32f4xx.s
 
-all:$(BIN)
+all:$(ELF)
 
-$(BIN):$(ELF)
-	$(OBJCOPY) -O binary $^ $@
+$(ELF): $(STARTUP) $(OBJS)
+	@echo "LD" $@
+	@$(CC) $(CFLAGS) $(OBJS) $(STARTUP) $(LDFLAGS) -o $@
 
-STARTUP_OBJ = startup_stm32f4xx.o
+-include $(DEPEND)
 
-$(STARTUP_OBJ): $(STARTUP) 
-	$(CC) $(CFLAGS) $^ -c $(STARTUP)
+%.o: %.s 
+	@echo "CC" $@
+	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -c $<
 
-$(ELF):$(SRC) $(STARTUP_OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+%.o: %.c
+	@echo "CC" $@
+	@$(CC) $(CFLAGS) -MMD -MP -c $< $(LDFLAGS) -o $@
 
 clean:
 	rm -rf $(ELF)
-	rm -rf $(BIN)
-	rm -rf startup_stm32f4xx.o
-flash:
-	st-flash write $(BIN) 0x8000000
+	rm -rf $(OBJS)
+	rm -rf $(DEPEND)
+	rm -rf *.orig
 
-.PHONY:all clean flash
+flash:
+	openocd -f interface/stlink.cfg \
+	-f target/stm32f4x.cfg \
+	-c "init" \
+	-c "reset init" \
+	-c "halt" \
+	-c "flash write_image erase $(ELF)" \
+	-c "verify_image $(ELF)" \
+	-c "reset run" -c shutdown
+
+openocd:
+	openocd -s /opt/openocd/share/openocd/scripts/ -f ./gdb/openocd.cfg
+
+gdbauto:
+	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
+
+astyle:
+	astyle -r --exclude=lib --exclude=platform --style=linux --suffix=none --indent=tab=8  *.c *.h
+
+size:
+	$(SIZE)  $(ELF)
+
+.PHONY:all clean flash openocd gdbauto
