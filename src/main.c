@@ -19,6 +19,8 @@ void task1(void *param)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);	
 		delay(1000000L);
 		state = (state + 1) % 2;
+
+		//task_yield();
 	}
 }
 
@@ -30,12 +32,14 @@ void task2(void *param)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 		delay(1000000L);
 		state = (state + 1) % 2;
+
+		//task_yield();
 	}
 }
 
 int main(void)
 {
-	usart3_init();
+	uart3_init();
 
 	task_register(task1, "task1", 0, NULL, &tcb1);
 	task_register(task2, "task2", 0, NULL, &tcb2);

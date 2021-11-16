@@ -1,6 +1,6 @@
 #include <stm32f4xx.h>
 
-void usart3_init(void)
+void uart3_init(void)
 {
 	/* RCC initialization */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
@@ -34,13 +34,13 @@ void usart3_init(void)
 	USART_ClearFlag(USART3, USART_FLAG_TC);
 }
 
-char usart_getc(void)
+char uart_getc(void)
 {
 	while(USART_GetFlagStatus(USART3, USART_FLAG_RXNE) != SET);
 	return USART_ReceiveData(USART3);
 }
 
-void usart_putc(char c)
+void uart_putc(char c)
 {
 	/* wait until TXE (Transmit Data Register Empty) flag is set */
 	while(USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET);
@@ -49,9 +49,9 @@ void usart_putc(char c)
 	while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET);
 }
 
-void usart_puts(char *string)
+void uart_puts(char *string)
 {
 	for(; *string != '\0'; string++) {
-		usart_putc(*string);
+		uart_putc(*string);
 	}
 }

@@ -39,11 +39,9 @@ SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_spi.c\
 	$(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC+=./src/list.c \
-	./src/task.c \
+SRC+=./src/task.c \
 	./src/uart.c \
-	./src/main.c \
-	./src/context_switch.s
+	./src/main.c
 
 STARTUP=./startup/startup_stm32f4xx.s
 
