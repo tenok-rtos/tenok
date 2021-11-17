@@ -1,9 +1,9 @@
 #include <stddef.h>
+#include "stm32f4xx.h"
 #include "task.h"
 #include "config_rtos.h"
 
 #define INITIAL_XPSR    (0x01000000)
-#define START_ADDR_MASK ((stack_type_t) 0xfffffffeUL)
 
 int task_cnt;
 tcb_t *task_list;
@@ -92,7 +92,11 @@ void os_start(void)
 {
 	while(task_cnt == 0);
 
+	/* initialize first task to launch */
 	curr_tcb = task_list;
+
+	/* initialize systick timer */
+	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
 	/* trigger svc handler to jump to the first task */
 	asm("svc 0 \n"
@@ -116,6 +120,10 @@ void task_yield(void)
 {
 	/* set NVIC PENDSV set bit */
 	*((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
+}
+
+void SysTick_Handler(void)
+{
 }
 
 __attribute__((naked)) void PendSV_Handler(void)
