@@ -20,7 +20,7 @@ void task1(void *param)
 		delay(1000000L);
 		state = (state + 1) % 2;
 
-		task_yield();
+		//task_yield();
 	}
 }
 
@@ -33,7 +33,7 @@ void task2(void *param)
 		delay(1000000L);
 		state = (state + 1) % 2;
 
-		task_yield();
+		//task_yield();
 	}
 }
 
