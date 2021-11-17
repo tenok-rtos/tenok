@@ -58,8 +58,6 @@ void task_register(task_function_t task_func,
          *===========================*/
 	stack_type_t *top_of_stack = new_tcb->stack + stack_depth - 1;
 
-	top_of_stack--; //XXX: should move to the next one before pushing new data
-
 	/* initialize xpsr register */
 	*top_of_stack = INITIAL_XPSR;
 	top_of_stack--;
