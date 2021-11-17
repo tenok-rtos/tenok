@@ -10,7 +10,7 @@ typedef void (*task_function_t)(void *);
 /* task control block */
 struct tcb {
 	volatile stack_type_t *top_of_stack; //point to the top of the stack
-	stack_type_t *stack;                 //point to the start of the stack
+	stack_type_t stack[TASK_STACK_SIZE]; //point to the start of the stack
 
 	char task_name[TASK_NAME_LEN_MAX];
 

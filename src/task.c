@@ -34,6 +34,8 @@ void task_register(task_function_t task_func,
 		task_list->last = new_tcb;
 	} else {
 		/* append new task at the end of the list */
+		new_tcb->next = task_list;
+		new_tcb->last = task_list->last;
 		task_list->last->next = new_tcb;
 		task_list->last = new_tcb;
 	}
@@ -63,7 +65,7 @@ void task_register(task_function_t task_func,
 	top_of_stack--;
 
 	/* initialize pc register */
-	*top_of_stack = (stack_type_t)task_func /*& START_ADDR_MASK*/;
+	*top_of_stack = (stack_type_t)task_func;
 	top_of_stack--;
 
 	/* initialize lr register */
@@ -77,6 +79,8 @@ void task_register(task_function_t task_func,
 	
 	/* initialize r11-r4 registers as zero */
 	top_of_stack -= 8;
+
+	new_tcb->top_of_stack = top_of_stack;
 }
 
 void select_task(void)
