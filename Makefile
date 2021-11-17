@@ -42,6 +42,7 @@ SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_i2c.c
 
 SRC+=./src/task.c \
+	./src/gpio.c \
 	./src/uart.c \
 	./src/main.c
 
