@@ -3,7 +3,7 @@
 #include "task.h"
 #include "config_rtos.h"
 
-#define INITIAL_XPSR    (0x01000000)
+#define INITIAL_XPSR (0x01000000)
 
 int task_cnt;
 tcb_t *task_list;
@@ -120,54 +120,35 @@ void task_yield(void)
 	*((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
 }
 
+#define CONTEXT_SWITCH() \
+	asm(/* save context of the current task */ \
+            "mrs r0, psp          \n"    /*r0 <- psp */ \
+            "ldr r3, =curr_tcb    \n"    /*r3 <- &curr_tcb */ \
+            "ldr r2, [r3]         \n"    /*r2 <- curr_tcb */ \
+            "stmdb r0!, {r4-r11}  \n"    /*store r4-r11 to the stack pointed by the r0 */ \
+            "str r0, [r2]         \n"    /*curr_tcb->top_of_stack (r2) <- r0 (update stack pointer) */ \
+            "stmdb sp!, {r3, r14} \n"    /*temporarily store r3 and r14 to the msp */ \
+            "mov r0, %0           \n"    /*set masked interrupt priority */ \
+            "msr basepri, r0      \n"    /*interrupt with priority less than r0 will be disable */ \
+            /* select tcb of the next task */ \
+            "bl select_task       \n"    /*jump to the kernel space */ \
+            /* switch the context to the next task */ \
+            "mov r0, #0           \n"    /*r0 <- #0 */ \
+            "msr basepri, r0      \n"    /*enable the interrupts */ \
+            "ldmia sp!, {r3, r14} \n"    /*reload r3 and r14 from the msp */ \
+            "ldr r1, [r3]         \n"    /*r1 <- curr_tcb */ \
+            "ldr r0, [r1]         \n"    /*r0 <- curr_tcb->top_of_stack */ \
+            "ldmia r0!, {r4-r11}  \n"    /*load r4-r11 from the stack pointed by the r0 */ \
+            "msr psp, r0          \n"    /*replace psp to the stack of the next tcb (r0) */ \
+            "bx r14               \n"    /*trigger EXC_RETURN (0xfffffffd) and jump to the address by the pc */ \
+            "nop                  \n" :: /*instruction pipe synchronization */ \
+            "i"(SYSCALL_INT_PRIORITY_MAX))
+
 __attribute__((naked)) void SysTick_Handler(void)
 {
-	asm(/* save context of the current task */
-            "mrs r0, psp          \n"    //r0 <- psp
-            "ldr r3, =curr_tcb    \n"    //r3 <- &curr_tcb
-            "ldr r2, [r3]         \n"    //r2 <- curr_tcb
-            "stmdb r0!, {r4-r11}  \n"    //store r4-r11 to the stack pointed by the r0
-            "str r0, [r2]         \n"    //curr_tcb->top_of_stack (r2) <- r0 (update stack pointer)
-            "stmdb sp!, {r3, r14} \n"    //temporarily store r3 and r14 to the msp
-            "mov r0, %0           \n"    //set masked interrupt priority
-            "msr basepri, r0      \n"    //interrupt with priority less than r0 will be disable
-            /* select tcb of the next task */
-            "bl select_task       \n"    //jump to the kernel space
-            /* switch the context to the next task */
-            "mov r0, #0           \n"    //r0 <- #0
-            "msr basepri, r0      \n"    //enable the interrupts
-            "ldmia sp!, {r3, r14} \n"    //reload r3 and r14 from the msp
-            "ldr r1, [r3]         \n"    //r1 <- curr_tcb
-            "ldr r0, [r1]         \n"    //r0 <- curr_tcb->top_of_stack
-            "ldmia r0!, {r4-r11}  \n"    //load r4-r11 from the stack pointed by the r0
-            "msr psp, r0          \n"    //replace psp to the stack of the next tcb (r0)
-            "bx r14               \n"    //trigger EXC_RETURN (0xfffffffd) and jump to the address by the pc
-            "nop                  \n" :: //instruction pipe synchronization
-            "i"(SYSCALL_INT_PRIORITY_MAX));
+	CONTEXT_SWITCH();
 }
-
 __attribute__((naked)) void PendSV_Handler(void)
 {
-	asm(/* save context of the current task */
-            "mrs r0, psp          \n"    //r0 <- psp
-            "ldr r3, =curr_tcb    \n"    //r3 <- &curr_tcb
-            "ldr r2, [r3]         \n"    //r2 <- curr_tcb
-            "stmdb r0!, {r4-r11}  \n"    //store r4-r11 to the stack pointed by the r0
-            "str r0, [r2]         \n"    //curr_tcb->top_of_stack (r2) <- r0 (update stack pointer)
-            "stmdb sp!, {r3, r14} \n"    //temporarily store r3 and r14 to the msp
-            "mov r0, %0           \n"    //set masked interrupt priority
-            "msr basepri, r0      \n"    //interrupt with priority less than r0 will be disable
-            /* select tcb of the next task */
-            "bl select_task       \n"    //jump to the kernel space
-            /* switch the context to the next task */
-            "mov r0, #0           \n"    //r0 <- #0
-            "msr basepri, r0      \n"    //enable the interrupts
-            "ldmia sp!, {r3, r14} \n"    //reload r3 and r14 from the msp
-            "ldr r1, [r3]         \n"    //r1 <- curr_tcb
-            "ldr r0, [r1]         \n"    //r0 <- curr_tcb->top_of_stack
-            "ldmia r0!, {r4-r11}  \n"    //load r4-r11 from the stack pointed by the r0
-            "msr psp, r0          \n"    //replace psp to the stack of the next tcb (r0)
-            "bx r14               \n"    //trigger EXC_RETURN (0xfffffffd) and jump to the address by the pc
-            "nop                  \n" :: //instruction pipe synchronization
-            "i"(SYSCALL_INT_PRIORITY_MAX));
+	CONTEXT_SWITCH();
 }
