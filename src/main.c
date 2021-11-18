@@ -18,7 +18,9 @@ void task1(void *param)
 	while(1) {
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);	
-		delay(1000000L);
+
+		task_delay(1000);
+
 		state = (state + 1) % 2;
 	}
 }
@@ -29,7 +31,9 @@ void task2(void *param)
 	while(1) {
 		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
-		delay(1000000L);
+
+		task_delay(1000);
+
 		state = (state + 1) % 2;
 	}
 }

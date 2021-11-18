@@ -17,6 +17,8 @@ struct tcb {
 	int priority;
 	int status;
 
+	uint32_t ticks_to_delay;
+
 	struct tcb *next;
 	struct tcb *last;
 };
@@ -31,6 +33,7 @@ void os_start(void);
 
 void select_task(void);
 
+void task_delay(uint32_t ms);
 void task_yield(void);
 
 #endif
