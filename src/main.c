@@ -43,8 +43,8 @@ int main(void)
 	led_init();
 	uart3_init();
 
-	task_register(task1, "task1", 0, NULL, 0, &tcb1);
-	task_register(task2, "task2", 1, NULL, 0, &tcb2);
+	task_register(task1, "task1", 0, NULL, 1, &tcb1);
+	task_register(task2, "task2", 0, NULL, 2, &tcb2);
 
 	os_start();
 

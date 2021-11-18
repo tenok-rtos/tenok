@@ -9,8 +9,9 @@ typedef void (*task_function_t)(void *);
 
 enum {
 	TASK_READY = 0,
-	TASK_WAIT = 1,
-	TASK_SUSPENDED = 2
+	TASK_RUNNING = 1,
+	TASK_WAIT = 2,
+	TASK_SUSPENDED = 3
 };
 
 /* task control block */
