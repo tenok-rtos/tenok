@@ -90,7 +90,7 @@ gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
 
 astyle:
-	astyle -r --exclude=lib --exclude=platform --style=linux --suffix=none --indent=tab=8  *.c *.h
+	astyle -r --exclude=lib --style=linux --suffix=none --indent=tab=8  *.c *.h
 
 size:
 	$(SIZE) $(ELF)
