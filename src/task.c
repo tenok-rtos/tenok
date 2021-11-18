@@ -51,6 +51,7 @@ void task_register(task_function_t task_func,
 	}
 
 	stack_depth = TASK_STACK_SIZE; //XXX: fixed size for now
+	new_tcb->status = TASK_READY;
 
 	/* initialize task name */
 	int i;
@@ -96,7 +97,7 @@ void select_task(void)
 	/* find next task ready to launch */
 	do {
 		curr_tcb = curr_tcb->next;
-	} while(curr_tcb->ticks_to_delay > 0);
+	} while(curr_tcb->status != TASK_READY);
 
 	/* update delay ticks of all tasks */
 	tcb_t *tcb = task_list;
@@ -105,6 +106,10 @@ void select_task(void)
 		tcb = tcb->next;
 		if(tcb->ticks_to_delay > 0) {
 			tcb->ticks_to_delay--;
+
+			if(tcb->ticks_to_delay == 0) {
+				tcb->status = TASK_READY;
+			}
 		}
 	}
 }
@@ -149,6 +154,7 @@ void task_yield(void)
 void task_delay(uint32_t ticks_to_delay)
 {
 	curr_tcb->ticks_to_delay = ticks_to_delay;
+	curr_tcb->status = TASK_WAIT;
 	task_yield();
 }
 

@@ -7,6 +7,12 @@
 typedef uint32_t stack_type_t;
 typedef void (*task_function_t)(void *);
 
+enum {
+	TASK_READY = 0,
+	TASK_WAIT = 1,
+	TASK_SUSPENDED = 2
+};
+
 /* task control block */
 struct tcb {
 	volatile stack_type_t *top_of_stack; //point to the top of the stack
