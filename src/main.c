@@ -17,7 +17,7 @@ void task1(void *param)
 	int state = 1;
 	while(1) {
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);	
+		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
 
 		task_delay(1000);
 

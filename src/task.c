@@ -22,8 +22,8 @@ void task_exit_error(void)
 void task_idle(void *param)
 {
 	/* idle task is a task with the lowest priority.
-         * when the os has nothing to do, the idle task
-         * will be executed. */
+	 * when the os has nothing to do, the idle task
+	 * will be executed. */
 	while(1);
 }
 
@@ -32,7 +32,7 @@ void task_register(task_function_t task_func,
                    uint32_t stack_depth,
                    void * const task_params,
                    uint32_t priority,
-                   tcb_t *new_tcb)
+                   tcb_t *new_task)
 {
 	/* check if the task number exceeded the limit */
 	uint32_t total_task_num = 0;
@@ -46,39 +46,39 @@ void task_register(task_function_t task_func,
 		return;
 	}
 
-	//increased the task number according to the priority
-	task_nums[priority]++;
-
-	/* no task in the list */
+	/* append new task to the end of the list */
 	if(tasks[priority] == NULL) {
-		tasks[priority] = new_tcb;
-		tasks[priority]->next = new_tcb;
-		tasks[priority]->last = new_tcb;
+		/* if the task list is empty */
+		tasks[priority] = new_task;
+		tasks[priority]->next = new_task;
+		tasks[priority]->last = new_task;
 	} else {
 		/* append new task at the end of the list */
-		new_tcb->next = tasks[priority];
-		new_tcb->last = tasks[priority]->last;
-		tasks[priority]->last->next = new_tcb;
-		tasks[priority]->last = new_tcb;
+		new_task->next = tasks[priority];
+		new_task->last = tasks[priority]->last;
+		tasks[priority]->last->next = new_task;
+		tasks[priority]->last = new_task;
 	}
+	task_nums[priority]++; //increase the task number
 
 	stack_depth = TASK_STACK_SIZE; //XXX: fixed size for now
-	new_tcb->status = TASK_READY;
+	new_task->status = TASK_READY;
+	new_task->priority = priority;
 
 	/* initialize task name */
 	for(i = 0; i < TASK_NAME_LEN_MAX; i++) {
-		new_tcb->task_name[i] = task_name[i];
+		new_task->task_name[i] = task_name[i];
 
 		if(task_name[i] == '\0') {
 			break;
 		}
 	}
-	new_tcb->task_name[TASK_NAME_LEN_MAX - 1] = '\0';
-	
+	new_task->task_name[TASK_NAME_LEN_MAX - 1] = '\0';
+
 	/*===========================*
 	 * initialize the task stack *
-         *===========================*/
-	stack_type_t *top_of_stack = new_tcb->stack + stack_depth - 1;
+	 *===========================*/
+	stack_type_t *top_of_stack = new_task->stack + stack_depth - 1;
 
 	/* initialize xpsr register */
 	*top_of_stack = INITIAL_XPSR;
@@ -96,43 +96,43 @@ void task_register(task_function_t task_func,
 
 	/* initialize r0 register with task function parameters */
 	*top_of_stack = (stack_type_t)task_params;
-	
+
 	/* initialize r11-r4 registers as zero */
 	top_of_stack -= 8;
 
-	new_tcb->top_of_stack = top_of_stack;
+	new_task->top_of_stack = top_of_stack;
 }
 
 void select_task(void)
 {
 	int i, j;
-	tcb_t *tcb;
+	tcb_t *_task;
 
-	bool change_task = false;
-	bool task_selected = false;
+	bool change_task = false;   //flag that indicates the scheduler should select next task
+	bool task_selected = false; //next task to be executed is decieded
 
-	/* current task is no longer in the running state,
-         * we should select next ready task */
+	/* if current task is the idle task or it is no longer in running state then it should
+	 * yield the cpu to other tasks */
 	if(curr_tcb->status != TASK_RUNNING || curr_tcb == &tcb_idle_task) {
 		change_task = true;
 	}
 
 	/* find the next ready task with the highest priority */
 	for(i = OS_MAX_PRIORITY - 1; i >= 0; i--) {
-		/* current task list is empty, skip it */
+		/* current task with prioity number i is empty */
 		if(tasks[i] == NULL) {
-			continue;
+			continue; //skip
 		}
 
-		/* initialize the tcb iterator */
-		tcb = tasks[i];
+		/* initialize the task iterator */
+		_task = tasks[i];
 
-		/* iterate through the current task list */
+		/* iterate through the task list */
 		for(j = 0; j < task_nums[i]; j++) {
-			if((curr_tcb->priority < tcb->priority || change_task == true) &&
-                           tcb != curr_tcb &&
-                           tcb->status == TASK_READY &&
-			   task_selected == false) {
+			if((_task->priority > curr_tcb->priority || change_task == true) &&
+			    _task != curr_tcb &&
+			    _task->status == TASK_READY &&
+			    task_selected == false) {
 				//change status of the current task
 				if(curr_tcb->status == TASK_RUNNING) {
 					curr_tcb->status = TASK_READY;
@@ -140,21 +140,23 @@ void select_task(void)
 
 				//next task to run is selected
 				task_selected = true;
-				curr_tcb = tcb;
+				curr_tcb = _task;
 				curr_tcb->status = TASK_RUNNING;
 			}
 
-			/* update remained delay ticks */
-			if(tcb->ticks_to_delay > 0) {
-				tcb->ticks_to_delay--;
+			/* update the remained delay ticks */
+			if(_task->ticks_to_delay > 0) {
+				_task->ticks_to_delay--;
 
-				if(tcb->ticks_to_delay == 0) {
-					tcb->status = TASK_READY;
+				/* delay is finished, change the task state to
+				 * be ready */
+				if(_task->ticks_to_delay == 0) {
+					_task->status = TASK_READY;
 				}
 			}
 
-			/* next task */
-			tcb = tcb->next;
+			/* update the task iterator */
+			_task = _task->next;
 		}
 	}
 }
@@ -179,20 +181,20 @@ void os_start(void)
 
 	/* trigger svc handler to jump to the first task */
 	asm("svc 0 \n"
-            "nop   \n");
+	    "nop   \n");
 }
 
 __attribute__((naked)) void SVC_Handler(void)
 {
 	asm("ldr r3, =curr_tcb   \n"   //r3 <- &curr_tcb
-            "ldr r1, [r3]        \n"   //r1 <- curr_tcb
-            "ldr r0, [r1]        \n"   //r0 <- curr_tcb->top_of_stack
-            "ldmia r0!, {r4-r11} \n"   //load r4-r11 from the stack pointed by the r0
-            "msr psp, r0         \n"   //psp <- r0
-            "mov r0, #0          \n"   //r0 <- #0
-            "msr basepri, r0     \n"   //basepri <- #0 (disable all interrupts)
-            "orr r14, #0xd       \n"   //logic or the r14 with 0xd (EXC_RETURN)
-            "bx r14              \n"); //trigger EXC_RETURN and jump to the address by pc
+	    "ldr r1, [r3]        \n"   //r1 <- curr_tcb
+	    "ldr r0, [r1]        \n"   //r0 <- curr_tcb->top_of_stack
+	    "ldmia r0!, {r4-r11} \n"   //load r4-r11 from the stack pointed by the r0
+	    "msr psp, r0         \n"   //psp <- r0
+	    "mov r0, #0          \n"   //r0 <- #0
+	    "msr basepri, r0     \n"   //basepri <- #0 (disable all interrupts)
+	    "orr r14, #0xd       \n"   //logic or the r14 with 0xd (EXC_RETURN)
+	    "bx r14              \n"); //trigger EXC_RETURN and jump to the address by pc
 }
 
 void task_yield(void)
