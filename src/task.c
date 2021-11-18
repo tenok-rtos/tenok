@@ -105,9 +105,17 @@ void task_register(task_function_t task_func,
 
 void select_task(void)
 {
-	bool task_selected = false;
 	int i, j;
 	tcb_t *tcb;
+
+	bool change_task = false;
+	bool task_selected = false;
+
+	/* current task is no longer in the running state,
+         * we should select next ready task */
+	if(curr_tcb->status != TASK_RUNNING || curr_tcb == &tcb_idle_task) {
+		change_task = true;
+	}
 
 	/* find the next ready task with the highest priority */
 	for(i = OS_MAX_PRIORITY - 1; i >= 0; i--) {
@@ -121,10 +129,19 @@ void select_task(void)
 
 		/* iterate through the current task list */
 		for(j = 0; j < task_nums[i]; j++) {
-			if(tcb->status == TASK_READY && task_selected == false) {
-				/* task is selected */
+			if((curr_tcb->priority < tcb->priority || change_task == true) &&
+                           tcb != curr_tcb &&
+                           tcb->status == TASK_READY &&
+			   task_selected == false) {
+				//change status of the current task
+				if(curr_tcb->status == TASK_RUNNING) {
+					curr_tcb->status = TASK_READY;
+				}
+
+				//next task to run is selected
 				task_selected = true;
 				curr_tcb = tcb;
+				curr_tcb->status = TASK_RUNNING;
 			}
 
 			/* update remained delay ticks */
@@ -149,9 +166,11 @@ void os_start(void)
 
 	/* find a task with the highest priority to start */
 	int i;
-	for(i = OS_MAX_PRIORITY; i >= 0; i--) {
+	for(i = OS_MAX_PRIORITY - 1; i >= 0; i--) {
 		if(tasks[i] != NULL) {
 			curr_tcb = tasks[i];
+			curr_tcb->status = TASK_RUNNING;
+			break;
 		}
 	}
 
