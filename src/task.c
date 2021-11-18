@@ -1,13 +1,15 @@
 #include <stddef.h>
+#include <stdbool.h>
 #include "stm32f4xx.h"
 #include "task.h"
 #include "config_rtos.h"
 
 #define INITIAL_XPSR (0x01000000)
 
-int task_cnt;
-tcb_t *task_list;
-tcb_t *curr_tcb;
+tcb_t *tasks[OS_MAX_PRIORITY] = {NULL};
+int task_nums[OS_MAX_PRIORITY] = {0};
+
+tcb_t *curr_tcb = NULL;
 
 tcb_t tcb_idle_task;
 
@@ -29,32 +31,41 @@ void task_register(task_function_t task_func,
                    const char *task_name,
                    uint32_t stack_depth,
                    void * const task_params,
+                   uint32_t priority,
                    tcb_t *new_tcb)
 {
-	/* task number is less than the limit */
-	if(task_cnt >= TASK_NUM_MAX) {
+	/* check if the task number exceeded the limit */
+	uint32_t total_task_num = 0;
+
+	int i;
+	for(i = 0; i < OS_MAX_PRIORITY; i++) {
+		total_task_num += task_nums[i];
+	}
+
+	if(total_task_num >= TASK_NUM_MAX) {
 		return;
 	}
-	task_cnt++;
+
+	//increased the task number according to the priority
+	task_nums[priority]++;
 
 	/* no task in the list */
-	if(task_list == NULL) {
-		task_list = new_tcb;
-		task_list->next = new_tcb;
-		task_list->last = new_tcb;
+	if(tasks[priority] == NULL) {
+		tasks[priority] = new_tcb;
+		tasks[priority]->next = new_tcb;
+		tasks[priority]->last = new_tcb;
 	} else {
 		/* append new task at the end of the list */
-		new_tcb->next = task_list;
-		new_tcb->last = task_list->last;
-		task_list->last->next = new_tcb;
-		task_list->last = new_tcb;
+		new_tcb->next = tasks[priority];
+		new_tcb->last = tasks[priority]->last;
+		tasks[priority]->last->next = new_tcb;
+		tasks[priority]->last = new_tcb;
 	}
 
 	stack_depth = TASK_STACK_SIZE; //XXX: fixed size for now
 	new_tcb->status = TASK_READY;
 
 	/* initialize task name */
-	int i;
 	for(i = 0; i < TASK_NAME_LEN_MAX; i++) {
 		new_tcb->task_name[i] = task_name[i];
 
@@ -94,22 +105,39 @@ void task_register(task_function_t task_func,
 
 void select_task(void)
 {
-	/* find next task ready to launch */
-	do {
-		curr_tcb = curr_tcb->next;
-	} while(curr_tcb->status != TASK_READY);
+	bool task_selected = false;
+	int i, j;
+	tcb_t *tcb;
 
-	/* update delay ticks of all tasks */
-	tcb_t *tcb = task_list;
-	int i;
-	for(i = 0; i < task_cnt; i++) {
-		tcb = tcb->next;
-		if(tcb->ticks_to_delay > 0) {
-			tcb->ticks_to_delay--;
+	/* find the next ready task with the highest priority */
+	for(i = OS_MAX_PRIORITY - 1; i >= 0; i--) {
+		/* current task list is empty, skip it */
+		if(tasks[i] == NULL) {
+			continue;
+		}
 
-			if(tcb->ticks_to_delay == 0) {
-				tcb->status = TASK_READY;
+		/* initialize the tcb iterator */
+		tcb = tasks[i];
+
+		/* iterate through the current task list */
+		for(j = 0; j < task_nums[i]; j++) {
+			if(tcb->status == TASK_READY && task_selected == false) {
+				/* task is selected */
+				task_selected = true;
+				curr_tcb = tcb;
 			}
+
+			/* update remained delay ticks */
+			if(tcb->ticks_to_delay > 0) {
+				tcb->ticks_to_delay--;
+
+				if(tcb->ticks_to_delay == 0) {
+					tcb->status = TASK_READY;
+				}
+			}
+
+			/* next task */
+			tcb = tcb->next;
 		}
 	}
 }
@@ -117,12 +145,15 @@ void select_task(void)
 void os_start(void)
 {
 	/* register a idle task that do nothing */
-	task_register(task_idle, "idle task", 0, NULL, &tcb_idle_task);
+	task_register(task_idle, "idle task", 0, NULL, 0, &tcb_idle_task);
 
-	while(task_cnt == 0);
-
-	/* initialize first task to launch */
-	curr_tcb = task_list;
+	/* find a task with the highest priority to start */
+	int i;
+	for(i = OS_MAX_PRIORITY; i >= 0; i--) {
+		if(tasks[i] != NULL) {
+			curr_tcb = tasks[i];
+		}
+	}
 
 	/* initialize systick timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);

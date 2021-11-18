@@ -34,6 +34,7 @@ void task_register(task_function_t task_func,
                    const char *task_name,
                    uint32_t stack_depth,
                    void * const task_params,
+                   uint32_t priority,
                    tcb_t *tcb);
 void os_start(void);
 
