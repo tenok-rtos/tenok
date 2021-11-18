@@ -9,9 +9,19 @@ int task_cnt;
 tcb_t *task_list;
 tcb_t *curr_tcb;
 
+tcb_t tcb_idle_task;
+
 void task_exit_error(void)
 {
 	/* should never be happened */
+	while(1);
+}
+
+void task_idle(void *param)
+{
+	/* idle task is a task with the lowest priority.
+         * when the os has nothing to do, the idle task
+         * will be executed. */
 	while(1);
 }
 
@@ -83,11 +93,27 @@ void task_register(task_function_t task_func,
 
 void select_task(void)
 {
-	curr_tcb = curr_tcb->next;
+	/* find next task ready to launch */
+	do {
+		curr_tcb = curr_tcb->next;
+	} while(curr_tcb->ticks_to_delay > 0);
+
+	/* update delay ticks of all tasks */
+	tcb_t *tcb = task_list;
+	int i;
+	for(i = 0; i < task_cnt; i++) {
+		tcb = tcb->next;
+		if(tcb->ticks_to_delay > 0) {
+			tcb->ticks_to_delay--;
+		}
+	}
 }
 
 void os_start(void)
 {
+	/* register a idle task that do nothing */
+	task_register(task_idle, "idle task", 0, NULL, &tcb_idle_task);
+
 	while(task_cnt == 0);
 
 	/* initialize first task to launch */
@@ -118,6 +144,12 @@ void task_yield(void)
 {
 	/* set NVIC PENDSV set bit */
 	*((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
+}
+
+void task_delay(uint32_t ticks_to_delay)
+{
+	curr_tcb->ticks_to_delay = ticks_to_delay;
+	task_yield();
 }
 
 #define CONTEXT_SWITCH() \
