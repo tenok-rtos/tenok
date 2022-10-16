@@ -49,13 +49,14 @@ SRC+=./src/kernel.c \
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
 
-STARTUP=./startup/startup_stm32f4xx.s
+ASM=./startup/startup_stm32f4xx.s \
+	./src/context_switch.s
 
 all:$(ELF)
 
-$(ELF): $(STARTUP) $(OBJS)
+$(ELF): $(ASM) $(OBJS)
 	@echo "LD" $@
-	@$(CC) $(CFLAGS) $(OBJS) $(STARTUP) $(LDFLAGS) -o $@
+	@$(CC) $(CFLAGS) $(OBJS) $(ASM) $(LDFLAGS) -o $@
 
 -include $(DEPEND)
 

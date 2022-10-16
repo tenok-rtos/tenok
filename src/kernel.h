@@ -39,7 +39,7 @@ void task_register(task_function_t task_func,
                    tcb_t *tcb);
 void os_start(void);
 
-void select_task(void);
+void jump_to_user_space(uint32_t tcb_addr);
 
 void task_delay(uint32_t ms);
 void task_yield(void);
