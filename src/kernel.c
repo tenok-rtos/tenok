@@ -4,6 +4,10 @@
 #include "kernel.h"
 #include "os_config.h"
 
+#define HANDLER_MSP  0xFFFFFFF1
+#define THREAD_MSP   0xFFFFFFF9
+#define THREAD_PSP   0xFFFFFFFD
+
 #define INITIAL_XPSR (0x01000000)
 
 tcb_t *tasks[OS_MAX_PRIORITY] = {NULL};
@@ -78,32 +82,21 @@ void task_register(task_function_t task_func,
 	/*===========================*
 	 * initialize the task stack *
 	 *===========================*/
-	stack_type_t *top_of_stack = new_task->stack + stack_depth - 1;
+	stack_type_t *top_of_stack = new_task->stack + stack_depth;
 
-	/* initialize xpsr register */
-	*top_of_stack = INITIAL_XPSR;
-	top_of_stack--;
+	/* stack design contains two parts
+	 * psr, pc, lr, r12, r3, r2, r1, r0,     (for exception return)
+	 * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
 
-	/* initialize pc register */
-	*top_of_stack = (stack_type_t)task_func;
-	top_of_stack--;
-
-	/* initialize lr register */
-	*top_of_stack = (stack_type_t)task_exit_error;
-
-	/* initialize r12, r3, r2 and r1 registers as zero */
-	top_of_stack -= 5;
-
-	/* initialize r0 register with task function parameters */
-	*top_of_stack = (stack_type_t)task_params;
-
-	/* initialize r11-r4 registers as zero */
-	top_of_stack -= 8;
+	top_of_stack -= 17;
+	top_of_stack[16] = INITIAL_XPSR;
+	top_of_stack[15] = (stack_type_t)task_func; // lr = task_entry
+	top_of_stack[8] = THREAD_PSP;               //_lr = 0xfffffffd
 
 	new_task->top_of_stack = top_of_stack;
 }
 
-void kernel(void)
+void scheduling(void)
 {
 	int i, j;
 	tcb_t *_task;
@@ -179,66 +172,20 @@ void os_start(void)
 	/* initialize systick timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
-	/* trigger svc handler to jump to the first task */
-	asm("svc 0 \n"
-	    "nop   \n");
+	while(1) {
+		scheduling();
+		jump_to_user_space((uint32_t)curr_tcb);
+	}
 }
 
-__attribute__((naked)) void SVC_Handler(void)
+__attribute__((naked)) void task_yield(void)
 {
-	asm("ldr r3, =curr_tcb   \n"   //r3 <- &curr_tcb
-	    "ldr r1, [r3]        \n"   //r1 <- curr_tcb
-	    "ldr r0, [r1]        \n"   //r0 <- curr_tcb->top_of_stack
-	    "ldmia r0!, {r4-r11} \n"   //load r4-r11 from the stack pointed by the r0
-	    "msr psp, r0         \n"   //psp <- r0
-	    "mov r0, #0          \n"   //r0 <- #0
-	    "msr basepri, r0     \n"   //basepri <- #0 (disable all interrupts)
-	    "orr r14, #0xd       \n"   //logic or the r14 with 0xd (EXC_RETURN)
-	    "bx r14              \n"); //trigger EXC_RETURN and jump to the address by pc
-}
-
-void task_yield(void)
-{
-	/* set NVIC PENDSV set bit */
-	*((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
+	asm("svc 0\n"
+	    "nop");
 }
 
 void task_delay(uint32_t ticks_to_delay)
 {
 	curr_tcb->ticks_to_delay = ticks_to_delay;
 	curr_tcb->status = TASK_WAIT;
-	task_yield();
-}
-
-#define CONTEXT_SWITCH() \
-	asm(/* save context of the current task */ \
-            "mrs r0, psp          \n"    /*r0 <- psp */ \
-            "ldr r3, =curr_tcb    \n"    /*r3 <- &curr_tcb */ \
-            "ldr r2, [r3]         \n"    /*r2 <- curr_tcb */ \
-            "stmdb r0!, {r4-r11}  \n"    /*store r4-r11 to the stack pointed by the r0 */ \
-            "str r0, [r2]         \n"    /*curr_tcb->top_of_stack (r2) <- r0 (update stack pointer) */ \
-            "stmdb sp!, {r3, r14} \n"    /*temporarily store r3 and r14 to the msp */ \
-            "mov r0, %0           \n"    /*set masked interrupt priority */ \
-            "msr basepri, r0      \n"    /*interrupt with priority less than r0 will be disable */ \
-            /* select tcb of the next task */ \
-            "bl kernel            \n"    /*jump to the kernel space */ \
-            /* switch the context to the next task */ \
-            "mov r0, #0           \n"    /*r0 <- #0 */ \
-            "msr basepri, r0      \n"    /*enable the interrupts */ \
-            "ldmia sp!, {r3, r14} \n"    /*reload r3 and r14 from the msp */ \
-            "ldr r1, [r3]         \n"    /*r1 <- curr_tcb */ \
-            "ldr r0, [r1]         \n"    /*r0 <- curr_tcb->top_of_stack */ \
-            "ldmia r0!, {r4-r11}  \n"    /*load r4-r11 from the stack pointed by the r0 */ \
-            "msr psp, r0          \n"    /*replace psp to the stack of the next tcb (r0) */ \
-            "bx r14               \n"    /*trigger EXC_RETURN (0xfffffffd) and jump to the address by the pc */ \
-            "nop                  \n" :: /*instruction pipe synchronization */ \
-            "i"(SYSCALL_INT_PRIORITY_MAX))
-
-__attribute__((naked)) void SysTick_Handler(void)
-{
-	CONTEXT_SWITCH();
-}
-__attribute__((naked)) void PendSV_Handler(void)
-{
-	CONTEXT_SWITCH();
 }
