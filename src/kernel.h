@@ -2,7 +2,7 @@
 #define __TASK_H__
 
 #include <stdint.h>
-#include "config_rtos.h"
+#include "os_config.h"
 
 typedef uint32_t stack_type_t;
 typedef void (*task_function_t)(void *);

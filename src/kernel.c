@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "stm32f4xx.h"
-#include "task.h"
-#include "config_rtos.h"
+#include "kernel.h"
+#include "os_config.h"
 
 #define INITIAL_XPSR (0x01000000)
 
@@ -103,7 +103,7 @@ void task_register(task_function_t task_func,
 	new_task->top_of_stack = top_of_stack;
 }
 
-void select_task(void)
+void kernel(void)
 {
 	int i, j;
 	tcb_t *_task;
@@ -221,7 +221,7 @@ void task_delay(uint32_t ticks_to_delay)
             "mov r0, %0           \n"    /*set masked interrupt priority */ \
             "msr basepri, r0      \n"    /*interrupt with priority less than r0 will be disable */ \
             /* select tcb of the next task */ \
-            "bl select_task       \n"    /*jump to the kernel space */ \
+            "bl kernel            \n"    /*jump to the kernel space */ \
             /* switch the context to the next task */ \
             "mov r0, #0           \n"    /*r0 <- #0 */ \
             "msr basepri, r0      \n"    /*enable the interrupts */ \
