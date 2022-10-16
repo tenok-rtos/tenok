@@ -2,7 +2,7 @@
 #include "stm32f4xx_gpio.h"
 #include "gpio.h"
 #include "uart.h"
-#include "task.h"
+#include "kernel.h"
 
 tcb_t tcb1;
 tcb_t tcb2;
