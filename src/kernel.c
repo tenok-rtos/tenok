@@ -85,12 +85,12 @@ void task_register(task_function_t task_func,
 
 	/* stack design contains two parts:
 	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for exception return), and
-         * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
+	 * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
 
 	uint32_t *stack_top = new_task->stack + stack_depth;
-	stack_top -= 17;
-	stack_top[16] = INITIAL_XPSR;
-	stack_top[15] = (uint32_t)task_func; // lr = task_entry
+	stack_top -= 18;
+	stack_top[17] = INITIAL_XPSR;
+	stack_top[16] = (uint32_t)task_func; // lr = task_entry
 	stack_top[8]  = THREAD_PSP;          //_lr = 0xfffffffd
 
 	new_task->stack_top = (user_stack_t *)stack_top;
@@ -176,20 +176,16 @@ void os_start(void)
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
 	while(1) {
+		/* system call handler */
+		if(curr_tcb->stack_top->_r7 == 2) {
+			curr_tcb->ticks_to_delay = curr_tcb->stack_top->r0;
+			curr_tcb->status = TASK_WAIT;
+
+			curr_tcb->stack_top->_r7 = 0;
+			curr_tcb->stack_top->r0 = 0; //retval of the syscall
+		}
+
 		scheduling();
 		curr_tcb->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)curr_tcb->stack_top);
 	}
-}
-
-void task_yield(void)
-{
-	asm("svc 0\n"
-	    "nop");
-}
-
-void task_delay(uint32_t ticks_to_delay)
-{
-	curr_tcb->ticks_to_delay = ticks_to_delay;
-	curr_tcb->status = TASK_WAIT;
-	task_yield();
 }

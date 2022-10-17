@@ -50,7 +50,8 @@ OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
 
 ASM=./startup/startup_stm32f4xx.s \
-	./src/context_switch.s
+	./src/context_switch.s \
+	./src/syscall.s
 
 all:$(ELF)
 
