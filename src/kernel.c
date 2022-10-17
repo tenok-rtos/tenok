@@ -17,12 +17,6 @@ tcb_t *curr_tcb = NULL;
 
 tcb_t tcb_idle_task;
 
-void task_exit_error(void)
-{
-	/* should never be happened */
-	while(1);
-}
-
 void task_idle(void *param)
 {
 	/* idle task is a task with the lowest priority.
