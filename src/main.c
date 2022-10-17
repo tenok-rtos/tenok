@@ -19,8 +19,7 @@ void task1(void *param)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
 
-		task_yield();
-		//task_delay(1000);
+		task_delay(1000);
 
 		state = (state + 1) % 2;
 	}
@@ -33,8 +32,7 @@ void task2(void *param)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
-		task_yield();
-		//task_delay(1000);
+		task_delay(1000);
 
 		state = (state + 1) % 2;
 	}
