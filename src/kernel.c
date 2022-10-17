@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 #include "stm32f4xx.h"
 #include "kernel.h"
 #include "syscall.h"
@@ -57,14 +58,13 @@ void task_create(task_function_t task_func, uint8_t priority)
 	tasks[task_nums].pid = task_nums;
 	tasks[task_nums].status = TASK_READY;
 	tasks[task_nums].priority = priority;
-
-	uint32_t stack_depth = TASK_STACK_SIZE; //TODO: variable size?
+	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
 	/* stack design contains three parts:
 	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setting exception return),
 	 * _r7 (for passing system call number), and
 	 * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
-	uint32_t *stack_top = tasks[task_nums].stack + stack_depth - 18;
+	uint32_t *stack_top = tasks[task_nums].stack + tasks[task_nums].stack_size - 18;
 	stack_top[17] = INITIAL_XPSR;
 	stack_top[16] = (uint32_t)task_func; // lr = task_entry
 	stack_top[8]  = THREAD_PSP;          //_lr = 0xfffffffd
@@ -113,6 +113,31 @@ void schedule(void)
 
 void sys_fork(void)
 {
+	if(task_nums > TASK_NUM_MAX) {
+		curr_task->stack_top->r0 = -1; //set failed retval
+	}
+
+	/* calculate the used space of the parent task's stack */
+	uint32_t *parent_stack_end = curr_task->stack + curr_task->stack_size;
+	uint32_t stack_used = parent_stack_end - (uint32_t *)curr_task->stack_top;
+
+	tasks[task_nums].pid = task_nums;
+	tasks[task_nums].status = TASK_READY;
+	tasks[task_nums].priority = curr_task->priority;
+	tasks[task_nums].stack_size = curr_task->stack_size;
+	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
+
+	/* copy the stack of the used part only */
+	memcpy(tasks[task_nums].stack_top, curr_task->stack_top, sizeof(uint32_t)*stack_used);
+
+	/* clear the syscall number */
+	curr_task->stack_top->_r7 = 0;
+
+	/* set retval */
+	curr_task->stack_top->r0 = task_nums;            //return to child pid the parent task
+	tasks[task_nums].stack_top->r0 = curr_task->pid; //return to 0 the child task
+
+	task_nums++;
 }
 
 void sys_sleep(void)
@@ -124,7 +149,7 @@ void sys_sleep(void)
 	/* clear the syscall number */
 	curr_task->stack_top->_r7 = 0;
 
-	/* update retval */
+	/* set retval */
 	curr_task->stack_top->r0 = 0;
 }
 
@@ -162,7 +187,7 @@ void sys_getpid(void)
 	/* clear the syscall number */
 	curr_task->stack_top->_r7 = 0;
 
-	/* update retval */
+	/* set retval */
 	curr_task->stack_top->r0 = curr_task->pid;
 }
 
