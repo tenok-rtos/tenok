@@ -9,9 +9,10 @@ typedef struct {
 	uint32_t num;
 } syscall_info_t;
 
-int fork();
+int fork(void);
 uint32_t sleep(uint32_t ticks);
 uint32_t getpriority(void);
+int setpriority(int which, int who, int prio);
 int getpid(void);
 
 #endif

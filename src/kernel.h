@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "os_config.h"
 
+#define	PRIO_PROCESS 0
+#define	PRIO_PGRP    1
+#define	PRIO_USER    2
+
 typedef void (*task_function_t)(void *);
 
 enum {
@@ -42,9 +46,9 @@ typedef struct tcb {
 	uint32_t stack[TASK_STACK_SIZE]; //stack memory
 	uint32_t stack_size;
 
-	uint32_t pid;
-	uint8_t  priority;
 	uint8_t  status;
+	uint32_t pid;
+	int      priority;
 
 	uint32_t ticks_to_delay;
 }  tcb_t;

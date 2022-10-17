@@ -130,9 +130,6 @@ void sys_fork(void)
 	/* copy the stack of the used part only */
 	memcpy(tasks[task_nums].stack_top, curr_task->stack_top, sizeof(uint32_t)*stack_used);
 
-	/* clear the syscall number */
-	curr_task->stack_top->_r7 = 0;
-
 	/* set retval */
 	curr_task->stack_top->r0 = task_nums;            //return to child pid the parent task
 	tasks[task_nums].stack_top->r0 = curr_task->pid; //return to 0 the child task
@@ -145,9 +142,6 @@ void sys_sleep(void)
 	/* setup the delay timer and change the task status */
 	curr_task->ticks_to_delay = curr_task->stack_top->r0;
 	curr_task->status = TASK_WAIT;
-
-	/* clear the syscall number */
-	curr_task->stack_top->_r7 = 0;
 
 	/* set retval */
 	curr_task->stack_top->r0 = 0;
@@ -171,23 +165,39 @@ void sys_write(void)
 
 void sys_getpriority(void)
 {
-	/* clear the syscall number */
-	curr_task->stack_top->_r7 = 0;
-
-	/* update retval */
+	/* return the task priority with r0 */
 	curr_task->stack_top->r0 = curr_task->priority;
 }
 
 void sys_setpriority(void)
 {
+	int which = curr_task->stack_top->r0;
+	int who = curr_task->stack_top->r1;
+	int priority = curr_task->stack_top->r2;
+
+	/* unsupported `which' type */
+	if(which != PRIO_PROCESS) {
+		curr_task->stack_top->r0 = -1; //set retval to -1
+		return;
+	}
+
+	/* compare pid and set new priority */
+	int i;
+	for(i = 0; i < task_nums; i++) {
+		if(tasks[i].pid == who) {
+			tasks[i].priority = priority;
+			curr_task->stack_top->r0 = 0;  //set retval to 0
+			return;
+		}
+	}
+
+	/* process not found */
+	curr_task->stack_top->r0 = -1; //set retval to -1
 }
 
 void sys_getpid(void)
 {
-	/* clear the syscall number */
-	curr_task->stack_top->_r7 = 0;
-
-	/* set retval */
+	/* return the task pid with r0 */
 	curr_task->stack_top->r0 = curr_task->pid;
 }
 
@@ -221,7 +231,12 @@ void os_start(void)
 		/* system call handler */
 		for(i = 0; i < syscall_table_size; i++) {
 			if(curr_task->stack_top->_r7 == syscall_table[i].num) {
+				/* execute the syscall service */
 				syscall_table[i].syscall_handler();
+
+				/* clear the syscall number */
+				curr_task->stack_top->_r7 = 0;
+
 				break;
 			}
 		}

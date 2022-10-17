@@ -18,6 +18,7 @@ void task1(void)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
 
 		volatile int pid = getpid();
+		volatile int retval = setpriority(0, 2, 3);
 
 		sleep(1000);
 

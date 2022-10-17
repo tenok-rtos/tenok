@@ -9,6 +9,9 @@
 .type getpriority, %function
 .global getpriority
 
+.type setpriority, %function
+.global setpriority
+
 .type getpid, %function
 .global getpid
 
@@ -29,6 +32,9 @@ sleep:
 
 getpriority:
 	syscall #7
+
+setpriority:
+	syscall #8
 
 getpid:
 	syscall #9
