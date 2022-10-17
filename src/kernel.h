@@ -40,6 +40,7 @@ typedef struct {
 typedef struct tcb {
 	user_stack_t *stack_top;         //pointer of the stack top address
 	uint32_t stack[TASK_STACK_SIZE]; //stack memory
+	uint32_t stack_size;
 
 	uint32_t pid;
 	uint8_t  priority;

@@ -12,6 +12,6 @@ typedef struct {
 int fork();
 uint32_t sleep(uint32_t ticks);
 uint32_t getpriority(void);
-uint32_t getpid(void);
+int getpid(void);
 
 #endif
