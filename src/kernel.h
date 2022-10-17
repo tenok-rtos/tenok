@@ -41,8 +41,6 @@ struct tcb {
 	user_stack_t *stack_top;         //pointer of the stack top address
 	uint32_t stack[TASK_STACK_SIZE]; //stack memory
 
-	char task_name[TASK_NAME_LEN_MAX];
-
 	int priority;
 	int status;
 
@@ -53,12 +51,7 @@ struct tcb {
 };
 typedef struct tcb tcb_t;
 
-void task_register(task_function_t task_func,
-                   const char *task_name,
-                   uint32_t stack_depth,
-                   void * const task_params,
-                   uint32_t priority,
-                   tcb_t *tcb);
+void task_create(task_function_t task_func, uint32_t priority);
 void os_start(void);
 
 void os_env_init(uint32_t stack);

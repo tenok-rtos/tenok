@@ -5,9 +5,6 @@
 #include "kernel.h"
 #include "syscall.h"
 
-tcb_t tcb1;
-tcb_t tcb2;
-
 void delay(uint32_t count)
 {
 	while(count--);
@@ -44,8 +41,8 @@ int main(void)
 	led_init();
 	uart3_init();
 
-	task_register(task1, "task1", 0, NULL, 1, &tcb1);
-	task_register(task2, "task2", 0, NULL, 2, &tcb2);
+	task_create(task1, 1);
+	task_create(task2, 2);
 
 	os_start();
 
