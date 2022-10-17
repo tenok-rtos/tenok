@@ -30,6 +30,9 @@ void task2(void *param)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
+		volatile uint32_t pri = getpriority();
+		volatile uint32_t pid = getpid();
+
 		sleep(1000);
 
 		state = (state + 1) % 2;
