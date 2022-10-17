@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include "stm32f4xx.h"
 #include "kernel.h"
+#include "syscall.h"
 #include "os_config.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
@@ -10,12 +11,38 @@
 
 #define INITIAL_XPSR 0x01000000
 
+void sys_fork(void);
+void sys_sleep(void);
+void sys_open(void);
+void sys_close(void);
+void sys_read(void);
+void sys_write(void);
+void sys_getpriority(void);
+void sys_setpriority(void);
+void sys_getpid(void);
+void sys_mkdir(void);
+void sys_rmdir(void);
+
 tcb_t *tasks[OS_MAX_PRIORITY] = {NULL};
 int task_nums[OS_MAX_PRIORITY] = {0};
 
 tcb_t *curr_tcb = NULL;
 
 tcb_t tcb_idle_task;
+
+syscall_info_t syscall_table[] = {
+	DEF_SYSCALL(fork, 1),
+	DEF_SYSCALL(sleep, 2),
+	DEF_SYSCALL(open, 3),
+	DEF_SYSCALL(close, 4),
+	DEF_SYSCALL(read, 5),
+	DEF_SYSCALL(write, 6),
+	DEF_SYSCALL(getpriority, 7),
+	DEF_SYSCALL(setpriority, 8),
+	DEF_SYSCALL(getpid, 9),
+	DEF_SYSCALL(mkdir, 10),
+	DEF_SYSCALL(rmdir, 11)
+};
 
 void task_idle(void *param)
 {
@@ -90,7 +117,7 @@ void task_register(task_function_t task_func,
 	new_task->stack_top = (user_stack_t *)stack_top;
 }
 
-void scheduling(void)
+void schedule(void)
 {
 	int i, j;
 	tcb_t *_task;
@@ -148,6 +175,55 @@ void scheduling(void)
 	}
 }
 
+void sys_fork(void)
+{
+}
+
+void sys_sleep(void)
+{
+	curr_tcb->ticks_to_delay = curr_tcb->stack_top->r0;
+	curr_tcb->status = TASK_WAIT;
+
+	curr_tcb->stack_top->_r7 = 0;
+	curr_tcb->stack_top->r0 = 0; //retval of the syscall
+}
+
+void sys_open(void)
+{
+}
+
+void sys_close(void)
+{
+}
+
+void sys_read(void)
+{
+}
+
+void sys_write(void)
+{
+}
+
+void sys_getpriority(void)
+{
+}
+
+void sys_setpriority(void)
+{
+}
+
+void sys_getpid(void)
+{
+}
+
+void sys_mkdir(void)
+{
+}
+
+void sys_rmdir(void)
+{
+}
+
 void os_start(void)
 {
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
@@ -169,17 +245,19 @@ void os_start(void)
 	/* initialize systick timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
+	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
+
 	while(1) {
 		/* system call handler */
-		if(curr_tcb->stack_top->_r7 == 2) {
-			curr_tcb->ticks_to_delay = curr_tcb->stack_top->r0;
-			curr_tcb->status = TASK_WAIT;
-
-			curr_tcb->stack_top->_r7 = 0;
-			curr_tcb->stack_top->r0 = 0; //retval of the syscall
+		for(i = 0; i < syscall_table_size; i++) {
+			if(curr_tcb->stack_top->_r7 == syscall_table[i].num) {
+				syscall_table[i].syscall_handler();
+				break;
+			}
 		}
 
-		scheduling();
+		schedule();
+
 		curr_tcb->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)curr_tcb->stack_top);
 	}
 }
