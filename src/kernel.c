@@ -156,6 +156,9 @@ void scheduling(void)
 
 void os_start(void)
 {
+	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
+	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
+
 	/* register a idle task that do nothing */
 	task_register(task_idle, "idle task", 0, NULL, 0, &tcb_idle_task);
 
@@ -174,11 +177,11 @@ void os_start(void)
 
 	while(1) {
 		scheduling();
-		jump_to_user_space((uint32_t)curr_tcb);
+		curr_tcb->top_of_stack = jump_to_user_space((uint32_t)curr_tcb->top_of_stack);
 	}
 }
 
-__attribute__((naked)) void task_yield(void)
+void task_yield(void)
 {
 	asm("svc 0\n"
 	    "nop");
@@ -188,4 +191,5 @@ void task_delay(uint32_t ticks_to_delay)
 {
 	curr_tcb->ticks_to_delay = ticks_to_delay;
 	curr_tcb->status = TASK_WAIT;
+	task_yield();
 }
