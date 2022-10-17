@@ -24,6 +24,7 @@ typedef struct {
 	uint32_t r10;
 	uint32_t r11;
 	uint32_t _lr;
+	uint32_t _r7; //syscall number
 	uint32_t r0;
 	uint32_t r1;
 	uint32_t r2;
