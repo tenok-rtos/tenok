@@ -8,7 +8,7 @@
 #define THREAD_MSP   0xFFFFFFF9
 #define THREAD_PSP   0xFFFFFFFD
 
-#define INITIAL_XPSR (0x01000000)
+#define INITIAL_XPSR 0x01000000
 
 tcb_t *tasks[OS_MAX_PRIORITY] = {NULL};
 int task_nums[OS_MAX_PRIORITY] = {0};
@@ -65,7 +65,7 @@ void task_register(task_function_t task_func,
 	}
 	task_nums[priority]++; //increase the task number
 
-	stack_depth = TASK_STACK_SIZE; //XXX: fixed size for now
+	stack_depth = TASK_STACK_SIZE; //TODO: variable size?
 	new_task->status = TASK_READY;
 	new_task->priority = priority;
 
@@ -82,18 +82,18 @@ void task_register(task_function_t task_func,
 	/*===========================*
 	 * initialize the task stack *
 	 *===========================*/
-	stack_type_t *top_of_stack = new_task->stack + stack_depth;
 
-	/* stack design contains two parts
-	 * psr, pc, lr, r12, r3, r2, r1, r0,     (for exception return)
-	 * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
+	/* stack design contains two parts:
+	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for exception return), and
+         * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
 
-	top_of_stack -= 17;
-	top_of_stack[16] = INITIAL_XPSR;
-	top_of_stack[15] = (stack_type_t)task_func; // lr = task_entry
-	top_of_stack[8] = THREAD_PSP;               //_lr = 0xfffffffd
+	uint32_t *stack_top = new_task->stack + stack_depth;
+	stack_top -= 17;
+	stack_top[16] = INITIAL_XPSR;
+	stack_top[15] = (uint32_t)task_func; // lr = task_entry
+	stack_top[8]  = THREAD_PSP;          //_lr = 0xfffffffd
 
-	new_task->top_of_stack = top_of_stack;
+	new_task->stack_top = (user_stack_t *)stack_top;
 }
 
 void scheduling(void)
@@ -177,7 +177,7 @@ void os_start(void)
 
 	while(1) {
 		scheduling();
-		curr_tcb->top_of_stack = jump_to_user_space((uint32_t)curr_tcb->top_of_stack);
+		curr_tcb->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)curr_tcb->stack_top);
 	}
 }
 
