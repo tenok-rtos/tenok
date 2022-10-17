@@ -48,12 +48,13 @@ void task_idle(void *param)
 	while(1);
 }
 
-void task_create(task_function_t task_func, uint32_t priority)
+void task_create(task_function_t task_func, uint8_t priority)
 {
 	if(task_nums > TASK_NUM_MAX) {
 		return;
 	}
 
+	tasks[task_nums].pid = task_nums;
 	tasks[task_nums].status = TASK_READY;
 	tasks[task_nums].priority = priority;
 
@@ -116,11 +117,15 @@ void sys_fork(void)
 
 void sys_sleep(void)
 {
+	/* setup the delay timer and change the task status */
 	curr_task->ticks_to_delay = curr_task->stack_top->r0;
 	curr_task->status = TASK_WAIT;
 
+	/* clear the syscall number */
 	curr_task->stack_top->_r7 = 0;
-	curr_task->stack_top->r0 = 0; //retval of the syscall
+
+	/* update retval */
+	curr_task->stack_top->r0 = 0;
 }
 
 void sys_open(void)
@@ -141,6 +146,11 @@ void sys_write(void)
 
 void sys_getpriority(void)
 {
+	/* clear the syscall number */
+	curr_task->stack_top->_r7 = 0;
+
+	/* update retval */
+	curr_task->stack_top->r0 = curr_task->priority;
 }
 
 void sys_setpriority(void)
@@ -149,6 +159,11 @@ void sys_setpriority(void)
 
 void sys_getpid(void)
 {
+	/* clear the syscall number */
+	curr_task->stack_top->_r7 = 0;
+
+	/* update retval */
+	curr_task->stack_top->r0 = curr_task->pid;
 }
 
 void sys_mkdir(void)

@@ -37,27 +37,21 @@ typedef struct {
 } user_stack_t;
 
 /* task control block */
-struct tcb {
+typedef struct tcb {
 	user_stack_t *stack_top;         //pointer of the stack top address
 	uint32_t stack[TASK_STACK_SIZE]; //stack memory
 
-	int priority;
-	int status;
+	uint32_t pid;
+	uint8_t  priority;
+	uint8_t  status;
 
 	uint32_t ticks_to_delay;
+}  tcb_t;
 
-	struct tcb *next;
-	struct tcb *last;
-};
-typedef struct tcb tcb_t;
-
-void task_create(task_function_t task_func, uint32_t priority);
+void task_create(task_function_t task_func, uint8_t priority);
 void os_start(void);
 
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
-
-void task_delay(uint32_t ms);
-void task_yield(void);
 
 #endif

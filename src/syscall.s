@@ -6,6 +6,12 @@
 .type   sleep, %function
 .global sleep
 
+.type getpriority, %function
+.global getpriority
+
+.type getpid, %function
+.global getpid
+
 .macro syscall syscall_num
 	push {r7}            //preserve old r7 for overwriting
 	mov r7, \syscall_num //write syscall number to r7 as new value
@@ -20,3 +26,9 @@ fork:
 
 sleep:
 	syscall #2
+
+getpriority:
+	syscall #7
+
+getpid:
+	syscall #9
