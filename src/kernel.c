@@ -104,8 +104,9 @@ void task_register(task_function_t task_func,
 	 * initialize the task stack *
 	 *===========================*/
 
-	/* stack design contains two parts:
-	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for exception return), and
+	/* stack design contains three parts:
+	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setting exception return),
+         * _r7 (for passing system call number), and
 	 * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
 
 	uint32_t *stack_top = new_task->stack + stack_depth;
