@@ -25,7 +25,7 @@ void sys_getpid(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
 
-list_t *ready_list = NULL;
+list_t ready_list;
 
 tcb_t tasks[TASK_NUM_MAX];
 int task_nums = 0;
@@ -59,7 +59,7 @@ void task_create(task_function_t task_func, uint8_t priority)
 	}
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_READY;
+	tasks[task_nums].status = TASK_WAIT;
 	tasks[task_nums].priority = priority;
 	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
@@ -80,37 +80,38 @@ void schedule(void)
 {
 	int i;
 
-	/* update sleep timers */
+	/* update sleep timer */
 	for(i = 0; i < task_nums; i++) {
-		if(tasks[i].ticks_to_delay > 0) {
-			tasks[i].ticks_to_delay--;
+		if(tasks[i].status == TASK_WAIT) {
+			/* update remained ticks */
+			if(tasks[i].ticks_to_delay > 0) {
+				tasks[i].ticks_to_delay--;
+			}
 
 			/* task is ready */
 			if(tasks[i].ticks_to_delay == 0) {
 				tasks[i].status = TASK_READY;
+
+				if(i == 2) {
+					volatile int dbg = 1;
+				}
+
+				/* push the task into the ready list */
+				list_push(&ready_list, &tasks[i].list);
 			}
 		}
 	}
 
-	/* change status of the current task */
-	if(curr_task->status == TASK_RUNNING) {
-		curr_task->status = TASK_READY;
+	/* freeze the current task */
+	curr_task->status = TASK_WAIT;
+
+	if(list_is_empty(&ready_list)) {
+		curr_task = &tasks[1];
+	} else {
+		/* select the next task from the ready list */
+		list_t *next = list_pop(&ready_list);
+		curr_task = container_of(next, tcb_t, list);
 	}
-
-	/* round robin */
-	while(1) {
-		curr_task_index++;
-		if(curr_task_index >= task_nums) {
-			curr_task_index = 0;
-		}
-
-		if(tasks[curr_task_index].status == TASK_READY) {
-			break;
-		}
-	}
-
-	/* assign the next task to be executed */
-	curr_task = &tasks[curr_task_index];
 	curr_task->status = TASK_RUNNING;
 }
 
@@ -125,7 +126,7 @@ void sys_fork(void)
 	uint32_t stack_used = parent_stack_end - (uint32_t *)curr_task->stack_top;
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_READY;
+	tasks[task_nums].status = TASK_WAIT;
 	tasks[task_nums].priority = curr_task->priority;
 	tasks[task_nums].stack_size = curr_task->stack_size;
 	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
@@ -218,7 +219,7 @@ void os_start(void)
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
 	/* initialize the task ready list */
-	list_init(ready_list);
+	list_init(&ready_list);
 
 	/* create a idle task that do nothing */
 	task_create(task_idle, 0);

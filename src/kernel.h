@@ -12,9 +12,9 @@
 typedef void (*task_function_t)(void *);
 
 enum {
-	TASK_READY = 0,
-	TASK_RUNNING = 1,
-	TASK_WAIT = 2,
+	TASK_WAIT = 0,
+	TASK_READY = 1,
+	TASK_RUNNING = 2,
 	TASK_SUSPENDED = 3
 };
 
