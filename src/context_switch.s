@@ -14,7 +14,7 @@
 
 SysTick_Handler:
 	/* the cpu uses the msp as the stack pointer since we are
-         * now in the interrupt handler */
+         * now in a interrupt handler */
 
 	/* enter into the kernel, disable all interrupts */
 	cpsid i
@@ -33,7 +33,7 @@ SysTick_Handler:
 
 SVC_Handler:
 	/* the cpu uses the msp as the stack pointer since we are
-         * now in the interrupt handler */
+         * now in a interrupt handler */
 
 	/* enter into the kernel, disable all interrupts */
 	cpsid i

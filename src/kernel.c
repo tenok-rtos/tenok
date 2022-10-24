@@ -77,18 +77,17 @@ void task_create(task_function_t task_func, uint8_t priority)
 
 void schedule(void)
 {
-	int i;
-
 	/* update sleep timer */
+	int i;
 	for(i = 0; i < task_nums; i++) {
 		if(tasks[i].status == TASK_WAIT) {
 			/* update remained ticks */
-			if(tasks[i].ticks_to_delay > 0) {
-				tasks[i].ticks_to_delay--;
+			if(tasks[i].remained_ticks > 0) {
+				tasks[i].remained_ticks--;
 			}
 
 			/* task is ready */
-			if(tasks[i].ticks_to_delay == 0) {
+			if(tasks[i].remained_ticks == 0) {
 				tasks[i].status = TASK_READY;
 
 				/* push the task into the ready list with respect to its priority */
@@ -100,22 +99,17 @@ void schedule(void)
 	/* freeze the current task */
 	curr_task->status = TASK_WAIT;
 
-	bool no_ready_task = true;
+	/* find a ready list that contains runnable tasks */
 	int pri;
 	for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
 		if(list_is_empty(&ready_list[pri]) == false) {
-			no_ready_task = false;
 			break;
 		}
 	}
 
-	if(no_ready_task == true) {
-		curr_task = &tasks[1];
-	} else {
-		/* select the next task from the ready list */
-		list_t *next = list_pop(&ready_list[pri]);
-		curr_task = container_of(next, tcb_t, list);
-	}
+	/* select a task from the ready list */
+	list_t *next = list_pop(&ready_list[pri]);
+	curr_task = container_of(next, tcb_t, list);
 	curr_task->status = TASK_RUNNING;
 }
 
@@ -148,7 +142,7 @@ void sys_fork(void)
 void sys_sleep(void)
 {
 	/* setup the delay timer and change the task status */
-	curr_task->ticks_to_delay = curr_task->stack_top->r0;
+	curr_task->remained_ticks = curr_task->stack_top->r0;
 	curr_task->status = TASK_WAIT;
 
 	/* set retval */

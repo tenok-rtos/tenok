@@ -51,7 +51,7 @@ typedef struct tcb {
 	uint32_t pid;
 	int      priority;
 
-	uint32_t ticks_to_delay;
+	uint32_t remained_ticks;
 
 	list_t list;
 }  tcb_t;
