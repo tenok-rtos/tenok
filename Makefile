@@ -17,6 +17,10 @@ CFLAGS+=-D STM32F4xx
 CFLAGS+=-D __FPU_PRESENT=1 \
         -D ARM_MATH_CM4 \
 	-D __FPU_USED=1
+
+USER=$(shell whoami)
+CFLAGS+=-D__USER_NAME__=\"$(USER)\"
+
 CFLAGS+=-Wl,-T,startup/stm32_flash.ld
 
 ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
@@ -45,7 +49,8 @@ SRC+=./src/kernel.c \
 	./src/gpio.c \
 	./src/uart.c \
 	./src/main.c \
-	./src/list.c
+	./src/list.c \
+	./src/shell.c
 
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)

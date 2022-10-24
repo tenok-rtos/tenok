@@ -21,7 +21,7 @@ void uart3_init(void)
 
 	/* USART initialization */
 	USART_InitTypeDef USART_InitStruct = {
-		.USART_BaudRate = 9600,
+		.USART_BaudRate = 115200,
 		.USART_Mode = USART_Mode_Rx | USART_Mode_Tx,
 		.USART_WordLength = USART_WordLength_8b,
 		.USART_StopBits = USART_StopBits_1,
@@ -34,13 +34,13 @@ void uart3_init(void)
 	USART_ClearFlag(USART3, USART_FLAG_TC);
 }
 
-char uart_getc(void)
+char uart3_getc(void)
 {
 	while(USART_GetFlagStatus(USART3, USART_FLAG_RXNE) != SET);
 	return USART_ReceiveData(USART3);
 }
 
-void uart_putc(char c)
+void uart3_putc(char c)
 {
 	/* wait until TXE (Transmit Data Register Empty) flag is set */
 	while(USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET);
@@ -49,9 +49,9 @@ void uart_putc(char c)
 	while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET);
 }
 
-void uart_puts(char *string)
+void uart3_puts(char *string)
 {
 	for(; *string != '\0'; string++) {
-		uart_putc(*string);
+		uart3_putc(*string);
 	}
 }
