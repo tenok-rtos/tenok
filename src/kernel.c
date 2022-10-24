@@ -25,13 +25,12 @@ void sys_getpid(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
 
-list_t ready_list;
+list_t ready_list[TASK_MAX_PRIORITY+1];
 
 tcb_t tasks[TASK_NUM_MAX];
 int task_nums = 0;
 
 tcb_t *curr_task = NULL;
-int curr_task_index = 0;
 
 syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(fork, 1),
@@ -92,12 +91,8 @@ void schedule(void)
 			if(tasks[i].ticks_to_delay == 0) {
 				tasks[i].status = TASK_READY;
 
-				if(i == 2) {
-					volatile int dbg = 1;
-				}
-
-				/* push the task into the ready list */
-				list_push(&ready_list, &tasks[i].list);
+				/* push the task into the ready list with respect to its priority */
+				list_push(&ready_list[tasks[i].priority], &tasks[i].list);
 			}
 		}
 	}
@@ -105,11 +100,20 @@ void schedule(void)
 	/* freeze the current task */
 	curr_task->status = TASK_WAIT;
 
-	if(list_is_empty(&ready_list)) {
+	bool no_ready_task = true;
+	int pri;
+	for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
+		if(list_is_empty(&ready_list[pri]) == false) {
+			no_ready_task = false;
+			break;
+		}
+	}
+
+	if(no_ready_task == true) {
 		curr_task = &tasks[1];
 	} else {
 		/* select the next task from the ready list */
-		list_t *next = list_pop(&ready_list);
+		list_t *next = list_pop(&ready_list[pri]);
 		curr_task = container_of(next, tcb_t, list);
 	}
 	curr_task->status = TASK_RUNNING;
@@ -218,8 +222,12 @@ void os_start(void)
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
-	/* initialize the task ready list */
-	list_init(&ready_list);
+	int i;
+
+	/* initialize task ready lists */
+	for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
+		list_init(&ready_list[i]);
+	}
 
 	/* create a idle task that do nothing */
 	task_create(task_idle, 0);
@@ -229,7 +237,6 @@ void os_start(void)
 
 	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
-	int i;
 	while(1) {
 		schedule();
 
