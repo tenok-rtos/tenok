@@ -44,7 +44,8 @@ SRC+=$(ST_LIB)/src/misc.c \
 SRC+=./src/kernel.c \
 	./src/gpio.c \
 	./src/uart.c \
-	./src/main.c
+	./src/main.c \
+	./src/list.c
 
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
