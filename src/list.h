@@ -15,5 +15,6 @@ void list_init(list_t *list);
 int list_is_empty(list_t *list);
 void list_remove(list_t *list);
 void list_push(list_t *list, list_t *new);
+list_t* list_pop(list_t *list);
 
 #endif
