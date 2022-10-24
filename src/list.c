@@ -36,3 +36,18 @@ void list_push(list_t *list, list_t *new)
 		list->last = new;
 	}
 }
+
+list_t* list_pop(list_t *list)
+{
+	//the second position of the list stores the first item
+	list_t *first = list->next;
+
+	if(list == first) {
+		return NULL;
+	}
+
+	list->next = first->next;
+	list->next->last = list;
+
+	return first;
+}

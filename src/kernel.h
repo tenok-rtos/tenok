@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "os_config.h"
+#include "list.h"
 
 #define	PRIO_PROCESS 0
 #define	PRIO_PGRP    1
@@ -51,6 +52,8 @@ typedef struct tcb {
 	int      priority;
 
 	uint32_t ticks_to_delay;
+
+	list_t list;
 }  tcb_t;
 
 void task_create(task_function_t task_func, uint8_t priority);

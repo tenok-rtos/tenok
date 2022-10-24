@@ -5,6 +5,7 @@
 #include "kernel.h"
 #include "syscall.h"
 #include "os_config.h"
+#include "list.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -23,6 +24,8 @@ void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
+
+list_t *ready_list = NULL;
 
 tcb_t tasks[TASK_NUM_MAX];
 int task_nums = 0;
@@ -213,6 +216,9 @@ void os_start(void)
 {
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
+
+	/* initialize the task ready list */
+	list_init(ready_list);
 
 	/* create a idle task that do nothing */
 	task_create(task_idle, 0);
