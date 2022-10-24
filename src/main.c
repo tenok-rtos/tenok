@@ -4,13 +4,17 @@
 #include "uart.h"
 #include "kernel.h"
 #include "syscall.h"
+#include "shell.h"
 
-void delay(uint32_t count)
-{
-	while(count--);
-}
+void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
+void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
 
-void task1(void)
+struct cmd_list_entry shell_cmd_list[] = {
+	DEF_SHELL_CMD(help)
+	DEF_SHELL_CMD(clear)
+};
+
+void led_task1(void)
 {
 	int state = 1;
 	while(1) {
@@ -26,7 +30,7 @@ void task1(void)
 	}
 }
 
-void task2(void)
+void led_task2(void)
 {
 	int state = 1;
 	while(1) {
@@ -41,10 +45,43 @@ void task2(void)
 	}
 }
 
+void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char *s = "supported commands:\n\r"
+	          "help\n\r"
+	          "clear\n\r";
+	shell_puts(s);
+}
+
+void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	shell_cls();
+}
+
+void shell_task(void)
+{
+	/* serial initialization */
+	uart3_init();
+
+	/* shell initialization */
+	char ret_shell_cmd[CMD_LEN_MAX];
+	struct shell_struct shell;
+	shell_init_struct(&shell, __USER_NAME__ "@stm32f407 > ", ret_shell_cmd);
+	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
+
+	shell_cls();
+
+	while(1) {
+		shell_cli(&shell);
+		shell_cmd_exec(&shell, shell_cmd_list, shell_cmd_cnt);
+	}
+}
+
 void first(void *param)
 {
-	if(!fork()) task1();
-	if(!fork()) task2();
+	if(!fork()) led_task1();
+	if(!fork()) led_task2();
+	if(!fork()) shell_task();
 
 	//idle loop if no work to do
 	while(1) {
