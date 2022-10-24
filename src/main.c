@@ -60,9 +60,6 @@ void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int pa
 
 void shell_task(void)
 {
-	/* serial initialization */
-	uart3_init();
-
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
 	struct shell_struct shell;
