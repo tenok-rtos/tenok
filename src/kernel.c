@@ -29,6 +29,7 @@ void sys_sem_post(void);
 void sys_sem_wait(void);
 
 list_t ready_list[TASK_MAX_PRIORITY+1];
+list_t sleep_list;
 
 tcb_t tasks[TASK_NUM_MAX];
 int task_nums = 0;
@@ -63,6 +64,9 @@ void task_create(task_func_t task_func, uint8_t priority)
 	tasks[task_nums].priority = priority;
 	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
+	/* put the new task into the sleep list */
+	list_push(&sleep_list, &tasks[task_nums].list);
+
 	/* stack design contains three parts:
 	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setting exception return),
 	 * _r7 (for passing system call number), and
@@ -78,23 +82,35 @@ void task_create(task_func_t task_func, uint8_t priority)
 
 void schedule(void)
 {
-	/* update sleep timer */
-	int i;
-	for(i = 0; i < task_nums; i++) {
-		if(tasks[i].status == TASK_WAIT_SLEEP) {
-			if(tasks[i].remained_ticks > 0) {
+	list_t *list_itr;
+	tcb_t *task_itr;
+
+	/* update sleep timers */
+	list_itr = sleep_list.next;
+	while(list_itr != &sleep_list) {
+		list_t *next = list_itr->next;
+		task_itr = list_entry(list_itr, tcb_t, list);
+
+		if(task_itr->status == TASK_WAIT_SLEEP) {
+			if(task_itr->remained_ticks > 0) {
 				/* update the remained ticks */
-				tasks[i].remained_ticks--;
-			} else if(tasks[i].remained_ticks == 0) {
+				task_itr->remained_ticks--;
+			} else if(task_itr->remained_ticks == 0) {
 				/* task is ready, push it into the ready list according to its priority */
-				tasks[i].status = TASK_READY;
-				list_push(&ready_list[tasks[i].priority], &tasks[i].list);
+				task_itr->status = TASK_READY;
+				list_remove(list_itr); //remove the task from the sleep list
+				list_push(&ready_list[task_itr->priority], list_itr);
 			}
 		}
+
+		list_itr = next;
 	}
 
 	/* freeze the current task */
-	curr_task->status = TASK_WAIT_SLEEP;
+	if(curr_task->status == TASK_RUNNING) {
+		curr_task->status = TASK_WAIT_SLEEP;
+		list_push(&sleep_list, &curr_task->list); //put current task into the sleep list
+	}
 
 	/* find a ready list that contains runnable tasks */
 	int pri;
@@ -126,6 +142,9 @@ void sys_fork(void)
 	tasks[task_nums].stack_size = curr_task->stack_size;
 	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
 
+	/* put the forked task into the sleep list */
+	list_push(&sleep_list, &tasks[task_nums].list);
+
 	/* copy the stack of the used part only */
 	memcpy(tasks[task_nums].stack_top, curr_task->stack_top, sizeof(uint32_t)*stack_used);
 
@@ -141,6 +160,9 @@ void sys_sleep(void)
 	/* setup the delay timer and change the task status */
 	curr_task->remained_ticks = curr_task->stack_top->r0;
 	curr_task->status = TASK_WAIT_SLEEP;
+
+	/* put the task into the sleep list */
+	list_push(&sleep_list, &(curr_task->list));
 
 	/* set retval */
 	curr_task->stack_top->r0 = 0;
@@ -261,6 +283,9 @@ void os_start(task_func_t first_task)
 		list_init(&ready_list[i]);
 	}
 
+	/* initialize sleep list */
+	list_init(&sleep_list);
+
 	task_create(first_task, 0);
 
 	/* initialize systick timer */
@@ -270,6 +295,7 @@ void os_start(task_func_t first_task)
 
 	/* launch the first task */
 	curr_task = &tasks[0];
+	list_pop(&sleep_list); //XXX
 	tasks[0].status = TASK_RUNNING;
 
 	while(1) {
