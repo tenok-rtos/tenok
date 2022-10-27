@@ -245,9 +245,11 @@ void os_start(void)
 
 	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
-	while(1) {
-		schedule();
+	/* launch the first task */
+	curr_task = &tasks[0];
+	tasks[0].status = TASK_RUNNING;
 
+	while(1) {
 		curr_task->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)curr_task->stack_top);
 
 		/* system call handler */
@@ -262,5 +264,7 @@ void os_start(void)
 				break;
 			}
 		}
+
+		schedule();
 	}
 }
