@@ -9,7 +9,7 @@
 #define	PRIO_PGRP    1
 #define	PRIO_USER    2
 
-typedef void (*task_function_t)(void *);
+typedef void (*task_func_t)(void *);
 
 enum {
 	TASK_WAIT_SLEEP = 0,
@@ -57,8 +57,8 @@ typedef struct tcb {
 	list_t list;
 }  tcb_t;
 
-void task_create(task_function_t task_func, uint8_t priority);
-void os_start(void);
+void task_create(task_func_t task_func, uint8_t priority);
+void os_start(task_func_t first_task);
 
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);

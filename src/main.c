@@ -91,9 +91,7 @@ int main(void)
 	led_init();
 	uart3_init();
 
-	task_create(first, 1);
-
-	os_start();
+	os_start(first);
 
 	return 0;
 }
