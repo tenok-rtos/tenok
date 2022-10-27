@@ -24,6 +24,9 @@ void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
+int sys_sem_init(void);
+int sys_sem_post(void);
+int sys_sem_wait(void);
 
 list_t ready_list[TASK_MAX_PRIORITY+1];
 
@@ -43,7 +46,10 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(setpriority, 8),
 	DEF_SYSCALL(getpid, 9),
 	DEF_SYSCALL(mkdir, 10),
-	DEF_SYSCALL(rmdir, 11)
+	DEF_SYSCALL(rmdir, 11),
+	DEF_SYSCALL(sem_init, 12),
+	DEF_SYSCALL(sem_post, 13),
+	DEF_SYSCALL(sem_wait, 14),
 };
 
 void task_idle(void *param)
@@ -208,6 +214,18 @@ void sys_mkdir(void)
 }
 
 void sys_rmdir(void)
+{
+}
+
+int sys_sem_init(void)
+{
+}
+
+int sys_sem_post(void)
+{
+}
+
+int sys_sem_wait(void)
 {
 }
 
