@@ -34,7 +34,7 @@ list_t sleep_list;
 tcb_t tasks[TASK_NUM_MAX];
 int task_nums = 0;
 
-tcb_t *curr_task = NULL;
+tcb_t *running_task = NULL;
 
 syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(fork, 1),
@@ -64,9 +64,6 @@ void task_create(task_func_t task_func, uint8_t priority)
 	tasks[task_nums].priority = priority;
 	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
-	/* put the new task into the sleep list */
-	list_push(&sleep_list, &tasks[task_nums].list);
-
 	/* stack design contains three parts:
 	 * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setting exception return),
 	 * _r7 (for passing system call number), and
@@ -83,33 +80,33 @@ void task_create(task_func_t task_func, uint8_t priority)
 void schedule(void)
 {
 	list_t *list_itr;
-	tcb_t *task_itr;
+	tcb_t  *task;
 
 	/* update sleep timers */
 	list_itr = sleep_list.next;
 	while(list_itr != &sleep_list) {
 		list_t *next = list_itr->next;
-		task_itr = list_entry(list_itr, tcb_t, list);
+		task = list_entry(list_itr, tcb_t, list);
 
-		if(task_itr->status == TASK_WAIT_SLEEP) {
-			if(task_itr->remained_ticks > 0) {
-				/* update the remained ticks */
-				task_itr->remained_ticks--;
-			} else if(task_itr->remained_ticks == 0) {
-				/* task is ready, push it into the ready list according to its priority */
-				task_itr->status = TASK_READY;
-				list_remove(list_itr); //remove the task from the sleep list
-				list_push(&ready_list[task_itr->priority], list_itr);
-			}
+		if(task->remained_ticks > 0) {
+			/* update the remained ticks */
+			task->remained_ticks--;
+		} else if(task->remained_ticks == 0) {
+			/* task is ready, push it into the ready list according to its priority */
+			task->status = TASK_READY;
+			list_remove(list_itr); //remove the task from the sleep list
+			list_push(&ready_list[task->priority], list_itr);
 		}
 
 		list_itr = next;
 	}
 
 	/* freeze the current task */
-	if(curr_task->status == TASK_RUNNING) {
-		curr_task->status = TASK_WAIT_SLEEP;
-		list_push(&sleep_list, &curr_task->list); //put current task into the sleep list
+	if(running_task->status == TASK_RUNNING) {
+		/* syscall may change the task status and put it into a list (e.g., semaphore),
+		 * if not, place it into the sleep list and change the status */
+		running_task->status = TASK_WAIT_SLEEP;
+		list_push(&sleep_list, &running_task->list);
 	}
 
 	/* find a ready list that contains runnable tasks */
@@ -122,50 +119,50 @@ void schedule(void)
 
 	/* select a task from the ready list */
 	list_t *next = list_pop(&ready_list[pri]);
-	curr_task = list_entry(next, tcb_t, list);
-	curr_task->status = TASK_RUNNING;
+	running_task = list_entry(next, tcb_t, list);
+	running_task->status = TASK_RUNNING;
 }
 
 void sys_fork(void)
 {
 	if(task_nums > TASK_NUM_MAX) {
-		curr_task->stack_top->r0 = -1; //set failed retval
+		running_task->stack_top->r0 = -1; //set failed retval
 	}
 
 	/* calculate the used space of the parent task's stack */
-	uint32_t *parent_stack_end = curr_task->stack + curr_task->stack_size;
-	uint32_t stack_used = parent_stack_end - (uint32_t *)curr_task->stack_top;
+	uint32_t *parent_stack_end = running_task->stack + running_task->stack_size;
+	uint32_t stack_used = parent_stack_end - (uint32_t *)running_task->stack_top;
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_WAIT_SLEEP;
-	tasks[task_nums].priority = curr_task->priority;
-	tasks[task_nums].stack_size = curr_task->stack_size;
+	tasks[task_nums].priority = running_task->priority;
+	tasks[task_nums].stack_size = running_task->stack_size;
 	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
 
 	/* put the forked task into the sleep list */
+	tasks[task_nums].status = TASK_WAIT_SLEEP;
 	list_push(&sleep_list, &tasks[task_nums].list);
 
 	/* copy the stack of the used part only */
-	memcpy(tasks[task_nums].stack_top, curr_task->stack_top, sizeof(uint32_t)*stack_used);
+	memcpy(tasks[task_nums].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
 	/* set retval */
-	curr_task->stack_top->r0 = task_nums;            //return to child pid the parent task
-	tasks[task_nums].stack_top->r0 = curr_task->pid; //return to 0 the child task
+	running_task->stack_top->r0 = task_nums;            //return to child pid the parent task
+	tasks[task_nums].stack_top->r0 = running_task->pid; //return to 0 the child task
 
 	task_nums++;
 }
 
 void sys_sleep(void)
 {
-	/* setup the delay timer and change the task status */
-	curr_task->remained_ticks = curr_task->stack_top->r0;
-	curr_task->status = TASK_WAIT_SLEEP;
+	/* reconfigure the timer for sleeping */
+	running_task->remained_ticks = running_task->stack_top->r0;
 
-	/* put the task into the sleep list */
-	list_push(&sleep_list, &(curr_task->list));
+	/* put the task into the sleep list and change the status */
+	running_task->status = TASK_WAIT_SLEEP;
+	list_push(&sleep_list, &(running_task->list));
 
 	/* set retval */
-	curr_task->stack_top->r0 = 0;
+	running_task->stack_top->r0 = 0;
 }
 
 void sys_open(void)
@@ -187,18 +184,18 @@ void sys_write(void)
 void sys_getpriority(void)
 {
 	/* return the task priority with r0 */
-	curr_task->stack_top->r0 = curr_task->priority;
+	running_task->stack_top->r0 = running_task->priority;
 }
 
 void sys_setpriority(void)
 {
-	int which = curr_task->stack_top->r0;
-	int who = curr_task->stack_top->r1;
-	int priority = curr_task->stack_top->r2;
+	int which = running_task->stack_top->r0;
+	int who = running_task->stack_top->r1;
+	int priority = running_task->stack_top->r2;
 
 	/* unsupported `which' type */
 	if(which != PRIO_PROCESS) {
-		curr_task->stack_top->r0 = -1; //set retval to -1
+		running_task->stack_top->r0 = -1; //set retval to -1
 		return;
 	}
 
@@ -207,19 +204,19 @@ void sys_setpriority(void)
 	for(i = 0; i < task_nums; i++) {
 		if(tasks[i].pid == who) {
 			tasks[i].priority = priority;
-			curr_task->stack_top->r0 = 0;  //set retval to 0
+			running_task->stack_top->r0 = 0;  //set retval to 0
 			return;
 		}
 	}
 
 	/* process not found */
-	curr_task->stack_top->r0 = -1; //set retval to -1
+	running_task->stack_top->r0 = -1; //set retval to -1
 }
 
 void sys_getpid(void)
 {
 	/* return the task pid with r0 */
-	curr_task->stack_top->r0 = curr_task->pid;
+	running_task->stack_top->r0 = running_task->pid;
 }
 
 void sys_mkdir(void)
@@ -232,18 +229,18 @@ void sys_rmdir(void)
 
 void sys_sem_init(void)
 {
-	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
-	//int pshared = curr_task->stack_top->r1;
-	unsigned int value = curr_task->stack_top->r2;
+	sem_t *sem = (sem_t *)running_task->stack_top->r0;
+	//int pshared = running_task->stack_top->r1;
+	unsigned int value = running_task->stack_top->r2;
 
 	sem->count = value;
 
-	curr_task->stack_top->r0 = 0;  //set retval to 0
+	running_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void sys_sem_post(void)
 {
-	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
+	sem_t *sem = (sem_t *)running_task->stack_top->r0;
 
 	sem->count++;
 	if(sem->count >= 0) {
@@ -251,24 +248,24 @@ void sys_sem_post(void)
 		//list_remove();
 
 		/* add task to the ready list */
-		//curr_task->status = TASK_READY;
+		//running_task->status = TASK_READY;
 	}
 
-	curr_task->stack_top->r0 = 0;  //set retval to 0
+	running_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void sys_sem_wait(void)
 {
-	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
+	sem_t *sem = (sem_t *)running_task->stack_top->r0;
 
 	sem->count--;
 	if(sem->count < 0) {
 		/* put the current task into the semaphore waiting list */
-		//curr_task->status = TASK_WAIT_SEMAPHORE;
+		//running_task->status = TASK_WAIT_SEMAPHORE;
 		//list_push();
 	}
 
-	curr_task->stack_top->r0 = 0;  //set retval to 0
+	running_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void os_start(task_func_t first_task)
@@ -294,21 +291,20 @@ void os_start(task_func_t first_task)
 	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
 	/* launch the first task */
-	curr_task = &tasks[0];
-	list_pop(&sleep_list); //XXX
+	running_task = &tasks[0];
 	tasks[0].status = TASK_RUNNING;
 
 	while(1) {
-		curr_task->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)curr_task->stack_top);
+		running_task->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
 
 		/* system call handler */
 		for(i = 0; i < syscall_table_size; i++) {
-			if(curr_task->stack_top->_r7 == syscall_table[i].num) {
+			if(running_task->stack_top->_r7 == syscall_table[i].num) {
 				/* execute the syscall service */
 				syscall_table[i].syscall_handler();
 
 				/* clear the syscall number */
-				curr_task->stack_top->_r7 = 0;
+				running_task->stack_top->_r7 = 0;
 
 				break;
 			}
