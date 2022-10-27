@@ -14,7 +14,7 @@ int list_is_empty(list_t *list)
 	return list->next == list;
 }
 
-void list_remove(list_t *list)
+void list_remove(struct list *list)
 {
 	if(list != NULL) {
 		list->next->last = list->last;
