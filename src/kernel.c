@@ -24,9 +24,9 @@ void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
-int sys_sem_init(void);
-int sys_sem_post(void);
-int sys_sem_wait(void);
+void sys_sem_init(void);
+void sys_sem_post(void);
+void sys_sem_wait(void);
 
 list_t ready_list[TASK_MAX_PRIORITY+1];
 
@@ -64,7 +64,7 @@ void task_create(task_function_t task_func, uint8_t priority)
 	}
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_WAIT;
+	tasks[task_nums].status = TASK_WAIT_SLEEP;
 	tasks[task_nums].priority = priority;
 	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
@@ -86,24 +86,20 @@ void schedule(void)
 	/* update sleep timer */
 	int i;
 	for(i = 0; i < task_nums; i++) {
-		if(tasks[i].status == TASK_WAIT) {
-			/* update remained ticks */
+		if(tasks[i].status == TASK_WAIT_SLEEP) {
 			if(tasks[i].remained_ticks > 0) {
+				/* update the remained ticks */
 				tasks[i].remained_ticks--;
-			}
-
-			/* task is ready */
-			if(tasks[i].remained_ticks == 0) {
+			} else if(tasks[i].remained_ticks == 0) {
+				/* task is ready, push it into the ready list according to its priority */
 				tasks[i].status = TASK_READY;
-
-				/* push the task into the ready list with respect to its priority */
 				list_push(&ready_list[tasks[i].priority], &tasks[i].list);
 			}
 		}
 	}
 
 	/* freeze the current task */
-	curr_task->status = TASK_WAIT;
+	curr_task->status = TASK_WAIT_SLEEP;
 
 	/* find a ready list that contains runnable tasks */
 	int pri;
@@ -130,7 +126,7 @@ void sys_fork(void)
 	uint32_t stack_used = parent_stack_end - (uint32_t *)curr_task->stack_top;
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_WAIT;
+	tasks[task_nums].status = TASK_WAIT_SLEEP;
 	tasks[task_nums].priority = curr_task->priority;
 	tasks[task_nums].stack_size = curr_task->stack_size;
 	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
@@ -149,7 +145,7 @@ void sys_sleep(void)
 {
 	/* setup the delay timer and change the task status */
 	curr_task->remained_ticks = curr_task->stack_top->r0;
-	curr_task->status = TASK_WAIT;
+	curr_task->status = TASK_WAIT_SLEEP;
 
 	/* set retval */
 	curr_task->stack_top->r0 = 0;
@@ -217,15 +213,15 @@ void sys_rmdir(void)
 {
 }
 
-int sys_sem_init(void)
+void sys_sem_init(void)
 {
 }
 
-int sys_sem_post(void)
+void sys_sem_post(void)
 {
 }
 
-int sys_sem_wait(void)
+void sys_sem_wait(void)
 {
 }
 
