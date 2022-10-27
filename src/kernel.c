@@ -52,11 +52,6 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(sem_wait, 14),
 };
 
-void task_idle(void *param)
-{
-	while(1);
-}
-
 void task_create(task_function_t task_func, uint8_t priority)
 {
 	if(task_nums > TASK_NUM_MAX) {
@@ -265,9 +260,6 @@ void os_start(void)
 	for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
 		list_init(&ready_list[i]);
 	}
-
-	/* create a idle task that do nothing */
-	task_create(task_idle, 0);
 
 	/* initialize systick timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
