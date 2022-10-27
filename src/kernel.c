@@ -52,7 +52,7 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(sem_wait, 14),
 };
 
-void task_create(task_function_t task_func, uint8_t priority)
+void task_create(task_func_t task_func, uint8_t priority)
 {
 	if(task_nums > TASK_NUM_MAX) {
 		return;
@@ -106,7 +106,7 @@ void schedule(void)
 
 	/* select a task from the ready list */
 	list_t *next = list_pop(&ready_list[pri]);
-	curr_task = container_of(next, tcb_t, list);
+	curr_task = list_entry(next, tcb_t, list);
 	curr_task->status = TASK_RUNNING;
 }
 
@@ -249,7 +249,7 @@ void sys_sem_wait(void)
 	curr_task->stack_top->r0 = 0;  //set retval to 0
 }
 
-void os_start(void)
+void os_start(task_func_t first_task)
 {
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
@@ -260,6 +260,8 @@ void os_start(void)
 	for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
 		list_init(&ready_list[i]);
 	}
+
+	task_create(first_task, 0);
 
 	/* initialize systick timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);

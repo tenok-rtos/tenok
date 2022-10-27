@@ -6,6 +6,9 @@
 #define container_of(ptr, type, member) \
 	((type *)((void *)ptr - offsetof(type, member)))
 
+#define list_entry(ptr, type, member) \
+	container_of(ptr, type, member)
+
 typedef struct list {
 	struct list *last;
 	struct list *next;
