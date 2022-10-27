@@ -215,14 +215,43 @@ void sys_rmdir(void)
 
 void sys_sem_init(void)
 {
+	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
+	//int pshared = curr_task->stack_top->r1;
+	unsigned int value = curr_task->stack_top->r2;
+
+	sem->count = value;
+
+	curr_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void sys_sem_post(void)
 {
+	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
+
+	sem->count++;
+	if(sem->count >= 0) {
+		/* remove task from the semaphore waiting list */
+		//list_remove();
+
+		/* add task to the ready list */
+		//curr_task->status = TASK_READY;
+	}
+
+	curr_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void sys_sem_wait(void)
 {
+	sem_t *sem = (sem_t *)curr_task->stack_top->r0;
+
+	sem->count--;
+	if(sem->count < 0) {
+		/* put the current task into the semaphore waiting list */
+		//curr_task->status = TASK_WAIT_SEMAPHORE;
+		//list_push();
+	}
+
+	curr_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void os_start(void)

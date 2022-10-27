@@ -9,7 +9,9 @@ typedef struct {
 	uint32_t num;
 } syscall_info_t;
 
-typedef int sem_t;
+typedef struct {
+	unsigned int count;
+} sem_t;
 
 int fork(void);
 uint32_t sleep(uint32_t ticks);
