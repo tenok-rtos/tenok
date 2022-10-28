@@ -57,7 +57,8 @@ DEPEND=$(SRC:.c=.d)
 
 ASM=./startup/startup_stm32f4xx.s \
 	./src/context_switch.s \
-	./src/syscall.s
+	./src/syscall.s \
+	./src/porting.s
 
 all:$(ELF)
 
