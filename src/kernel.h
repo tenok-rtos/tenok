@@ -2,6 +2,7 @@
 #define __TASK_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "os_config.h"
 #include "list.h"
 
@@ -13,10 +14,10 @@ typedef void (*task_func_t)(void *);
 
 enum {
 	TASK_WAIT_SLEEP = 0,
-	TASK_WAIT_SEMAPHORE = 2,
-	TASK_READY = 3,
-	TASK_RUNNING = 4,
-	TASK_SUSPENDED = 5
+	TASK_WAIT_SEMAPHORE = 1,
+	TASK_READY = 2,
+	TASK_RUNNING = 3,
+	TASK_SUSPENDED = 4
 };
 
 /* layout of the user stack */
@@ -53,6 +54,8 @@ typedef struct tcb {
 	int      priority;
 
 	uint32_t remained_ticks;
+
+	bool syscall_pending;
 
 	list_t list;
 }  tcb_t;

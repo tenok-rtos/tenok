@@ -14,17 +14,21 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(clear)
 };
 
+sem_t sem_led;
+
 void led_task1(void)
 {
 	int state = 1;
 	while(1) {
+		sem_wait(&sem_led);
+
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
 		volatile int pid = getpid();
 		volatile int retval = setpriority(0, 2, 3);
-
-		sleep(1000);
 
 		state = (state + 1) % 2;
 	}
@@ -34,14 +38,11 @@ void led_task2(void)
 {
 	int state = 1;
 	while(1) {
-		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
+		sem_post(&sem_led);
 
 		volatile int pid = getpid();
 
 		sleep(1000);
-
-		state = (state + 1) % 2;
 	}
 }
 
@@ -76,6 +77,8 @@ void shell_task(void)
 
 void first(void *param)
 {
+	sem_init(&sem_led, 0, 0);
+
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) shell_task();

@@ -10,8 +10,12 @@ typedef struct {
 } syscall_info_t;
 
 typedef struct {
-	unsigned int count;
+	uint32_t count;
+	list_t wait_list;
 } sem_t;
+
+uint32_t sem_up(uint32_t *_lock, uint32_t new_val);
+uint32_t sem_down(uint32_t *_lock, uint32_t new_val);
 
 int fork(void);
 uint32_t sleep(uint32_t ticks);

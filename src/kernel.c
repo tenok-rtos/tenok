@@ -233,7 +233,9 @@ void sys_sem_init(void)
 	//int pshared = running_task->stack_top->r1;
 	unsigned int value = running_task->stack_top->r2;
 
+	/* sempahore initialization */
 	sem->count = value;
+	list_init(&sem->wait_list);
 
 	running_task->stack_top->r0 = 0;  //set retval to 0
 }
@@ -242,30 +244,38 @@ void sys_sem_post(void)
 {
 	sem_t *sem = (sem_t *)running_task->stack_top->r0;
 
-	sem->count++;
-	if(sem->count >= 0) {
-		/* remove task from the semaphore waiting list */
-		//list_remove();
+	if(sem_up(&sem->count, 1)) {
+		running_task->syscall_pending = true;
+	} else {
+		running_task->syscall_pending = false;
 
-		/* add task to the ready list */
-		//running_task->status = TASK_READY;
+		/* pop one task from the semaphore waiting list */
+		list_t *waken_task_list = list_pop(&sem->wait_list);
+		tcb_t *waken_task = list_entry(waken_task_list, tcb_t, list);
+
+		/* put the task into the ready list */
+		waken_task->status = TASK_READY;
+		list_push(&ready_list[waken_task->priority], &waken_task->list);
+
+		running_task->stack_top->r0 = 0;  //set retval to 0
 	}
-
-	running_task->stack_top->r0 = 0;  //set retval to 0
 }
 
 void sys_sem_wait(void)
 {
 	sem_t *sem = (sem_t *)running_task->stack_top->r0;
 
-	sem->count--;
-	if(sem->count < 0) {
-		/* put the current task into the semaphore waiting list */
-		//running_task->status = TASK_WAIT_SEMAPHORE;
-		//list_push();
-	}
+	if(sem_down(&sem->count, 0)) {
+		running_task->syscall_pending = true;
+	} else {
+		running_task->syscall_pending = false;
 
-	running_task->stack_top->r0 = 0;  //set retval to 0
+		/* put the current task into the semaphore waiting list */
+		running_task->status = TASK_WAIT_SEMAPHORE;
+		list_push(&sem->wait_list, &running_task->list);
+
+		running_task->stack_top->r0 = 0;  //set retval to 0
+	}
 }
 
 void os_start(task_func_t first_task)
@@ -295,7 +305,11 @@ void os_start(task_func_t first_task)
 	tasks[0].status = TASK_RUNNING;
 
 	while(1) {
-		running_task->stack_top = (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
+		/* execute the task if no pending syscall service */
+		if(running_task->syscall_pending == false) {
+			running_task->stack_top =
+			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
+		}
 
 		/* system call handler */
 		for(i = 0; i < syscall_table_size; i++) {
@@ -303,8 +317,10 @@ void os_start(task_func_t first_task)
 				/* execute the syscall service */
 				syscall_table[i].syscall_handler();
 
-				/* clear the syscall number */
-				running_task->stack_top->_r7 = 0;
+				/* clear the syscall number if the service is complete */
+				if(running_task->syscall_pending == false) {
+					running_task->stack_top->_r7 = 0;
+				}
 
 				break;
 			}
