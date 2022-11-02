@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "os_config.h"
+#include "kconfig.h"
 #include "list.h"
 
 #define	PRIO_PROCESS 0
