@@ -1,0 +1,12 @@
+create and declare fifo file operations
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch master
+# Your branch is up to date with 'origin/master'.
+#
+# Changes to be committed:
+#	modified:   Makefile
+#	new file:   src/fifo.c
+#	new file:   src/fifo.h
+#
