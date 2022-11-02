@@ -50,7 +50,8 @@ SRC+=./src/kernel.c \
 	./src/uart.c \
 	./src/main.c \
 	./src/list.c \
-	./src/shell.c
+	./src/shell.c \
+	./src/mpool.c
 
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
