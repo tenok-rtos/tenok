@@ -55,7 +55,7 @@ typedef struct tcb {
 
 	uint32_t remained_ticks;
 
-	bool syscall_pending;
+	bool     syscall_pending;
 
 	list_t list;
 }  tcb_t;

@@ -7,4 +7,8 @@
 #define TASK_NUM_MAX      (10)
 #define TASK_MAX_PRIORITY (5)
 
+#define MEM_POOL_SIZE     (2048)
+
+#define FILE_LIMIT        (20)
+
 #endif
