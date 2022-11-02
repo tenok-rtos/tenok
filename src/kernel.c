@@ -4,7 +4,7 @@
 #include "stm32f4xx.h"
 #include "kernel.h"
 #include "syscall.h"
-#include "os_config.h"
+#include "kconfig.h"
 #include "list.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
