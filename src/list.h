@@ -2,9 +2,7 @@
 #define __LIST_H__
 
 #include <stddef.h>
-
-#define container_of(ptr, type, member) \
-	((type *)((void *)ptr - offsetof(type, member)))
+#include "util.h"
 
 #define list_entry(ptr, type, member) \
 	container_of(ptr, type, member)

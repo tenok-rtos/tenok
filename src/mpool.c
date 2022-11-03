@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include "mpool.h"
 
-void memory_pool_init(struct memory_pool *mem_pool, size_t size, uint8_t *mem)
+void memory_pool_init(struct memory_pool *mem_pool, uint8_t *mem, size_t size)
 {
 	mem_pool->offset = 0;
 	mem_pool->size = size;
