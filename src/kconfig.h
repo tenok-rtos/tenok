@@ -9,7 +9,7 @@
 
 #define MEM_POOL_SIZE     (2048)
 
-#define FILE_LIMIT        (20)
+#define FILE_CNT_LIMIT    (20)
 
 #define PIPE_DEPTH        (100)
 
