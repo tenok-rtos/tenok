@@ -182,10 +182,26 @@ void sys_close(void)
 
 void sys_read(void)
 {
+	int fd = running_task->stack_top->r0;
+	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
+	size_t count = running_task->stack_top->r2;
+
+	struct file *filp = &files[fd];
+	ssize_t retval = files->f_op->read(filp, buf, count, 0);
+
+	running_task->stack_top->r0 = retval; //pass return value
 }
 
 void sys_write(void)
 {
+	int fd = running_task->stack_top->r0;
+	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
+	size_t count = running_task->stack_top->r2;
+
+	struct file *filp = &files[fd];
+	ssize_t retval = files->f_op->write(filp, buf, count, 0);
+
+	running_task->stack_top->r0 = retval; //pass return value
 }
 
 void sys_getpriority(void)
@@ -244,7 +260,7 @@ void sys_sem_init(void)
 	sem->count = value;
 	list_init(&sem->wait_list);
 
-	running_task->stack_top->r0 = 0;  //set retval to 0
+	running_task->stack_top->r0 = 0; //set retval to 0
 }
 
 void sys_sem_post(void)
