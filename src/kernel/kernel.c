@@ -62,9 +62,6 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(mknod, 10),
 	DEF_SYSCALL(mkdir, 11),
 	DEF_SYSCALL(rmdir, 12),
-	DEF_SYSCALL(sem_init, 13),
-	DEF_SYSCALL(sem_post, 14),
-	DEF_SYSCALL(sem_wait, 15),
 };
 
 void task_create(task_func_t task_func, uint8_t priority)
@@ -296,57 +293,6 @@ void sys_mkdir(void)
 
 void sys_rmdir(void)
 {
-}
-
-void sys_sem_init(void)
-{
-	sem_t *sem = (sem_t *)running_task->stack_top->r0;
-	//int pshared = running_task->stack_top->r1;
-	unsigned int value = running_task->stack_top->r2;
-
-	/* sempahore initialization */
-	sem->count = value;
-	list_init(&sem->wait_list);
-
-	running_task->stack_top->r0 = 0; //set retval to 0
-}
-
-void sys_sem_post(void)
-{
-	sem_t *sem = (sem_t *)running_task->stack_top->r0;
-
-	if(sem_up(&sem->count, 1)) {
-		running_task->syscall_pending = true;
-	} else {
-		running_task->syscall_pending = false;
-
-		/* pop one task from the semaphore waiting list */
-		list_t *waken_task_list = list_pop(&sem->wait_list);
-		tcb_t *waken_task = list_entry(waken_task_list, tcb_t, list);
-
-		/* put the task into the ready list */
-		waken_task->status = TASK_READY;
-		list_push(&ready_list[waken_task->priority], &waken_task->list);
-
-		running_task->stack_top->r0 = 0;  //set retval to 0
-	}
-}
-
-void sys_sem_wait(void)
-{
-	sem_t *sem = (sem_t *)running_task->stack_top->r0;
-
-	if(sem_down(&sem->count, 0)) {
-		running_task->syscall_pending = true;
-	} else {
-		running_task->syscall_pending = false;
-
-		/* put the current task into the semaphore waiting list */
-		running_task->status = TASK_WAIT;
-		list_push(&sem->wait_list, &running_task->list);
-
-		running_task->stack_top->r0 = 0;  //set retval to 0
-	}
 }
 
 void os_start(task_func_t first_task)

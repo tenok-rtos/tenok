@@ -1,6 +1,9 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <stddef.h>
+#include <stdint.h>
+#include "list.h"
 #include "util.h"
 
 #define DEF_SYSCALL(func, _num) \
@@ -28,8 +31,5 @@ uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
 int mknod(const char *pathname, mode_t mode, dev_t dev);
-int sem_init(sem_t *sem, int pshared, unsigned int value);
-int sem_post(sem_t *sem);
-int sem_wait(sem_t *sem);
 
 #endif

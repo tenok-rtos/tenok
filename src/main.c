@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "kernel.h"
 #include "syscall.h"
+#include "semaphore.h"
 #include "shell.h"
 #include "shell_cmd.h"
 
