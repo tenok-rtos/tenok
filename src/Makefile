@@ -31,7 +31,11 @@ CFLAGS+=-I$(ST_LIB)/inc
 
 CFLAGS+=-I./
 CFLAGS+=-I./startup/
-CFLAGS+=-I./src/
+CFLAGS+=-I./common
+CFLAGS+=-I./drivers
+CFLAGS+=-I./kernel
+CFLAGS+=-I./mm
+CFLAGS+=-I./apps
 
 SRC=./lib/CMSIS/system_stm32f4xx.c
 
@@ -45,23 +49,23 @@ SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_spi.c \
 	$(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC+=./src/kernel.c \
-	./src/gpio.c \
-	./src/uart.c \
-	./src/main.c \
-	./src/list.c \
-	./src/shell.c \
-	./src/mpool.c \
-	./src/fifo.c \
-	./src/ringbuf.c
+SRC+=./kernel/fifo.c \
+	./kernel/ringbuf.c \
+	./kernel/kernel.c \
+	./mm/mpool.c \
+	./drivers/gpio.c \
+	./drivers/uart.c \
+	./kernel/list.c \
+	./apps/shell.c \
+	./main.c \
 
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
 
 ASM=./startup/startup_stm32f4xx.s \
-	./src/context_switch.s \
-	./src/syscall.s \
-	./src/porting.s
+	./kernel/context_switch.s \
+	./kernel/syscall.s \
+	./kernel/porting.s
 
 all:$(ELF)
 
