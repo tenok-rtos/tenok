@@ -54,6 +54,7 @@ SRC+=./kernel/fifo.c \
 	./kernel/list.c \
 	./kernel/kernel.c \
 	./kernel/file.c \
+	./kernel/semaphore.c \
 	./mm/mpool.c \
 	./drivers/gpio.c \
 	./drivers/uart.c \

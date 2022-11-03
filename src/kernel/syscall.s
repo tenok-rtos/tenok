@@ -48,18 +48,3 @@ mkdir:
 .global sem_init
 rmdir:
 	syscall #12
-
-.type   sem_init, %function
-.global sem_init
-sem_init:
-	syscall #13
-
-.type   sem_post, %function
-.global sem_post
-sem_post:
-	syscall #14
-
-.type   sem_wait, %function
-.global sem_wait
-sem_wait:
-	syscall #15
