@@ -51,11 +51,12 @@ SRC+=$(ST_LIB)/src/misc.c \
 
 SRC+=./kernel/fifo.c \
 	./kernel/ringbuf.c \
+	./kernel/list.c \
 	./kernel/kernel.c \
+	./kernel/file.c \
 	./mm/mpool.c \
 	./drivers/gpio.c \
 	./drivers/uart.c \
-	./kernel/list.c \
 	./apps/shell.c \
 	./main.c \
 
@@ -106,7 +107,7 @@ gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
 
 astyle:
-	astyle -r --exclude=lib --style=linux --suffix=none --indent=tab=8  *.c *.h
+	astyle --style=linux --indent=tab=8 --exclude=lib --recursive "*.c,*.h"
 
 size:
 	$(SIZE) $(ELF)

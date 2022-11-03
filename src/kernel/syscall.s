@@ -34,27 +34,32 @@ setpriority:
 getpid:
 	syscall #9
 
+.type   mknod, %function
+.global mknod
+mknod:
+	syscall #10
+
 .type   mkdir, %function
 .global mkdir
 mkdir:
-	syscall #10
-
-.type   sem_init, %function
-.global sem_init
-rmdir:
 	syscall #11
 
 .type   sem_init, %function
 .global sem_init
-sem_init:
+rmdir:
 	syscall #12
+
+.type   sem_init, %function
+.global sem_init
+sem_init:
+	syscall #13
 
 .type   sem_post, %function
 .global sem_post
 sem_post:
-	syscall #13
+	syscall #14
 
 .type   sem_wait, %function
 .global sem_wait
 sem_wait:
-	syscall #14
+	syscall #15

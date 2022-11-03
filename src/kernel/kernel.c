@@ -8,6 +8,7 @@
 #include "list.h"
 #include "mpool.h"
 #include "file.h"
+#include "fifo.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -24,6 +25,7 @@ void sys_write(void);
 void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
+void sys_mknod(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
 void sys_sem_init(void);
@@ -39,8 +41,12 @@ tcb_t tasks[TASK_NUM_MAX];
 tcb_t *running_task = NULL;
 int task_nums = 0;
 
+/* memory pool */
+struct memory_pool mem_pool;
+
 /* files */
-struct file files[FILE_LIMIT];
+struct file files[FILE_CNT_LIMIT];
+int file_count = 0;
 
 /* system call table */
 syscall_info_t syscall_table[] = {
@@ -53,11 +59,12 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(getpriority, 7),
 	DEF_SYSCALL(setpriority, 8),
 	DEF_SYSCALL(getpid, 9),
-	DEF_SYSCALL(mkdir, 10),
-	DEF_SYSCALL(rmdir, 11),
-	DEF_SYSCALL(sem_init, 12),
-	DEF_SYSCALL(sem_post, 13),
-	DEF_SYSCALL(sem_wait, 14),
+	DEF_SYSCALL(mknod, 10),
+	DEF_SYSCALL(mkdir, 11),
+	DEF_SYSCALL(rmdir, 12),
+	DEF_SYSCALL(sem_init, 13),
+	DEF_SYSCALL(sem_post, 14),
+	DEF_SYSCALL(sem_wait, 15),
 };
 
 void task_create(task_func_t task_func, uint8_t priority)
@@ -242,6 +249,47 @@ void sys_getpid(void)
 	running_task->stack_top->r0 = running_task->pid;
 }
 
+void sys_mknod(void)
+{
+	char *pathname = (char *)running_task->stack_top->r0;
+	//mode_t mode = (mode_t)running_task->stack_top->r1;
+	dev_t dev = (dev_t)running_task->stack_top->r2;
+
+	/* if file count reached the limit */
+	if(file_count >= FILE_CNT_LIMIT) {
+		running_task->stack_top->r0 = -1;
+		return;
+	}
+
+	int result;
+
+	/* create new file according to its type */
+	switch(dev) {
+	case S_IFIFO:
+		result = fifo_init(file_count, files, &mem_pool);
+		break;
+	case S_IFCHR:
+		result = -1;
+		break;
+	case S_IFBLK:
+		result = -1;
+		break;
+	case S_IFREG:
+		result = -1;
+		break;
+	default:
+		result = -1;
+		return;
+	}
+
+	/* set the return value */
+	if(result == 0) {
+		running_task->stack_top->r0 = 0;
+	} else {
+		running_task->stack_top->r0 = -1;
+	}
+}
+
 void sys_mkdir(void)
 {
 }
@@ -307,7 +355,6 @@ void os_start(task_func_t first_task)
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
 	/* initialize the memory pool */
-	struct memory_pool mem_pool;
 	uint8_t mem_pool_buf[MEM_POOL_SIZE];
 	memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 

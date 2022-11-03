@@ -6,6 +6,7 @@
 
 typedef int  ssize_t;
 typedef int  mode_t;
+typedef int  dev_t;
 typedef long loff_t;
 
 #endif
