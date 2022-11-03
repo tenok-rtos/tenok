@@ -74,7 +74,7 @@ void task_create(task_func_t task_func, uint8_t priority)
 	}
 
 	tasks[task_nums].pid = task_nums;
-	tasks[task_nums].status = TASK_WAIT_SLEEP;
+	tasks[task_nums].status = TASK_WAIT;
 	tasks[task_nums].priority = priority;
 	tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
@@ -119,7 +119,7 @@ void schedule(void)
 	if(running_task->status == TASK_RUNNING) {
 		/* syscall may change the task status and put it into a list (e.g., semaphore),
 		 * if not, place it into the sleep list and change the status */
-		running_task->status = TASK_WAIT_SLEEP;
+		running_task->status = TASK_WAIT;
 		list_push(&sleep_list, &running_task->list);
 	}
 
@@ -153,7 +153,7 @@ void sys_fork(void)
 	tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
 
 	/* put the forked task into the sleep list */
-	tasks[task_nums].status = TASK_WAIT_SLEEP;
+	tasks[task_nums].status = TASK_WAIT;
 	list_push(&sleep_list, &tasks[task_nums].list);
 
 	/* copy the stack of the used part only */
@@ -172,7 +172,7 @@ void sys_sleep(void)
 	running_task->remained_ticks = running_task->stack_top->r0;
 
 	/* put the task into the sleep list and change the status */
-	running_task->status = TASK_WAIT_SLEEP;
+	running_task->status = TASK_WAIT;
 	list_push(&sleep_list, &(running_task->list));
 
 	/* set retval */
@@ -342,7 +342,7 @@ void sys_sem_wait(void)
 		running_task->syscall_pending = false;
 
 		/* put the current task into the semaphore waiting list */
-		running_task->status = TASK_WAIT_SEMAPHORE;
+		running_task->status = TASK_WAIT;
 		list_push(&sem->wait_list, &running_task->list);
 
 		running_task->stack_top->r0 = 0;  //set retval to 0

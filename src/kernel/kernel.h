@@ -13,12 +13,10 @@
 typedef void (*task_func_t)(void *);
 
 enum {
-	TASK_WAIT_SLEEP = 0,
-	TASK_WAIT_SEMAPHORE = 1,
+	TASK_WAIT = 1,
 	TASK_READY = 2,
-	TASK_RUNNING = 3,
-	TASK_SUSPENDED = 4
-};
+	TASK_RUNNING = 2,
+} TASK_STATUS;
 
 /* layout of the user stack */
 typedef struct {
