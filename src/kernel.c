@@ -6,6 +6,8 @@
 #include "syscall.h"
 #include "kconfig.h"
 #include "list.h"
+#include "mpool.h"
+#include "file.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -28,14 +30,19 @@ void sys_sem_init(void);
 void sys_sem_post(void);
 void sys_sem_wait(void);
 
+/* task lists */
 list_t ready_list[TASK_MAX_PRIORITY+1];
 list_t sleep_list;
 
+/* tasks */
 tcb_t tasks[TASK_NUM_MAX];
+tcb_t *running_task = NULL;
 int task_nums = 0;
 
-tcb_t *running_task = NULL;
+/* files */
+struct file files[FILE_LIMIT];
 
+/* system call table */
 syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(fork, 1),
 	DEF_SYSCALL(sleep, 2),
@@ -283,9 +290,13 @@ void os_start(task_func_t first_task)
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
-	int i;
+	/* initialize the memory pool */
+	struct memory_pool mem_pool;
+	uint8_t mem_pool_buf[MEM_POOL_SIZE];
+	memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 
 	/* initialize task ready lists */
+	int i;
 	for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
 		list_init(&ready_list[i]);
 	}

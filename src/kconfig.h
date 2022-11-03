@@ -11,4 +11,6 @@
 
 #define FILE_LIMIT        (20)
 
+#define PIPE_DEPTH        (100)
+
 #endif
