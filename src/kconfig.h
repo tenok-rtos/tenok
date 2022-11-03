@@ -1,5 +1,5 @@
-#ifndef __OS_CONFIG_H__
-#define __OS_CONFIG_H__
+#ifndef __KCONFIG_H__
+#define __KCONFIG_H__
 
 #define OS_TICK_FREQUENCY (1000) //Hz
 

@@ -2,6 +2,7 @@
 #include "kernel.h"
 #include "syscall.h"
 #include "list.h"
+#include "porting.h"
 
 extern list_t ready_list[TASK_MAX_PRIORITY+1];
 extern tcb_t tasks[TASK_NUM_MAX];
@@ -17,7 +18,7 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
 
 int sem_post(sem_t *sem)
 {
-	asm("cpsid i"); //disable interrupts
+	irq_disable();
 
 	while(sem_up(&sem->count, 1) != 0); //spinlock up
 
@@ -29,14 +30,14 @@ int sem_post(sem_t *sem)
 	waken_task->status = TASK_READY;
 	list_push(&ready_list[waken_task->priority], &waken_task->list);
 
-	asm("cpsie i"); //enable interrupts
+	irq_enable();
 
 	return 0;
 }
 
 int sem_wait(sem_t *sem)
 {
-	asm("cpsid i"); //disable interrupts
+	irq_disable();
 
 	/* spinlock down */
 	while(sem_down(&sem->count, 0) != 0) {
@@ -47,7 +48,7 @@ int sem_wait(sem_t *sem)
 		}
 	}
 
-	asm("cpsie i"); //enable interrupts
+	irq_enable();
 
 	return 0;
 }
