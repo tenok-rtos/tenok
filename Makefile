@@ -52,7 +52,8 @@ SRC+=./src/kernel.c \
 	./src/list.c \
 	./src/shell.c \
 	./src/mpool.c \
-	./src/fifo.c
+	./src/fifo.c \
+	./src/ringbuf.c
 
 OBJS=$(SRC:.c=.o)
 DEPEND=$(SRC:.c=.d)
