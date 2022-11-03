@@ -58,6 +58,7 @@ SRC+=./kernel/fifo.c \
 	./drivers/gpio.c \
 	./drivers/uart.c \
 	./apps/shell.c \
+	./apps/shell_cmd.c \
 	./main.c \
 
 OBJS=$(SRC:.c=.o)
