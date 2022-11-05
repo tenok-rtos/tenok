@@ -23,8 +23,6 @@ void led_task1(void)
 
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
 		volatile int pid = getpid();
 		volatile int retval = setpriority(0, 2, 3);
@@ -41,7 +39,12 @@ void led_task2(void)
 
 		volatile int pid = getpid();
 
+		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
+
 		sleep(1000);
+
+		state = (state + 1) % 2;
 	}
 }
 
