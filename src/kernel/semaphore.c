@@ -22,7 +22,7 @@ int sem_post(sem_t *sem)
 	spin_lock_irq(&sem->lock);
 
 	sem->count++;
-	if(sem->count >= 0) {
+	if(sem->count >= 0 && !list_is_empty(&sem->wait_list)) {
 		/* pop one task from the semaphore waiting list */
 		list_t *waken_task_list = list_pop(&sem->wait_list);
 		tcb_t *waken_task = list_entry(waken_task_list, tcb_t, list);
