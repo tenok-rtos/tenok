@@ -19,5 +19,7 @@ loop:   ldrex r2, [r0]     //r2 = *lock
 .type   spin_unlock, %function
 .global spin_unlock
 spin_unlock:
-	mov r1, #0
-	str r1, [r0]
+	mov   r1, #0       //r1 = 0
+	str   r1, [r0]     //[r0] = r1
+
+	bx    lr           //return
