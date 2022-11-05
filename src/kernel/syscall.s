@@ -9,6 +9,11 @@
 	bx lr                 //return
 .endm
 
+.type   yield, %function
+.global yield
+yield:
+	syscall #0
+
 .type   fork, %function
 .global fork
 fork:

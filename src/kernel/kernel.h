@@ -13,9 +13,9 @@
 typedef void (*task_func_t)(void *);
 
 enum {
-	TASK_WAIT = 1,
-	TASK_READY = 2,
-	TASK_RUNNING = 2,
+	TASK_WAIT,
+	TASK_READY,
+	TASK_RUNNING
 } TASK_STATUS;
 
 /* layout of the user stack */
