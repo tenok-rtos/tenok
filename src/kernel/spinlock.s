@@ -15,7 +15,7 @@ loop:   ldrex r2, [r0]     //r2 = *lock
         bx    lr           //return
 
 /* unlock is easier since lock operation is exclusive and by writing
- *  zero, the lock will be release */
+ * zero, the lock will be release */
 .type   spin_unlock, %function
 .global spin_unlock
 spin_unlock:

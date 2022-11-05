@@ -48,6 +48,11 @@ void led_task2(void)
 	}
 }
 
+void spin_task()
+{
+	while(1);
+}
+
 void shell_task(void)
 {
 	/* shell initialization */
@@ -70,6 +75,7 @@ void first(void *param)
 
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
+	if(!fork()) spin_task();
 	if(!fork()) shell_task();
 
 	//idle loop if no work to do
