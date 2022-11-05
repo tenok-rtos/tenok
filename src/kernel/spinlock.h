@@ -9,8 +9,8 @@
 
 #define spin_unlock_irq(lock) \
 	do { \
-	irq_enable(); \
 	spin_unlock(lock); \
+	irq_enable(); \
 	} while(0)
 
 typedef uint32_t spinlock_t;
