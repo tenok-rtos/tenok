@@ -16,6 +16,7 @@
 
 #define INITIAL_XPSR 0x01000000
 
+void sys_yield(void);
 void sys_fork(void);
 void sys_sleep(void);
 void sys_open(void);
@@ -50,6 +51,7 @@ int file_count = 0;
 
 /* system call table */
 syscall_info_t syscall_table[] = {
+	DEF_SYSCALL(yield, 0),
 	DEF_SYSCALL(fork, 1),
 	DEF_SYSCALL(sleep, 2),
 	DEF_SYSCALL(open, 3),
@@ -132,6 +134,11 @@ void schedule(void)
 	list_t *next = list_pop(&ready_list[pri]);
 	running_task = list_entry(next, tcb_t, list);
 	running_task->status = TASK_RUNNING;
+}
+
+void sys_yield(void)
+{
+	return;
 }
 
 void sys_fork(void)
@@ -316,6 +323,7 @@ void os_start(task_func_t first_task)
 	task_create(first_task, 0);
 
 	/* initialize systick timer */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
 	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
