@@ -2,6 +2,7 @@
 #define __SEMAPHORE_H__
 
 #include "spinlock.h"
+#include "list.h"
 
 typedef struct {
 	spinlock_t lock;
