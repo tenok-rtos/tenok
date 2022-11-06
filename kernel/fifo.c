@@ -45,8 +45,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset)
 	/* block the task if the request size is larger than the fifo can serve */
 	if(size > pipe->count) {
 		/* put the current task into the file waiting list */
-		running_task->status = TASK_WAIT;
-		list_push(&filp->task_wait_list, &running_task->list);
+		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
 
 		/* turn on the syscall pending flag */
 		running_task->syscall_pending = true;
