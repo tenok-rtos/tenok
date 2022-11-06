@@ -87,15 +87,12 @@ void fifo_task2(void)
 {
 	int fd = 0;
 	char buf = 0;
-	char str[20] = "received:  \n\r";
+	char str[20] = "received:? \n\r";
 
 	while(1) {
 		read(fd, &buf, 1);
-		if(buf != 0) {
-			str[9] = buf;
-			uart3_puts(str);
-		}
-		buf = 0;
+		str[9] = buf;
+		uart3_puts(str);
 	}
 }
 
@@ -106,9 +103,9 @@ void first(void *param)
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) spin_task();
-	//if(!fork()) shell_task();
-	if(!fork()) fifo_task1();
-	if(!fork()) fifo_task2();
+	if(!fork()) shell_task();
+	//if(!fork()) fifo_task1();
+	//if(!fork()) fifo_task2();
 
 	//idle loop if no work to do
 	while(1) {

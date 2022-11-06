@@ -5,7 +5,6 @@
 #include "syscall.h"
 
 extern list_t ready_list[TASK_MAX_PRIORITY+1];
-extern tcb_t tasks[TASK_NUM_MAX];
 extern tcb_t *running_task;
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
