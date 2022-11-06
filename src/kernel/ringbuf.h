@@ -7,12 +7,12 @@
 #include "file.h"
 
 struct ringbuf {
-	struct file file;
 	int         start;
 	int         end;
 	int         count;
 	uint8_t     *data;
 	size_t      size;
+	struct file file;
 };
 
 void ringbuf_init(struct ringbuf *rb, uint8_t *data, size_t size);

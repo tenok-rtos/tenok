@@ -18,7 +18,7 @@ int mkfifo(const char *pathname, _mode_t mode)
 {
 }
 
-int fifo_init(int fd, struct file *files, struct memory_pool *mem_pool)
+int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool)
 {
 	/* initialize the ring buffer pipe */
 	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
@@ -27,7 +27,7 @@ int fifo_init(int fd, struct file *files, struct memory_pool *mem_pool)
 
 	/* register fifo to the file table */
 	pipe->file.f_op = &fifo_ops;
-	files[fd] = pipe->file;
+	files[fd] = &pipe->file;
 
 	return 0;
 }

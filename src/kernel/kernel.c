@@ -47,7 +47,7 @@ int task_nums = 0;
 struct memory_pool mem_pool;
 
 /* files */
-struct file files[FILE_CNT_LIMIT];
+struct file *files[FILE_CNT_LIMIT];
 int file_count = 0;
 
 /* system call table */
@@ -211,8 +211,8 @@ void sys_read(void)
 	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
 	size_t count = running_task->stack_top->r2;
 
-	struct file *filp = &files[fd];
-	ssize_t retval = files->f_op->read(filp, buf, count, 0);
+	struct file *filp = files[fd];
+	ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
 	running_task->stack_top->r0 = retval; //pass return value
 }
@@ -223,8 +223,8 @@ void sys_write(void)
 	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
 	size_t count = running_task->stack_top->r2;
 
-	struct file *filp = &files[fd];
-	ssize_t retval = files->f_op->write(filp, buf, count, 0);
+	struct file *filp = files[fd];
+	ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
 	running_task->stack_top->r0 = retval; //pass return value
 }
@@ -284,7 +284,7 @@ void sys_mknod(void)
 	/* create new file according to its type */
 	switch(dev) {
 	case S_IFIFO:
-		result = fifo_init(file_count, files, &mem_pool);
+		result = fifo_init(file_count, (struct file **)&files, &mem_pool);
 		break;
 	case S_IFCHR:
 		result = -1;
