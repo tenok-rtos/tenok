@@ -5,8 +5,8 @@
         ((type *)((void *)ptr - offsetof(type, member)))
 
 typedef int  ssize_t;
-typedef int  mode_t;
-typedef int  dev_t;
+typedef int  _mode_t;
+typedef int  _dev_t;
 typedef long loff_t;
 
 #endif
