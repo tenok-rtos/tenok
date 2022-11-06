@@ -7,7 +7,6 @@
 #include "kconfig.h"
 #include "kernel.h"
 
-extern list_t ready_list[TASK_MAX_PRIORITY+1];
 extern tcb_t *running_task;
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset);
@@ -82,12 +81,8 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offse
 
 		/* check if read request size can be fulfilled */
 		if(task->file_request.size <= pipe->count) {
-			/* pop the oldest task from the waiting list */
-			list_pop(wait_list);
-
-			/* put the task into the ready list */
-			task->status = TASK_READY;
-			list_push(&ready_list[task->priority], &task->list);
+			/* wake up the oldest task from the file waiting list */
+			wake_up(wait_list);
 		}
 	}
 

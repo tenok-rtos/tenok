@@ -69,6 +69,7 @@ void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
 
 void prepare_to_wait(list_t *q, list_t *wait, int state);
+void wake_up(list_t *wait_list);
 
 void preempt_disable(void);
 void preempt_enable(void);
