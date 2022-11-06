@@ -14,42 +14,37 @@
 yield:
 	syscall #0
 
+.type   set_irq, %function
+.global set_irq
+set_irq:
+	syscall #1
+
 .type   fork, %function
 .global fork
 fork:
-	syscall #1
+	syscall #2
 
 .type   sleep, %function
 .global sleep
 sleep:
-	syscall #2
+	syscall #3
 
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #7
+	syscall #8
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #8
+	syscall #9
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #9
+	syscall #10
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #10
-
-.type   mkdir, %function
-.global mkdir
-mkdir:
 	syscall #11
-
-.type   sem_init, %function
-.global sem_init
-rmdir:
-	syscall #12

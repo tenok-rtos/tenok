@@ -64,4 +64,7 @@ void os_start(task_func_t first_task);
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
 
+void preempt_disable(void);
+void preempt_enable(void);
+
 #endif

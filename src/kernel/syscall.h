@@ -19,6 +19,7 @@ uint32_t sem_down(uint32_t *_lock, uint32_t new_val);
 
 /* syscall function prototypes */
 void yield(void);
+void set_irq(uint32_t state);
 int fork(void);
 uint32_t sleep(uint32_t ticks);
 ssize_t read(int fd, void *buf, size_t count);
