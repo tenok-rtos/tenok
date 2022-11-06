@@ -1,4 +1,6 @@
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include "stm32f4xx_gpio.h"
 #include "gpio.h"
 #include "uart.h"
@@ -74,24 +76,29 @@ void shell_task(void)
 void fifo_task1(void)
 {
 	mknod("/test", 0, S_IFIFO);
+
 	int fd = 0;
-	char buf = 'c';
+	char data[] = "hello";
+	int len = strlen(data);
 
 	while(1) {
-		write(fd, &buf, 1);
-		sleep(1000);
+		int i;
+		for(i = 0; i < len; i++) {
+			write(fd, &data[i], 1);
+			sleep(200);
+		}
 	}
 }
 
 void fifo_task2(void)
 {
 	int fd = 0;
-	char buf = 0;
-	char str[20] = "received:? \n\r";
+	char data[10] = {0};
+	char str[20];
 
 	while(1) {
-		read(fd, &buf, 1);
-		str[9] = buf;
+		read(fd, &data, 5);
+		sprintf(str, "received: %s\n\r", data);
 		uart3_puts(str);
 	}
 }
@@ -103,9 +110,9 @@ void first(void *param)
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) spin_task();
-	if(!fork()) shell_task();
-	//if(!fork()) fifo_task1();
-	//if(!fork()) fifo_task2();
+	//if(!fork()) shell_task();
+	if(!fork()) fifo_task1();
+	if(!fork()) fifo_task2();
 
 	//idle loop if no work to do
 	while(1) {
