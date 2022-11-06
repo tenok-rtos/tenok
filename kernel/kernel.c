@@ -106,6 +106,22 @@ void prepare_to_wait(list_t *q, list_t *wait, int state)
 	task->status = TASK_WAIT;
 }
 
+/*
+ * move the task from the wait_list into the ready_list.
+ * the task will not be executed immediately and requires
+ * to wait until the scheduler select it.
+ */
+void wake_up(list_t *wait_list)
+{
+	/* pop the task from the waiting list */
+	list_t *waken_task_list = list_pop(wait_list);
+	tcb_t *waken_task = list_entry(waken_task_list, tcb_t, list);
+
+	/* put the task into the ready list */
+	list_push(&ready_list[waken_task->priority], &waken_task->list);
+	waken_task->status = TASK_READY;
+}
+
 void schedule(void)
 {
 	list_t *list_itr;
