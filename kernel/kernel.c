@@ -94,6 +94,18 @@ void task_create(task_func_t task_func, uint8_t priority)
 	task_nums++;
 }
 
+/*
+ * put the task pointed by the "wait" into the wait_list "q", and change the task state.
+ * the list "q" must contain only a sole node, i.e., wait->next = q
+ */
+void prepare_to_wait(list_t *q, list_t *wait, int state)
+{
+	list_push(q, wait);
+
+	tcb_t *task = list_entry(wait, tcb_t, list);
+	task->status = TASK_WAIT;
+}
+
 void schedule(void)
 {
 	list_t *list_itr;
@@ -122,8 +134,7 @@ void schedule(void)
 	if(running_task->status == TASK_RUNNING) {
 		/* syscall may change the task status and put it into a list (e.g., semaphore),
 		 * if not, place it into the sleep list and change the status */
-		running_task->status = TASK_WAIT;
-		list_push(&sleep_list, &running_task->list);
+		prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
 	}
 
 	/* find a ready list that contains runnable tasks */
