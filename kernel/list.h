@@ -7,6 +7,9 @@
 #define list_entry(ptr, type, member) \
 	container_of(ptr, type, member)
 
+#define list_for_each(curr, list) \
+	for ((curr) = (list)->next; (curr) != (list); (curr) = (curr)->next)
+
 typedef struct list {
 	struct list *last;
 	struct list *next;

@@ -55,7 +55,11 @@ typedef struct tcb {
 
 	bool     syscall_pending;
 
-	list_t list;
+	struct {
+		size_t size;
+	} file_request;
+
+	struct list list;
 }  tcb_t;
 
 void task_create(task_func_t task_func, uint8_t priority);
