@@ -8,11 +8,6 @@
 #include "shell.h"
 #include "shell_cmd.h"
 
-struct cmd_list_entry shell_cmd_list[] = {
-	DEF_SHELL_CMD(help)
-	DEF_SHELL_CMD(clear)
-};
-
 sem_t sem_led;
 
 void led_task1(void)
@@ -55,6 +50,12 @@ void spin_task()
 
 void shell_task(void)
 {
+	/* shell command table */
+	struct cmd_list_entry shell_cmd_list[] = {
+		DEF_SHELL_CMD(help)
+		DEF_SHELL_CMD(clear)
+	};
+
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
 	struct shell_struct shell;
