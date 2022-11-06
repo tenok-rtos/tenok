@@ -2,7 +2,6 @@
 #include "kernel.h"
 #include "list.h"
 #include "semaphore.h"
-#include "porting.h"
 #include "syscall.h"
 
 extern list_t ready_list[TASK_MAX_PRIORITY+1];

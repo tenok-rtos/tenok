@@ -3,14 +3,14 @@
 
 #define spin_lock_irq(lock) \
 	do { \
-	irq_disable(); \
+	preempt_disable(); \
 	spin_lock(lock); \
 	} while(0)
 
 #define spin_unlock_irq(lock) \
 	do { \
 	spin_unlock(lock); \
-	irq_enable(); \
+	preempt_enable(); \
 	} while(0)
 
 typedef uint32_t spinlock_t;
