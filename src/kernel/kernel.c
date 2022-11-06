@@ -270,8 +270,8 @@ void sys_getpid(void)
 void sys_mknod(void)
 {
 	char *pathname = (char *)running_task->stack_top->r0;
-	//mode_t mode = (mode_t)running_task->stack_top->r1;
-	dev_t dev = (dev_t)running_task->stack_top->r2;
+	//_mode_t mode = (_mode_t)running_task->stack_top->r1;
+	_dev_t dev = (_dev_t)running_task->stack_top->r2;
 
 	/* if file count reached the limit */
 	if(file_count >= FILE_CNT_LIMIT) {

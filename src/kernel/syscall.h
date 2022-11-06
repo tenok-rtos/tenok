@@ -27,6 +27,6 @@ ssize_t write(int fd, const void *buf, size_t count);
 uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
-int mknod(const char *pathname, mode_t mode, dev_t dev);
+int mknod(const char *pathname, _mode_t mode, _dev_t dev);
 
 #endif

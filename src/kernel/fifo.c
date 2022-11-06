@@ -14,7 +14,7 @@ static struct file_operations fifo_ops = {
 	.write = fifo_write
 };
 
-int mkfifo(const char *pathname, mode_t mode)
+int mkfifo(const char *pathname, _mode_t mode)
 {
 }
 
