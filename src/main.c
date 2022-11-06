@@ -87,7 +87,7 @@ void first(void *param)
 int main(void)
 {
 	led_init();
-	uart3_init();
+	uart3_init(115200);
 
 	os_start(first);
 

@@ -1,4 +1,4 @@
-#include "string.h"
+#include <string.h>
 #include "stm32f4xx.h"
 #include "semaphore.h"
 
@@ -7,7 +7,7 @@ sem_t sem_uart3_rx;
 
 char recvd_c;
 
-void uart3_init(void)
+void uart3_init(uint32_t baudrate)
 {
 	/* initialize the semaphores */
 	sem_init(&sem_uart3_tx, 0, 0);
@@ -32,7 +32,7 @@ void uart3_init(void)
 
 	/* initialize the uart3 */
 	USART_InitTypeDef uart3 = {
-		.USART_BaudRate = 115200,
+		.USART_BaudRate = baudrate,
 		.USART_Mode = USART_Mode_Rx | USART_Mode_Tx,
 		.USART_WordLength = USART_WordLength_8b,
 		.USART_StopBits = USART_StopBits_1,
@@ -56,45 +56,18 @@ void uart3_init(void)
 	NVIC_Init(&nvic);
 }
 
-#if 0
-char uart3_getc(void)
-{
-	while(USART_GetFlagStatus(USART3, USART_FLAG_RXNE) != SET);
-	return USART_ReceiveData(USART3);
-}
-#else
 char uart3_getc(void)
 {
 	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 	sem_wait(&sem_uart3_rx);
 	return recvd_c;
 }
-#endif
 
-void uart3_putc(char c)
+void uart3_puts(char *str)
 {
-	/* wait until TXE (Transmit Data Register Empty) flag is set */
-	while(USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET);
-	USART_SendData(USART3, c);
-	/* wait until TC (Tranmission Complete) flag is set */
-	while(USART_GetFlagStatus(USART3, USART_FLAG_TC) == RESET);
-}
-
-#if 0
-void uart3_puts(char *string)
-{
-	for(; *string != '\0'; string++) {
-		uart3_putc(*string);
-	}
-}
-#else
-void uart3_puts(char *string)
-{
-	int len = strlen(string);
-
 	/* initialize the dma */
 	DMA_InitTypeDef DMA_InitStructure = {
-		.DMA_BufferSize = (uint32_t)len,
+		.DMA_BufferSize = (uint32_t)strlen(str),
 		.DMA_FIFOMode = DMA_FIFOMode_Disable,
 		.DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
 		.DMA_MemoryBurst = DMA_MemoryBurst_Single,
@@ -107,21 +80,21 @@ void uart3_puts(char *string)
 		.DMA_Priority = DMA_Priority_Medium,
 		.DMA_Channel = DMA_Channel_7,
 		.DMA_DIR = DMA_DIR_MemoryToPeripheral,
-		.DMA_Memory0BaseAddr = (uint32_t)string
+		.DMA_Memory0BaseAddr = (uint32_t)str
 	};
 	DMA_Init(DMA1_Stream4, &DMA_InitStructure);
 	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
 
-	/*enable dma and its interrupt */
+	/* enable dma and its interrupt */
 	DMA_Cmd(DMA1_Stream4, ENABLE);
 	DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
 
 	/* trigger data sending */
 	USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
 
+	/* wait until the dma complete the transmission */
 	sem_wait(&sem_uart3_tx);
 }
-#endif
 
 void USART3_IRQHandler(void)
 {
@@ -141,3 +114,27 @@ void DMA1_Stream4_IRQHandler(void)
 	}
 }
 
+/*================================================*
+ * implementations of uart i/o with busy-waiting: *
+ *================================================*/
+
+void uart_putc(USART_TypeDef *uart, char c)
+{
+	while(USART_GetFlagStatus(uart, USART_FLAG_TXE) == RESET);
+	USART_SendData(uart, c);
+	while(USART_GetFlagStatus(uart, USART_FLAG_TC) == RESET);
+}
+
+char uart_getc(USART_TypeDef *uart)
+{
+	while(USART_GetFlagStatus(uart, USART_FLAG_RXNE) == RESET);
+	return USART_ReceiveData(uart);
+}
+
+void usart_puts(USART_TypeDef *uart, char *str, int size)
+{
+	int i;
+	for(i = 0; i < size; i++) {
+		uart_putc(uart, str[i]);
+	}
+}
