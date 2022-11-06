@@ -94,13 +94,10 @@ void task_create(task_func_t task_func, uint8_t priority)
 	task_nums++;
 }
 
-/*
- * put the task pointed by the "wait" into the wait_list "q", and change the task state.
- * the list "q" must contain only a sole node, i.e., wait->next = q
- */
-void prepare_to_wait(list_t *q, list_t *wait, int state)
+/* put the task pointed by the "wait" into the "wait_list", and change the task state. */
+void prepare_to_wait(list_t *wait_list, list_t *wait, int state)
 {
-	list_push(q, wait);
+	list_push(wait_list, wait);
 
 	tcb_t *task = list_entry(wait, tcb_t, list);
 	task->status = TASK_WAIT;
