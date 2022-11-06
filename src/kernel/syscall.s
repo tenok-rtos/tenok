@@ -29,6 +29,16 @@ fork:
 sleep:
 	syscall #3
 
+.type   read, %function
+.global read
+read:
+	syscall #6
+
+.type   write, %function
+.global write
+write:
+	syscall #7
+
 .type   getpriority, %function
 .global getpriority
 getpriority:
