@@ -7,6 +7,7 @@
 #include "semaphore.h"
 #include "shell.h"
 #include "shell_cmd.h"
+#include "file.h"
 
 sem_t sem_led;
 
@@ -70,6 +71,34 @@ void shell_task(void)
 	}
 }
 
+void fifo_task1(void)
+{
+	mknod("/test", 0, S_IFIFO);
+	int fd = 0;
+	char buf = 'c';
+
+	while(1) {
+		write(fd, &buf, 1);
+		sleep(1000);
+	}
+}
+
+void fifo_task2(void)
+{
+	int fd = 0;
+	char buf = 0;
+	char str[20] = "received:  \n\r";
+
+	while(1) {
+		read(fd, &buf, 1);
+		if(buf != 0) {
+			str[9] = buf;
+			uart3_puts(str);
+		}
+		buf = 0;
+	}
+}
+
 void first(void *param)
 {
 	sem_init(&sem_led, 0, 0);
@@ -77,7 +106,9 @@ void first(void *param)
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) spin_task();
-	if(!fork()) shell_task();
+	//if(!fork()) shell_task();
+	if(!fork()) fifo_task1();
+	if(!fork()) fifo_task2();
 
 	//idle loop if no work to do
 	while(1) {
