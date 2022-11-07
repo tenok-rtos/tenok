@@ -33,6 +33,10 @@ void sys_rmdir(void);
 void sys_sem_init(void);
 void sys_sem_post(void);
 void sys_sem_wait(void);
+void sys_mq_open(void);
+void sys_mq_send(void);
+void sys_mq_receive(void);
+void sys_mq_close(void);
 
 /* task lists */
 list_t ready_list[TASK_MAX_PRIORITY+1];
@@ -53,21 +57,25 @@ int file_count = 0;
 /* system call table */
 syscall_info_t syscall_table[] = {
 	/* non-posix syscall: */
-	DEF_SYSCALL(yield, 0),
-	DEF_SYSCALL(set_irq, 1),
+	DEF_SYSCALL(yield, 1),
+	DEF_SYSCALL(set_irq, 2),
 	/* posix syscall: */
-	DEF_SYSCALL(fork, 2),
-	DEF_SYSCALL(sleep, 3),
-	DEF_SYSCALL(open, 4),
-	DEF_SYSCALL(close, 5),
-	DEF_SYSCALL(read, 6),
-	DEF_SYSCALL(write, 7),
-	DEF_SYSCALL(getpriority, 8),
-	DEF_SYSCALL(setpriority, 9),
-	DEF_SYSCALL(getpid, 10),
-	DEF_SYSCALL(mknod, 11),
-	DEF_SYSCALL(mkdir, 12),
-	DEF_SYSCALL(rmdir, 13),
+	DEF_SYSCALL(fork, 3),
+	DEF_SYSCALL(sleep, 4),
+	DEF_SYSCALL(open, 5),
+	DEF_SYSCALL(close, 6),
+	DEF_SYSCALL(read, 7),
+	DEF_SYSCALL(write, 8),
+	DEF_SYSCALL(getpriority, 9),
+	DEF_SYSCALL(setpriority, 10),
+	DEF_SYSCALL(getpid, 11),
+	DEF_SYSCALL(mknod, 12),
+	DEF_SYSCALL(mkdir, 13),
+	DEF_SYSCALL(rmdir, 14),
+	DEF_SYSCALL(mq_open, 15),
+	DEF_SYSCALL(mq_send, 16),
+	DEF_SYSCALL(mq_receive, 17),
+	DEF_SYSCALL(mq_close, 18)
 };
 
 void task_create(task_func_t task_func, uint8_t priority)
@@ -337,6 +345,22 @@ void sys_mkdir(void)
 }
 
 void sys_rmdir(void)
+{
+}
+
+void sys_mq_open(void)
+{
+}
+
+void sys_mq_send(void)
+{
+}
+
+void sys_mq_receive(void)
+{
+}
+
+void sys_mq_close(void)
 {
 }
 
