@@ -4,7 +4,7 @@
 #include "ringbuf.h"
 #include "stdbool.h"
 
-void ringbuf_init(struct ringbuf *rb, uint8_t *data, size_t type_size, size_t ring_size)
+void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_size)
 {
 	rb->start = 0;
 	rb->end = 0;
@@ -23,30 +23,30 @@ static int ringbuf_increase(struct ringbuf *rb, int ptr)
 	return ptr;
 }
 
-void ringbuf_put(struct ringbuf *rb, const uint8_t *data)
+void ringbuf_put(struct ringbuf *rb, const void *data)
 {
 	size_t type_size = rb->type_size;
 
 	if(ringbuf_is_full(rb) == true) {
 		/* full, overwrite and shift the start pointer
 		 * to the next position */
-		memcpy(&rb->data[rb->start * type_size], data, type_size);
+		memcpy((char *)(rb->data + (rb->start * type_size)), (char *)data, type_size);
 		rb->start = ringbuf_increase(rb, rb->start);
 	} else {
 		/* not full, append new data */
-		memcpy(&rb->data[rb->end * type_size], data, type_size);
+		memcpy((char *)(rb->data + (rb->end * type_size)), (char *)data, type_size);
 		rb->count++;
 	}
 
 	rb->end = ringbuf_increase(rb, rb->end);
 }
 
-void ringbuf_get(struct ringbuf *rb, uint8_t *data)
+void ringbuf_get(struct ringbuf *rb, void *data)
 {
 	size_t type_size = rb->type_size;
 
 	if(rb->count > 0) {
-		memcpy(data, &rb->data[rb->start * rb->type_size], rb->type_size);
+		memcpy((char *)data, (char *)(rb->data + (rb->start * rb->type_size)), rb->type_size);
 		rb->start = ringbuf_increase(rb, rb->start);
 		rb->count--;
 	}
