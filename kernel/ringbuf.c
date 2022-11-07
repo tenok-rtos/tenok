@@ -46,7 +46,7 @@ void ringbuf_get(struct ringbuf *rb, void *data)
 	size_t type_size = rb->type_size;
 
 	if(rb->count > 0) {
-		memcpy((char *)data, (char *)(rb->data + (rb->start * rb->type_size)), rb->type_size);
+		memcpy((char *)data, (char *)(rb->data + (rb->start * type_size)), type_size);
 		rb->start = ringbuf_increase(rb, rb->start);
 		rb->count--;
 	}
