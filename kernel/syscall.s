@@ -12,49 +12,89 @@
 .type   yield, %function
 .global yield
 yield:
-	syscall #0
+	syscall #1
 
 .type   set_irq, %function
 .global set_irq
 set_irq:
-	syscall #1
+	syscall #2
 
 .type   fork, %function
 .global fork
 fork:
-	syscall #2
+	syscall #3
 
 .type   sleep, %function
 .global sleep
 sleep:
-	syscall #3
+	syscall #4
+
+.type   open, %function
+.global open
+open:
+	syscall #5
+
+.type   close, %function
+.global close
+close:
+	syscall #6
 
 .type   read, %function
 .global read
 read:
-	syscall #6
+	syscall #7
 
 .type   write, %function
 .global write
 write:
-	syscall #7
+	syscall #8
 
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #8
+	syscall #9
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #9
+	syscall #10
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #10
+	syscall #11
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #11
+	syscall #12
+
+.type   mkdir, %function
+.global mkdir
+mkdir:
+        syscall #13
+
+.type   rmdir, %function
+.global rmdir
+rmdir:
+        syscall #14
+
+.type   mq_open, %function
+.global mq_open
+mq_open:
+	syscall #15
+
+.type   mq_receive, %function
+.global mq_receive
+mq_receive:
+	syscall #16
+
+.type   mq_send, %function
+.global mq_send
+mq_send:
+	syscall #17
+
+.type   mq_close, %function
+.global mq_close
+mq_close:
+	syscall #18

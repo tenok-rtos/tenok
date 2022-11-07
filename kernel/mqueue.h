@@ -5,6 +5,8 @@
 #include "ringbuf.h"
 #include "mpool.h"
 
+typedef int mqd_t;
+
 int mq_init(int fd, struct file **files, struct memory_pool *mem_pool);
 
 #endif
