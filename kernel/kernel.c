@@ -9,6 +9,7 @@
 #include "mpool.h"
 #include "file.h"
 #include "fifo.h"
+#include "mqueue.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -350,14 +351,56 @@ void sys_rmdir(void)
 
 void sys_mq_open(void)
 {
+	/* read arguments */
+	char *name = (char *)running_task->stack_top->r0;
+	//int oflag = (_mode_t)running_task->stack_top->r1;
+	//_mode_t mode = (_mode_t)running_task->stack_top->r2;
+	struct mq_attr *attr = (struct mq_attr *)running_task->stack_top->r3;
+
+	/* if file count reached the limit */
+	if(file_count >= FILE_CNT_LIMIT) {
+		running_task->stack_top->r0 = -1;
+		return;
+	}
+
+	/* if file count reached the limit */
+	if(file_count < FILE_CNT_LIMIT) {
+		/* initialize a new message queue */
+		int result = mq_init(file_count, (struct file **)&files, attr, &mem_pool);
+
+		if(result == 0) {
+			running_task->stack_top->r0 = file_count; //return mqdes
+		}
+	} else {
+		running_task->stack_top->r0 = -1; //return failure number
+	}
 }
 
 void sys_mq_send(void)
 {
+	/* read arguments */
+	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
+	char *msg_ptr = (char *)running_task->stack_top->r1;
+	size_t msg_len = (size_t)running_task->stack_top->r2;
+	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
+
+	struct file *filp = files[mqdes];
+	ssize_t retval = filp->f_op->write(filp, msg_ptr, msg_len, 0);
+
+	running_task->stack_top->r0 = retval; //pass return value
 }
 
 void sys_mq_receive(void)
 {
+	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
+	char *msg_ptr = (char *)running_task->stack_top->r1;
+	size_t msg_len = (size_t)running_task->stack_top->r2;
+	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
+
+	struct file *filp = files[mqdes];
+	ssize_t retval = filp->f_op->read(filp, msg_ptr, msg_len, 0);
+
+	running_task->stack_top->r0 = retval; //pass return value
 }
 
 void sys_mq_close(void)

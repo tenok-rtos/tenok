@@ -9,22 +9,16 @@
 
 extern tcb_t *running_task;
 
-ssize_t mq_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t mq_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+static struct file_operations mq_ops;
 
-static struct file_operations mq_ops = {
-	.read = mq_read,
-	.write = mq_write
-};
-
-int mq_init(int fd, struct file **files, struct memory_pool *mem_pool)
+int mq_init(int fd, struct file **files, struct mq_attr *attr, struct memory_pool *mem_pool)
 {
 	/* initialize the ring buffer pipe */
 	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
-	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, sizeof(uint8_t) * PIPE_DEPTH);
-	ringbuf_init(pipe, pipe_mem, sizeof(uint8_t), PIPE_DEPTH);
+	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, sizeof(attr->mq_msgsize) * attr->mq_maxmsg);
+	ringbuf_init(pipe, pipe_mem, sizeof(attr->mq_msgsize), attr->mq_maxmsg);
 
-	/* register mq to the file table */
+	/* register message queue to the file table */
 	struct list *wait_list = &((&pipe->file)->task_wait_list);
 	list_init(wait_list);
 	pipe->file.f_op = &mq_ops;
@@ -33,12 +27,12 @@ int mq_init(int fd, struct file **files, struct memory_pool *mem_pool)
 	return 0;
 }
 
-ssize_t mq_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t _mq_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 
 	/* block the task if the request size is larger than the mq can serve */
-	if(size > pipe->count) {
+	if(msg_len > pipe->count) {
 		/* put the current task into the file waiting list */
 		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
 
@@ -53,22 +47,22 @@ ssize_t mq_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 	/* pop data from the pipe */
 	int i;
-	for(i = 0; i < size; i++) {
-		ringbuf_get(pipe, &buf[i]);
+	for(i = 0; i < msg_len; i++) {
+		ringbuf_get(pipe, &msg_ptr[i]);
 	}
 
-	return size;
+	return msg_len;
 }
 
-ssize_t mq_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t _mq_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 	struct list *wait_list = &filp->task_wait_list;
 
 	/* push data into the pipe */
 	int i;
-	for(i = 0; i < size; i++) {
-		ringbuf_put(pipe, &buf[i]);
+	for(i = 0; i < msg_len; i++) {
+		ringbuf_put(pipe, &msg_ptr[i]);
 	}
 
 	/* resume a blocked task if the pipe has enough data to serve */
@@ -82,5 +76,5 @@ ssize_t mq_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 		}
 	}
 
-	return size;
+	return msg_len;
 }
