@@ -13,8 +13,8 @@
 #include "mutex.h"
 
 sem_t sem_led;
-
 _pthread_mutex_t mutex_print;
+mqd_t mqdes_print;
 
 void led_task1(void)
 {
@@ -132,6 +132,42 @@ void mutex_task2(void)
 	}
 }
 
+/* define your own customized message type */
+typedef struct {
+	char data[20];
+} my_message_t;
+
+void message_queue_task1(void)
+{
+	my_message_t msg;
+
+	char *str = "hello world!\n\r";
+	strcpy(msg.data, str);
+
+	struct mq_attr attr = {
+		.mq_flags = 0,
+		.mq_maxmsg = 100,
+		.mq_msgsize = sizeof(my_message_t),
+		.mq_curmsgs = 0
+	};
+	mqdes_print = mq_open("/my_message", 0, &attr);
+
+	while(1) {
+		mq_send(mqdes_print, (char *)&msg, 1, 0);
+		sleep(200);
+	}
+}
+
+void message_queue_task2(void)
+{
+	my_message_t msg;
+
+	while(1) {
+		mq_receive(mqdes_print, (char *)&msg, 1, 0);
+		uart3_puts(msg.data);
+	}
+}
+
 void first(void *param)
 {
 	sem_init(&sem_led, 0, 0);
@@ -143,8 +179,10 @@ void first(void *param)
 	//if(!fork()) shell_task();
 	//if(!fork()) fifo_task1();
 	//if(!fork()) fifo_task2();
-	if(!fork()) mutex_task1();
-	if(!fork()) mutex_task2();
+	//if(!fork()) mutex_task1();
+	//if(!fork()) mutex_task2();
+	if(!fork()) message_queue_task1();
+	if(!fork()) message_queue_task2();
 
 	//idle loop if no work to do
 	while(1) {

@@ -11,12 +11,12 @@ extern tcb_t *running_task;
 
 static struct file_operations mq_ops;
 
-int mq_init(int fd, struct file **files, struct mq_attr *attr, struct memory_pool *mem_pool)
+int mqueue_init(int fd, struct file **files, struct mq_attr *attr, struct memory_pool *mem_pool)
 {
 	/* initialize the ring buffer pipe */
 	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
-	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, sizeof(attr->mq_msgsize) * attr->mq_maxmsg);
-	ringbuf_init(pipe, pipe_mem, sizeof(attr->mq_msgsize), attr->mq_maxmsg);
+	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
+	ringbuf_init(pipe, pipe_mem, attr->mq_msgsize, attr->mq_maxmsg);
 
 	/* register message queue to the file table */
 	struct list *wait_list = &((&pipe->file)->task_wait_list);
@@ -27,7 +27,7 @@ int mq_init(int fd, struct file **files, struct mq_attr *attr, struct memory_poo
 	return 0;
 }
 
-ssize_t _mq_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
+ssize_t mqueue_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 
@@ -54,7 +54,7 @@ ssize_t _mq_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned i
 	return msg_len;
 }
 
-ssize_t _mq_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
+ssize_t mqueue_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 	struct list *wait_list = &filp->task_wait_list;

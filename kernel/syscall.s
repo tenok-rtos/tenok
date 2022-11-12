@@ -84,14 +84,14 @@ rmdir:
 mq_open:
 	syscall #15
 
-.type   mq_receive, %function
-.global mq_receive
-mq_receive:
-	syscall #16
-
 .type   mq_send, %function
 .global mq_send
 mq_send:
+	syscall #16
+
+.type   mq_receive, %function
+.global mq_receive
+mq_receive:
 	syscall #17
 
 .type   mq_close, %function

@@ -318,6 +318,7 @@ void sys_mknod(void)
 	switch(dev) {
 	case S_IFIFO:
 		result = fifo_init(file_count, (struct file **)&files, &mem_pool);
+		file_count++;
 		break;
 	case S_IFCHR:
 		result = -1;
@@ -366,11 +367,13 @@ void sys_mq_open(void)
 	/* if file count reached the limit */
 	if(file_count < FILE_CNT_LIMIT) {
 		/* initialize a new message queue */
-		int result = mq_init(file_count, (struct file **)&files, attr, &mem_pool);
+		int result = mqueue_init(file_count, (struct file **)&files, attr, &mem_pool);
 
 		if(result == 0) {
 			running_task->stack_top->r0 = file_count; //return mqdes
 		}
+
+		file_count++;
 	} else {
 		running_task->stack_top->r0 = -1; //return failure number
 	}
@@ -385,7 +388,7 @@ void sys_mq_send(void)
 	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
 
 	struct file *filp = files[mqdes];
-	ssize_t retval = filp->f_op->write(filp, msg_ptr, msg_len, 0);
+	ssize_t retval = mqueue_send(filp, msg_ptr, msg_len, msg_prio);
 
 	running_task->stack_top->r0 = retval; //pass return value
 }
@@ -398,7 +401,7 @@ void sys_mq_receive(void)
 	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
 
 	struct file *filp = files[mqdes];
-	ssize_t retval = filp->f_op->read(filp, msg_ptr, msg_len, 0);
+	ssize_t retval = mqueue_receive(filp, msg_ptr, msg_len, msg_prio);
 
 	running_task->stack_top->r0 = retval; //pass return value
 }
