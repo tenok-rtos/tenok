@@ -11,12 +11,12 @@ typedef struct {
 	spinlock_t lock;
 	tcb_t      *owner;
 	list_t     wait_list;
-} pthread_mutex_t;
+} _pthread_mutex_t;
 
 typedef void pthread_mutex_attr_t;
 
-int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
-int pthread_mutex_unlock(pthread_mutex_t *mutex);
-int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
+int pthread_mutex_unlock(_pthread_mutex_t *mutex);
+int pthread_mutex_lock(_pthread_mutex_t *mutex);
 
 #endif

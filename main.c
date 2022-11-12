@@ -10,8 +10,11 @@
 #include "shell.h"
 #include "shell_cmd.h"
 #include "file.h"
+#include "mutex.h"
 
 sem_t sem_led;
+
+_pthread_mutex_t mutex_print;
 
 void led_task1(void)
 {
@@ -103,16 +106,45 @@ void fifo_task2(void)
 	}
 }
 
+void mutex_task1(void)
+{
+	char *str = "mutex task 1\n\r";
+	int len = strlen(str);
+
+	while(1) {
+		pthread_mutex_lock(&mutex_print);
+		usart_puts(USART3, str, len);
+		sleep(1);
+		pthread_mutex_unlock(&mutex_print);
+	}
+}
+
+void mutex_task2(void)
+{
+	char *str = "mutex task 2\n\r";
+	int len = strlen(str);
+
+	while(1) {
+		pthread_mutex_lock(&mutex_print);
+		usart_puts(USART3, str, len);
+		sleep(1);
+		pthread_mutex_unlock(&mutex_print);
+	}
+}
+
 void first(void *param)
 {
 	sem_init(&sem_led, 0, 0);
+	pthread_mutex_init(&mutex_print, 0);
 
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) spin_task();
 	//if(!fork()) shell_task();
-	if(!fork()) fifo_task1();
-	if(!fork()) fifo_task2();
+	//if(!fork()) fifo_task1();
+	//if(!fork()) fifo_task2();
+	if(!fork()) mutex_task1();
+	if(!fork()) mutex_task2();
 
 	//idle loop if no work to do
 	while(1) {
