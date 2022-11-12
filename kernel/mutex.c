@@ -6,7 +6,7 @@
 
 extern tcb_t *running_task;
 
-int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
+int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
 	mutex->owner = NULL;
 	list_init(&mutex->wait_list);
@@ -14,7 +14,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 	return 0;
 }
 
-int pthread_mutex_unlock(pthread_mutex_t *mutex)
+int pthread_mutex_unlock(_pthread_mutex_t *mutex)
 {
 	spin_lock_irq(&mutex->lock);
 
@@ -31,7 +31,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 			wake_up(&mutex->wait_list);
 		}
 	} else {
-		retval = EPERM; 
+		retval = EPERM;
 	}
 
 	spin_unlock_irq(&mutex->lock);
@@ -39,7 +39,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 	return retval;
 }
 
-int pthread_mutex_lock(pthread_mutex_t *mutex)
+int pthread_mutex_lock(_pthread_mutex_t *mutex)
 {
 	spin_lock_irq(&mutex->lock);
 
@@ -58,4 +58,4 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
 	}
 
 	return 0;
-} 
+}
