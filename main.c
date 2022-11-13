@@ -154,7 +154,7 @@ void message_queue_task1(void)
 
 	while(1) {
 		mq_send(mqdes_print, (char *)&msg, 1, 0);
-		sleep(200);
+		sleep(1000);
 	}
 }
 
