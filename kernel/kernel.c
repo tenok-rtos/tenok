@@ -17,6 +17,7 @@
 
 #define INITIAL_XPSR 0x01000000
 
+void systick_irq(void);
 void sys_yield(void);
 void sys_set_irq(void);
 void sys_fork(void);
@@ -58,6 +59,8 @@ int file_count = 0;
 
 /* system call table */
 syscall_info_t syscall_table[] = {
+	/* reserve number 0 for systick irq */
+	DEF_IRQ_ENTRY(systick_irq, 0),
 	/* non-posix syscall: */
 	DEF_SYSCALL(yield, 1),
 	DEF_SYSCALL(set_irq, 2),
@@ -130,30 +133,27 @@ void schedule(void)
 	list_t *list_itr;
 	tcb_t  *task;
 
-	/* update sleep timers */
+	/* freeze the current task */
+	if(running_task->status == TASK_RUNNING) {
+		/* syscall may change the task status and put it into a list (e.g., semaphore),
+		 * if not, place it into the sleep list and change the status */
+		prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+	}
+
+	/* check the sleep list */
 	list_itr = sleep_list.next;
 	while(list_itr != &sleep_list) {
 		list_t *next = list_itr->next;
 		task = list_entry(list_itr, tcb_t, list);
 
-		if(task->remained_ticks > 0) {
-			/* update the remained ticks */
-			task->remained_ticks--;
-		} else if(task->remained_ticks == 0) {
-			/* task is ready, push it into the ready list according to its priority */
+		/* task is ready, push it into the ready list according to its priority */
+		if(task->remained_ticks == 0) {
 			task->status = TASK_READY;
 			list_remove(list_itr); //remove the task from the sleep list
 			list_push(&ready_list[task->priority], list_itr);
 		}
 
 		list_itr = next;
-	}
-
-	/* freeze the current task */
-	if(running_task->status == TASK_RUNNING) {
-		/* syscall may change the task status and put it into a list (e.g., semaphore),
-		 * if not, place it into the sleep list and change the status */
-		prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
 	}
 
 	/* find a ready list that contains runnable tasks */
@@ -168,6 +168,23 @@ void schedule(void)
 	list_t *next = list_pop(&ready_list[pri]);
 	running_task = list_entry(next, tcb_t, list);
 	running_task->status = TASK_RUNNING;
+}
+
+void systick_irq(void)
+{
+	list_t *curr;
+
+	/* update sleep timers */
+	list_for_each(curr, &sleep_list) {
+		/* get the task control block */
+		tcb_t *task = list_entry(curr, tcb_t, list);
+
+		/* update the remained ticks */
+		if(task->remained_ticks > 0) {
+			task->remained_ticks--;
+		}
+
+	}
 }
 
 void sys_yield(void)
@@ -421,11 +438,6 @@ void os_start(task_func_t first_task)
 			if(running_task->stack_top->_r7 == syscall_table[i].num) {
 				/* execute the syscall service */
 				syscall_table[i].syscall_handler();
-
-				/* clear the syscall number if the service is complete */
-				if(running_task->syscall_pending == false) {
-					running_task->stack_top->_r7 = 0;
-				}
 
 				break;
 			}

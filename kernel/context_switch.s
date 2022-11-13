@@ -19,6 +19,8 @@ SysTick_Handler:
 	/* enter into the kernel, disable all interrupts */
 	cpsid i
 
+	mov r7, 0 //set syscall number to zero
+
 	/* save user state */
 	mrs r0, psp     //r0 = psp (for saving user space context in the psp)
 	stmdb r0!, {r7} //save syscall number _r7
