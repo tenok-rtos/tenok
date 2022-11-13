@@ -63,7 +63,13 @@ void shell_task(void)
 	shell_init_struct(&shell, __USER_NAME__ "@stm32f407 > ", ret_shell_cmd);
 	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
+	/* clean screen */
 	shell_cls();
+
+	/* greeting */
+	char s[100] = {0};
+	sprintf(s, "firmware build time: %s %s\n\rtype `help' for help\n\r\n\r", __TIME__, __DATE__);
+	shell_puts(s);
 
 	while(1) {
 		shell_cli(&shell);
