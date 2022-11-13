@@ -445,12 +445,12 @@ void os_start(task_func_t first_task)
 			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
 		}
 
-		/* _r7 is negative is the kernel is returned from the systick irq */
+		/* _r7 is negative if the kernel is returned from the systick irq */
 		if((int)running_task->stack_top->_r7 < 0) {
 			running_task->stack_top->_r7 *= -1; //restore _r7
 			systick_handler();
 		} else {
-			/* _r7 is positive is the kernel is returned from the syscall */
+			/* _r7 is positive if the kernel is returned from the syscall */
 			syscall_handler();
 		}
 
