@@ -108,7 +108,7 @@ void prepare_to_wait(list_t *wait_list, list_t *wait, int state)
 	list_push(wait_list, wait);
 
 	tcb_t *task = list_entry(wait, tcb_t, list);
-	task->status = TASK_WAIT;
+	task->status = state;
 }
 
 /*
