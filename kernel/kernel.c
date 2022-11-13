@@ -50,6 +50,7 @@ int task_nums = 0;
 
 /* memory pool */
 struct memory_pool mem_pool;
+uint8_t mem_pool_buf[MEM_POOL_SIZE];
 
 /* files */
 struct file *files[FILE_CNT_LIMIT];
@@ -72,11 +73,7 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(getpid, 11),
 	DEF_SYSCALL(mknod, 12),
 	DEF_SYSCALL(mkdir, 13),
-	DEF_SYSCALL(rmdir, 14),
-	DEF_SYSCALL(mq_open, 15),
-	DEF_SYSCALL(mq_send, 16),
-	DEF_SYSCALL(mq_receive, 17),
-	DEF_SYSCALL(mq_close, 18)
+	DEF_SYSCALL(rmdir, 14)
 };
 
 void task_create(task_func_t task_func, uint8_t priority)
@@ -350,66 +347,6 @@ void sys_rmdir(void)
 {
 }
 
-void sys_mq_open(void)
-{
-	/* read arguments */
-	char *name = (char *)running_task->stack_top->r0;
-	//int oflag = (_mode_t)running_task->stack_top->r1;
-	//_mode_t mode = (_mode_t)running_task->stack_top->r2;
-	struct mq_attr *attr = (struct mq_attr *)running_task->stack_top->r3;
-
-	/* if file count reached the limit */
-	if(file_count >= FILE_CNT_LIMIT) {
-		running_task->stack_top->r0 = -1;
-		return;
-	}
-
-	/* if file count reached the limit */
-	if(file_count < FILE_CNT_LIMIT) {
-		/* initialize a new message queue */
-		int result = mqueue_init(file_count, (struct file **)&files, attr, &mem_pool);
-
-		if(result == 0) {
-			running_task->stack_top->r0 = file_count; //return mqdes
-		}
-
-		file_count++;
-	} else {
-		running_task->stack_top->r0 = -1; //return failure number
-	}
-}
-
-void sys_mq_send(void)
-{
-	/* read arguments */
-	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
-	char *msg_ptr = (char *)running_task->stack_top->r1;
-	size_t msg_len = (size_t)running_task->stack_top->r2;
-	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
-
-	struct file *filp = files[mqdes];
-	ssize_t retval = mqueue_send(filp, msg_ptr, msg_len, msg_prio);
-
-	running_task->stack_top->r0 = retval; //pass return value
-}
-
-void sys_mq_receive(void)
-{
-	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
-	char *msg_ptr = (char *)running_task->stack_top->r1;
-	size_t msg_len = (size_t)running_task->stack_top->r2;
-	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
-
-	struct file *filp = files[mqdes];
-	ssize_t retval = mqueue_receive(filp, msg_ptr, msg_len, msg_prio);
-
-	running_task->stack_top->r0 = retval; //pass return value
-}
-
-void sys_mq_close(void)
-{
-}
-
 uint32_t get_proc_mode(void)
 {
 	/* get the 9 bits isr number from the ipsr register,
@@ -449,7 +386,6 @@ void os_start(task_func_t first_task)
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
 	/* initialize the memory pool */
-	uint8_t mem_pool_buf[MEM_POOL_SIZE];
 	memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 
 	/* initialize task ready lists */
