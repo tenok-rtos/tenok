@@ -129,11 +129,6 @@ void wake_up(list_t *wait_list)
 
 void schedule(void)
 {
-	/* require no rescheduling since the systick irq has not suspended the current task yet */
-	if(running_task->status == TASK_RUNNING) {
-		return;
-	}
-
 	/* check the sleep list */
 	list_t *list_itr = sleep_list.next;
 	while(list_itr != &sleep_list) {
@@ -155,6 +150,18 @@ void schedule(void)
 	for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
 		if(list_is_empty(&ready_list[pri]) == false) {
 			break;
+		}
+	}
+
+	/* task returned to the scheduler before the time is up */
+	if(running_task->status == TASK_RUNNING) {
+		/* check if any higher priority task is woken */
+		if(pri > running_task->priority) {
+			/* yes, suspend the current task */
+			prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+		} else {
+			/* no, keep running the current task */
+			return;
 		}
 	}
 
