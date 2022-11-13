@@ -130,21 +130,16 @@ void wake_up(list_t *wait_list)
 
 void schedule(void)
 {
-	list_t *list_itr;
-	tcb_t  *task;
-
-	/* freeze the current task */
+	/* require no rescheduling since the systick irq has not suspended the current task yet */
 	if(running_task->status == TASK_RUNNING) {
-		/* syscall may change the task status and put it into a list (e.g., semaphore),
-		 * if not, place it into the sleep list and change the status */
-		prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+		return;
 	}
 
 	/* check the sleep list */
-	list_itr = sleep_list.next;
+	list_t *list_itr = sleep_list.next;
 	while(list_itr != &sleep_list) {
 		list_t *next = list_itr->next;
-		task = list_entry(list_itr, tcb_t, list);
+		tcb_t *task = list_entry(list_itr, tcb_t, list);
 
 		/* task is ready, push it into the ready list according to its priority */
 		if(task->remained_ticks == 0) {
@@ -174,12 +169,19 @@ void systick_irq(void)
 {
 	list_t *curr;
 
+	/* freeze the current task */
+	if(running_task->status == TASK_RUNNING) {
+		/* the current task should be suspended, but it may be placed into another waiting
+		 * list by semaphore, mutex, etc. if not, we should put it into the sleep list. */
+		prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+	}
+
 	/* update sleep timers */
 	list_for_each(curr, &sleep_list) {
 		/* get the task control block */
 		tcb_t *task = list_entry(curr, tcb_t, list);
 
-		/* update the remained ticks */
+		/* update remained ticks of waiting */
 		if(task->remained_ticks > 0) {
 			task->remained_ticks--;
 		}

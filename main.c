@@ -176,13 +176,13 @@ void first(void *param)
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) spin_task();
-	//if(!fork()) shell_task();
+	if(!fork()) shell_task();
 	//if(!fork()) fifo_task1();
 	//if(!fork()) fifo_task2();
 	//if(!fork()) mutex_task1();
 	//if(!fork()) mutex_task2();
-	if(!fork()) message_queue_task1();
-	if(!fork()) message_queue_task2();
+	//if(!fork()) message_queue_task1();
+	//if(!fork()) message_queue_task2();
 
 	//idle loop if no work to do
 	while(1) {
