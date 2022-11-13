@@ -17,7 +17,6 @@
 
 #define INITIAL_XPSR 0x01000000
 
-void systick_irq(void);
 void sys_yield(void);
 void sys_set_irq(void);
 void sys_fork(void);
@@ -59,8 +58,6 @@ int file_count = 0;
 
 /* system call table */
 syscall_info_t syscall_table[] = {
-	/* reserve number 0 for systick irq */
-	DEF_IRQ_ENTRY(systick_irq, 0),
 	/* non-posix syscall: */
 	DEF_SYSCALL(yield, 1),
 	DEF_SYSCALL(set_irq, 2),
@@ -78,6 +75,8 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(mkdir, 13),
 	DEF_SYSCALL(rmdir, 14)
 };
+
+int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
 void task_create(task_func_t task_func, uint8_t priority)
 {
@@ -165,7 +164,7 @@ void schedule(void)
 	running_task->status = TASK_RUNNING;
 }
 
-void systick_irq(void)
+void systick_handler(void)
 {
 	list_t *curr;
 
@@ -186,6 +185,19 @@ void systick_irq(void)
 			task->remained_ticks--;
 		}
 
+	}
+}
+
+void syscall_handler(void)
+{
+	/* system call handler */
+	int i;
+	for(i = 0; i < syscall_table_size; i++) {
+		if(running_task->stack_top->r7 == syscall_table[i].num) {
+			/* execute the syscall service */
+			syscall_table[i].syscall_handler();
+			break;
+		}
 	}
 }
 
@@ -422,8 +434,6 @@ void os_start(task_func_t first_task)
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
-	int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
-
 	/* launch the first task */
 	running_task = &tasks[0];
 	tasks[0].status = TASK_RUNNING;
@@ -435,14 +445,13 @@ void os_start(task_func_t first_task)
 			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
 		}
 
-		/* system call handler */
-		for(i = 0; i < syscall_table_size; i++) {
-			if(running_task->stack_top->_r7 == syscall_table[i].num) {
-				/* execute the syscall service */
-				syscall_table[i].syscall_handler();
-
-				break;
-			}
+		/* _r7 is negative is the kernel is returned from the systick irq */
+		if((int)running_task->stack_top->_r7 < 0) {
+			running_task->stack_top->_r7 *= -1; //restore _r7
+			systick_handler();
+		} else {
+			/* _r7 is positive is the kernel is returned from the syscall */
+			syscall_handler();
 		}
 
 		schedule();

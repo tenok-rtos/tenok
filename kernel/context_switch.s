@@ -13,78 +13,77 @@
 .global jump_to_user_space
 
 SysTick_Handler:
-	/* the cpu uses the msp as the stack pointer since we are
-         * now in a interrupt handler */
+	/* handler mode: cpu now uses msp as the stack pointer */
 
-	/* enter into the kernel, disable all interrupts */
+	/* disable all interrupts before entering into the kernel */
 	cpsid i
 
-	mov r7, 0 //set syscall number to zero
+	neg   r7,  r7   //negate _r7 to indicate the kernel is going to be returned by the systick irq
 
 	/* save user state */
-	mrs r0, psp     //r0 = psp (for saving user space context in the psp)
-	stmdb r0!, {r7} //save syscall number _r7
-	stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //save the state to the address pointed by the r0
+	mrs   r0,  psp  //load psp into the r0
+	stmdb r0!, {r7} //save _r7 for the syscall number
+	stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //save user context of r4-r11 and lr
 
 	/* load kernel state */
-	pop {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //load r4-r11, ip and lr from msp
-	msr psr_nzcvq, ip //psr = ip
+	pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //load r4-r11, ip and lr from the msp
+	msr   psr_nzcvq, ip //load psr from the ip
 
 	/* exception return */
-	bx lr //jump back to the kernel space
+	bx    lr //jump to the kernel space
 
 SVC_Handler:
-	/* the cpu uses the msp as the stack pointer since we are
-         * now in a interrupt handler */
+	/* handler mode: cpu now uses msp as the stack pointer */
 
-	/* enter into the kernel, disable all interrupts */
+	/* disable all interrupts before entering into the kernel */
 	cpsid i
 
 	/* save user state */
-	mrs r0, psp //r0 = psp
-	stmdb r0!, {r7} //save syscall number _r7
-	stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //save the state to the address pointed by the r0
+	mrs   r0, psp   //load psp into the r0
+	stmdb r0!, {r7} //save _r7 for the syscall number
+	stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //save user context of r4-r11 and lr
 
 	/* load kernel state */
-	pop {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //load r4-r11, ip and lr from msp
-	msr psr_nzcvq, ip //psr = ip
+	pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}  //load r4-r11, ip and lr from the msp
+	msr   psr_nzcvq, ip //load psr from the ip
 
 	/* exception return */
-	bx lr //jump back to the kernel space
+	bx    lr //jump to the kernel space
 
 jump_to_user_space:
 	//r0 = &stack_address (function argument and return value)
+	//the function is designed to called by the kernel, i.e., msp is now selected as the stack pointer
 
 	/* save kernel state */
-	mrs ip, psr //ip = psr
-	push {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //save r4-r11, ip and lr to msp
+	mrs   ip, psr   //save psr into the ip
+	push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}  //save kernel context r4-r11, ip and lr
 
 	/* load user state */
-	ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the state from the address pointed by the r0
+	ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the user state from the address pointed by the r0
 	ldmia r0!, {r7} //load syscall number _r7
-	msr psp, r0     //psp = r0 (swap the psp to the address pointed by r0)
-	cpsie i         //enable all interrupts
-	bx lr           //jump to the user space
+	msr   psp, r0   //psp = r0 (swap the psp to the address pointed by r0)
+	cpsie i         //enable all interrupts before entering into the user space
+	bx    lr        //jump to the user space
 
 os_env_init:
 	//r0 = stack_address (function argument)
 
 	/* save kernel state */
-	mrs ip, psr //ip = psr
+	mrs  ip, psr //save psr into the ip
 	push {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //save r4-r11, ip and lr to msp
 
 	/* switch stack pointer from msp to psp */
-	msr psp, r0     //psp = r1
-	mov r0, #3      //r0 = 3
-	msr control, r0 //control = r0 (stack pointer is now switched to psp)
-	isb             //flush the cpu pipeline
+	msr  psp, r0     //psp = r1
+	mov  r0, #3      //r0 = 3
+	msr  control, r0 //control = r0 (stack pointer is now switched to psp)
+	isb              //flush the cpu pipeline
 
 	/* switch to handler mode via svc */
-        push {r7} //preserve old r7 for overwriting
-        mov r7, 0 //write syscall number to r7 as new value
-        svc 0     //trigger svc interrupt handler
+        push {r7}   //preserve old r7 for overwriting
+        mov  r7, #0 //write syscall number to r7 as new value
+        svc  0      //trigger svc interrupt handler
         nop
-        pop {r7}  //resume old r7 value
+        pop  {r7}   //resume old r7 value
 
 	/* enter into the kernel, disable all interrupts */
 	cpsid i 
