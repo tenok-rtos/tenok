@@ -10,6 +10,6 @@ void uart3_puts(char *str);
 
 void uart_putc(USART_TypeDef *uart, char c);
 char uart_getc(USART_TypeDef *uart);
-void usart_puts(USART_TypeDef *uart, char *str, int size);
+void uart_puts(USART_TypeDef *uart, char *str);
 
 #endif

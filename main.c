@@ -104,11 +104,10 @@ void fifo_task2(void)
 void mutex_task1(void)
 {
 	char *str = "mutex task 1\n\r";
-	int len = strlen(str);
 
 	while(1) {
 		pthread_mutex_lock(&mutex_print);
-		usart_puts(USART3, str, len);
+		uart_puts(USART3, str);
 		sleep(1);
 		pthread_mutex_unlock(&mutex_print);
 	}
@@ -117,11 +116,10 @@ void mutex_task1(void)
 void mutex_task2(void)
 {
 	char *str = "mutex task 2\n\r";
-	int len = strlen(str);
 
 	while(1) {
 		pthread_mutex_lock(&mutex_print);
-		usart_puts(USART3, str, len);
+		uart_puts(USART3, str);
 		sleep(1);
 		pthread_mutex_unlock(&mutex_print);
 	}

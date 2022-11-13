@@ -1,4 +1,4 @@
-#include <string.h>
+#include "string.h"
 #include "stm32f4xx.h"
 #include "semaphore.h"
 
@@ -131,10 +131,9 @@ char uart_getc(USART_TypeDef *uart)
 	return USART_ReceiveData(uart);
 }
 
-void usart_puts(USART_TypeDef *uart, char *str, int size)
+void uart_puts(USART_TypeDef *uart, char *str)
 {
-	int i;
-	for(i = 0; i < size; i++) {
-		uart_putc(uart, str[i]);
+	for(; *str != '\0'; str++) {
+		uart_putc(uart, *str);
 	}
 }
