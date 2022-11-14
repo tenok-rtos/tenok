@@ -37,13 +37,9 @@ int sem_wait(sem_t *sem)
 	if(sem->count < 0) {
 		/* put the current task into the semaphore waiting list */
 		prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
-
-		spin_unlock_irq(&sem->lock);
-
-		yield();
-	} else {
-		spin_unlock_irq(&sem->lock);
 	}
+
+	spin_unlock_irq(&sem->lock);
 
 	return 0;
 }
