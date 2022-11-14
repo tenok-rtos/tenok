@@ -17,7 +17,12 @@ yield:
 .type   set_irq, %function
 .global set_irq
 set_irq:
-	syscall #2
+	push {r7}
+	mov  r7, #2
+	svc  0
+	nop
+	pop  {r7}
+	bx lr
 
 .type   fork, %function
 .global fork
