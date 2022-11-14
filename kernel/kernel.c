@@ -56,6 +56,8 @@ uint8_t mem_pool_buf[MEM_POOL_SIZE];
 struct file *files[FILE_CNT_LIMIT];
 int file_count = 0;
 
+bool irq_off = false;
+
 /* system call table */
 syscall_info_t syscall_table[] = {
 	/* non-posix syscall: */
@@ -217,9 +219,13 @@ void sys_set_irq(void)
 {
 	uint32_t state = running_task->stack_top->r0;
 	if(state) {
-		asm volatile ("cpsie i"); //enable all irq
+		//asm volatile ("cpsie i"); //enable all irq
+		reset_basepri();
+		irq_off = false;
 	} else {
-		asm volatile ("cpsid i"); //disable all irq
+		//asm volatile ("cpsid i"); //disable all irq
+		set_basepri();
+		irq_off = true;
 	}
 }
 
@@ -396,6 +402,19 @@ uint32_t get_proc_mode(void)
 	return mode & 0x1ff; //return ipsr[8:0]
 }
 
+void reset_basepri(void)
+{
+	asm volatile ("mov r0,      #0\n"
+	              "msr basepri, r0\n");
+}
+
+void set_basepri(void)
+{
+	asm volatile ("mov r0,      %0\n"
+	              "msr basepri, r0\n"
+	              :: "i"(SYSCALL_INTR_PRIORITY << 4));
+}
+
 void preempt_disable(void)
 {
 	if(get_proc_mode() == 0) {
@@ -403,7 +422,8 @@ void preempt_disable(void)
 		set_irq(0);
 	} else {
 		/* handler mode (i.e., interrupt, which is always privileged) */
-		asm volatile ("cpsid i");
+		//asm volatile ("cpsid i");
+		set_basepri();
 	}
 }
 
@@ -414,12 +434,18 @@ void preempt_enable(void)
 		set_irq(1);
 	} else {
 		/* handler mode (i.e., interrupt, which is always privileged) */
-		asm volatile ("cpsie i");
+		//asm volatile ("cpsie i");
+		reset_basepri();
 	}
 }
 
 void os_start(task_func_t first_task)
 {
+	/* set interrupt priorities */
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+	NVIC_SetPriority(SysTick_IRQn, SYSCALL_INTR_PRIORITY);
+	NVIC_SetPriority(SVCall_IRQn, 0);
+
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
 	os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
@@ -437,8 +463,7 @@ void os_start(task_func_t first_task)
 
 	task_create(first_task, 0);
 
-	/* initialize systick timer */
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+	/* enable the systicl timer */
 	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
 
 	/* launch the first task */
@@ -449,7 +474,7 @@ void os_start(task_func_t first_task)
 		/* execute the task if no pending syscall service */
 		if(running_task->syscall_pending == false) {
 			running_task->stack_top =
-			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
+			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top, irq_off);
 		}
 
 		/* _r7 is negative if the kernel is returned from the systick irq */
