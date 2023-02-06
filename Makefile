@@ -6,7 +6,7 @@ CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
 GDB=arm-none-eabi-gdb
 SIZE=arm-none-eabi-size
-QEMU=qemu-system-gnuarmeclipse
+QEMU=qemu-system-arm
 
 CFLAGS=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
@@ -101,9 +101,11 @@ clean:
 
 qemu:
 	$(QEMU) -cpu cortex-m4 \
-	-M STM32F4-Discovery \
+	-M netduinoplus2 \
+	-serial /dev/null \
+	-serial /dev/null \
+	-serial stdio \
 	-gdb tcp::3333 \
-	-verbose \
 	-kernel ./$(ELF)
 
 flash:
