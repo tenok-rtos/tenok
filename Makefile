@@ -6,17 +6,18 @@ CC=arm-none-eabi-gcc
 OBJCOPY=arm-none-eabi-objcopy
 GDB=arm-none-eabi-gdb
 SIZE=arm-none-eabi-size
+QEMU=qemu-system-gnuarmeclipse
 
 CFLAGS=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
-	-mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 	--specs=nano.specs \
-	--specs=nosys.specs
+	--specs=nosys.specs \
+	-mfpu=fpv4-sp-d16 -mfloat-abi=soft
 CFLAGS+=-D USE_STDPERIPH_DRIVER
 CFLAGS+=-D STM32F4xx
-CFLAGS+=-D __FPU_PRESENT=1 \
-        -D ARM_MATH_CM4 \
-	-D __FPU_USED=1
+CFLAGS+=-D ARM_MATH_CM4 \
+	-D __FPU_PRESENT=0 \
+	-D __FPU_USED=0
 
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
@@ -78,6 +79,10 @@ $(ELF): $(ASM) $(OBJS)
 	@echo "LD" $@
 	@$(CC) $(CFLAGS) $(OBJS) $(ASM) $(LDFLAGS) -o $@
 
+$(BIN): $(ELF)
+	@echo "OBJCPY" $@
+	@$(OBJCOPY) -O binary $(PROJECT).elf $(PROJECT).bin
+
 -include $(DEPEND)
 
 %.o: %.s 
@@ -93,6 +98,13 @@ clean:
 	rm -rf $(OBJS)
 	rm -rf $(DEPEND)
 	rm -rf *.orig
+
+qemu:
+	$(QEMU) -cpu cortex-m4 \
+	-M STM32F4-Discovery \
+	-gdb tcp::3333 \
+	-verbose \
+	-kernel ./$(ELF)
 
 flash:
 	openocd -f interface/stlink.cfg \
@@ -116,4 +128,4 @@ astyle:
 size:
 	$(SIZE) $(ELF)
 
-.PHONY:all clean flash openocd gdbauto
+.PHONY:all clean qemu flash openocd gdbauto
