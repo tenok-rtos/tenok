@@ -6,6 +6,7 @@
 #include "list.h"
 #include "util.h"
 #include "mqueue.h"
+#include "semaphore.h"
 
 #define DEF_SYSCALL(func, _num) \
 	{.syscall_handler = sys_ ## func, .num = _num}
@@ -33,5 +34,6 @@ int getpid(void);
 int mknod(const char *pathname, _mode_t mode, _dev_t dev);
 int mkdir(const char *pathname, _mode_t mode);
 int rmdir(const char *pathname);
+int sem_wait(sem_t *sem);
 
 #endif

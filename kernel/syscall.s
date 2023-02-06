@@ -83,3 +83,8 @@ mkdir:
 .global rmdir
 rmdir:
         syscall #14
+
+.type   sem_wait, %function
+.global sem_wait
+sem_wait:
+	syscall #15
