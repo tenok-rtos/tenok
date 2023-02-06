@@ -75,7 +75,8 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(getpid, 11),
 	DEF_SYSCALL(mknod, 12),
 	DEF_SYSCALL(mkdir, 13),
-	DEF_SYSCALL(rmdir, 14)
+	DEF_SYSCALL(rmdir, 14),
+	DEF_SYSCALL(sem_wait, 15)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -389,6 +390,23 @@ void sys_mkdir(void)
 
 void sys_rmdir(void)
 {
+}
+
+void sys_sem_wait(void)
+{
+	sem_t *sem = (sem_t *)running_task->stack_top->r0;
+
+	spin_lock_irq(&sem->lock);
+
+	sem->count--;
+	if(sem->count < 0) {
+		/* put the current task into the semaphore waiting list */
+		prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
+	}
+
+	spin_unlock_irq(&sem->lock);
+
+	running_task->stack_top->r0 = 0;
 }
 
 uint32_t get_proc_mode(void)
