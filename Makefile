@@ -99,7 +99,7 @@ clean:
 	rm -rf $(DEPEND)
 	rm -rf *.orig
 
-qemu:
+qemu: all
 	$(QEMU) -cpu cortex-m4 \
 	-M netduinoplus2 \
 	-serial /dev/null \
