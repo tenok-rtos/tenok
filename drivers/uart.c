@@ -52,8 +52,8 @@ void uart3_init(uint32_t baudrate)
 	NVIC_Init(&nvic);
 
 	/* enable dma1's interrupt */
-	nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
-	NVIC_Init(&nvic);
+	//nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
+	//NVIC_Init(&nvic);
 }
 
 char uart3_getc(void)
