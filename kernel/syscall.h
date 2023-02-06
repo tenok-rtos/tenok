@@ -34,6 +34,6 @@ int getpid(void);
 int mknod(const char *pathname, _mode_t mode, _dev_t dev);
 int mkdir(const char *pathname, _mode_t mode);
 int rmdir(const char *pathname);
-int sem_wait(sem_t *sem);
+int os_sem_wait(sem_t *sem);
 
 #endif

@@ -30,19 +30,7 @@ int sem_post(sem_t *sem)
 	return 0;
 }
 
-#if 0
 int sem_wait(sem_t *sem)
 {
-	spin_lock_irq(&sem->lock);
-
-	sem->count--;
-	if(sem->count < 0) {
-		/* put the current task into the semaphore waiting list */
-		prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
-	}
-
-	spin_unlock_irq(&sem->lock);
-
-	return 0;
+	return os_sem_wait(sem);
 }
-#endif

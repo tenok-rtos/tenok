@@ -31,9 +31,7 @@ void sys_getpid(void);
 void sys_mknod(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
-void sys_sem_init(void);
-void sys_sem_post(void);
-void sys_sem_wait(void);
+void sys_os_sem_wait(void);
 void sys_mq_open(void);
 void sys_mq_send(void);
 void sys_mq_receive(void);
@@ -76,7 +74,7 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(mknod, 12),
 	DEF_SYSCALL(mkdir, 13),
 	DEF_SYSCALL(rmdir, 14),
-	DEF_SYSCALL(sem_wait, 15)
+	DEF_SYSCALL(os_sem_wait, 15)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -392,7 +390,7 @@ void sys_rmdir(void)
 {
 }
 
-void sys_sem_wait(void)
+void sys_os_sem_wait(void)
 {
 	sem_t *sem = (sem_t *)running_task->stack_top->r0;
 

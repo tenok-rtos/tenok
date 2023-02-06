@@ -84,7 +84,7 @@ mkdir:
 rmdir:
         syscall #14
 
-.type   sem_wait, %function
-.global sem_wait
-sem_wait:
+.type   os_sem_wait, %function
+.global os_sem_wait
+os_sem_wait:
 	syscall #15
