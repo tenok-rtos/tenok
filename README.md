@@ -13,12 +13,20 @@ An experimental real-time operating system
 ### QEMU
 
 ```
-wget https://github.com/xpack-dev-tools/qemu-arm-xpack/releases/download/v7.2.0-1/xpack-qemu-arm-7.2.0-1-linux-x64.tar.gz
-tar xvf xpack-qemu-arm-7.2.0-1-linux-x64.tar.gz
+sudo apt install ninja-build
+cd ${YOUR_PATH}
+git clone git://git.qemu.org/qemu.git
+cd qemu
+git submodule init
+git submodule update --recursive
+mkdir build
+cd build
+../configure
+make -j $(nproc)
 ```
 
 vim ~/.bashrc
 
 ```
-PATH=$PATH:${YOUR_PATH}/xpack-qemu-arm-7.2.0-1/bin
+PATH=$PATH:${YOUR_PATH}/qemu/build
 ```
