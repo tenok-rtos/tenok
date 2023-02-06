@@ -10,14 +10,14 @@ QEMU=qemu-system-arm
 
 CFLAGS=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
+	-mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 	--specs=nano.specs \
-	--specs=nosys.specs \
-	-mfpu=fpv4-sp-d16 -mfloat-abi=soft
+	--specs=nosys.specs
 CFLAGS+=-D USE_STDPERIPH_DRIVER
 CFLAGS+=-D STM32F4xx
 CFLAGS+=-D ARM_MATH_CM4 \
-	-D __FPU_PRESENT=0 \
-	-D __FPU_USED=0
+	-D __FPU_PRESENT=1 \
+	-D __FPU_USED=1
 
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
