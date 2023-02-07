@@ -66,7 +66,7 @@ void task_create(task_func_t task_func, uint8_t priority);
 void os_start(task_func_t first_task);
 
 void os_env_init(uint32_t stack);
-uint32_t *jump_to_user_space(uint32_t stack, bool irq_off);
+uint32_t *jump_to_user_space(uint32_t stack);
 
 void prepare_to_wait(list_t *q, list_t *wait, int state);
 void wake_up(list_t *wait_list);

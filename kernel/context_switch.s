@@ -56,7 +56,6 @@ SVC_Handler:
 
 jump_to_user_space:
 	//r0 = &stack_address (function argument and return value)
-	//r1 = irq_disabled (indicate the irq is disabled by the syscall or not)
 	//the function is designed to called by the kernel, i.e., msp is now selected as the stack pointer
 
 	/* save kernel state */
@@ -68,17 +67,9 @@ jump_to_user_space:
 	ldmia r0!, {r7} //load syscall number _r7
 	msr   psp, r0   //psp = r0 (swap the psp to the address pointed by r0)
 
-	/* enable all interrupts */
-	push  {r0, r1, r2}
-	mov   r2, #1    //r2 = 1
-	cmp   r1, r2    //if(irq_disabled == 1)
-	beq   return    //return to user space without turn on all the interrupts
-
 	//cpsie i 
 	mov   r0,      #0
 	msr   basepri, r0
-
-return: pop {r0, r1, r2}
 
 	bx    lr
 

@@ -490,7 +490,7 @@ void os_start(task_func_t first_task)
 		/* execute the task if no pending syscall service */
 		if(running_task->syscall_pending == false) {
 			running_task->stack_top =
-			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top, irq_off);
+			        (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
 		}
 
 		/* _r7 is negative if the kernel is returned from the systick irq */
