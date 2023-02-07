@@ -12,7 +12,7 @@
 
 #define FILE_CNT_LIMIT        (20)
 
-#define PIPE_DEPTH            (100)
+#define PIPE_DEPTH            (50)
 
 
 #define SYSCALL_INTR_PRIORITY (5)

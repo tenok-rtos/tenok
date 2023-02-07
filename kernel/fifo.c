@@ -17,10 +17,6 @@ static struct file_operations fifo_ops = {
 	.write = fifo_write
 };
 
-int mkfifo(const char *pathname, _mode_t mode)
-{
-}
-
 int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool)
 {
 	/* initialize the ring buffer pipe */

@@ -8,5 +8,6 @@
 int mkfifo(const char *pathname, _mode_t mode);
 
 int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool);
+ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
 #endif

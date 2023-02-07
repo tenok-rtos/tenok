@@ -26,6 +26,9 @@ struct file_operations {
 	ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
+void register_path(int reply_fd, char *path);
+
 void path_server(void);
 
 #endif
+
