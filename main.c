@@ -11,6 +11,7 @@
 #include "shell_cmd.h"
 #include "file.h"
 #include "mutex.h"
+#include "path_server.h"
 
 sem_t sem_led;
 _pthread_mutex_t mutex_print;
@@ -194,6 +195,7 @@ void first(void *param)
 	sem_init(&sem_led, 0, 0);
 	pthread_mutex_init(&mutex_print, 0);
 
+	if(!fork()) path_server();
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) shell_task();
