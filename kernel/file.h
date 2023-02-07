@@ -11,8 +11,8 @@
 #define S_IFREG 3
 
 enum {
-	PATH_CMD_MKFILE = 0,
-	PATH_CMD_OPEN = 1
+	PATH_CMD_REGISTER_PATH = 0,
+	PATH_CMD_OPEN = 1,
 } PATH_SERVER_CMDS;
 
 struct file {
