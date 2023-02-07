@@ -53,8 +53,9 @@ struct memory_pool mem_pool;
 uint8_t mem_pool_buf[MEM_POOL_SIZE];
 
 /* files */
-struct file *files[FILE_CNT_LIMIT];
-int file_count = 0;
+//reserve 1 for path server, 1 for each task, and FILE_CNT_LIMIT for new files
+struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
+int file_count = 0; //excludes the file fifos
 
 bool irq_off = false;
 
@@ -297,7 +298,10 @@ void sys_read(void)
 	struct file *filp = files[fd];
 	ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
-	running_task->stack_top->r0 = retval; //pass return value
+	/* syscall complete */
+	if(running_task->syscall_pending == false) {
+		running_task->stack_top->r0 = retval; //pass return value
+	}
 }
 
 void sys_write(void)
@@ -362,12 +366,17 @@ void sys_mknod(void)
 		return;
 	}
 
+	int task_fifo_fd = TASK_NUM_MAX;
+	register_path(task_fifo_fd, pathname);
+
 	int result;
+
+	int fd = TASK_NUM_MAX + file_count + 1;
 
 	/* create new file according to its type */
 	switch(dev) {
 	case S_IFIFO:
-		result = fifo_init(file_count, (struct file **)&files, &mem_pool);
+		result = fifo_init(fd, (struct file **)&files, &mem_pool);
 		file_count++;
 		break;
 	case S_IFCHR:
@@ -478,8 +487,13 @@ void os_start(task_func_t first_task)
 	/* initialize the memory pool */
 	memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 
-	/* initialize task ready lists */
+	/* initialize fifo for all tasks (including path server) */
 	int i;
+	for(i = 0; i < (TASK_NUM_MAX + 1); i++) {
+		fifo_init(i, &files[i], &mem_pool);
+	}
+
+	/* initialize task ready lists */
 	for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
 		list_init(&ready_list[i]);
 	}

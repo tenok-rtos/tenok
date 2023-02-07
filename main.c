@@ -91,7 +91,7 @@ void fifo_task1(void)
 
 	mknod("/test", 0, S_IFIFO);
 
-	int fd = 0;
+	int fd = TASK_NUM_MAX + 1; //XXX
 	char data[] = "hello";
 	int len = strlen(data);
 
@@ -108,7 +108,7 @@ void fifo_task2(void)
 {
 	set_program_name("fifo2");
 
-	int fd = 0;
+	int fd = TASK_NUM_MAX + 1; //XXX
 	char data[10] = {0};
 	char str[20];
 
@@ -197,9 +197,9 @@ void first(void *param)
 	if(!fork()) path_server();
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
-	if(!fork()) shell_task();
-	//if(!fork()) fifo_task1();
-	//if(!fork()) fifo_task2();
+	//if(!fork()) shell_task();
+	if(!fork()) fifo_task1();
+	if(!fork()) fifo_task2();
 	//if(!fork()) mutex_task1();
 	//if(!fork()) mutex_task2();
 	//if(!fork()) message_queue_task1();
