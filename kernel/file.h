@@ -11,8 +11,8 @@
 #define S_IFREG 3
 
 enum {
-	PATH_CMD_REGISTER_PATH = 0,
-	PATH_CMD_OPEN = 1,
+	PATH_CMD_REGISTER_PATH = 1,
+	PATH_CMD_OPEN = 2,
 } PATH_SERVER_CMDS;
 
 struct file {
@@ -26,7 +26,8 @@ struct file_operations {
 	ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
-void register_path(int reply_fd, char *path);
+void request_path_register(int reply_fd, char *path);
+void request_file_open(int reply_fd, char *path);
 
 void path_server(void);
 

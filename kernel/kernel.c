@@ -283,6 +283,22 @@ void sys_sleep(void)
 
 void sys_open(void)
 {
+	char *pathname = (char *)running_task->stack_top->r0;
+
+	int task_fd = running_task->pid + 1;
+
+	/* if pending flag is set means the request is already sent */
+	if(running_task->syscall_pending == false) {
+		request_file_open(task_fd, pathname);
+	}
+
+	/* inquire the file descriptor from the path server */
+	int fd;
+	if(fifo_read(files[task_fd], (char *)&fd, sizeof(fd), 0)) {
+		//return the file descriptor
+		running_task->stack_top->r0 = fd;
+	}
+
 }
 
 void sys_close(void)
@@ -298,9 +314,9 @@ void sys_read(void)
 	struct file *filp = files[fd];
 	ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
-	/* syscall complete */
+	/* pass return value only if the read is complete */
 	if(running_task->syscall_pending == false) {
-		running_task->stack_top->r0 = retval; //pass return value
+		running_task->stack_top->r0 = retval;
 	}
 }
 
@@ -366,17 +382,25 @@ void sys_mknod(void)
 		return;
 	}
 
-	int task_fifo_fd = TASK_NUM_MAX;
-	register_path(task_fifo_fd, pathname);
+	int task_fd = running_task->pid + 1;
+
+	/* if pending flag is set means the request is already sent */
+	if(running_task->syscall_pending == false) {
+		request_path_register(task_fd, pathname);
+	}
+
+	/* inquire the file descriptor from the path server */
+	int new_fd;
+	if(fifo_read(files[task_fd], (char *)&new_fd, sizeof(new_fd), 0) == 0) {
+		return; //not ready
+	}
 
 	int result;
-
-	int fd = TASK_NUM_MAX + file_count + 1;
 
 	/* create new file according to its type */
 	switch(dev) {
 	case S_IFIFO:
-		result = fifo_init(fd, (struct file **)&files, &mem_pool);
+		result = fifo_init(new_fd, (struct file **)&files, &mem_pool);
 		file_count++;
 		break;
 	case S_IFCHR:
@@ -490,7 +514,7 @@ void os_start(task_func_t first_task)
 	/* initialize fifo for all tasks (including path server) */
 	int i;
 	for(i = 0; i < (TASK_NUM_MAX + 1); i++) {
-		fifo_init(i, &files[i], &mem_pool);
+		fifo_init(i, (struct file **)&files, &mem_pool);
 	}
 
 	/* initialize task ready lists */

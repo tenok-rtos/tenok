@@ -21,7 +21,7 @@ extern struct file *files;
 char path_list[FILE_CNT_LIMIT][PATH_LEN_MAX];
 int  path_cnt = 0;
 
-void register_path(int reply_fd, char *path)
+void request_path_register(int reply_fd, char *path)
 {
 	int file_cmd = PATH_CMD_REGISTER_PATH;
 	int path_len = strlen(path) + 1;
@@ -37,7 +37,35 @@ void register_path(int reply_fd, char *path)
 	memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
 	buf_size += sizeof(reply_fd);
 
-	memcpy(&buf[buf_size], &path, path_len);
+	memcpy(&buf[buf_size], &path_len, sizeof(path_len));
+	buf_size += sizeof(path_len);
+
+	memcpy(&buf[buf_size], path, path_len);
+	buf_size += path_len;
+
+	fifo_write(&files[PATH_SERVER_FD], buf, buf_size, 0);
+}
+
+void request_file_open(int reply_fd, char *path)
+{
+	int file_cmd = PATH_CMD_OPEN;
+	int path_len = strlen(path) + 1;
+
+	const int overhead = sizeof(file_cmd) + sizeof(reply_fd) + sizeof(path_len);
+	char buf[PATH_LEN_MAX + overhead];
+
+	int buf_size = 0;
+
+	memcpy(&buf[buf_size], &file_cmd, sizeof(file_cmd));
+	buf_size += sizeof(file_cmd);
+
+	memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
+	buf_size += sizeof(reply_fd);
+
+	memcpy(&buf[buf_size], &path_len, sizeof(path_len));
+	buf_size += sizeof(path_len);
+
+	memcpy(&buf[buf_size], path, path_len);
 	buf_size += path_len;
 
 	fifo_write(&files[PATH_SERVER_FD], buf, buf_size, 0);

@@ -89,9 +89,7 @@ void fifo_task1(void)
 {
 	set_program_name("fifo1");
 
-	mknod("/test", 0, S_IFIFO);
-
-	int fd = TASK_NUM_MAX + 1; //XXX
+	int fd = open("/fifo_test", 0, 0);
 	char data[] = "hello";
 	int len = strlen(data);
 
@@ -108,7 +106,7 @@ void fifo_task2(void)
 {
 	set_program_name("fifo2");
 
-	int fd = TASK_NUM_MAX + 1; //XXX
+	int fd = open("/fifo_test", 0, 0);
 	char data[10] = {0};
 	char str[20];
 
@@ -187,19 +185,19 @@ void message_queue_task2(void)
 	}
 }
 
-void first(void *param)
+void first(void)
 {
 	set_program_name("first");
 
 	sem_init(&sem_led, 0, 0);
+	mknod("/fifo_test", 0, S_IFIFO);
 	pthread_mutex_init(&mutex_print, 0);
 
-	if(!fork()) path_server();
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
-	//if(!fork()) shell_task();
-	if(!fork()) fifo_task1();
-	if(!fork()) fifo_task2();
+	if(!fork()) shell_task();
+	//if(!fork()) fifo_task1();
+	//if(!fork()) fifo_task2();
 	//if(!fork()) mutex_task1();
 	//if(!fork()) mutex_task2();
 	//if(!fork()) message_queue_task1();
@@ -211,12 +209,19 @@ void first(void *param)
 	}
 }
 
+void init(void *param)
+{
+	if(!fork()) path_server();
+
+	first();
+}
+
 int main(void)
 {
 	led_init();
 	uart3_init(115200);
 
-	os_start(first);
+	os_start(init);
 
 	return 0;
 }
