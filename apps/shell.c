@@ -14,8 +14,7 @@ char shell_getc(void)
 
 void shell_puts(char *s)
 {
-//	uart3_puts(s);
-	uart_puts(USART3, s);
+	uart3_puts(s);
 }
 
 static void shell_ctrl_c_handler(struct shell_struct *shell)

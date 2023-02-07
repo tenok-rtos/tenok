@@ -1,6 +1,9 @@
 #include "string.h"
 #include "stm32f4xx.h"
 #include "semaphore.h"
+#include "uart.h"
+
+#define ENABLE_UART3_DMA 0 //QEMU does not support dma emulation for stm32f4
 
 sem_t sem_uart3_tx;
 sem_t sem_uart3_rx;
@@ -51,9 +54,11 @@ void uart3_init(uint32_t baudrate)
 	};
 	NVIC_Init(&nvic);
 
+#if (ENABLE_UART3_DMA != 0)
 	/* enable dma1's interrupt */
-	//nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
-	//NVIC_Init(&nvic);
+	nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
+	NVIC_Init(&nvic);
+#endif
 }
 
 char uart3_getc(void)
@@ -65,6 +70,7 @@ char uart3_getc(void)
 
 void uart3_puts(char *str)
 {
+#if (ENABLE_UART3_DMA != 0)
 	/* initialize the dma */
 	DMA_InitTypeDef DMA_InitStructure = {
 		.DMA_BufferSize = (uint32_t)strlen(str),
@@ -94,6 +100,9 @@ void uart3_puts(char *str)
 
 	/* wait until the dma complete the transmission */
 	sem_wait(&sem_uart3_tx);
+#else
+	uart_puts(USART3, str);
+#endif
 }
 
 void USART3_IRQHandler(void)
