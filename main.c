@@ -11,7 +11,7 @@
 #include "shell_cmd.h"
 #include "file.h"
 #include "mutex.h"
-#include "path_server.h"
+#include "file.h"
 
 sem_t sem_led;
 _pthread_mutex_t mutex_print;
@@ -28,8 +28,7 @@ void led_task1(void)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
 
-		volatile int pid = getpid();
-		volatile int retval = setpriority(0, 2, 3);
+		volatile int retval = setpriority(0, getpid(), 3);
 
 		state = (state + 1) % 2;
 	}
