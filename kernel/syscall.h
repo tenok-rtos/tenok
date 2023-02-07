@@ -22,6 +22,7 @@ typedef struct {
 /* syscall function prototypes */
 void yield(void);
 void set_irq(uint32_t state);
+void set_program_name(char *name);
 int fork(void);
 uint32_t sleep(uint32_t ticks);
 int open(const char *pathname, int flags, _mode_t);

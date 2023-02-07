@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include "stm32f4xx.h"
 #include "kernel.h"
@@ -19,6 +20,7 @@
 
 void sys_yield(void);
 void sys_set_irq(void);
+void sys_set_program_name(void);
 void sys_fork(void);
 void sys_sleep(void);
 void sys_open(void);
@@ -61,20 +63,21 @@ syscall_info_t syscall_table[] = {
 	/* non-posix syscall: */
 	DEF_SYSCALL(yield, 1),
 	DEF_SYSCALL(set_irq, 2),
+	DEF_SYSCALL(set_program_name, 3),
 	/* posix syscall: */
-	DEF_SYSCALL(fork, 3),
-	DEF_SYSCALL(sleep, 4),
-	DEF_SYSCALL(open, 5),
-	DEF_SYSCALL(close, 6),
-	DEF_SYSCALL(read, 7),
-	DEF_SYSCALL(write, 8),
-	DEF_SYSCALL(getpriority, 9),
-	DEF_SYSCALL(setpriority, 10),
-	DEF_SYSCALL(getpid, 11),
-	DEF_SYSCALL(mknod, 12),
-	DEF_SYSCALL(mkdir, 13),
-	DEF_SYSCALL(rmdir, 14),
-	DEF_SYSCALL(os_sem_wait, 15)
+	DEF_SYSCALL(fork, 4),
+	DEF_SYSCALL(sleep, 5),
+	DEF_SYSCALL(open, 6),
+	DEF_SYSCALL(close, 7),
+	DEF_SYSCALL(read, 8),
+	DEF_SYSCALL(write, 9),
+	DEF_SYSCALL(getpriority, 10),
+	DEF_SYSCALL(setpriority, 11),
+	DEF_SYSCALL(getpid, 12),
+	DEF_SYSCALL(mknod, 13),
+	DEF_SYSCALL(mkdir, 14),
+	DEF_SYSCALL(rmdir, 15),
+	DEF_SYSCALL(os_sem_wait, 16)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -226,6 +229,13 @@ void sys_set_irq(void)
 		set_basepri();
 		irq_off = true;
 	}
+}
+
+void sys_set_program_name(void)
+{
+	char *name = (char*)running_task->stack_top->r0;
+
+	strcpy(running_task->name, name);
 }
 
 void sys_fork(void)
@@ -503,5 +513,15 @@ void os_start(task_func_t first_task)
 		}
 
 		schedule();
+	}
+}
+
+void sprint_tasks(char *str)
+{
+	sprintf(str, "PID\tPR\tCMD\n\r");
+
+	int i;
+	for(i = 0; i < task_nums; i++) {
+		sprintf(str, "%s%d\t%d\t%s\n\r", str, tasks[i].pid, tasks[i].priority, tasks[i].name);
 	}
 }

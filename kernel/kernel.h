@@ -50,6 +50,7 @@ typedef struct tcb {
 	uint8_t  status;
 	uint32_t pid;
 	int      priority;
+	char     name[TASK_NAME_LEN_MAX];
 
 	uint32_t remained_ticks;
 
@@ -76,5 +77,7 @@ void preempt_enable(void);
 
 void reset_basepri(void);
 void set_basepri(void);
+
+void sprint_tasks(char *str);
 
 #endif

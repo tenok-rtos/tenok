@@ -6,6 +6,7 @@
 #define TASK_STACK_SIZE       (512)  //words
 #define TASK_NUM_MAX          (10)
 #define TASK_MAX_PRIORITY     (5)
+#define TASK_NAME_LEN_MAX     (50)
 
 #define MEM_POOL_SIZE         (2048)
 
