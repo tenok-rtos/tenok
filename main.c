@@ -55,6 +55,7 @@ void shell_task(void)
 	struct cmd_list_entry shell_cmd_list[] = {
 		DEF_SHELL_CMD(help)
 		DEF_SHELL_CMD(clear)
+		DEF_SHELL_CMD(history)
 	};
 
 	/* shell initialization */
