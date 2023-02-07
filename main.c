@@ -68,7 +68,7 @@ void shell_task(void)
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
 	struct shell_struct shell;
-	shell_init_struct(&shell, __USER_NAME__ "@stm32f407 > ", ret_shell_cmd);
+	shell_init_struct(&shell, __USER_NAME__ "@stm32f407:/$ ", ret_shell_cmd);
 	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
 	/* clean screen */
