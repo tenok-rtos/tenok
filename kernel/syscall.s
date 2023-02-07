@@ -17,74 +17,74 @@ yield:
 .type   set_irq, %function
 .global set_irq
 set_irq:
-	push {r7}
-	mov  r7, #2
-	svc  0
-	nop
-	pop  {r7}
-	bx lr
+	syscall #2
+
+.type   set_program_name, %function
+.global set_program_name
+set_program_name:
+	syscall #3
 
 .type   fork, %function
 .global fork
 fork:
-	syscall #3
+	syscall #4
 
 .type   sleep, %function
 .global sleep
 sleep:
-	syscall #4
+	syscall #5
 
 .type   open, %function
 .global open
 open:
-	syscall #5
+	syscall #6
 
 .type   close, %function
 .global close
 close:
-	syscall #6
+	syscall #7
 
 .type   read, %function
 .global read
 read:
-	syscall #7
+	syscall #8
 
 .type   write, %function
 .global write
 write:
-	syscall #8
+	syscall #9
 
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #9
+	syscall #10
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #10
+	syscall #11
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #11
+	syscall #12
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #12
+	syscall #13
 
 .type   mkdir, %function
 .global mkdir
 mkdir:
-        syscall #13
+        syscall #14
 
 .type   rmdir, %function
 .global rmdir
 rmdir:
-        syscall #14
+        syscall #15
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #15
+	syscall #16

@@ -18,6 +18,8 @@ mqd_t mqdes_print;
 
 void led_task1(void)
 {
+	set_program_name("led1");
+
 	int state = 1;
 	while(1) {
 		sem_wait(&sem_led);
@@ -34,6 +36,8 @@ void led_task1(void)
 
 void led_task2(void)
 {
+	set_program_name("led2");
+
 	int state = 1;
 	while(1) {
 		sem_post(&sem_led);
@@ -51,11 +55,14 @@ void led_task2(void)
 
 void shell_task(void)
 {
+	set_program_name("shell");
+
 	/* shell command table */
 	struct cmd_list_entry shell_cmd_list[] = {
 		DEF_SHELL_CMD(help)
 		DEF_SHELL_CMD(clear)
 		DEF_SHELL_CMD(history)
+		DEF_SHELL_CMD(ps)
 	};
 
 	/* shell initialization */
@@ -80,6 +87,8 @@ void shell_task(void)
 
 void fifo_task1(void)
 {
+	set_program_name("fifo1");
+
 	mknod("/test", 0, S_IFIFO);
 
 	int fd = 0;
@@ -97,6 +106,8 @@ void fifo_task1(void)
 
 void fifo_task2(void)
 {
+	set_program_name("fifo2");
+
 	int fd = 0;
 	char data[10] = {0};
 	char str[20];
@@ -110,6 +121,8 @@ void fifo_task2(void)
 
 void mutex_task1(void)
 {
+	set_program_name("mutex1");
+
 	char *str = "mutex task 1\n\r";
 
 	while(1) {
@@ -122,6 +135,8 @@ void mutex_task1(void)
 
 void mutex_task2(void)
 {
+	set_program_name("mutex2");
+
 	char *str = "mutex task 2\n\r";
 
 	while(1) {
@@ -139,6 +154,8 @@ typedef struct {
 
 void message_queue_task1(void)
 {
+	set_program_name("queue1");
+
 	my_message_t msg;
 
 	char *str = "hello world!\n\r";
@@ -160,6 +177,8 @@ void message_queue_task1(void)
 
 void message_queue_task2(void)
 {
+	set_program_name("queue2");
+
 	my_message_t msg;
 
 	while(1) {
@@ -170,6 +189,8 @@ void message_queue_task2(void)
 
 void first(void *param)
 {
+	set_program_name("first");
+
 	sem_init(&sem_led, 0, 0);
 	pthread_mutex_init(&mutex_print, 0);
 
