@@ -34,10 +34,6 @@ void sys_mknod(void);
 void sys_mkdir(void);
 void sys_rmdir(void);
 void sys_os_sem_wait(void);
-void sys_mq_open(void);
-void sys_mq_send(void);
-void sys_mq_receive(void);
-void sys_mq_close(void);
 
 /* task lists */
 list_t ready_list[TASK_MAX_PRIORITY+1];
