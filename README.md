@@ -30,3 +30,24 @@ vim ~/.bashrc
 ```
 PATH=$PATH:${YOUR_PATH}/qemu/build
 ```
+## Build and Run
+
+compilation
+
+ ```
+ git clone https://github.com/shengwen-tw/neo-rtenv.git
+ cd neo-rtenv
+ make
+ ```
+ 
+ run emulation
+ 
+ ```
+ make qemu
+ ```
+ 
+ upload binary
+ 
+ ```
+ make flash
+ ```
