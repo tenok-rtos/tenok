@@ -63,6 +63,7 @@ void shell_task(void)
 		DEF_SHELL_CMD(clear)
 		DEF_SHELL_CMD(history)
 		DEF_SHELL_CMD(ps)
+		DEF_SHELL_CMD(echo)
 	};
 
 	/* shell initialization */
