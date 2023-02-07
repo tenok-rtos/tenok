@@ -113,8 +113,8 @@ void mutex_task1(void)
 
 	while(1) {
 		pthread_mutex_lock(&mutex_print);
-		uart_puts(USART3, str);
-		sleep(1);
+		uart3_puts(str);
+		sleep(100);
 		pthread_mutex_unlock(&mutex_print);
 	}
 }
@@ -125,8 +125,8 @@ void mutex_task2(void)
 
 	while(1) {
 		pthread_mutex_lock(&mutex_print);
-		uart_puts(USART3, str);
-		sleep(1);
+		uart3_puts(str);
+		sleep(100);
 		pthread_mutex_unlock(&mutex_print);
 	}
 }
