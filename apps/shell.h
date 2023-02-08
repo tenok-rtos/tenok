@@ -12,7 +12,7 @@
 #define HISTORY_MAX_SIZE 5
 
 #define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct cmd_list_entry))
-#define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name},
+#define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
 
 enum {
 	NULL_CH = 0,       /* null character */
@@ -91,5 +91,7 @@ void shell_init_struct(struct shell_struct *_shell, char *prompt_msg, char *ret_
 void shell_cls(void);
 void shell_cli(struct shell_struct *_shell);
 void shell_cmd_exec(struct shell_struct *shell, struct cmd_list_entry *cmd_list, int list_size);
+
+void shell_print_history(struct shell_struct *shell);
 
 #endif

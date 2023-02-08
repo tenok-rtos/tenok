@@ -17,6 +17,18 @@ sem_t sem_led;
 _pthread_mutex_t mutex_print;
 mqd_t mqdes_print;
 
+/* shell */
+struct cmd_list_entry shell_cmd_list[] = {
+	DEF_SHELL_CMD(help),
+	DEF_SHELL_CMD(clear),
+	DEF_SHELL_CMD(history),
+	DEF_SHELL_CMD(ps),
+	DEF_SHELL_CMD(echo),
+};
+
+struct shell_struct shell;
+
+
 void led_task1(void)
 {
 	set_program_name("led1");
@@ -57,18 +69,8 @@ void shell_task(void)
 {
 	set_program_name("shell");
 
-	/* shell command table */
-	struct cmd_list_entry shell_cmd_list[] = {
-		DEF_SHELL_CMD(help)
-		DEF_SHELL_CMD(clear)
-		DEF_SHELL_CMD(history)
-		DEF_SHELL_CMD(ps)
-		DEF_SHELL_CMD(echo)
-	};
-
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
-	struct shell_struct shell;
 	shell_init_struct(&shell, __USER_NAME__ "@stm32f407:/$ ", ret_shell_cmd);
 	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
