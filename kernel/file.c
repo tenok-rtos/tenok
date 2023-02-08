@@ -125,7 +125,13 @@ void path_server(void)
 			for(i = 0; i < path_cnt; i++) {
 				if(strcmp(path_list[i], path) == 0) {
 					open_fd = i + TASK_NUM_MAX + 1;
+					break;
 				}
+			}
+
+			/* path not found */
+			if(i >= path_cnt) {
+				open_fd = -1;
 			}
 
 			write(reply_fd, &open_fd, sizeof(open_fd));
