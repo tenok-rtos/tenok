@@ -2,6 +2,8 @@
 #include "shell.h"
 #include "kernel.h"
 
+extern struct shell_struct shell;
+
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char *s = "supported commands:\n\r"
@@ -20,6 +22,7 @@ void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int pa
 
 void shell_cmd_history(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
+	shell_print_history(&shell);
 }
 
 void shell_cmd_ps(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)

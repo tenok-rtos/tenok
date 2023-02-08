@@ -154,17 +154,20 @@ static void shell_push_new_history(struct shell_struct *shell, char *cmd)
 	shell->history_top = history_end;
 }
 
-void print_history(struct shell_struct *shell)
+void shell_print_history(struct shell_struct *shell)
 {
-	shell_puts("\n\r");
+	char s[CMD_LEN_MAX * 2];
+
 	shell_history_t *history_print = shell->history_top;
 	int i;
 	for(i = 0; i < HISTORY_MAX_SIZE; i++) {
-		shell_puts(history_print->cmd);
 		if(history_print->cmd[0] == '\0' ||  i == (HISTORY_MAX_SIZE - 1)) {
 			break;
 		}
-		shell_puts("\n\r");
+
+		sprintf(s, "%d %s\n\r", i+1, history_print->cmd);
+		shell_puts(s);
+
 		history_print = history_print->next;
 	}
 }
