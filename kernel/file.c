@@ -51,14 +51,16 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	inode_dir->data = &data[data_ptr];
 	data_ptr += sizeof(struct dir_info);
 
-	struct dir_info *dir = (struct dir_info*)&data[data_ptr];
+	struct dir_info *dir = (struct dir_info *)inode_dir->data;
 	dir->entry_inode = inode_cnt;      //assign new inode number for the directory
 	strcpy(dir->entry_name, dir_name); //copy the directory name
 
 	/* configure the new directory inode */
-	inodes[dir->entry_inode].is_dir = true;
-	inodes[dir->entry_inode].data_size = sizeof(struct dir_info);
-	inodes[dir->entry_inode].data = inode_dir->data;
+	struct inode *new_inode = &inodes[dir->entry_inode];
+	new_inode->is_dir = true;
+	new_inode->data_size = sizeof(struct dir_info);
+	new_inode->data = inode_dir->data;
+	strcpy(inodes->name, dir_name);
 
 	inode_cnt++;
 
@@ -76,9 +78,11 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	strcpy(dir->entry_name, file_name); //copy the file name
 
 	/* configure the new file inode */
-	inodes[dir->entry_inode].is_dir = false;
-	inodes[dir->entry_inode].data_size = file_size;
-	inodes[dir->entry_inode].data = file_data_p;
+	struct inode *new_inode = &inodes[dir->entry_inode];
+	new_inode->is_dir = false;
+	new_inode->data_size = file_size;
+	new_inode->data = file_data_p;
+	strcpy(inodes->name, file_name);
 
 	inode_cnt++;
 
