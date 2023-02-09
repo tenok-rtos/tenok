@@ -2,8 +2,11 @@
 #define __FILE_H__
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "util.h"
 #include "list.h"
+#include "kconfig.h"
 
 #define S_IFIFO 0
 #define S_IFCHR 1
@@ -14,6 +17,15 @@ enum {
 	PATH_CMD_REGISTER_PATH = 1,
 	PATH_CMD_OPEN = 2,
 } PATH_SERVER_CMDS;
+
+struct inode {
+	char     name[FILE_NAME_LEN_MAX];
+	bool     is_dir;
+	uint64_t block_size;
+
+	struct inode *last;
+	struct inode *next;
+};
 
 struct file {
 	struct file_operations *f_op;
