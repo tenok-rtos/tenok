@@ -214,7 +214,7 @@ void first(void)
 
 void init(void *param)
 {
-	if(!fork()) path_server();
+	if(!fork()) file_system();
 
 	first();
 }
