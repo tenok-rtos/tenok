@@ -53,20 +53,24 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	if(inode_curr == NULL) {
+		/* initialize the inode of the root directory */
 		inode_curr = &inodes[0];
 	}
 
+	/* retrieve the directory table */
 	struct dir_info *dir = (struct dir_info *)inode_curr->data;
 
-	char str[100];
+	char str[200] = {0};
 
+	/* traverse all files under the directory */
 	while(dir != NULL) {
-		/* root directory inode */
+		/* get the file inode */
 		int file_inode_num = dir->entry_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
 		sprintf(str, "%s%s ", str, file_inode->name);
 
+		/* point to the next file */
 		dir = dir->next;
 	}
 
