@@ -5,10 +5,10 @@
 #include "syscall.h"
 #include "fifo.h"
 
-#define PATH_SERVER_FD 0 //reserve file descriptor 0 for path server
-#define PATH_LEN_MAX   128
-
 extern struct file *files;
+
+struct inode inodes[INODE_CNT_MAX];
+int inode_cnt = 0;
 
 /*----------------------------------------------------------*
  |               file descriptors list layout               |
