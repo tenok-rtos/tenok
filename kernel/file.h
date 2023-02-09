@@ -21,10 +21,16 @@ enum {
 struct inode {
 	char     name[FILE_NAME_LEN_MAX];
 	bool     is_dir;
-	uint64_t block_size;
 
-	struct inode *last;
-	struct inode *next;
+	uint8_t  *data;
+	int      data_size;
+};
+
+struct dir_info {
+	char     entry_name[FILE_NAME_LEN_MAX];
+	uint32_t entry_inode;
+
+	struct dir_info *next;
 };
 
 struct file {
@@ -41,7 +47,7 @@ struct file_operations {
 void request_path_register(int reply_fd, char *path);
 void request_file_open(int reply_fd, char *path);
 
-void path_server(void);
+void file_system(void);
 
 #endif
 
