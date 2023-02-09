@@ -24,6 +24,7 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(history),
 	DEF_SHELL_CMD(ps),
 	DEF_SHELL_CMD(echo),
+	DEF_SHELL_CMD(ls),
 };
 
 struct shell_struct shell;
