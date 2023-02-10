@@ -57,6 +57,10 @@ void fs_root_node_init(void)
 
 struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 {
+	if(inode_cnt >= INODE_CNT_MAX) {
+		return NULL;
+	}
+
 	/* allocate new memory for the new directory */
 	uint8_t *dir_data_p = &data[data_ptr];
 	data_ptr += sizeof(struct dir_info);
@@ -93,6 +97,10 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 
 struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size)
 {
+	if(inode_cnt >= INODE_CNT_MAX) {
+		return NULL;
+	}
+
 	/* allocate new memory for the directory file table */
 	uint8_t *dir_data_p = &data[data_ptr];
 	data_ptr += sizeof(struct dir_info);
@@ -170,7 +178,8 @@ int create_file(char *pathname)
 		return -1;
 	}
 
-	struct inode *inode_curr = &inodes[0]; //traverse from the root inode
+	struct inode *inode_curr = &inodes[0]; //start from the root node
+	struct inode *_inode;
 
 	char entry_curr[PATH_LEN_MAX];
 	char *_path = pathname;
@@ -181,10 +190,6 @@ int create_file(char *pathname)
 		/* split the path and get the entry hierarchically */
 		_path = split_path(entry_curr, _path);
 
-		//char s[100] = {0};
-		//sprintf(s, "%s\n\r", entry_curr);
-		//uart3_puts(s);
-
 		if(_path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
 
@@ -193,16 +198,23 @@ int create_file(char *pathname)
 				continue;
 			}
 
-			/* check if the directory exists */
-			if(fs_search_entry_in_dir(inode_curr, entry_curr) == NULL) {
-				/* directory does not exists, create one */
-				struct inode *new_inode = fs_add_new_dir(inode_curr, entry_curr);
+			/* search the entry and get the inode */
+			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-				if(new_inode != NULL) {
-					inode_curr = new_inode;
+			/* check if the directory exists */
+			if(_inode == NULL) {
+				/* directory does not exist, create one */
+				_inode = fs_add_new_dir(inode_curr, entry_curr);
+
+				/* check if the directory exists */
+				if(_inode != NULL) {
+					inode_curr = _inode;
 				} else {
 					return -1; //failed to create the directory
 				}
+			} else {
+				/* directory exists */
+				inode_curr = _inode;
 			}
 		} else {
 			/* no more path string to be splitted */
@@ -215,14 +227,15 @@ int create_file(char *pathname)
 			/* if the last character of the pathname is not equal to '/', it is a file */
 			int len = strlen(pathname);
 			if(pathname[len - 1] != '/') {
-				struct inode *new_inode = fs_add_new_file(inode_curr, entry_curr, 1 /* XXX */);
+				/* create new inode for the file */
+				_inode = fs_add_new_file(inode_curr, entry_curr, 1); //XXX
 
-				if(new_inode == NULL) {
+				/* check if the inode is created successfully */
+				if(_inode == NULL) {
 					return -1; //failed to create the file
 				} else {
-					int new_fd;
-
 					/* register a new file descriptor number */
+					int new_fd;
 					if(path_cnt < FILE_CNT_LIMIT) {
 						new_fd = path_cnt + TASK_NUM_MAX + 1;
 						path_cnt++;
@@ -230,7 +243,7 @@ int create_file(char *pathname)
 						new_fd = -1; //file descriptor table is full
 					}
 
-					*new_inode->data = new_fd;
+					*_inode->data = new_fd;
 
 					return new_fd;
 				}
@@ -248,7 +261,8 @@ int open_file(char *pathname)
 		return -1;
 	}
 
-	struct inode *inode_curr = &inodes[0]; //traverse from the root inode
+	struct inode *inode_curr = &inodes[0]; //start from the root node
+	struct inode *_inode;
 
 	char entry_curr[PATH_LEN_MAX];
 	char *_path = pathname;
@@ -259,10 +273,6 @@ int open_file(char *pathname)
 		/* split the path and get the entry hierarchically */
 		_path = split_path(entry_curr, _path);
 
-		//char s[100] = {0};
-		//sprintf(s, "%s\n\r", entry_curr);
-		//uart3_puts(s);
-
 		if(_path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
 
@@ -272,23 +282,27 @@ int open_file(char *pathname)
 			}
 
 			/* search the entry and get the inode */
-			if(fs_search_entry_in_dir(inode_curr, entry_curr) == NULL) {
+			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+
+			if(_inode == NULL) {
 				return -1; //directory does not exist
+			} else {
+				inode_curr = _inode;
 			}
 		} else {
 			/* check if the file exists */
-			struct inode *file_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-			if(file_inode == NULL) {
+			if(_inode == NULL) {
 				return -1;
 			}
 
-			if(file_inode->is_dir == true) {
+			if(_inode->is_dir == true) {
 				/* not a file, no file descriptor number to be return */
 				return -1;
 			} else {
 				/* return the file descriptor number */
-				int file_fd = *((int *)file_inode->data);
+				int file_fd = *((int *)_inode->data);
 				return file_fd;
 			}
 		}

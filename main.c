@@ -96,7 +96,7 @@ void fifo_task1(void)
 {
 	set_program_name("fifo1");
 
-	int fd = open("/fifo_test", 0, 0);
+	int fd = open("/test/fifo", 0, 0);
 	char data[] = "hello";
 	int len = strlen(data);
 
@@ -113,7 +113,7 @@ void fifo_task2(void)
 {
 	set_program_name("fifo2");
 
-	int fd = open("/fifo_test", 0, 0);
+	int fd = open("/test/fifo", 0, 0);
 	char data[10] = {0};
 	char str[20];
 
@@ -197,7 +197,7 @@ void first(void)
 	set_program_name("first");
 
 	sem_init(&sem_led, 0, 0);
-	mknod("/fifo_test", 0, S_IFIFO);
+	mknod("/test/fifo", 0, S_IFIFO);
 	pthread_mutex_init(&mutex_print, 0);
 
 	if(!fork()) led_task1();
