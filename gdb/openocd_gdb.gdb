@@ -1,4 +1,4 @@
-file naive_f4_os.elf
+file neo-rtenv.elf
 target remote :3333
 monitor reset halt
 c

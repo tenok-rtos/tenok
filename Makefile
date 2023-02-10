@@ -1,4 +1,4 @@
-PROJECT=naive_f4_os
+PROJECT=neo-rtenv
 ELF=$(PROJECT).elf
 BIN=$(PROJECT).bin
 

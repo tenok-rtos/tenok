@@ -25,7 +25,8 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(ps),
 	DEF_SHELL_CMD(echo),
 	DEF_SHELL_CMD(ls),
-	DEF_SHELL_CMD(cd)
+	DEF_SHELL_CMD(cd),
+	DEF_SHELL_CMD(pwd)
 };
 
 struct shell_struct shell;
@@ -73,9 +74,11 @@ void shell_task(void)
 
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
-	shell_init_struct(&shell, __USER_NAME__ "@stm32f407:/$ ", ret_shell_cmd);
-	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
+	char path_curr[200] = {0};
+	char prompt_msg[PROMPT_LEN_MAX] = {0};
+	int  shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
+	shell_init_struct(&shell, prompt_msg, ret_shell_cmd);
 	shell_path_init();
 
 	/* clean screen */
@@ -87,6 +90,10 @@ void shell_task(void)
 	shell_puts(s);
 
 	while(1) {
+		shell_get_pwd(path_curr);
+		snprintf(prompt_msg, PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  path_curr);
+		shell.prompt_len = strlen(shell.prompt_msg);
+
 		shell_cli(&shell);
 		shell_cmd_exec(&shell, shell_cmd_list, shell_cmd_cnt);
 	}
