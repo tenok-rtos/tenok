@@ -14,16 +14,32 @@ void shell_path_init(void)
 	inode_curr = &inodes[0];
 }
 
+void shell_get_pwd(char *path)
+{
+	path[0] = '/';
+	path[1] = '\0';
+
+	struct inode *_inode = inode_curr;
+	struct dir_info *dir = (struct dir_info *)_inode->data;
+
+	while(1) {
+		if(_inode->inode_num == 0) {
+			break;
+		}
+
+		/* switch to the parent directory */
+		int parent_dir_inode = dir->parent_inode;
+		_inode = &inodes[parent_dir_inode];
+		dir = (struct dir_info *)_inode->data;
+
+		sprintf(path, "%s%s/", path, dir->entry_name);
+	}
+}
+
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char *s = "supported commands:\n\r"
-	          "help\n\r"
-	          "clear\n\r"
-	          "history\n\r"
-	          "ps\n\r"
-	          "echo\n\r"
-	          "ls\n\r"
-	          "cd\n\r";
+	          "help, clear, history, ps, echo, ls, cd, pwd\n\r";
 	shell_puts(s);
 }
 
@@ -126,4 +142,15 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		shell_puts(str);
 		return;
 	}
+}
+
+void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char str[200] = {0};
+	char path[200] = {'/'};
+
+	shell_get_pwd(path);
+
+	sprintf(str, "%s\n\r", path);
+	shell_puts(str);
 }
