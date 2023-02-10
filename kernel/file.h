@@ -14,8 +14,8 @@
 #define S_IFREG 3
 
 enum {
-	PATH_CMD_REGISTER_PATH = 1,
-	PATH_CMD_OPEN = 2,
+	FS_CREATE_FILE = 1,
+	FS_OPEN_FILE = 2,
 } PATH_SERVER_CMDS;
 
 struct inode {
