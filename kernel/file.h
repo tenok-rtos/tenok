@@ -19,7 +19,6 @@ enum {
 } PATH_SERVER_CMDS;
 
 struct inode {
-	char     name[FILE_NAME_LEN_MAX];
 	bool     is_dir;
 
 	uint8_t  *data;
