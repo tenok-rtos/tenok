@@ -163,7 +163,7 @@ char *split_path(char *entry, char *path)
 	}
 }
 
-int create_file(char *pathname, int fd)
+int create_file(char *pathname)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/') {
@@ -220,13 +220,21 @@ int create_file(char *pathname, int fd)
 				if(new_inode == NULL) {
 					return -1; //failed to create the file
 				} else {
-					int *file_fd = (int *)new_inode->data;
-					*file_fd = fd;
-					return 0;
+					int new_fd;
+
+					/* register a new file descriptor number */
+					if(path_cnt < FILE_CNT_LIMIT) {
+						new_fd = path_cnt + TASK_NUM_MAX + 1;
+						path_cnt++;
+					} else {
+						new_fd = -1; //file descriptor table is full
+					}
+
+					*new_inode->data = new_fd;
+
+					return new_fd;
 				}
 			}
-
-			break;
 		}
 	}
 }
@@ -289,7 +297,7 @@ int open_file(char *pathname)
 
 void request_path_register(int reply_fd, char *path)
 {
-	int file_cmd = PATH_CMD_REGISTER_PATH;
+	int file_cmd = FS_CREATE_FILE;
 	int path_len = strlen(path) + 1;
 
 	const int overhead = sizeof(file_cmd) + sizeof(reply_fd) + sizeof(path_len);
@@ -314,7 +322,7 @@ void request_path_register(int reply_fd, char *path)
 
 void request_file_open(int reply_fd, char *path)
 {
-	int file_cmd = PATH_CMD_OPEN;
+	int file_cmd = FS_OPEN_FILE;
 	int path_len = strlen(path) + 1;
 
 	const int overhead = sizeof(file_cmd) + sizeof(reply_fd) + sizeof(path_len);
@@ -358,26 +366,15 @@ void file_system(void)
 		read(PATH_SERVER_FD, &reply_fd, sizeof(reply_fd));
 
 		switch(file_cmd) {
-		case PATH_CMD_REGISTER_PATH:
+		case FS_CREATE_FILE:
 			read(PATH_SERVER_FD, &path_len, sizeof(path_len));
 			read(PATH_SERVER_FD, path, path_len);
 
-			int new_fd;
-
-			if(path_cnt < FILE_CNT_LIMIT) {
-				new_fd = path_cnt + TASK_NUM_MAX + 1;
-
-				create_file(path, new_fd);
-
-				path_cnt++;
-			} else {
-				new_fd = -1;
-			}
-
+			int new_fd = create_file(path);
 			write(reply_fd, &new_fd, sizeof(new_fd));
 
 			break;
-		case PATH_CMD_OPEN:
+		case FS_OPEN_FILE:
 			read(PATH_SERVER_FD, &path_len, sizeof(path_len));
 			read(PATH_SERVER_FD, path, path_len);
 
