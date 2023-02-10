@@ -21,6 +21,8 @@ enum {
 struct inode {
 	bool     is_dir;
 
+	int      inode_num;
+
 	uint8_t  *data;
 	int      data_size;
 };
@@ -28,6 +30,8 @@ struct inode {
 struct dir_info {
 	char     entry_name[FILE_NAME_LEN_MAX];
 	uint32_t entry_inode;
+
+	uint32_t parent_inode;
 
 	struct dir_info *next;
 };

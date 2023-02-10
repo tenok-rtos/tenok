@@ -90,10 +90,17 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 	if(param_cnt == 1) {
 		inode_curr = &inodes[0];
-	} else {
+	} else if(param_cnt == 2) {
 		/* retrieve the directory table */
 		struct dir_info *dir = (struct dir_info *)inode_curr->data;
 
+		/* handle cd .. */
+		if(strcmp("..", param_list[1]) == 0) {
+			inode_curr = &inodes[dir->parent_inode];
+			return;
+		}
+
+		/* compare all the file names under the current directory */
 		while(dir != NULL) {
 			if(strcmp(dir->entry_name, param_list[1]) == 0) {
 				struct inode *_inode = &inodes[dir->entry_inode];
@@ -112,6 +119,10 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		}
 
 		sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
+		shell_puts(str);
+		return;
+	} else {
+		sprintf(str, "cd: too many arguments\n\r");
 		shell_puts(str);
 		return;
 	}

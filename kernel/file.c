@@ -50,6 +50,7 @@ void fs_root_node_init(void)
 	inode_root->is_dir = true;
 	inode_root->data = NULL;
 	inode_root->data_size = 0;
+	inode_root->inode_num = 0;
 
 	inode_cnt = 1;
 }
@@ -66,14 +67,16 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 
 	/* configure the directory file table */
 	struct dir_info *new_dir = (struct dir_info *)dir_data_p;
-	new_dir->entry_inode = inode_cnt;      //assign new inode number for the directory
-	strcpy(new_dir->entry_name, dir_name); //copy the directory name
+	new_dir->entry_inode = inode_cnt;             //assign new inode number for the directory
+	new_dir->parent_inode = inode_dir->inode_num; //save the inode of the parent directory
+	strcpy(new_dir->entry_name, dir_name);        //copy the directory name
 
 	/* configure the new directory inode */
-	struct inode *new_inode = &inodes[new_dir->entry_inode];
+	struct inode *new_inode = &inodes[inode_cnt];
 	new_inode->is_dir = true;
 	new_inode->data_size = 0;
 	new_inode->data = NULL; //new directory without any files
+	new_inode->inode_num = inode_cnt;
 
 	inode_cnt++;
 
@@ -113,10 +116,11 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	strcpy(file_info->entry_name, file_name); //copy the file name
 
 	/* configure the new file inode */
-	struct inode *new_inode = &inodes[file_info->entry_inode];
+	struct inode *new_inode = &inodes[inode_cnt];
 	new_inode->is_dir = false;
 	new_inode->data_size = file_size;
 	new_inode->data = file_data_p;
+	new_inode->inode_num = inode_cnt;
 
 	inode_cnt++;
 
