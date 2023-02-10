@@ -25,6 +25,7 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(ps),
 	DEF_SHELL_CMD(echo),
 	DEF_SHELL_CMD(ls),
+	DEF_SHELL_CMD(cd)
 };
 
 struct shell_struct shell;
@@ -74,6 +75,8 @@ void shell_task(void)
 	char ret_shell_cmd[CMD_LEN_MAX];
 	shell_init_struct(&shell, __USER_NAME__ "@stm32f407:/$ ", ret_shell_cmd);
 	int shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
+
+	shell_path_init();
 
 	/* clean screen */
 	shell_cls();
