@@ -10,6 +10,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 * Semaphore
 * FIFO (Named pipe)
 * Message queue
+* Shell
 * A simple file system
 
 ## Supported Platforms
