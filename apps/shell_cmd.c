@@ -70,7 +70,11 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		int file_inode_num = dir->entry_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
-		sprintf(str, "%s%s ", str, file_inode->name);
+		if(file_inode->is_dir == true) {
+			sprintf(str, "%s%s/ ", str, dir->entry_name);
+		} else {
+			sprintf(str, "%s%s ", str, dir->entry_name);
+		}
 
 		/* point to the next file */
 		dir = dir->next;

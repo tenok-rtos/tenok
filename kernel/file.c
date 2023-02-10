@@ -47,7 +47,6 @@ void fs_root_node_init(void)
 {
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
-	inode_root->name[0] = '\0';
 	inode_root->is_dir = true;
 	inode_root->data = NULL;
 	inode_root->data_size = 0;
@@ -75,7 +74,6 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	new_inode->is_dir = true;
 	new_inode->data_size = 0;
 	new_inode->data = NULL; //new directory without any files
-	strcpy(new_inode->name, dir_name);
 
 	inode_cnt++;
 
@@ -119,7 +117,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	new_inode->is_dir = false;
 	new_inode->data_size = file_size;
 	new_inode->data = file_data_p;
-	strcpy(new_inode->name, file_name);
 
 	inode_cnt++;
 
