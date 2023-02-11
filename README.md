@@ -11,16 +11,16 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 * FIFO (Named pipe)
 * Message queue
 * Shell
-* A simple file system
+* A simple ROM file system
 
 ## Supported Platforms
 
 * [STM32F4Discovery](https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
 * QEMU Emulation of [netduinoplus2](https://freshman1997.slack.com/?redir=%2Fmessages%2Fgrand-tour-project%2F) (STM32F405RGT6)
 
-## Development toolchain
+## Development Tools
 
-1.Prerequisites:
+1. Prerequisites:
 
 ```
 sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf* \
@@ -28,14 +28,14 @@ sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf
          libstdc++6:i386 libusb-1.0.0-dev ninja-build
 ```
 
-2.OpenOCD:
+2. OpenOCD:
 
 ```
 git clone git://git.code.sf.net/p/openocd/code openocd
 cd openocd
 ./bootstrap
-./configure --prefix=/usr/local  --enable-jlink --enable-amtjtagaccel --enable-buspirate \
-            --enable-stlink   --disable-libftdi
+./configure --prefix=/usr/local --enable-jlink --enable-amtjtagaccel --enable-buspirate \
+            --enable-stlink --disable-libftdi
 echo -e "all:\ninstall:" > doc/Makefile
 make -j4
 sudo make install
@@ -69,7 +69,7 @@ PATH=$PATH:${YOUR_PATH}/qemu/build
 PATH=$PATH:${YOUR_PATH}/gcc-arm-none-eabi-9-2019-q4-major/bin
 ```
 
-6. Restart the terminal:
+6. Restart the terminal
 
 ## Build and Run
 
