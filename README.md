@@ -18,7 +18,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 * [STM32F4Discovery](https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
 * QEMU Emulation of [netduinoplus2](https://freshman1997.slack.com/?redir=%2Fmessages%2Fgrand-tour-project%2F) (STM32F405RGT6)
 
-## Development toolchain
+## Development Tools
 
 1. Prerequisites:
 
@@ -34,8 +34,8 @@ sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf
 git clone git://git.code.sf.net/p/openocd/code openocd
 cd openocd
 ./bootstrap
-./configure --prefix=/usr/local  --enable-jlink --enable-amtjtagaccel --enable-buspirate \
-            --enable-stlink   --disable-libftdi
+./configure --prefix=/usr/local --enable-jlink --enable-amtjtagaccel --enable-buspirate \
+            --enable-stlink --disable-libftdi
 echo -e "all:\ninstall:" > doc/Makefile
 make -j4
 sudo make install
