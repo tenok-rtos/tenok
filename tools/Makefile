@@ -1,10 +1,20 @@
-OBJCOPY=arm-none-eabi-objcopy
-ROMFS=../romfs.bin
-ROMFS_OBJ=../romfs.o
+-include ../config.mk
 
-all:
-	gcc -o mkromfs mkromfs.c
+ROMFS=./romfs.bin
+ROMFS_OBJ=./romfs.o
+
+all: $(ROMFS_OBJ)
+
+$(ROMFS): ./mkromfs.c
+	gcc -o mkromfs $<
 	./mkromfs
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm --prefix-sections '.rom' $(ROMFS) $(ROMFS_OBJ)
 
-.PHONY: all
+$(ROMFS_OBJ): $(ROMFS)
+	@echo "OBJCPY" $@ $<
+	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm --prefix-sections '.rom' $(ROMFS) $(ROMFS_OBJ)
+
+clean:
+	rm -rf $(ROMFS)
+	rm -rf $(ROMFS_OBJ)
+
+.PHONY: clean
