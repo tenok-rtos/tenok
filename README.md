@@ -69,7 +69,7 @@ PATH=$PATH:${YOUR_PATH}/qemu/build
 PATH=$PATH:${YOUR_PATH}/gcc-arm-none-eabi-9-2019-q4-major/bin
 ```
 
-6. Restart the terminal:
+6. Restart the terminal
 
 ## Build and Run
 
@@ -87,7 +87,7 @@ Run emulation:
 make qemu
 ```
  
-Upload binary
+Upload binary:
  
 ```
 make flash
