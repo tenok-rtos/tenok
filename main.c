@@ -12,6 +12,7 @@
 #include "file.h"
 #include "mutex.h"
 #include "file.h"
+#include "rom_dev.h"
 
 sem_t sem_led;
 _pthread_mutex_t mutex_print;
@@ -225,6 +226,8 @@ void first(void)
 
 void init(void *param)
 {
+	rom_dev_init();
+
 	if(!fork()) file_system();
 
 	first();
