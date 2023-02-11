@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char *output_path = "../romfs";
+char *output_path = "../romfs.bin";
 
 int main(int argc, char **argv)
 {
