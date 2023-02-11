@@ -87,7 +87,7 @@ Run emulation:
 make qemu
 ```
  
-Upload binary:
+Upload binary
  
 ```
 make flash
