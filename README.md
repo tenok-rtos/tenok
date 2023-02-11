@@ -11,7 +11,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 * FIFO (Named pipe)
 * Message queue
 * Shell
-* A simple file system
+* A simple ROM file system
 
 ## Supported Platforms
 
@@ -20,7 +20,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 
 ## Development toolchain
 
-1.Prerequisites:
+1. Prerequisites:
 
 ```
 sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf* \
@@ -28,7 +28,7 @@ sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf
          libstdc++6:i386 libusb-1.0.0-dev ninja-build
 ```
 
-2.OpenOCD:
+2. OpenOCD:
 
 ```
 git clone git://git.code.sf.net/p/openocd/code openocd
