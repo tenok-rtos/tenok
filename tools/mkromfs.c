@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char *output_path = "../romfs.bin";
+char *output_path = "./romfs.bin";
 
 int main(int argc, char **argv)
 {
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	char *test = "hello";
+	char *test = "romfs test string";
 	fwrite(test, sizeof(char), strlen(test) + 1, file);
 
 	fclose(file);

@@ -2,11 +2,7 @@ PROJECT=neo-rtenv
 ELF=$(PROJECT).elf
 BIN=$(PROJECT).bin
 
-CC=arm-none-eabi-gcc
-OBJCOPY=arm-none-eabi-objcopy
-GDB=arm-none-eabi-gdb
-SIZE=arm-none-eabi-size
-QEMU=qemu-system-arm
+-include config.mk
 
 CFLAGS=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
@@ -66,6 +62,8 @@ SRC+=./kernel/fifo.c \
 	./main.c \
 
 OBJS=$(SRC:.c=.o)
+OBJS+=./tools/romfs.o
+
 DEPEND=$(SRC:.c=.d)
 
 ASM=./startup/startup_stm32f4xx.s \
@@ -85,6 +83,9 @@ $(BIN): $(ELF)
 
 -include $(DEPEND)
 
+tools/romfs.o:
+	@$(MAKE) -C ./tools -f Makefile
+
 %.o: %.s 
 	@echo "CC" $@
 	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -c $<
@@ -98,6 +99,7 @@ clean:
 	rm -rf $(OBJS)
 	rm -rf $(DEPEND)
 	rm -rf *.orig
+	@$(MAKE) -C ./tools -f Makefile clean
 
 qemu: all
 	$(QEMU) -cpu cortex-m4 \
