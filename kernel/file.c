@@ -5,8 +5,11 @@
 #include "kernel.h"
 #include "syscall.h"
 #include "fifo.h"
+#include "rom_dev.h"
 
 #include "uart.h"
+
+int create_file(char *pathname);
 
 extern struct file *files;
 
@@ -24,7 +27,37 @@ int data_ptr = 0;
  | numbers |       1        | TASK_NUM_MAX | FILE_CNT_LIMIT |
  *---------*----------------*--------------*----------------*/
 
-int path_cnt = 0;
+int file_cnt = 0;
+
+int register_chrdev(char *name, struct file_operations *fops)
+{
+	char dev_path[100] = {0};
+	sprintf(dev_path, "/dev/%s", name);
+
+	int fd = create_file(dev_path);
+	files[fd].f_op = fops;
+}
+
+int register_blkdev(char *name, struct file_operations *fops)
+{
+	char dev_path[100] = {0};
+	sprintf(dev_path, "/dev/%s", name);
+
+	int fd = create_file(dev_path);
+	files[fd].f_op = fops;
+}
+
+void file_system_init(void)
+{
+	/* configure the root directory inode */
+	struct inode *inode_root = &inodes[0];
+	inode_root->is_dir = true;
+	inode_root->data = NULL;
+	inode_root->data_size = 0;
+	inode_root->inode_num = 0;
+
+	inode_cnt = 1;
+}
 
 struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
 {
@@ -41,18 +74,6 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
 	}
 
 	return NULL;
-}
-
-void fs_root_node_init(void)
-{
-	/* configure the root directory inode */
-	struct inode *inode_root = &inodes[0];
-	inode_root->is_dir = true;
-	inode_root->data = NULL;
-	inode_root->data_size = 0;
-	inode_root->inode_num = 0;
-
-	inode_cnt = 1;
 }
 
 struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
@@ -237,9 +258,9 @@ int create_file(char *pathname)
 				} else {
 					/* register a new file descriptor number */
 					int new_fd;
-					if(path_cnt < FILE_CNT_LIMIT) {
-						new_fd = path_cnt + TASK_NUM_MAX + 1;
-						path_cnt++;
+					if(file_cnt < FILE_CNT_LIMIT) {
+						new_fd = file_cnt + TASK_NUM_MAX + 1;
+						file_cnt++;
 					} else {
 						new_fd = -1; //file descriptor table is full
 					}
@@ -369,9 +390,6 @@ void file_system(void)
 	char path[PATH_LEN_MAX];
 
 	int  dev;
-
-	/* initialize the root node */
-	fs_root_node_init();
 
 	while(1) {
 		int file_cmd;

@@ -11,7 +11,7 @@
 extern tcb_t *running_task;
 extern struct memory_pool mem_pool;
 extern struct file *files[FILE_CNT_LIMIT];
-extern int file_count;
+extern int file_cnt;
 
 static struct file_operations mq_ops;
 
@@ -20,7 +20,7 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 	preempt_disable();
 
 	/* if file count reached the limit */
-	if(file_count >= FILE_CNT_LIMIT) {
+	if(file_cnt >= FILE_CNT_LIMIT) {
 		return -1;
 	}
 
@@ -33,10 +33,10 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 	struct list *wait_list = &((&pipe->file)->task_wait_list);
 	list_init(wait_list);
 	pipe->file.f_op = &mq_ops;
-	files[file_count] = &pipe->file;
+	files[file_cnt] = &pipe->file;
 
-	mqd_t mqdes = file_count;
-	file_count++;
+	mqd_t mqdes = file_cnt;
+	file_cnt++;
 
 	preempt_enable();
 

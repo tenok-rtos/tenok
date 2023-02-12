@@ -47,6 +47,11 @@ struct file_operations {
 	ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
+void file_system_init(void);
+
+int register_chrdev(char *name, struct file_operations *fops);
+int register_blkdev(char *name, struct file_operations *fops);
+
 void request_path_register(int reply_fd, char *path);
 void request_file_open(int reply_fd, char *path);
 
