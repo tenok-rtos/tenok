@@ -3,6 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include "file.h"
+#include "syscall.h"
+#include "uart.h"
 
 extern char _section_rom_start;
 extern char _section_rom_end;
@@ -19,8 +21,23 @@ static struct file_operations rom_dev_ops = {
 	.write = rom_dev_write
 };
 
+void mount_rom(void)
+{
+	char rom_buf[100] = {0};
+	int fd = open("/dev/rom", 0, 0);
+
+	if(fd < 0) {
+		return;
+	}
+
+	read(fd, rom_buf, 5);
+	uart3_puts(rom_buf);
+}
+
 int rom_dev_init(void)
 {
+	register_blkdev("rom", &rom_dev_ops);
+
 	char *rom_data_ptr = &_section_rom_start;
 }
 

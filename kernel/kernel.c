@@ -51,7 +51,6 @@ uint8_t mem_pool_buf[MEM_POOL_SIZE];
 /* files */
 //reserve 1 for path server, 1 for each task, and FILE_CNT_LIMIT for new files
 struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
-int file_count = 0; //excludes the file fifos
 
 bool irq_off = false;
 
@@ -372,12 +371,6 @@ void sys_mknod(void)
 	//_mode_t mode = (_mode_t)running_task->stack_top->r1;
 	_dev_t dev = (_dev_t)running_task->stack_top->r2;
 
-	/* if file count reached the limit */
-	if(file_count >= FILE_CNT_LIMIT) {
-		running_task->stack_top->r0 = -1;
-		return;
-	}
-
 	int task_fd = running_task->pid + 1;
 
 	/* if pending flag is set means the request is already sent */
@@ -397,7 +390,6 @@ void sys_mknod(void)
 	switch(dev) {
 	case S_IFIFO:
 		result = fifo_init(new_fd, (struct file **)&files, &mem_pool);
-		file_count++;
 		break;
 	case S_IFCHR:
 		result = -1;
