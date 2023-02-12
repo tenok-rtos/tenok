@@ -224,6 +224,19 @@ void first(void)
 	}
 }
 
+void mount_rom(void)
+{
+	char rom_buf[100] = {0};
+	int fd = open("/dev/rom", 0, 0);
+
+	if(fd < 0) {
+		return;
+	}
+
+	read(fd, rom_buf, 17);
+	uart3_puts(rom_buf);
+}
+
 void init(void *param)
 {
 	file_system_init();
@@ -231,6 +244,8 @@ void init(void *param)
 	rom_dev_init();
 
 	if(!fork()) file_system();
+
+	mount_rom();
 
 	first();
 }
