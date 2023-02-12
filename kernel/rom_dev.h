@@ -3,6 +3,4 @@
 
 int rom_dev_init(void);
 
-void mount_rom(void);
-
 #endif

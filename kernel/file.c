@@ -11,7 +11,8 @@
 
 int create_file(char *pathname);
 
-extern struct file *files;
+extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
+extern struct memory_pool mem_pool;
 
 struct inode inodes[INODE_CNT_MAX];
 int inode_cnt = 0;
@@ -34,8 +35,16 @@ int register_chrdev(char *name, struct file_operations *fops)
 	char dev_path[100] = {0};
 	sprintf(dev_path, "/dev/%s", name);
 
+	/* create new file in the file system */
 	int fd = create_file(dev_path);
-	files[fd].f_op = fops;
+
+	/* allocate and initialize the new device file */
+	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+	dev_file->f_op = fops;
+	list_init(&dev_file->task_wait_list);
+
+	/* register the new device file to the file table */
+	files[fd] = dev_file;
 }
 
 int register_blkdev(char *name, struct file_operations *fops)
@@ -43,8 +52,16 @@ int register_blkdev(char *name, struct file_operations *fops)
 	char dev_path[100] = {0};
 	sprintf(dev_path, "/dev/%s", name);
 
+	/* create new file in the file system */
 	int fd = create_file(dev_path);
-	files[fd].f_op = fops;
+
+	/* allocate and initialize the new device file */
+	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+	dev_file->f_op = fops;
+	list_init(&dev_file->task_wait_list);
+
+	/* register the new device file to the file table */
+	files[fd] = dev_file;
 }
 
 void file_system_init(void)
@@ -353,7 +370,7 @@ void request_path_register(int reply_fd, char *path)
 	memcpy(&buf[buf_size], path, path_len);
 	buf_size += path_len;
 
-	fifo_write(&files[PATH_SERVER_FD], buf, buf_size, 0);
+	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
 }
 
 void request_file_open(int reply_fd, char *path)
@@ -378,7 +395,7 @@ void request_file_open(int reply_fd, char *path)
 	memcpy(&buf[buf_size], path, path_len);
 	buf_size += path_len;
 
-	fifo_write(&files[PATH_SERVER_FD], buf, buf_size, 0);
+	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
 }
 
 void file_system(void)
