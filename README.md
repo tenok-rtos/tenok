@@ -16,7 +16,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 ## Supported Platforms
 
 * [STM32F4Discovery](https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
-* QEMU Emulation of [netduinoplus2](https://freshman1997.slack.com/?redir=%2Fmessages%2Fgrand-tour-project%2F) (STM32F405RGT6)
+* QEMU Emulation of [netduinoplus2](https://qemu.readthedocs.io/en/latest/system/arm/stm32.html) (STM32F405RGT6)
 
 ## Development Tools
 
