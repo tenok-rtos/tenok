@@ -19,18 +19,18 @@ void shell_get_pwd(char *path)
 	path[0] = '/';
 	path[1] = '\0';
 
-	struct inode *_inode = inode_curr;
-	struct dir_info *dir = (struct dir_info *)_inode->data;
+	struct inode *inode = inode_curr;
+	struct dir_info *dir = (struct dir_info *)inode->i_data;
 
 	while(1) {
-		if(_inode->inode_num == 0) {
+		if(inode->i_ino == 0) {
 			break;
 		}
 
 		/* switch to the parent directory */
 		int parent_dir_inode = dir->parent_inode;
-		_inode = &inodes[parent_dir_inode];
-		dir = (struct dir_info *)_inode->data;
+		inode = &inodes[parent_dir_inode];
+		dir = (struct dir_info *)inode->i_data;
 
 		sprintf(path, "%s%s/", path, dir->entry_name);
 	}
@@ -76,7 +76,7 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	/* retrieve the directory table */
-	struct dir_info *dir = (struct dir_info *)inode_curr->data;
+	struct dir_info *dir = (struct dir_info *)inode_curr->i_data;
 
 	char str[200] = {0};
 
@@ -86,7 +86,7 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		int file_inode_num = dir->entry_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
-		if(file_inode->is_dir == true) {
+		if(file_inode->i_mode == S_IFDIR) {
 			sprintf(str, "%s%s/ ", str, dir->entry_name);
 		} else {
 			sprintf(str, "%s%s ", str, dir->entry_name);
@@ -108,7 +108,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		inode_curr = &inodes[0];
 	} else if(param_cnt == 2) {
 		/* retrieve the directory table */
-		struct dir_info *dir = (struct dir_info *)inode_curr->data;
+		struct dir_info *dir = (struct dir_info *)inode_curr->i_data;
 
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {
@@ -120,7 +120,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		while(dir != NULL) {
 			if(strcmp(dir->entry_name, param_list[1]) == 0) {
 				struct inode *_inode = &inodes[dir->entry_inode];
-				if(_inode->is_dir == false) {
+				if(_inode->i_mode != S_IFDIR) {
 					sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 					shell_puts(str);
 					return;

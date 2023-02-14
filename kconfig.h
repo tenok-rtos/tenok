@@ -19,7 +19,12 @@
 /* file system */
 #define PATH_SERVER_FD        0    //reserve file descriptor 0 for path server
 #define PATH_LEN_MAX          128
+
 #define FILE_NAME_LEN_MAX     30
+
 #define INODE_CNT_MAX         100
+
+#define ROOTFS_BLK_SIZE       128  //bytes
+#define ROOTFS_BLK_CNT        100
 
 #endif
