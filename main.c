@@ -208,6 +208,8 @@ void first(void)
 	mknod("/fifo_test", 0, S_IFIFO);
 	pthread_mutex_init(&mutex_print, 0);
 
+	mknod("/proc/cpuinfo", 0, S_IFREG);
+
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) shell_task();

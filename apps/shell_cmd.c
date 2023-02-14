@@ -87,9 +87,9 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		struct inode *file_inode = &inodes[file_inode_num];
 
 		if(file_inode->i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/ ", str, dir->entry_name);
+			sprintf(str, "%s%s/  ", str, dir->entry_name);
 		} else {
-			sprintf(str, "%s%s ", str, dir->entry_name);
+			sprintf(str, "%s%s  ", str, dir->entry_name);
 		}
 
 		/* point to the next file */

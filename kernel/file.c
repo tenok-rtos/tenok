@@ -9,7 +9,7 @@
 
 #include "uart.h"
 
-int create_file(char *pathname);
+int create_file(char *pathname, uint8_t file_type);
 
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
@@ -36,7 +36,7 @@ int register_chrdev(char *name, struct file_operations *fops)
 	sprintf(dev_path, "/dev/%s", name);
 
 	/* create new file in the file system */
-	int fd = create_file(dev_path);
+	int fd = create_file(dev_path, S_IFCHR);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
@@ -53,7 +53,7 @@ int register_blkdev(char *name, struct file_operations *fops)
 	sprintf(dev_path, "/dev/%s", name);
 
 	/* create new file in the file system */
-	int fd = create_file(dev_path);
+	int fd = create_file(dev_path, S_IFBLK);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
@@ -146,7 +146,7 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	return new_inode;
 }
 
-struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size)
+struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size, int file_type)
 {
 	if(inode_cnt >= INODE_CNT_MAX) {
 		return NULL;
@@ -173,7 +173,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[inode_cnt];
-	new_inode->i_mode   = S_IFREG;
+	new_inode->i_mode   = file_type;
 	new_inode->i_ino    = inode_cnt;
 	new_inode->i_size   = file_size;
 	new_inode->i_blocks = blocks;
@@ -239,7 +239,7 @@ char *split_path(char *entry, char *path)
 	}
 }
 
-int create_file(char *pathname)
+int create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/') {
@@ -296,7 +296,7 @@ int create_file(char *pathname)
 			int len = strlen(pathname);
 			if(pathname[len - 1] != '/') {
 				/* create new inode for the file */
-				inode = fs_add_new_file(inode_curr, entry_curr, 1); //XXX
+				inode = fs_add_new_file(inode_curr, entry_curr, 1, file_type);
 
 				/* check if the inode is created successfully */
 				if(inode == NULL) {
@@ -377,12 +377,12 @@ int open_file(char *pathname)
 	}
 }
 
-void request_path_register(int reply_fd, char *path)
+void request_create_file(int reply_fd, char *path, uint8_t file_type)
 {
 	int file_cmd = FS_CREATE_FILE;
 	int path_len = strlen(path) + 1;
 
-	const int overhead = sizeof(file_cmd) + sizeof(reply_fd) + sizeof(path_len);
+	const int overhead = sizeof(file_cmd) + sizeof(reply_fd) + sizeof(path_len) + sizeof(file_type);
 	char buf[PATH_LEN_MAX + overhead];
 
 	int buf_size = 0;
@@ -399,10 +399,13 @@ void request_path_register(int reply_fd, char *path)
 	memcpy(&buf[buf_size], path, path_len);
 	buf_size += path_len;
 
+	memcpy(&buf[buf_size], &file_type, sizeof(file_type));
+	buf_size += sizeof(file_type);
+
 	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
 }
 
-void request_file_open(int reply_fd, char *path)
+void request_open_file(int reply_fd, char *path)
 {
 	int file_cmd = FS_OPEN_FILE;
 	int path_len = strlen(path) + 1;
@@ -449,7 +452,10 @@ void file_system(void)
 			read(PATH_SERVER_FD, &path_len, sizeof(path_len));
 			read(PATH_SERVER_FD, path, path_len);
 
-			int new_fd = create_file(path);
+			uint8_t file_type;
+			read(PATH_SERVER_FD, &file_type, sizeof(file_type));
+
+			int new_fd = create_file(path, file_type);
 			write(reply_fd, &new_fd, sizeof(new_fd));
 
 			break;

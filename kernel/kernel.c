@@ -284,7 +284,7 @@ void sys_open(void)
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
-		request_file_open(task_fd, pathname);
+		request_open_file(task_fd, pathname);
 	}
 
 	/* inquire the file descriptor from the path server */
@@ -375,7 +375,7 @@ void sys_mknod(void)
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
-		request_path_register(task_fd, pathname);
+		request_create_file(task_fd, pathname, dev);
 	}
 
 	/* inquire the file descriptor from the path server */
@@ -398,8 +398,7 @@ void sys_mknod(void)
 		result = -1;
 		break;
 	case S_IFREG:
-		result = -1;
-		break;
+		break; //handled by the file server
 	default:
 		result = -1;
 		return;
