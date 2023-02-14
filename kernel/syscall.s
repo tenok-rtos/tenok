@@ -9,9 +9,9 @@
 	bx lr                 //return
 .endm
 
-.type   yield, %function
-.global yield
-yield:
+.type   sched_yield, %function
+.global sched_yield
+sched_yield:
 	syscall #1
 
 .type   set_irq, %function

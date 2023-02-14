@@ -20,7 +20,7 @@ typedef struct {
 } syscall_info_t;
 
 /* syscall function prototypes */
-void yield(void);
+void sched_yield(void);
 void set_irq(uint32_t state);
 void set_program_name(char *name);
 int fork(void);

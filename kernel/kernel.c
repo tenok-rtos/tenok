@@ -18,7 +18,7 @@
 
 #define INITIAL_XPSR 0x01000000
 
-void sys_yield(void);
+void sys_sched_yield(void);
 void sys_set_irq(void);
 void sys_set_program_name(void);
 void sys_fork(void);
@@ -57,7 +57,7 @@ bool irq_off = false;
 /* system call table */
 syscall_info_t syscall_table[] = {
 	/* non-posix syscall: */
-	DEF_SYSCALL(yield, 1),
+	DEF_SYSCALL(sched_yield, 1),
 	DEF_SYSCALL(set_irq, 2),
 	DEF_SYSCALL(set_program_name, 3),
 	/* posix syscall: */
@@ -208,7 +208,7 @@ void syscall_handler(void)
 	}
 }
 
-void sys_yield(void)
+void sys_sched_yield(void)
 {
 	return;
 }

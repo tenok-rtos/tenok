@@ -56,7 +56,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
 
 		/* start sleeping until the resource is available */
-		yield();
+		sched_yield();
 	}
 
 	/* pop data from the pipe */
