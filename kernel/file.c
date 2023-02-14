@@ -71,8 +71,8 @@ void file_system_init(void)
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
 	inode_root->i_mode = S_IFDIR;
-	inode_root->i_data = NULL; //XXX
-	inode_root->i_size = 0; //XXX
+	inode_root->i_data = NULL;
+	inode_root->i_size = 0;
 	inode_root->i_ino = 0;
 
 	inode_cnt = 1;
@@ -82,7 +82,7 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
 {
 	/* the function take a diectory inode and return the inode of the entry to find */
 
-	struct dir_info *dir = (struct dir_info *)inode->i_data; //XXX
+	struct dir_info *dir = (struct dir_info *)inode->i_data;
 
 	while(dir != NULL) {
 		if(strcmp(dir->entry_name, entry_name) == 0) {

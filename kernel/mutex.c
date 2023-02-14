@@ -49,7 +49,7 @@ int pthread_mutex_lock(_pthread_mutex_t *mutex)
 
 		spin_unlock_irq(&mutex->lock);
 
-		yield(); //yield the cpu and back to the kernel
+		sched_yield(); //yield the cpu and back to the kernel
 	} else {
 		/* set new owner of the mutex */
 		mutex->owner = running_task;
