@@ -17,6 +17,8 @@ extern struct memory_pool mem_pool;
 struct inode inodes[INODE_CNT_MAX];
 int inode_cnt = 0;
 
+uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
+
 uint8_t data[1024];
 int data_ptr = 0;
 
@@ -68,10 +70,10 @@ void file_system_init(void)
 {
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
-	inode_root->is_dir = true;
-	inode_root->data = NULL;
-	inode_root->data_size = 0;
-	inode_root->inode_num = 0;
+	inode_root->i_mode = S_IFDIR;
+	inode_root->i_data = NULL; //XXX
+	inode_root->i_size = 0; //XXX
+	inode_root->i_ino = 0;
 
 	inode_cnt = 1;
 }
@@ -80,7 +82,7 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
 {
 	/* the function take a diectory inode and return the inode of the entry to find */
 
-	struct dir_info *dir = (struct dir_info *)inode->data;
+	struct dir_info *dir = (struct dir_info *)inode->i_data; //XXX
 
 	while(dir != NULL) {
 		if(strcmp(dir->entry_name, entry_name) == 0) {
@@ -100,29 +102,29 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	}
 
 	/* allocate new memory for the new directory */
-	uint8_t *dir_data_p = &data[data_ptr];
-	data_ptr += sizeof(struct dir_info);
+	uint8_t *dir_data_p = &data[data_ptr]; //XXX
+	data_ptr += sizeof(struct dir_info); //XXX
 
 	/* configure the directory file table */
 	struct dir_info *new_dir = (struct dir_info *)dir_data_p;
 	new_dir->entry_inode = inode_cnt;             //assign new inode number for the directory
-	new_dir->parent_inode = inode_dir->inode_num; //save the inode of the parent directory
+	new_dir->parent_inode = inode_dir->i_ino; //save the inode of the parent directory
 	strcpy(new_dir->entry_name, dir_name);        //copy the directory name
 
 	/* configure the new directory inode */
 	struct inode *new_inode = &inodes[inode_cnt];
-	new_inode->is_dir = true;
-	new_inode->data_size = 0;
-	new_inode->data = NULL; //new directory without any files
-	new_inode->inode_num = inode_cnt;
+	new_inode->i_mode = S_IFDIR;
+	new_inode->i_size = 0;
+	new_inode->i_data = NULL; //new directory without any files //XXX
+	new_inode->i_ino = inode_cnt;
 
 	inode_cnt++;
 
 	/* insert the new directory under the current directory */
-	struct dir_info *curr_dir = (struct dir_info *)inode_dir->data;
+	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data; //XXX
 	if(curr_dir == NULL) {
 		/* currently no files is under the directory */
-		inode_dir->data = (uint8_t *)new_dir;
+		inode_dir->i_data = (uint8_t *)new_dir; //XXX
 	} else {
 		/* insert at the end of the table */
 		while(curr_dir->next != NULL) {
@@ -141,12 +143,12 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	}
 
 	/* allocate new memory for the directory file table */
-	uint8_t *dir_data_p = &data[data_ptr];
-	data_ptr += sizeof(struct dir_info);
+	uint8_t *dir_data_p = &data[data_ptr]; //XXX
+	data_ptr += sizeof(struct dir_info); //XXX
 
 	/* allocate new memory for the file */
-	uint8_t *file_data_p = &data[data_ptr];
-	data_ptr += sizeof(uint8_t) * file_size;
+	uint8_t *file_data_p = &data[data_ptr]; //XXX
+	data_ptr += sizeof(uint8_t) * file_size; //XXX
 
 	/* configure the directory file table to describe the new file */
 	struct dir_info *file_info = (struct dir_info*)dir_data_p;
@@ -155,18 +157,18 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[inode_cnt];
-	new_inode->is_dir = false;
-	new_inode->data_size = file_size;
-	new_inode->data = file_data_p;
-	new_inode->inode_num = inode_cnt;
+	new_inode->i_mode = S_IFREG;
+	new_inode->i_size = file_size;
+	new_inode->i_data = file_data_p; //XXX
+	new_inode->i_ino = inode_cnt;
 
 	inode_cnt++;
 
 	/* insert the new file under the current directory */
-	struct dir_info *curr_dir = (struct dir_info *)inode_dir->data;
+	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data; //XXX
 	if(curr_dir == NULL) {
 		/* currently no files is under the directory */
-		inode_dir->data = (uint8_t *)file_info;
+		inode_dir->i_data = (uint8_t *)file_info; //XXX
 	} else {
 		/* insert at the end of the table */
 		while(curr_dir->next != NULL) {
@@ -218,7 +220,7 @@ int create_file(char *pathname)
 	}
 
 	struct inode *inode_curr = &inodes[0]; //start from the root node
-	struct inode *_inode;
+	struct inode *inode;
 
 	char entry_curr[PATH_LEN_MAX];
 	char *_path = pathname;
@@ -238,22 +240,22 @@ int create_file(char *pathname)
 			}
 
 			/* search the entry and get the inode */
-			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
 			/* check if the directory exists */
-			if(_inode == NULL) {
+			if(inode == NULL) {
 				/* directory does not exist, create one */
-				_inode = fs_add_new_dir(inode_curr, entry_curr);
+				inode = fs_add_new_dir(inode_curr, entry_curr);
 
 				/* check if the directory exists */
-				if(_inode != NULL) {
-					inode_curr = _inode;
+				if(inode != NULL) {
+					inode_curr = inode;
 				} else {
 					return -1; //failed to create the directory
 				}
 			} else {
 				/* directory exists */
-				inode_curr = _inode;
+				inode_curr = inode;
 			}
 		} else {
 			/* no more path string to be splitted */
@@ -267,10 +269,10 @@ int create_file(char *pathname)
 			int len = strlen(pathname);
 			if(pathname[len - 1] != '/') {
 				/* create new inode for the file */
-				_inode = fs_add_new_file(inode_curr, entry_curr, 1); //XXX
+				inode = fs_add_new_file(inode_curr, entry_curr, 1); //XXX
 
 				/* check if the inode is created successfully */
-				if(_inode == NULL) {
+				if(inode == NULL) {
 					return -1; //failed to create the file
 				} else {
 					/* register a new file descriptor number */
@@ -282,7 +284,7 @@ int create_file(char *pathname)
 						new_fd = -1; //file descriptor table is full
 					}
 
-					*_inode->data = new_fd;
+					*inode->i_data = new_fd; //XXX
 
 					return new_fd;
 				}
@@ -301,7 +303,7 @@ int open_file(char *pathname)
 	}
 
 	struct inode *inode_curr = &inodes[0]; //start from the root node
-	struct inode *_inode;
+	struct inode *inode;
 
 	char entry_curr[PATH_LEN_MAX];
 	char *_path = pathname;
@@ -321,27 +323,27 @@ int open_file(char *pathname)
 			}
 
 			/* search the entry and get the inode */
-			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-			if(_inode == NULL) {
+			if(inode == NULL) {
 				return -1; //directory does not exist
 			} else {
-				inode_curr = _inode;
+				inode_curr = inode;
 			}
 		} else {
 			/* check if the file exists */
-			_inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-			if(_inode == NULL) {
+			if(inode == NULL) {
 				return -1;
 			}
 
-			if(_inode->is_dir == true) {
+			if(inode->i_mode == S_IFDIR) {
 				/* not a file, no file descriptor number to be return */
 				return -1;
 			} else {
 				/* return the file descriptor number */
-				int file_fd = *((int *)_inode->data);
+				int file_fd = *((int *)inode->i_data); //XXX
 				return file_fd;
 			}
 		}

@@ -8,10 +8,11 @@
 #include "list.h"
 #include "kconfig.h"
 
-#define S_IFIFO 0
-#define S_IFCHR 1
-#define S_IFBLK 2
-#define S_IFREG 3
+#define S_IFIFO 0 //fifo
+#define S_IFCHR 1 //char device
+#define S_IFBLK 2 //block device
+#define S_IFREG 3 //regular file
+#define S_IFDIR 4 //directory
 
 enum {
 	FS_CREATE_FILE = 1,
@@ -19,12 +20,12 @@ enum {
 } PATH_SERVER_CMDS;
 
 struct inode {
-	bool     is_dir;
+	uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
+	uint32_t i_ino;    //inode number
 
-	int      inode_num;
-
-	uint8_t  *data;
-	int      data_size;
+	uint32_t i_size;   //file size (bytes)
+	uint32_t i_blocks; //i_block = file_size / block_size
+	uint8_t  *i_data;
 };
 
 struct dir_info {
