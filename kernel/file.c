@@ -18,9 +18,7 @@ struct inode inodes[INODE_CNT_MAX];
 int inode_cnt = 0;
 
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
-
-uint8_t data[1024];
-int data_ptr = 0;
+int rootfs_blk_cnt = 0;
 
 /*----------------------------------------------------------*
  |               file descriptors list layout               |
@@ -70,10 +68,11 @@ void file_system_init(void)
 {
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
-	inode_root->i_mode = S_IFDIR;
-	inode_root->i_data = NULL;
-	inode_root->i_size = 0;
-	inode_root->i_ino = 0;
+	inode_root->i_mode   = S_IFDIR;
+	inode_root->i_ino    = 0;
+	inode_root->i_size   = 0;
+	inode_root->i_blocks = 0;
+	inode_root->i_data   = NULL;
 
 	inode_cnt = 1;
 }
@@ -102,35 +101,46 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	}
 
 	/* allocate new memory for the new directory */
-	uint8_t *dir_data_p = &data[data_ptr]; //XXX
-	data_ptr += sizeof(struct dir_info); //XXX
+	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
+	rootfs_blk_cnt += sizeof(struct dir_info);
 
 	/* configure the directory file table */
 	struct dir_info *new_dir = (struct dir_info *)dir_data_p;
-	new_dir->entry_inode = inode_cnt;             //assign new inode number for the directory
+	new_dir->entry_inode  = inode_cnt;        //assign new inode number for the directory
 	new_dir->parent_inode = inode_dir->i_ino; //save the inode of the parent directory
-	strcpy(new_dir->entry_name, dir_name);        //copy the directory name
+	strcpy(new_dir->entry_name, dir_name);    //copy the directory name
 
 	/* configure the new directory inode */
 	struct inode *new_inode = &inodes[inode_cnt];
-	new_inode->i_mode = S_IFDIR;
-	new_inode->i_size = 0;
-	new_inode->i_data = NULL; //new directory without any files //XXX
-	new_inode->i_ino = inode_cnt;
+	new_inode->i_mode   = S_IFDIR;
+	new_inode->i_ino    = inode_cnt;
+	new_inode->i_size   = 0;
+	new_inode->i_blocks = 0;
+	new_inode->i_data   = NULL; //new directory without any files
 
 	inode_cnt++;
 
 	/* insert the new directory under the current directory */
-	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data; //XXX
+	int dir_file_cnt = 1;
+	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data;
+
 	if(curr_dir == NULL) {
 		/* currently no files is under the directory */
-		inode_dir->i_data = (uint8_t *)new_dir; //XXX
+		inode_dir->i_data = (uint8_t *)new_dir; //add new file info
 	} else {
 		/* insert at the end of the table */
 		while(curr_dir->next != NULL) {
 			curr_dir = curr_dir->next;
+			dir_file_cnt++;
 		}
 		curr_dir->next = new_dir;
+	}
+
+	/* update the directory inode */
+	inode_dir->i_size = dir_file_cnt * sizeof(struct dir_info);
+	inode_dir->i_blocks = inode_dir->i_size / ROOTFS_BLK_SIZE;
+	if(inode_dir->i_size % ROOTFS_BLK_SIZE) {
+		inode_dir->i_blocks++;
 	}
 
 	return new_inode;
@@ -143,38 +153,55 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	}
 
 	/* allocate new memory for the directory file table */
-	uint8_t *dir_data_p = &data[data_ptr]; //XXX
-	data_ptr += sizeof(struct dir_info); //XXX
+	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
+	rootfs_blk_cnt += sizeof(struct dir_info);
 
 	/* allocate new memory for the file */
-	uint8_t *file_data_p = &data[data_ptr]; //XXX
-	data_ptr += sizeof(uint8_t) * file_size; //XXX
+	uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
+	rootfs_blk_cnt += sizeof(uint8_t) * file_size;
 
 	/* configure the directory file table to describe the new file */
 	struct dir_info *file_info = (struct dir_info*)dir_data_p;
 	file_info->entry_inode = inode_cnt;       //assign new inode number for the file
 	strcpy(file_info->entry_name, file_name); //copy the file name
 
+	/* calculate the occupied block counts */
+	uint32_t blocks = file_size / ROOTFS_BLK_SIZE;
+	if(file_size % ROOTFS_BLK_SIZE) {
+		blocks += 1;
+	}
+
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[inode_cnt];
-	new_inode->i_mode = S_IFREG;
-	new_inode->i_size = file_size;
-	new_inode->i_data = file_data_p; //XXX
-	new_inode->i_ino = inode_cnt;
+	new_inode->i_mode   = S_IFREG;
+	new_inode->i_ino    = inode_cnt;
+	new_inode->i_size   = file_size;
+	new_inode->i_blocks = blocks;
+	new_inode->i_data   = file_data_p;
 
 	inode_cnt++;
 
 	/* insert the new file under the current directory */
-	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data; //XXX
+	int dir_file_cnt = 1;
+	struct dir_info *curr_dir = (struct dir_info *)inode_dir->i_data;
+
 	if(curr_dir == NULL) {
 		/* currently no files is under the directory */
-		inode_dir->i_data = (uint8_t *)file_info; //XXX
+		inode_dir->i_data = (uint8_t *)file_info; //add new file info
 	} else {
 		/* insert at the end of the table */
 		while(curr_dir->next != NULL) {
 			curr_dir = curr_dir->next;
+			dir_file_cnt++;
 		}
 		curr_dir->next = file_info;
+	}
+
+	/* update the directory inode */
+	inode_dir->i_size = dir_file_cnt * sizeof(struct dir_info);
+	inode_dir->i_blocks = inode_dir->i_size / ROOTFS_BLK_SIZE;
+	if(inode_dir->i_size % ROOTFS_BLK_SIZE) {
+		inode_dir->i_blocks++;
 	}
 
 	return new_inode;
