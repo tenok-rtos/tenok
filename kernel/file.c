@@ -6,7 +6,7 @@
 #include "syscall.h"
 #include "fifo.h"
 #include "rom_dev.h"
-
+#include "reg_file.h"
 #include "uart.h"
 
 int create_file(char *pathname, uint8_t file_type);
@@ -145,7 +145,7 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	return new_inode;
 }
 
-struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size, int file_type)
+struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size, int file_type, int *new_fd)
 {
 	if(rootfs_super.inode_cnt >= INODE_CNT_MAX) {
 		return NULL;
@@ -179,6 +179,41 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	new_inode->i_data   = file_data_p;
 
 	rootfs_super.inode_cnt++;
+
+	/* dispatch a new file descriptor number */
+	if(file_cnt < FILE_CNT_LIMIT) {
+		*new_fd = file_cnt + TASK_NUM_MAX + 1;
+		file_cnt++;
+	} else {
+		return NULL; //file descriptor table is full
+	}
+
+	/* create new file according to its type */
+	int result = 0;
+
+	switch(file_type) {
+	case S_IFIFO:
+		result = fifo_init(*new_fd, (struct file **)&files, &mem_pool);
+		*(new_inode->i_data) = *new_fd;
+		break;
+	case S_IFCHR:
+		//details are handled by the register_chrdev()
+		*(new_inode->i_data) = *new_fd;
+		break;
+	case S_IFBLK:
+		//details are handled by the register_blkdev()
+		*(new_inode->i_data) = *new_fd;
+		break;
+	case S_IFREG:
+		result = reg_file_init(*new_fd, (struct file **)&files, 0 /* TODO */, &mem_pool); 
+		break;
+	default:
+		result = -1;
+	}
+
+	if(result != 0) {
+		return NULL;
+	}
 
 	/* insert the new file under the current directory */
 	int dir_file_cnt = 1;
@@ -295,23 +330,13 @@ int create_file(char *pathname, uint8_t file_type)
 			int len = strlen(pathname);
 			if(pathname[len - 1] != '/') {
 				/* create new inode for the file */
-				inode = fs_add_new_file(inode_curr, entry_curr, 1, file_type);
+				int new_fd;
+				inode = fs_add_new_file(inode_curr, entry_curr, 1, file_type, &new_fd);
 
 				/* check if the inode is created successfully */
 				if(inode == NULL) {
 					return -1; //failed to create the file
 				} else {
-					/* register a new file descriptor number */
-					int new_fd;
-					if(file_cnt < FILE_CNT_LIMIT) {
-						new_fd = file_cnt + TASK_NUM_MAX + 1;
-						file_cnt++;
-					} else {
-						new_fd = -1; //file descriptor table is full
-					}
-
-					*inode->i_data = new_fd; //XXX
-
 					return new_fd;
 				}
 			}
