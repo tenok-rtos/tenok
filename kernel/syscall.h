@@ -7,6 +7,7 @@
 #include "util.h"
 #include "mqueue.h"
 #include "semaphore.h"
+#include "file.h"
 
 #define DEF_SYSCALL(func, _num) \
 	{.syscall_handler = sys_ ## func, .num = _num}
@@ -30,6 +31,7 @@ int close(int fd);
 ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
 long lseek(int fd, long offset, int whence);
+int fstat(int fd, struct stat *statbuf);
 uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);

@@ -59,37 +59,42 @@ write:
 lseek:
 	syscall #10
 
+.type   fstat, %function
+.global fstat
+fstat:
+	syscall #11
+
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #11
+	syscall #12
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #12
+	syscall #13
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #13
+	syscall #14
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #14
+	syscall #15
 
 .type   mkdir, %function
 .global mkdir
 mkdir:
-        syscall #15
+        syscall #16
 
 .type   rmdir, %function
 .global rmdir
 rmdir:
-        syscall #16
+        syscall #17
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #17
+	syscall #18

@@ -221,15 +221,19 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	switch(file_type) {
 	case S_IFIFO:
 		result = fifo_init(*new_fd, (struct file **)&files, &mem_pool);
+		files[*new_fd]->file_inode = new_inode;
 		break;
 	case S_IFCHR:
 		//details are handled by the register_chrdev()
+		files[*new_fd]->file_inode = NULL;
 		break;
 	case S_IFBLK:
 		//details are handled by the register_blkdev()
+		files[*new_fd]->file_inode = NULL;
 		break;
 	case S_IFREG:
 		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, NULL /* TODO */, &mem_pool);
+		files[*new_fd]->file_inode = new_inode;
 		break;
 	default:
 		result = -1;

@@ -46,7 +46,12 @@ struct dentry {
 	struct dentry *next;
 };
 
+struct stat {
+	uint8_t st_mode;
+};
+
 struct file {
+	struct inode *file_inode;
 	struct file_operations *f_op;
 	struct list task_wait_list;
 };
