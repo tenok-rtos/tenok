@@ -91,9 +91,22 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 		return NULL;
 	}
 
-	/* allocate new memory for the new directory */
-	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
-	rootfs_super.blk_cnt += sizeof(struct dentry);
+	uint8_t *dir_data_p; //for new memory allocation
+
+	/* calculate how many dentries can a block hold */
+	int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
+
+	/* calculate how many dentries the directory has */
+	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
+
+	/* check if current block can fit a new dentry */
+	if((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) {
+		dir_data_p = inode_dir->i_data + sizeof(struct dentry);
+	} else {
+		/* can not fit, requires a new block */
+		dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+		rootfs_super.blk_cnt += sizeof(struct dentry);
+	}
 
 	/* configure the directory file table */
 	struct dentry *new_dir = (struct dentry *)dir_data_p;
