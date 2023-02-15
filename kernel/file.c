@@ -283,17 +283,17 @@ char *split_path(char *entry, char *path)
 	 */
 
 	while(1) {
-		bool end = (*path == '/') || (*path == '\0');
+		bool found_dir = (*path == '/');
 
 		/* copy */
-		if(end == false) {
+		if(found_dir == false) {
 			*entry = *path;
 			entry++;
 		}
 
 		path++;
 
-		if(end == true) {
+		if((found_dir == true) || (*path == '\0')) {
 			break;
 		}
 	}
