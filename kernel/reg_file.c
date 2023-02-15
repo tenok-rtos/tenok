@@ -17,11 +17,16 @@ static struct file_operations reg_file_ops = {
 	.write = reg_file_write
 };
 
-int reg_file_init(int fd, struct file **files, struct file *driver_file, struct memory_pool *mem_pool)
+int reg_file_init(int fd, struct inode *file_inode, struct file **files, struct file *driver_file,
+                  struct memory_pool *mem_pool)
 {
+	/* create new regular file */
 	struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
-	reg_file->file.f_op = &reg_file_ops;
+	reg_file->pos         = 0;
+	reg_file->file_inode  = file_inode;
+	reg_file->file.f_op   = &reg_file_ops;
 	reg_file->driver_file = driver_file; //file driver: e.g., rootfs, romfs, etc.
+
 	files[fd] = &reg_file->file;
 
 	return 0;
@@ -29,6 +34,8 @@ int reg_file_init(int fd, struct file **files, struct file *driver_file, struct 
 
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
+	//i_size, i_blocks
+
 	return size;
 }
 
