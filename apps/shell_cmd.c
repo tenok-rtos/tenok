@@ -20,7 +20,7 @@ void shell_get_pwd(char *path)
 	path[1] = '\0';
 
 	struct inode *inode = inode_curr;
-	struct dir_info *dir = (struct dir_info *)inode->i_data;
+	struct dentry *dir = (struct dentry *)inode->i_data;
 
 	while(1) {
 		if(inode->i_ino == 0) {
@@ -30,7 +30,7 @@ void shell_get_pwd(char *path)
 		/* switch to the parent directory */
 		int parent_dir_inode = dir->parent_inode;
 		inode = &inodes[parent_dir_inode];
-		dir = (struct dir_info *)inode->i_data;
+		dir = (struct dentry *)inode->i_data;
 
 		sprintf(path, "%s%s/", path, dir->file_name);
 	}
@@ -76,7 +76,7 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	/* retrieve the directory table */
-	struct dir_info *dir = (struct dir_info *)inode_curr->i_data;
+	struct dentry *dir = (struct dentry *)inode_curr->i_data;
 
 	char str[200] = {0};
 
@@ -108,7 +108,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		inode_curr = &inodes[0];
 	} else if(param_cnt == 2) {
 		/* retrieve the directory table */
-		struct dir_info *dir = (struct dir_info *)inode_curr->i_data;
+		struct dentry *dir = (struct dentry *)inode_curr->i_data;
 
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {

@@ -24,6 +24,7 @@ struct super_block {
 	int blk_cnt;
 };
 
+/* index node */
 struct inode {
 	uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
 	uint32_t i_ino;    //inode number
@@ -33,13 +34,14 @@ struct inode {
 	uint8_t  *i_data;
 };
 
-struct dir_info {
+/* directory entry */
+struct dentry {
 	char     file_name[FILE_NAME_LEN_MAX]; //file name
 
 	uint32_t file_inode;   //the inode of this file
 	uint32_t parent_inode; //the parent directory's inode of this file
 
-	struct dir_info *next;
+	struct dentry *next;
 };
 
 struct file {
