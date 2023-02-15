@@ -14,11 +14,14 @@ int create_file(char *pathname, uint8_t file_type);
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
 
+struct super_block rootfs_super = {
+	.inode_cnt = 0,
+	.blk_cnt = 0
+};
+
 struct inode inodes[INODE_CNT_MAX];
-int inode_cnt = 0;
 
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
-int rootfs_blk_cnt = 0;
 
 /*----------------------------------------------------------*
  |               file descriptors list layout               |
@@ -74,7 +77,7 @@ void file_system_init(void)
 	inode_root->i_blocks = 0;
 	inode_root->i_data   = NULL;
 
-	inode_cnt = 1;
+	rootfs_super.inode_cnt = 1;
 }
 
 struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
@@ -96,29 +99,29 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
 
 struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 {
-	if(inode_cnt >= INODE_CNT_MAX) {
+	if(rootfs_super.inode_cnt >= INODE_CNT_MAX) {
 		return NULL;
 	}
 
 	/* allocate new memory for the new directory */
-	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
-	rootfs_blk_cnt += sizeof(struct dir_info);
+	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+	rootfs_super.blk_cnt += sizeof(struct dir_info);
 
 	/* configure the directory file table */
 	struct dir_info *new_dir = (struct dir_info *)dir_data_p;
-	new_dir->entry_inode  = inode_cnt;        //assign new inode number for the directory
+	new_dir->entry_inode  = rootfs_super.inode_cnt;        //assign new inode number for the directory
 	new_dir->parent_inode = inode_dir->i_ino; //save the inode of the parent directory
 	strcpy(new_dir->entry_name, dir_name);    //copy the directory name
 
 	/* configure the new directory inode */
-	struct inode *new_inode = &inodes[inode_cnt];
+	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
 	new_inode->i_mode   = S_IFDIR;
-	new_inode->i_ino    = inode_cnt;
+	new_inode->i_ino    = rootfs_super.inode_cnt;
 	new_inode->i_size   = 0;
 	new_inode->i_blocks = 0;
 	new_inode->i_data   = NULL; //new directory without any files
 
-	inode_cnt++;
+	rootfs_super.inode_cnt++;
 
 	/* insert the new directory under the current directory */
 	int dir_file_cnt = 1;
@@ -148,21 +151,21 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 
 struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size, int file_type)
 {
-	if(inode_cnt >= INODE_CNT_MAX) {
+	if(rootfs_super.inode_cnt >= INODE_CNT_MAX) {
 		return NULL;
 	}
 
 	/* allocate new memory for the directory file table */
-	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
-	rootfs_blk_cnt += sizeof(struct dir_info);
+	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+	rootfs_super.blk_cnt += sizeof(struct dir_info);
 
 	/* allocate new memory for the file */
-	uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_blk_cnt];
-	rootfs_blk_cnt += sizeof(uint8_t) * file_size;
+	uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+	rootfs_super.blk_cnt += sizeof(uint8_t) * file_size;
 
 	/* configure the directory file table to describe the new file */
 	struct dir_info *file_info = (struct dir_info*)dir_data_p;
-	file_info->entry_inode = inode_cnt;       //assign new inode number for the file
+	file_info->entry_inode = rootfs_super.inode_cnt;       //assign new inode number for the file
 	strcpy(file_info->entry_name, file_name); //copy the file name
 
 	/* calculate the occupied block counts */
@@ -172,14 +175,14 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	}
 
 	/* configure the new file inode */
-	struct inode *new_inode = &inodes[inode_cnt];
+	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
 	new_inode->i_mode   = file_type;
-	new_inode->i_ino    = inode_cnt;
+	new_inode->i_ino    = rootfs_super.inode_cnt;
 	new_inode->i_size   = file_size;
 	new_inode->i_blocks = blocks;
 	new_inode->i_data   = file_data_p;
 
-	inode_cnt++;
+	rootfs_super.inode_cnt++;
 
 	/* insert the new file under the current directory */
 	int dir_file_cnt = 1;
