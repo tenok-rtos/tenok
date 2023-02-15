@@ -91,7 +91,7 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 		return NULL;
 	}
 
-	uint8_t *dir_data_p; //for new memory allocation
+	uint8_t *dir_data_p; //for memory allocation of new dentry
 
 	/* calculate how many dentries can a block hold */
 	int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
@@ -101,23 +101,32 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 
 	/* check if current block can fit a new dentry */
 	if((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) {
-		dir_data_p = inode_dir->i_data + sizeof(struct dentry);
+		/* TODO: replace with double linked list */
+
+		/* find the end of the list */
+		struct dentry *dir = (struct dentry *)inode_dir->i_data;
+		while(dir->next != NULL) {
+			dir = dir->next;
+		}
+		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
 	} else {
 		/* can not fit, requires a new block */
 		dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
-		rootfs_super.blk_cnt += sizeof(struct dentry);
+		rootfs_super.blk_cnt += 1;
 	}
 
 	/* configure the directory file table */
 	struct dentry *new_dir = (struct dentry *)dir_data_p;
-	new_dir->file_inode  = rootfs_super.inode_cnt; //assign new inode number for the directory
-	new_dir->parent_inode = inode_dir->i_ino;      //save the inode of the parent directory
-	strcpy(new_dir->file_name, dir_name);          //copy the directory name
+	new_dir->file_inode   = rootfs_super.inode_cnt; //assign new inode number for the directory
+	new_dir->parent_inode = inode_dir->i_ino;       //save the inode of the parent directory
+	new_dir->next         = NULL;
+	strcpy(new_dir->file_name, dir_name);           //copy the directory name
 
 	/* configure the new directory inode */
 	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
 	new_inode->i_mode   = S_IFDIR;
 	new_inode->i_ino    = rootfs_super.inode_cnt;
+	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_size   = 0;
 	new_inode->i_blocks = 0;
 	new_inode->i_data   = NULL; //new directory without any files
@@ -141,11 +150,8 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	}
 
 	/* update the directory inode */
-	inode_dir->i_size = dir_file_cnt * sizeof(struct dentry);
-	inode_dir->i_blocks = inode_dir->i_size / ROOTFS_BLK_SIZE;
-	if(inode_dir->i_size % ROOTFS_BLK_SIZE) {
-		inode_dir->i_blocks++;
-	}
+	inode_dir->i_size += sizeof(struct dentry);
+	inode_dir->i_blocks = dir_file_cnt / dentry_per_blk;
 
 	return new_inode;
 }
@@ -158,32 +164,49 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 	int file_size = sizeof(uint8_t); //reserve one byte for the file descriptor number
 
-	/* allocate new memory for the directory file table */
-	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
-	rootfs_super.blk_cnt += sizeof(struct dentry);
+	uint8_t *dir_data_p; //for memory allocation of new dentry
 
-	/* allocate new memory for the file */
+	/* calculate how many dentries can a block hold */
+	int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
+
+	/* calculate how many dentries the directory has */
+	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
+
+	/* check if current block can fit a new dentry */
+	if((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) {
+		/* TODO: replace with double linked list */
+
+		/* find the end of the list */
+		struct dentry *dir = (struct dentry *)inode_dir->i_data;
+		while(dir->next != NULL) {
+			dir = dir->next;
+		}
+		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
+	} else {
+		/* can not fit, requires a new block */
+		dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+		rootfs_super.blk_cnt += 1;
+	}
+
+	/* allocate memory for the new file */
 	uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
-	rootfs_super.blk_cnt += sizeof(uint8_t) * file_size;
+	rootfs_super.blk_cnt += 1;
 
 	/* configure the directory file table to describe the new file */
 	struct dentry *file_info = (struct dentry*)dir_data_p;
 	file_info->file_inode = rootfs_super.inode_cnt; //assign new inode number for the file
+	file_info->parent_inode = inode_dir->i_ino;     //save the inode of the parent directory
+	file_info->next = NULL;
 	strcpy(file_info->file_name, file_name);        //copy the file name
-
-	/* calculate the occupied block counts */
-	uint32_t blocks = file_size / ROOTFS_BLK_SIZE;
-	if(file_size % ROOTFS_BLK_SIZE) {
-		blocks += 1;
-	}
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
-	new_inode->i_mode   = file_type;
-	new_inode->i_ino    = rootfs_super.inode_cnt;
-	new_inode->i_size   = file_size;
-	new_inode->i_blocks = blocks;
-	new_inode->i_data   = file_data_p;
+	new_inode->i_mode     = file_type;
+	new_inode->i_ino      = rootfs_super.inode_cnt;
+	new_inode->i_parent   = inode_dir->i_parent;
+	new_inode->i_size     = file_size;
+	new_inode->i_blocks   = 1;
+	new_inode->i_data     = file_data_p;
 
 	/* dispatch a new file descriptor number */
 	if(file_cnt < FILE_CNT_LIMIT) {
@@ -239,9 +262,9 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	}
 
 	/* update the directory inode */
-	inode_dir->i_size = dir_file_cnt * sizeof(struct dentry);
-	inode_dir->i_blocks = inode_dir->i_size / ROOTFS_BLK_SIZE;
-	if(inode_dir->i_size % ROOTFS_BLK_SIZE) {
+	inode_dir->i_size += sizeof(struct dentry);
+	inode_dir->i_blocks = dir_file_cnt / dentry_per_blk;
+	if(dir_file_cnt % dentry_per_blk) {
 		inode_dir->i_blocks++;
 	}
 

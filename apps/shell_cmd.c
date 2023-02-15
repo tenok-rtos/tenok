@@ -27,12 +27,20 @@ void shell_get_pwd(char *path)
 			break;
 		}
 
+		uint32_t inode_last = inode->i_ino;
+
 		/* switch to the parent directory */
-		int parent_dir_inode = dir->parent_inode;
-		inode = &inodes[parent_dir_inode];
+		inode = &inodes[inode->i_parent];
 		dir = (struct dentry *)inode->i_data;
 
-		sprintf(path, "%s%s/", path, dir->file_name);
+		while(dir != NULL) {
+			if(dir->file_inode == inode_last) {
+				sprintf(path, "%s%s/", path, dir->file_name);
+				break;
+			}
+
+			dir = dir->next;
+		}
 	}
 }
 
@@ -112,7 +120,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {
-			inode_curr = &inodes[dir->parent_inode];
+			inode_curr = &inodes[inodes->i_parent];
 			return;
 		}
 
