@@ -19,6 +19,11 @@ enum {
 	FS_OPEN_FILE = 2,
 } PATH_SERVER_CMDS;
 
+struct super_block {
+	int inode_cnt;
+	int blk_cnt;
+};
+
 struct inode {
 	uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
 	uint32_t i_ino;    //inode number
