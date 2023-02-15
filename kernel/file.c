@@ -172,12 +172,9 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	new_inode->i_blocks = blocks;
 	new_inode->i_data   = file_data_p;
 
-	rootfs_super.inode_cnt++;
-
 	/* dispatch a new file descriptor number */
 	if(file_cnt < FILE_CNT_LIMIT) {
 		*new_fd = file_cnt + TASK_NUM_MAX + 1;
-		file_cnt++;
 	} else {
 		return NULL; //file descriptor table is full
 	}
@@ -202,11 +199,14 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		result = -1;
 	}
 
-	if(result != 0) {
+	if(result == 0) {
+		file_cnt++;               //update file descriptor number for the next file
+		rootfs_super.inode_cnt++; //update inode number for the next file
+	} else {
 		return NULL;
 	}
 
-	/* the first byte of the file stores the file descriptor number */
+	/* file descriptor number is stored in the first byte of the file */
 	*(new_inode->i_data) = *new_fd;
 
 	/* insert the new file under the current directory */
