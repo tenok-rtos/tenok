@@ -36,8 +36,8 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *start_addr = &reg_file->file_inode->i_data[1]; //first byte is reserved for the fd number
-	uint8_t *end_addr = &reg_file->file_inode->i_data[0] + ROOTFS_BLK_SIZE;
+	uint8_t *start_addr = &reg_file->file_inode->i_data[0];
+	uint8_t *end_addr   = start_addr + ROOTFS_BLK_SIZE;
 
 	uint8_t *read_addr = start_addr + offset + reg_file->pos;
 
@@ -56,8 +56,8 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *start_addr = &reg_file->file_inode->i_data[1]; //first byte is reserved for the fd number
-	uint8_t *end_addr = &reg_file->file_inode->i_data[0] + ROOTFS_BLK_SIZE;
+	uint8_t *start_addr = &reg_file->file_inode->i_data[0];
+	uint8_t *end_addr   = start_addr + ROOTFS_BLK_SIZE;
 
 	uint8_t *write_addr = start_addr + offset + reg_file->pos;
 
