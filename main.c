@@ -27,7 +27,8 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(echo),
 	DEF_SHELL_CMD(ls),
 	DEF_SHELL_CMD(cd),
-	DEF_SHELL_CMD(pwd)
+	DEF_SHELL_CMD(pwd),
+	DEF_SHELL_CMD(cat)
 };
 
 struct shell_struct shell;
@@ -200,6 +201,27 @@ void message_queue_task2(void)
 	}
 }
 
+void mk_cpuinfo(void)
+{
+	/* create a new regular file */
+	mknod("/proc/cpuinfo", 0, S_IFREG);
+	int fd = open("/proc/cpuinfo", 0, 0);
+
+	char *str = "processor  : 0\n\r"
+	            "model name : STM32F407 Microcontroller\n\r"
+	            "cpu MHz    : 168\n\r"
+	            "flash size : 1M\n\r"
+	            "ram size   : 192K\n\r";
+
+	/* write file content */
+	int len = strlen(str);
+	write(fd, str, len);
+
+	/* write end-of-file */
+	signed char c = EOF;
+	write(fd, &c, 1);
+}
+
 void first(void)
 {
 	set_program_name("first");
@@ -208,7 +230,7 @@ void first(void)
 	mknod("/fifo_test", 0, S_IFIFO);
 	pthread_mutex_init(&mutex_print, 0);
 
-	mknod("/proc/cpuinfo", 0, S_IFREG);
+	mk_cpuinfo();
 
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();

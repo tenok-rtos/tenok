@@ -54,37 +54,42 @@ read:
 write:
 	syscall #9
 
+.type   lseek, %function
+.global lseek
+lseek:
+	syscall #10
+
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #10
+	syscall #11
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #11
+	syscall #12
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #12
+	syscall #13
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #13
+	syscall #14
 
 .type   mkdir, %function
 .global mkdir
 mkdir:
-        syscall #14
+        syscall #15
 
 .type   rmdir, %function
 .global rmdir
 rmdir:
-        syscall #15
+        syscall #16
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #16
+	syscall #17

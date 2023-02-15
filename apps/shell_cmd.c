@@ -3,6 +3,7 @@
 #include "shell.h"
 #include "kernel.h"
 #include "file.h"
+#include "syscall.h"
 
 extern struct shell_struct shell;
 extern struct inode inodes[INODE_CNT_MAX];
@@ -47,7 +48,7 @@ void shell_get_pwd(char *path)
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char *s = "supported commands:\n\r"
-	          "help, clear, history, ps, echo, ls, cd, pwd\n\r";
+	          "help, clear, history, ps, echo, ls, cd, pwd, cat\n\r";
 	shell_puts(s);
 }
 
@@ -161,4 +162,41 @@ void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 
 	sprintf(str, "%s\n\r", path);
 	shell_puts(str);
+}
+
+void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char *path = param_list[1];
+
+	int fd = open(path, 0, 0);
+
+	if(fd == -1) {
+		char str[200] = {0};
+		sprintf(str, "cat: %s: No such file or directory\n\r", path);
+		shell_puts(str);
+
+		return;
+	}
+
+	lseek(fd, 0, SEEK_SET);
+
+	signed char c;
+	char str[200] = {0};
+	int i = 0;
+
+	while(1) {
+		read(fd, &c, 1);
+
+		if(c == EOF) {
+			str[i] = '\0';
+			break;
+		} else {
+			str[i] = c;
+			i++;
+		}
+	}
+
+	shell_puts(str);
+
+	lseek(fd, 0, SEEK_SET);
 }

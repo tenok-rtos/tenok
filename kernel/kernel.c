@@ -27,6 +27,7 @@ void sys_open(void);
 void sys_close(void);
 void sys_read(void);
 void sys_write(void);
+void sys_lseek(void);
 void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
@@ -67,13 +68,14 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(close, 7),
 	DEF_SYSCALL(read, 8),
 	DEF_SYSCALL(write, 9),
-	DEF_SYSCALL(getpriority, 10),
-	DEF_SYSCALL(setpriority, 11),
-	DEF_SYSCALL(getpid, 12),
-	DEF_SYSCALL(mknod, 13),
-	DEF_SYSCALL(mkdir, 14),
-	DEF_SYSCALL(rmdir, 15),
-	DEF_SYSCALL(os_sem_wait, 16)
+	DEF_SYSCALL(lseek, 10),
+	DEF_SYSCALL(getpriority, 11),
+	DEF_SYSCALL(setpriority, 12),
+	DEF_SYSCALL(getpid, 13),
+	DEF_SYSCALL(mknod, 14),
+	DEF_SYSCALL(mkdir, 15),
+	DEF_SYSCALL(rmdir, 16),
+	DEF_SYSCALL(os_sem_wait, 17)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -303,7 +305,7 @@ void sys_close(void)
 void sys_read(void)
 {
 	int fd = running_task->stack_top->r0;
-	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
+	char *buf = (uint8_t *)running_task->stack_top->r1;
 	size_t count = running_task->stack_top->r2;
 
 	struct file *filp = files[fd];
@@ -318,11 +320,23 @@ void sys_read(void)
 void sys_write(void)
 {
 	int fd = running_task->stack_top->r0;
-	uint8_t *buf = (uint8_t *)running_task->stack_top->r1;
+	char *buf = (uint8_t *)running_task->stack_top->r1;
 	size_t count = running_task->stack_top->r2;
 
 	struct file *filp = files[fd];
 	ssize_t retval = filp->f_op->write(filp, buf, count, 0);
+
+	running_task->stack_top->r0 = retval; //pass return value
+}
+
+void sys_lseek(void)
+{
+	int fd = running_task->stack_top->r0;
+	long offset = running_task->stack_top->r1;
+	int whence = running_task->stack_top->r2;
+
+	struct file *filp = files[fd];
+	int retval = filp->f_op->llseek(filp, offset, whence);
 
 	running_task->stack_top->r0 = retval; //pass return value
 }
