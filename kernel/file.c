@@ -137,11 +137,13 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 	return new_inode;
 }
 
-struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_size, int file_type, int *new_fd)
+struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_type, int *new_fd)
 {
 	if(rootfs_super.inode_cnt >= INODE_CNT_MAX) {
 		return NULL;
 	}
+
+	int file_size = sizeof(uint8_t); //reserve one byte for the file descriptor number
 
 	/* allocate new memory for the directory file table */
 	uint8_t *dir_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
@@ -186,19 +188,15 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	switch(file_type) {
 	case S_IFIFO:
 		result = fifo_init(*new_fd, (struct file **)&files, &mem_pool);
-		*(new_inode->i_data) = *new_fd;
 		break;
 	case S_IFCHR:
 		//details are handled by the register_chrdev()
-		*(new_inode->i_data) = *new_fd;
 		break;
 	case S_IFBLK:
 		//details are handled by the register_blkdev()
-		*(new_inode->i_data) = *new_fd;
 		break;
 	case S_IFREG:
 		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, 0 /* TODO */, &mem_pool);
-		*(new_inode->i_data) = *new_fd;
 		break;
 	default:
 		result = -1;
@@ -207,6 +205,9 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	if(result != 0) {
 		return NULL;
 	}
+
+	/* the first byte of the file stores the file descriptor number */
+	*(new_inode->i_data) = *new_fd;
 
 	/* insert the new file under the current directory */
 	int dir_file_cnt = 1;
@@ -324,7 +325,7 @@ int create_file(char *pathname, uint8_t file_type)
 			if(pathname[len - 1] != '/') {
 				/* create new inode for the file */
 				int new_fd;
-				inode = fs_add_new_file(inode_curr, entry_curr, 1, file_type, &new_fd);
+				inode = fs_add_new_file(inode_curr, entry_curr, file_type, &new_fd);
 
 				/* check if the inode is created successfully */
 				if(inode == NULL) {
