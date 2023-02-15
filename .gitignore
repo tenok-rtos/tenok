@@ -3,4 +3,5 @@
 *.o
 *.d
 *.orig
+*.swp
 mkromfs
