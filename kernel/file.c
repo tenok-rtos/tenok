@@ -14,13 +14,8 @@ int create_file(char *pathname, uint8_t file_type);
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
 
-struct super_block rootfs_super = {
-	.inode_cnt = 0,
-	.blk_cnt = 0
-};
-
+struct super_block rootfs_super;
 struct inode inodes[INODE_CNT_MAX];
-
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
 
 /*----------------------------------------------------------*
@@ -78,6 +73,7 @@ void file_system_init(void)
 	inode_root->i_data   = NULL;
 
 	rootfs_super.inode_cnt = 1;
+	rootfs_super.blk_cnt = 0;
 }
 
 struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
