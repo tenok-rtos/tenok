@@ -392,10 +392,10 @@ void sys_mknod(void)
 		result = fifo_init(new_fd, (struct file **)&files, &mem_pool);
 		break;
 	case S_IFCHR:
-		result = -1;
+		result = -1; //make with register_chrdev() instead
 		break;
 	case S_IFBLK:
-		result = -1;
+		result = -1; //make with register_blkdev() instead
 		break;
 	case S_IFREG:
 		break; //handled by the file server
