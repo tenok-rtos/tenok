@@ -32,7 +32,7 @@ void shell_get_pwd(char *path)
 		inode = &inodes[parent_dir_inode];
 		dir = (struct dir_info *)inode->i_data;
 
-		sprintf(path, "%s%s/", path, dir->entry_name);
+		sprintf(path, "%s%s/", path, dir->file_name);
 	}
 }
 
@@ -83,13 +83,13 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	/* traverse all files under the directory */
 	while(dir != NULL) {
 		/* get the file inode */
-		int file_inode_num = dir->entry_inode;
+		int file_inode_num = dir->file_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
 		if(file_inode->i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dir->entry_name);
+			sprintf(str, "%s%s/  ", str, dir->file_name);
 		} else {
-			sprintf(str, "%s%s  ", str, dir->entry_name);
+			sprintf(str, "%s%s  ", str, dir->file_name);
 		}
 
 		/* point to the next file */
@@ -118,8 +118,8 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 		/* compare all the file names under the current directory */
 		while(dir != NULL) {
-			if(strcmp(dir->entry_name, param_list[1]) == 0) {
-				struct inode *_inode = &inodes[dir->entry_inode];
+			if(strcmp(dir->file_name, param_list[1]) == 0) {
+				struct inode *_inode = &inodes[dir->file_inode];
 				if(_inode->i_mode != S_IFDIR) {
 					sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 					shell_puts(str);

@@ -34,8 +34,8 @@ struct inode {
 };
 
 struct dir_info {
-	char     entry_name[FILE_NAME_LEN_MAX];
-	uint32_t entry_inode;
+	char     file_name[FILE_NAME_LEN_MAX];
+	uint32_t file_inode;
 
 	uint32_t parent_inode;
 

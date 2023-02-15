@@ -18,14 +18,6 @@ struct super_block rootfs_super;
 struct inode inodes[INODE_CNT_MAX];
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
 
-/*----------------------------------------------------------*
- |               file descriptors list layout               |
- *---------*----------------*--------------*----------------*
- |  usage  | path server fd |   task fds   |    file fds    |
- |---------*----------------*--------------*----------------*
- | numbers |       1        | TASK_NUM_MAX | FILE_CNT_LIMIT |
- *---------*----------------*--------------*----------------*/
-
 int file_cnt = 0;
 
 int register_chrdev(char *name, struct file_operations *fops)
@@ -76,15 +68,15 @@ void file_system_init(void)
 	rootfs_super.blk_cnt = 0;
 }
 
-struct inode *fs_search_entry_in_dir(struct inode *inode, char *entry_name)
+struct inode *fs_search_entry_in_dir(struct inode *inode, char *file_name)
 {
 	/* the function take a diectory inode and return the inode of the entry to find */
 
 	struct dir_info *dir = (struct dir_info *)inode->i_data;
 
 	while(dir != NULL) {
-		if(strcmp(dir->entry_name, entry_name) == 0) {
-			return &inodes[dir->entry_inode];
+		if(strcmp(dir->file_name, file_name) == 0) {
+			return &inodes[dir->file_inode];
 		}
 
 		dir = dir->next;
@@ -105,9 +97,9 @@ struct inode *fs_add_new_dir(struct inode *inode_dir, char *dir_name)
 
 	/* configure the directory file table */
 	struct dir_info *new_dir = (struct dir_info *)dir_data_p;
-	new_dir->entry_inode  = rootfs_super.inode_cnt; //assign new inode number for the directory
-	new_dir->parent_inode = inode_dir->i_ino;       //save the inode of the parent directory
-	strcpy(new_dir->entry_name, dir_name);          //copy the directory name
+	new_dir->file_inode  = rootfs_super.inode_cnt; //assign new inode number for the directory
+	new_dir->parent_inode = inode_dir->i_ino;      //save the inode of the parent directory
+	strcpy(new_dir->file_name, dir_name);          //copy the directory name
 
 	/* configure the new directory inode */
 	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
@@ -161,8 +153,8 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 	/* configure the directory file table to describe the new file */
 	struct dir_info *file_info = (struct dir_info*)dir_data_p;
-	file_info->entry_inode = rootfs_super.inode_cnt; //assign new inode number for the file
-	strcpy(file_info->entry_name, file_name);        //copy the file name
+	file_info->file_inode = rootfs_super.inode_cnt; //assign new inode number for the file
+	strcpy(file_info->file_name, file_name);        //copy the file name
 
 	/* calculate the occupied block counts */
 	uint32_t blocks = file_size / ROOTFS_BLK_SIZE;
@@ -205,7 +197,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		*(new_inode->i_data) = *new_fd;
 		break;
 	case S_IFREG:
-		result = reg_file_init(*new_fd, (struct file **)&files, 0 /* TODO */, &mem_pool);
+		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, 0 /* TODO */, &mem_pool);
 		*(new_inode->i_data) = *new_fd;
 		break;
 	default:

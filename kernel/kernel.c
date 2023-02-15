@@ -388,7 +388,7 @@ void sys_mknod(void)
 	if(new_fd == -1) {
 		running_task->stack_top->r0 = -1;
 	} else {
-		running_task->stack_top->r0 = 0; 
+		running_task->stack_top->r0 = 0;
 	}
 }
 
