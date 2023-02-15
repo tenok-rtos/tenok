@@ -378,37 +378,17 @@ void sys_mknod(void)
 		request_create_file(task_fd, pathname, dev);
 	}
 
-	/* inquire the file descriptor from the path server */
+	/* wait until the file system complete the request */
 	int new_fd;
 	if(fifo_read(files[task_fd], (char *)&new_fd, sizeof(new_fd), 0) == 0) {
 		return; //not ready
 	}
 
-	int result;
-
-	/* create new file according to its type */
-	switch(dev) {
-	case S_IFIFO:
-		result = fifo_init(new_fd, (struct file **)&files, &mem_pool);
-		break;
-	case S_IFCHR:
-		result = -1; //make with register_chrdev() instead
-		break;
-	case S_IFBLK:
-		result = -1; //make with register_blkdev() instead
-		break;
-	case S_IFREG:
-		break; //handled by the file server
-	default:
-		result = -1;
-		return;
-	}
-
 	/* set the return value */
-	if(result == 0) {
-		running_task->stack_top->r0 = 0;
-	} else {
+	if(new_fd == -1) {
 		running_task->stack_top->r0 = -1;
+	} else {
+		running_task->stack_top->r0 = 0; 
 	}
 }
 

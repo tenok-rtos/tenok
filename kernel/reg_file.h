@@ -8,4 +8,7 @@ struct reg_file {
 	struct file file;
 };
 
+int reg_file_init(int fd, struct file **files, struct file *driver_file, struct memory_pool *mem_pool);
+
 #endif
+
