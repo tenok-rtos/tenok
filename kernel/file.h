@@ -27,7 +27,9 @@ struct super_block {
 /* index node */
 struct inode {
 	uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
+
 	uint32_t i_ino;    //inode number
+	uint32_t i_parent; //inode number of the parent directory
 
 	uint32_t i_size;   //file size (bytes)
 	uint32_t i_blocks; //i_block = file_size / block_size
