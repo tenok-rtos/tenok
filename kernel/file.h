@@ -16,8 +16,8 @@
 
 enum {
 	FS_CREATE_FILE = 1,
-	FS_OPEN_FILE = 2,
-} PATH_SERVER_CMDS;
+	FS_OPEN_FILE   = 2,
+} FS_SERVER_CMDS;
 
 struct super_block {
 	int inode_cnt;
@@ -34,10 +34,10 @@ struct inode {
 };
 
 struct dir_info {
-	char     file_name[FILE_NAME_LEN_MAX];
-	uint32_t file_inode;
+	char     file_name[FILE_NAME_LEN_MAX]; //file name
 
-	uint32_t parent_inode;
+	uint32_t file_inode;   //the inode of this file
+	uint32_t parent_inode; //the parent directory's inode of this file
 
 	struct dir_info *next;
 };
