@@ -229,7 +229,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		//details are handled by the register_blkdev()
 		break;
 	case S_IFREG:
-		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, 0 /* TODO */, &mem_pool);
+		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, NULL /* TODO */, &mem_pool);
 		break;
 	default:
 		result = -1;
@@ -424,7 +424,7 @@ int open_file(char *pathname)
 				return -1;
 			} else {
 				/* return the file descriptor number */
-				int file_fd = *((int *)inode->i_data); //XXX
+				char file_fd = *((char *)inode->i_data);
 				return file_fd;
 			}
 		}
