@@ -28,6 +28,7 @@ void sys_close(void);
 void sys_read(void);
 void sys_write(void);
 void sys_lseek(void);
+void sys_fstat(void);
 void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
@@ -69,13 +70,14 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(read, 8),
 	DEF_SYSCALL(write, 9),
 	DEF_SYSCALL(lseek, 10),
-	DEF_SYSCALL(getpriority, 11),
-	DEF_SYSCALL(setpriority, 12),
-	DEF_SYSCALL(getpid, 13),
-	DEF_SYSCALL(mknod, 14),
-	DEF_SYSCALL(mkdir, 15),
-	DEF_SYSCALL(rmdir, 16),
-	DEF_SYSCALL(os_sem_wait, 17)
+	DEF_SYSCALL(fstat, 11),
+	DEF_SYSCALL(getpriority, 12),
+	DEF_SYSCALL(setpriority, 13),
+	DEF_SYSCALL(getpid, 14),
+	DEF_SYSCALL(mknod, 15),
+	DEF_SYSCALL(mkdir, 16),
+	DEF_SYSCALL(rmdir, 17),
+	DEF_SYSCALL(os_sem_wait, 18)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -295,7 +297,6 @@ void sys_open(void)
 		//return the file descriptor
 		running_task->stack_top->r0 = fd;
 	}
-
 }
 
 void sys_close(void)
@@ -339,6 +340,18 @@ void sys_lseek(void)
 	int retval = filp->f_op->llseek(filp, offset, whence);
 
 	running_task->stack_top->r0 = retval; //pass return value
+}
+
+void sys_fstat(void)
+{
+	int fd = running_task->stack_top->r0;
+	struct stat *statbuf = (struct stat *)running_task->stack_top->r1;
+
+	if(files[fd]->file_inode != NULL) {
+		statbuf->st_mode = files[fd]->file_inode->i_mode;
+	}
+
+	running_task->stack_top->r0 = 0; //pass return value
 }
 
 void sys_getpriority(void)

@@ -185,7 +185,16 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 		char str[200] = {0};
 		sprintf(str, "cat: %s: No such file or directory\n\r", path);
 		shell_puts(str);
+		return;
+	}
 
+	/* check if the file mode is set as regular file */
+	struct stat stat;
+	fstat(fd, &stat);
+	if(stat.st_mode != S_IFREG) {
+		char str[200] = {0};
+		sprintf(str, "cat: %s: Invalid argument\n\r", path);
+		shell_puts(str);
 		return;
 	}
 
