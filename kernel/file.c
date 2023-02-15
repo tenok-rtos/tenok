@@ -188,25 +188,12 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		rootfs_super.blk_cnt += 1;
 	}
 
-	/* allocate memory for the new file */
-	uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
-	rootfs_super.blk_cnt += 1;
-
 	/* configure the directory file table to describe the new file */
 	struct dentry *file_info = (struct dentry*)dir_data_p;
 	file_info->file_inode = rootfs_super.inode_cnt; //assign new inode number for the file
 	file_info->parent_inode = inode_dir->i_ino;     //save the inode of the parent directory
 	file_info->next = NULL;
 	strcpy(file_info->file_name, file_name);        //copy the file name
-
-	/* configure the new file inode */
-	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
-	new_inode->i_mode     = file_type;
-	new_inode->i_ino      = rootfs_super.inode_cnt;
-	new_inode->i_parent   = inode_dir->i_parent;
-	new_inode->i_size     = file_size;
-	new_inode->i_blocks   = 1;
-	new_inode->i_data     = file_data_p;
 
 	/* dispatch a new file descriptor number */
 	if(file_cnt < FILE_CNT_LIMIT) {
@@ -215,24 +202,51 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		return NULL; //file descriptor table is full
 	}
 
+	/* configure the new file inode */
+	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
+	new_inode->i_mode     = file_type;
+	new_inode->i_ino      = rootfs_super.inode_cnt;
+	new_inode->i_parent   = inode_dir->i_parent;
+	new_inode->i_fd       = *new_fd;
+
 	/* create new file according to its type */
 	int result = 0;
 
 	switch(file_type) {
 	case S_IFIFO:
+		/* create new named pipe */
 		result = fifo_init(*new_fd, (struct file **)&files, &mem_pool);
+
+		new_inode->i_size   = 0;
+		new_inode->i_blocks = 0;
+		new_inode->i_data   = NULL;
 		files[*new_fd]->file_inode = new_inode;
 		break;
 	case S_IFCHR:
-		//details are handled by the register_chrdev()
+		//char device instance is created by the register_chrdev()
+		new_inode->i_size   = 0;
+		new_inode->i_blocks = 0;
+		new_inode->i_data   = NULL;
 		files[*new_fd]->file_inode = NULL;
 		break;
 	case S_IFBLK:
-		//details are handled by the register_blkdev()
+		//block device instance is created by the register_blkdev()
+		new_inode->i_size   = 0;
+		new_inode->i_blocks = 0;
+		new_inode->i_data   = NULL;
 		files[*new_fd]->file_inode = NULL;
 		break;
 	case S_IFREG:
+		/* create new regular file */
 		result = reg_file_init(*new_fd, new_inode, (struct file **)&files, NULL /* TODO */, &mem_pool);
+
+		/* allocate memory for the new file */
+		uint8_t *file_data_p = (uint8_t *)&rootfs_blk[rootfs_super.blk_cnt];
+		rootfs_super.blk_cnt += 1;
+
+		new_inode->i_size   = 1;
+		new_inode->i_blocks = 1;
+		new_inode->i_data   = file_data_p;
 		files[*new_fd]->file_inode = new_inode;
 		break;
 	default:
@@ -245,9 +259,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	} else {
 		return NULL;
 	}
-
-	/* file descriptor number is stored in the first byte of the file */
-	*(new_inode->i_data) = *new_fd;
 
 	/* insert the new file under the current directory */
 	int dir_file_cnt = 1;
@@ -371,7 +382,7 @@ int create_file(char *pathname, uint8_t file_type)
 				if(inode == NULL) {
 					return -1; //failed to create the file
 				} else {
-					return new_fd;
+					return inode->i_fd;
 				}
 			}
 		}
@@ -428,8 +439,7 @@ int open_file(char *pathname)
 				return -1;
 			} else {
 				/* return the file descriptor number */
-				char file_fd = *((char *)inode->i_data);
-				return file_fd;
+				return inode->i_fd;
 			}
 		}
 	}

@@ -31,6 +31,8 @@ struct inode {
 	uint32_t i_ino;    //inode number
 	uint32_t i_parent; //inode number of the parent directory
 
+	uint32_t i_fd;     //file descriptor number
+
 	uint32_t i_size;   //file size (bytes)
 	uint32_t i_blocks; //i_block = file_size / block_size
 	uint8_t  *i_data;
