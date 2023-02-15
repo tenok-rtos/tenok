@@ -166,10 +166,21 @@ void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 
 void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char *path = param_list[1];
+	char path[200] = {0};
 
+	if(param_list[1][0] != '/') {
+		/* input is a relative path */
+		char pwd[200] = {0};
+		shell_get_pwd(pwd);
+
+		sprintf(path, "%s%s", pwd, param_list[1]);
+	} else {
+		/* input is a absolute path */
+		strcpy(path, param_list[1]);
+	}
+
+	/* open the file */
 	int fd = open(path, 0, 0);
-
 	if(fd == -1) {
 		char str[200] = {0};
 		sprintf(str, "cat: %s: No such file or directory\n\r", path);
@@ -178,8 +189,10 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 		return;
 	}
 
+	/* reset the start position of the file */
 	lseek(fd, 0, SEEK_SET);
 
+	/* read file content until EOF is detected */
 	signed char c;
 	char str[200] = {0};
 	int i = 0;
@@ -197,6 +210,4 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 	}
 
 	shell_puts(str);
-
-	lseek(fd, 0, SEEK_SET);
 }
