@@ -94,6 +94,19 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *file_name)
 	return NULL;
 }
 
+int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
+{
+	/* calculate how many dentries can a block hold */
+	int dentry_per_blk = block_size / sizeof(struct dentry);
+
+	/* calculate how many blocks is required for storing N dentries */
+	int blocks = dentry_cnt / dentry_per_blk;
+	if(dentry_cnt % dentry_per_blk)
+		blocks++;
+
+	return blocks;
+}
+
 struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_type)
 {
 	/* inodes numbers is full */
@@ -219,19 +232,15 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 		/* currently no files is under the directory */
 		list_init(&new_dentry->list);
 		inode_dir->i_data = (uint8_t *)new_dentry; //add new file info
-
-		dir_file_cnt = 1; //add one for the new file
 	} else {
-		dir_file_cnt = 1; //exists at least one file on the dentry list
-
 		list_push(&curr_dir->list, &new_dentry->list);
 	}
 
-	/* update the directory inode */
+	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
-	inode_dir->i_blocks = dir_file_cnt / dentry_per_blk;
-	if(dir_file_cnt % dentry_per_blk)
-		inode_dir->i_blocks++;
+
+	dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
+	inode_dir->i_blocks = calculate_dentry_block_size(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
