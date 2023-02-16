@@ -205,7 +205,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 		break;
 	case S_IFDIR:
-
 		new_inode->i_mode   = S_IFDIR;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
@@ -223,7 +222,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	rootfs_super.inode_cnt++; //update inode number for the next file
 
 	/* currently no files is under the directory */
-	if(list_is_empty(&inode_dir->i_dentry) == true)
+	if(inode_dir->i_data == NULL)
 		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
