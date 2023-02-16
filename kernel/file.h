@@ -26,24 +26,26 @@ struct super_block {
 
 /* index node */
 struct inode {
-	uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
+	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
-	uint32_t i_ino;    //inode number
-	uint32_t i_parent; //inode number of the parent directory
+	uint32_t i_ino;       //inode number
+	uint32_t i_parent;    //inode number of the parent directory
 
-	uint32_t i_fd;     //file descriptor number
+	uint32_t i_fd;        //file descriptor number
 
-	uint32_t i_size;   //file size (bytes)
-	uint32_t i_blocks; //i_block = file_size / block_size
+	uint32_t i_size;      //file size (bytes)
+	uint32_t i_blocks;    //block_numbers = file_size / block_size
 	uint8_t  *i_data;
+
+	struct list i_dentry; //list head of the dentry table
 };
 
 /* directory entry */
 struct dentry {
 	char     file_name[FILE_NAME_LEN_MAX]; //file name
 
-	uint32_t file_inode;   //the inode of this file
-	uint32_t parent_inode; //the parent directory's inode of this file
+	uint32_t file_inode;   //the inode of the file
+	uint32_t parent_inode; //the parent directory's inode of the file
 
 	struct list list;
 };
