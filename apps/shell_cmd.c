@@ -21,34 +21,28 @@ void shell_get_pwd(char *path)
 	path[1] = '\0';
 
 	struct inode *inode = inode_curr;
-	struct dentry *dir = (struct dentry *)inode->i_data;
 
 	while(1) {
 		if(inode->i_ino == 0)
 			return;
 
-		uint32_t inode_last = inode->i_ino;
-
 		/* switch to the parent directory */
+		uint32_t inode_last = inode->i_ino;
 		inode = &inodes[inode->i_parent];
-		dir = (struct dentry *)inode->i_data;
 
-		if(dir == NULL)
+		/* no file is under this directory */
+		if(list_is_empty(&inode->i_dentry) == true)
 			return;
 
-		struct list *list_start = &dir->list;
-		struct list *list_curr = list_start;
-
-		do {
-			dir = list_entry(list_curr, struct dentry, list);
+		struct list *list_curr;
+		list_for_each(list_curr, &inode->i_dentry) {
+			struct dentry *dir = list_entry(list_curr, struct dentry, list);
 
 			if(dir->file_inode == inode_last) {
 				sprintf(path, "%s%s/", path, dir->file_name);
 				break;
 			}
-
-			list_curr = list_curr->next;
-		} while(list_curr != list_start);
+		}
 	}
 }
 
@@ -91,20 +85,16 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	/* retrieve the directory table */
-	struct dentry *dir = (struct dentry *)inode_curr->i_data;
-
 	char str[200] = {0};
 
-	if(dir == NULL)
+	/* no file is under this directory */
+	if(list_is_empty(&inode_curr->i_dentry) == true)
 		return;
 
-	struct list *list_start = &dir->list;
-	struct list *list_curr = list_start;
-
 	/* traverse all files under the directory */
-	do {
-		dir = list_entry(list_curr, struct dentry, list);
+	struct list *list_curr;
+	list_for_each(list_curr, &inode_curr->i_dentry) {
+		struct dentry *dir = list_entry(list_curr, struct dentry, list);
 
 		/* get the file inode */
 		int file_inode_num = dir->file_inode;
@@ -115,9 +105,7 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		} else {
 			sprintf(str, "%s%s  ", str, dir->file_name);
 		}
-
-		list_curr = list_curr->next;
-	} while(list_curr != list_start);
+	}
 
 	sprintf(str, "%s\n\r", str);
 	shell_puts(str);
@@ -130,43 +118,36 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	if(param_cnt == 1) {
 		inode_curr = &inodes[0];
 	} else if(param_cnt == 2) {
-		/* retrieve the directory table */
-		struct dentry *dir = (struct dentry *)inode_curr->i_data;
-
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {
 			inode_curr = &inodes[inodes->i_parent];
 			return;
 		}
 
-		if(dir == NULL) {
+		/* no file is under this directory */
+		if(list_is_empty(&inode_curr->i_dentry) == true) {
 			sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
 		}
 
-		struct list *list_start = &dir->list;
-		struct list *list_curr = list_start;
-
 		/* compare all the file names under the current directory */
-		do {
-			dir = list_entry(list_curr, struct dentry, list);
+		struct list *list_curr;
+		list_for_each(list_curr, &inode_curr->i_dentry) {
+			struct dentry *dir = list_entry(list_curr, struct dentry, list);
 
 			if(strcmp(dir->file_name, param_list[1]) == 0) {
-				struct inode *_inode = &inodes[dir->file_inode];
-				if(_inode->i_mode != S_IFDIR) {
+				struct inode *inode = &inodes[dir->file_inode];
+				if(inode->i_mode != S_IFDIR) {
 					sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 					shell_puts(str);
 					return;
 				} else {
-					inode_curr = _inode;
+					inode_curr = inode;
 					return;
 				}
 			}
-
-
-			list_curr = list_curr->next;
-		} while(list_curr != list_start);
+		}
 	} else {
 		sprintf(str, "cd: too many arguments\n\r");
 		shell_puts(str);
