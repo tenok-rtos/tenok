@@ -45,7 +45,7 @@ struct dentry {
 	uint32_t file_inode;   //the inode of this file
 	uint32_t parent_inode; //the parent directory's inode of this file
 
-	struct dentry *next;
+	struct list list;
 };
 
 struct stat {

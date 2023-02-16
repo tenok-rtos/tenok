@@ -24,9 +24,8 @@ void shell_get_pwd(char *path)
 	struct dentry *dir = (struct dentry *)inode->i_data;
 
 	while(1) {
-		if(inode->i_ino == 0) {
-			break;
-		}
+		if(inode->i_ino == 0)
+			return;
 
 		uint32_t inode_last = inode->i_ino;
 
@@ -34,14 +33,22 @@ void shell_get_pwd(char *path)
 		inode = &inodes[inode->i_parent];
 		dir = (struct dentry *)inode->i_data;
 
-		while(dir != NULL) {
+		if(dir == NULL)
+			return;
+
+		struct list *list_start = &dir->list;
+		struct list *list_curr = list_start;
+
+		do {
+			dir = list_entry(list_curr, struct dentry, list);
+
 			if(dir->file_inode == inode_last) {
 				sprintf(path, "%s%s/", path, dir->file_name);
 				break;
 			}
 
-			dir = dir->next;
-		}
+			list_curr = list_curr->next;
+		} while(list_curr != list_start);
 	}
 }
 
@@ -89,8 +96,16 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 	char str[200] = {0};
 
+	if(dir == NULL)
+		return;
+
+	struct list *list_start = &dir->list;
+	struct list *list_curr = list_start;
+
 	/* traverse all files under the directory */
-	while(dir != NULL) {
+	do {
+		dir = list_entry(list_curr, struct dentry, list);
+
 		/* get the file inode */
 		int file_inode_num = dir->file_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
@@ -101,9 +116,8 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 			sprintf(str, "%s%s  ", str, dir->file_name);
 		}
 
-		/* point to the next file */
-		dir = dir->next;
-	}
+		list_curr = list_curr->next;
+	} while(list_curr != list_start);
 
 	sprintf(str, "%s\n\r", str);
 	shell_puts(str);
@@ -125,8 +139,19 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 			return;
 		}
 
+		if(dir == NULL) {
+			sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
+			shell_puts(str);
+			return;
+		}
+
+		struct list *list_start = &dir->list;
+		struct list *list_curr = list_start;
+
 		/* compare all the file names under the current directory */
-		while(dir != NULL) {
+		do {
+			dir = list_entry(list_curr, struct dentry, list);
+
 			if(strcmp(dir->file_name, param_list[1]) == 0) {
 				struct inode *_inode = &inodes[dir->file_inode];
 				if(_inode->i_mode != S_IFDIR) {
@@ -139,13 +164,9 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 				}
 			}
 
-			/* point to the next file */
-			dir = dir->next;
-		}
 
-		sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
-		shell_puts(str);
-		return;
+			list_curr = list_curr->next;
+		} while(list_curr != list_start);
 	} else {
 		sprintf(str, "cd: too many arguments\n\r");
 		shell_puts(str);

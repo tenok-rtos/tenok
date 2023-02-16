@@ -74,12 +74,22 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *file_name)
 
 	struct dentry *dir = (struct dentry *)inode->i_data;
 
-	while(dir != NULL) {
+	if(dir == NULL)
+		return NULL;
+
+	struct list *list_start = &dir->list;
+	struct list *list_curr = list_start;
+
+	do {
+		dir = list_entry(list_curr, struct dentry, list);
+
 		if(strcmp(dir->file_name, file_name) == 0)
 			return &inodes[dir->file_inode];
 
-		dir = dir->next;
-	}
+		list_curr = list_curr->next;
+
+	} while(list_curr != list_start);
+
 
 	return NULL;
 }
@@ -99,13 +109,10 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	/* check if current block can fit a new dentry */
 	uint8_t *dir_data_p;
 	if((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) {
-		/* TODO: replace with double linked list */
-
-		/* find the end of the list */
 		struct dentry *dir = (struct dentry *)inode_dir->i_data;
-		while(dir->next != NULL) {
-			dir = dir->next;
-		}
+		struct list *list_lastest = dir->list.last;
+
+		dir = list_entry(list_lastest, struct dentry, list);
 		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
 	} else {
 		/* can not fit, requires a new block */
@@ -117,7 +124,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	struct dentry *new_dentry = (struct dentry*)dir_data_p;
 	new_dentry->file_inode = rootfs_super.inode_cnt; //assign new inode number for the file
 	new_dentry->parent_inode = inode_dir->i_ino;     //save the inode of the parent directory
-	new_dentry->next = NULL;
 	strcpy(new_dentry->file_name, file_name);        //copy the file name
 
 	/* file table is full */
@@ -130,7 +136,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[rootfs_super.inode_cnt];
 	new_inode->i_ino    = rootfs_super.inode_cnt;
-	new_inode->i_parent = inode_dir->i_parent;
+	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_fd     = fd;
 
 	/* file instantiation */
@@ -188,6 +194,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 		break;
 	case S_IFDIR:
+
 		new_inode->i_mode   = S_IFDIR;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
@@ -210,17 +217,14 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 	if(curr_dir == NULL) {
 		/* currently no files is under the directory */
+		list_init(&new_dentry->list);
 		inode_dir->i_data = (uint8_t *)new_dentry; //add new file info
+
 		dir_file_cnt = 1; //add one for the new file
 	} else {
 		dir_file_cnt = 1; //exists at least one file on the dentry list
 
-		/* insert at the end of the table */
-		while(curr_dir->next != NULL) {
-			curr_dir = curr_dir->next;
-			dir_file_cnt++;
-		}
-		curr_dir->next = new_dentry;
+		list_push(&curr_dir->list, &new_dentry->list);
 	}
 
 	/* update the directory inode */
