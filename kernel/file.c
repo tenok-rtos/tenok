@@ -75,9 +75,8 @@ struct inode *fs_search_entry_in_dir(struct inode *inode, char *file_name)
 	struct dentry *dir = (struct dentry *)inode->i_data;
 
 	while(dir != NULL) {
-		if(strcmp(dir->file_name, file_name) == 0) {
+		if(strcmp(dir->file_name, file_name) == 0)
 			return &inodes[dir->file_inode];
-		}
 
 		dir = dir->next;
 	}
@@ -227,9 +226,8 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	/* update the directory inode */
 	inode_dir->i_size += sizeof(struct dentry);
 	inode_dir->i_blocks = dir_file_cnt / dentry_per_blk;
-	if(dir_file_cnt % dentry_per_blk) {
+	if(dir_file_cnt % dentry_per_blk)
 		inode_dir->i_blocks++;
-	}
 
 	return new_inode;
 }
@@ -252,26 +250,23 @@ char *split_path(char *entry, char *path)
 
 		path++;
 
-		if((found_dir == true) || (*path == '\0')) {
+		if((found_dir == true) || (*path == '\0'))
 			break;
-		}
 	}
 
 	*entry = '\0';
 
-	if(*path == '\0') {
+	if(*path == '\0')
 		return NULL; //the path can not be splitted anymore
-	} else {
-		return path; //return the address of the left path string
-	}
+
+	return path; //return the address of the left path string
 }
 
 int create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
-	if(pathname[0] != '/') {
+	if(pathname[0] != '/')
 		return -1;
-	}
 
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
@@ -289,9 +284,8 @@ int create_file(char *pathname, uint8_t file_type)
 			/* the path can be further splitted, which means it is a directory */
 
 			/* two successive '/' are detected */
-			if(entry_curr[0] == '\0') {
+			if(entry_curr[0] == '\0')
 				continue;
-			}
 
 			/* search the entry and get the inode */
 			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
@@ -301,12 +295,10 @@ int create_file(char *pathname, uint8_t file_type)
 				/* directory does not exist, create one */
 				inode = fs_add_new_file(inode_curr, entry_curr, S_IFDIR);
 
-				/* check if the directory exists */
-				if(inode != NULL) {
-					inode_curr = inode;
-				} else {
-					return -1; //failed to create the directory
-				}
+				if(inode == NULL)
+					return -1;
+
+				inode_curr = inode;
 			} else {
 				/* directory exists */
 				inode_curr = inode;
@@ -315,9 +307,8 @@ int create_file(char *pathname, uint8_t file_type)
 			/* no more path string to be splitted */
 
 			/* check if the file already exists */
-			if(fs_search_entry_in_dir(inode_curr, entry_curr) != NULL) {
+			if(fs_search_entry_in_dir(inode_curr, entry_curr) != NULL)
 				return -1;
-			}
 
 			/* if the last character of the pathname is not equal to '/', it is a file */
 			int len = strlen(pathname);
@@ -326,11 +317,10 @@ int create_file(char *pathname, uint8_t file_type)
 				inode = fs_add_new_file(inode_curr, entry_curr, file_type);
 
 				/* check if the inode is created successfully */
-				if(inode == NULL) {
+				if(inode == NULL)
 					return -1; //failed to create the file
-				} else {
-					return inode->i_fd;
-				}
+
+				return inode->i_fd;
 			}
 		}
 	}
@@ -341,9 +331,8 @@ int open_file(char *pathname)
 	/* input: file path, output: file descriptor number */
 
 	/* a legal path name must start with '/' */
-	if(pathname[0] != '/') {
+	if(pathname[0] != '/')
 		return -1;
-	}
 
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
@@ -361,33 +350,27 @@ int open_file(char *pathname)
 			/* the path can be further splitted, which means it is a directory */
 
 			/* two successive '/' are detected */
-			if(entry_curr[0] == '\0') {
+			if(entry_curr[0] == '\0')
 				continue;
-			}
 
 			/* search the entry and get the inode */
 			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-			if(inode == NULL) {
+			if(inode == NULL)
 				return -1; //directory does not exist
-			} else {
-				inode_curr = inode;
-			}
+
+			inode_curr = inode;
 		} else {
 			/* check if the file exists */
 			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
 
-			if(inode == NULL) {
+			if(inode == NULL)
 				return -1;
-			}
 
-			if(inode->i_mode == S_IFDIR) {
-				/* not a file, no file descriptor number to be return */
-				return -1;
-			} else {
-				/* return the file descriptor number */
-				return inode->i_fd;
-			}
+			if(inode->i_mode == S_IFDIR)
+				return -1; //not a file, no file descriptor number to be return
+
+			return inode->i_fd; //return the file descriptor number
 		}
 	}
 }
