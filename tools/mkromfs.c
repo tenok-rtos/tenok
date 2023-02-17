@@ -293,6 +293,7 @@ void export_romfs(void)
 	uint32_t blocks_size = sizeof(romfs_blk);
 
 	/* memory space conversion */
+	printf("[romfs memory space conversion]\n");
 	int i;
 	for(i = 0; i < romfs_sb.s_inode_cnt; i++) {
 		/* adjust the inode.i_data (which is point to the block region) */
@@ -326,7 +327,7 @@ void export_romfs(void)
 					dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
 				}
 
-				printf("[file_name:\"%s\", file_inode=%d, last=%d, next=%d]\n",
+				printf("[file_name:\"%s\", file_inode:%d, last:%d, next:%d]\n",
 				       dentry->file_name, dentry->file_inode, (uint32_t)dentry->list.last, (uint32_t)dentry->list.next);
 
 				list_curr = list_next;
@@ -369,8 +370,7 @@ int main(int argc, char **argv)
 
 	romfs_init();
 
-	int retval = create_file("/document/test.txt", S_IFREG);
-	printf("create file: %d\n", retval);
+	create_file("/rom_data/test.txt", S_IFREG);
 
 	export_romfs();
 
