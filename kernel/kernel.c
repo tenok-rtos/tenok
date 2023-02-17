@@ -515,7 +515,7 @@ void preempt_enable(void)
 	}
 }
 
-void os_start(task_func_t first_task)
+void sched_start(task_func_t first_task)
 {
 	/* set interrupt priorities */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);

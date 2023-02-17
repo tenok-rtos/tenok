@@ -64,7 +64,7 @@ typedef struct tcb {
 }  tcb_t;
 
 void task_create(task_func_t task_func, uint8_t priority);
-void os_start(task_func_t first_task);
+void sched_start(task_func_t first_task);
 
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
