@@ -68,8 +68,9 @@ void file_system_init(void)
 	inode_root->i_data   = NULL;
 	list_init(&inode_root->i_dentry);
 
-	mount_points[0].super_blk.s_inode_cnt = 1;
-	mount_points[0].super_blk.s_blk_cnt   = 0;
+	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt = 1;
+	mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt   = 0;
+	mount_cnt = 1;
 }
 
 struct inode *fs_search_file(struct inode *inode, char *file_name)
@@ -498,9 +499,22 @@ int _mount(char *source, char *target)
 	struct file *dev_file = files[source_fd];
 	mount_points[mount_cnt].dev_file = dev_file;
 
-	/* read super block */
+	/* get read function pointer */
+        ssize_t (*_read)(struct file *filp, char *buf, size_t size, loff_t offset);
+        _read = dev_file->f_op->read;
 
-	/* load root directory of the mounted device */
+	/* read the super block of the mounted storage*/
+	loff_t super_blk_addr = 0; //read from the beginning
+	_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sizeof(struct super_block), super_blk_addr);
+
+	/* load root directory of the mounted storage */
+	loff_t inodes_addr = super_blk_addr + sizeof(struct super_block);
+	loff_t block_addr = inodes_addr + (sizeof(struct inode) * INODE_CNT_MAX);
+
+	volatile int size = sizeof(struct inode);
+
+	struct inode mnt_inode_root;
+	_read(dev_file, (uint8_t *)&mnt_inode_root, sizeof(struct inode), inodes_addr);
 
 	mount_cnt++;
 
