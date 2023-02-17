@@ -208,7 +208,6 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
 	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_fd     = fd;
-	list_init(&new_inode->i_dentry);
 
 	/* file instantiation */
 	int result = 0;
@@ -265,6 +264,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL; //new directory without any files
+		list_init(&new_inode->i_dentry);
 
 		break;
 	default:

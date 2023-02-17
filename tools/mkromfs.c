@@ -141,7 +141,6 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	new_inode->i_ino    = romfs_sb.s_inode_cnt;
 	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_fd     = 0;
-	list_init(&new_inode->i_dentry);
 
 	/* file instantiation */
 	int result = 0;
@@ -164,6 +163,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL; //new directory without any files
+		list_init(&new_inode->i_dentry);
 
 		break;
 	}
@@ -290,6 +290,28 @@ void export_romfs(void)
 	int super_blk_size = sizeof(romfs_sb);
 	int inode_table_size = sizeof(inodes);
 	int block_region_size = sizeof(romfs_blk);
+
+	/* memory space conversion */
+	int i;
+	for(i = 0; i < romfs_sb.s_inode_cnt; i++) {
+		inodes[i].i_data -= (uint32_t)romfs_blk;
+
+		if(inodes[i].i_mode == S_IFDIR) {
+			struct list *list_start = &inodes[i].i_dentry;
+			struct list *list_curr = list_start;
+
+			do {
+				struct list *list_next = list_curr->next;
+
+				struct dentry *dentry = list_entry(list_curr, struct dentry, list);
+				dentry->list.last = (struct list *)((uint8_t *)dentry->list.last - (uint32_t)romfs_blk);
+				dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk);
+
+				list_curr = list_next;
+			} while(list_curr != list_start);
+
+		}
+	}
 
 	printf("romfs generation report:\n"
 	       "super block size: %d bytes\n"
