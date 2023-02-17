@@ -500,8 +500,8 @@ int _mount(char *source, char *target)
 	mount_points[mount_cnt].dev_file = dev_file;
 
 	/* get read function pointer */
-        ssize_t (*_read)(struct file *filp, char *buf, size_t size, loff_t offset);
-        _read = dev_file->f_op->read;
+	ssize_t (*_read)(struct file *filp, char *buf, size_t size, loff_t offset);
+	_read = dev_file->f_op->read;
 
 	/* read the super block of the mounted storage*/
 	loff_t super_blk_addr = 0; //read from the beginning
