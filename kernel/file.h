@@ -22,12 +22,15 @@ enum {
 } FS_SERVER_CMDS;
 
 struct super_block {
-	int inode_cnt;
-	int blk_cnt;
+	uint32_t blk_size;
+	uint32_t blk_cnt;
+
+	uint32_t inode_cnt;
 };
 
 struct mount {
 	struct file *dev_file;
+	struct super_block super_blk;
 };
 
 /* index node */
@@ -43,7 +46,7 @@ struct inode {
 
 	uint32_t i_size;      //file size (bytes)
 	uint32_t i_blocks;    //block_numbers = file_size / block_size
-	uint8_t  *i_data;
+	uint8_t  *i_data;     //virtual address for the storage device
 
 	struct list i_dentry; //list head of the dentry table
 };
