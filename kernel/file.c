@@ -397,7 +397,7 @@ int open_file(char *pathname)
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
 
-	char entry_curr[PATH_LEN_MAX];
+	char entry_curr[PATH_LEN_MAX] = {0};
 	char *_path = pathname;
 
 	_path = split_path(entry_curr, _path); //get rid of the first '/'
@@ -435,8 +435,75 @@ int open_file(char *pathname)
 	}
 }
 
+struct inode *open_directory(char *pathname)
+{
+	/* input: file path, output: directory inode */
+
+	/* a legal path name must start with '/' */
+	if(pathname[0] != '/')
+		return NULL;
+
+	struct inode *inode_curr = &inodes[0]; //start from the root node
+	struct inode *inode;
+
+	char entry_curr[PATH_LEN_MAX] = {0};
+	char *_path = pathname;
+
+	_path = split_path(entry_curr, _path); //get rid of the first '/'
+	if(_path == NULL) {
+		return inode_curr;
+	}
+
+	while(1) {
+		/* split the path and get the entry hierarchically */
+		_path = split_path(entry_curr, _path);
+
+		/* two successive '/' are detected */
+		if(entry_curr[0] == '\0')
+			continue;
+
+		/* search the entry and get the inode */
+		inode = fs_search_file(inode_curr, entry_curr);
+
+		/* directory does not exist */
+		if(inode == NULL)
+			return NULL;
+
+		/* not a directory */
+		if(inode->i_mode != S_IFDIR)
+			return NULL;
+
+		inode_curr = inode;
+
+		/* no more sub-string to be splitted */
+		if(_path == NULL)
+			break;
+	}
+
+	return inode_curr;
+}
+
 int _mount(char *source, char *target)
 {
+	/* get the file of the storage to be mounted */
+	int source_fd = open_file(source);
+	if(source_fd < 0)
+		return -1;
+
+	/* get the rootfs inode to mount the storage */
+	struct inode *mount_inode = open_directory(target);
+	if(mount_inode == NULL)
+		return -1;
+
+	struct file *dev_file = files[source_fd];
+	mount_points[mount_cnt].dev_file = dev_file;
+
+	/* read super block */
+
+	/* load root directory of the mounted device */
+
+	mount_cnt++;
+
 	return 0;
 }
 
