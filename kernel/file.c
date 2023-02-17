@@ -68,7 +68,6 @@ void file_system_init(void)
 	inode_root->i_data   = NULL;
 	list_init(&inode_root->i_dentry);
 
-	mount_points[0].super_blk.blk_size  = ROOTFS_BLK_SIZE;
 	mount_points[0].super_blk.inode_cnt = 1;
 	mount_points[0].super_blk.blk_cnt   = 0;
 }
@@ -193,8 +192,8 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	/* configure the new dentry */
 	struct dentry *new_dentry = (struct dentry*)dir_data_p;
 	new_dentry->file_inode    = mount_points[RDEV_ROOTFS].super_blk.inode_cnt; //assign new inode number for the file
-	new_dentry->parent_inode  = inode_dir->i_ino;       //save the inode of the parent directory
-	strcpy(new_dentry->file_name, file_name);           //copy the file name
+	new_dentry->parent_inode  = inode_dir->i_ino; //save the inode of the parent directory
+	strcpy(new_dentry->file_name, file_name);     //copy the file name
 
 	/* file table is full */
 	if(file_cnt >= FILE_CNT_LIMIT)
@@ -249,8 +248,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		result = reg_file_init(fd, new_inode, (struct file **)&files, &mem_pool);
 
 		/* allocate memory for the new file */
-		uint8_t *file_data_p = (uint8_t *)(mount_points[inode_dir->i_rdev].super_blk.blk_cnt *
-		                                   mount_points[inode_dir->i_rdev].super_blk.blk_size);
+		uint8_t *file_data_p = (uint8_t *)(mount_points[inode_dir->i_rdev].super_blk.blk_cnt * ROOTFS_BLK_SIZE);
 		mount_points[inode_dir->i_rdev].super_blk.blk_cnt++;
 
 		new_inode->i_mode   = S_IFREG;
