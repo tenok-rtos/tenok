@@ -10,7 +10,7 @@
 #define PATH_LEN_MAX      128
 #define INODE_CNT_MAX     100
 #define ROMFS_BLK_SIZE    128
-#define ROMFS_BLK_CNT     100
+#define ROMFS_BLK_CNT     20
 
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
@@ -283,10 +283,33 @@ int create_file(char *pathname, uint8_t file_type)
 	}
 }
 
-int main(int argc, char **argv)
+void export_romfs(void)
 {
 	FILE *file = fopen(output_path, "wb");
 
+	int super_blk_size = sizeof(romfs_sb);
+	int inode_table_size = sizeof(inodes);
+	int block_region_size = sizeof(romfs_blk);
+
+	printf("romfs generation report:\n"
+	       "super block size: %d bytes\n"
+	       "inode table size: %d bytes\n"
+	       "block region size: %d bytes\n"
+	       "used inode count: %d\n"
+	       "used block count: %d\n",
+	       super_blk_size, inode_table_size,
+	       block_region_size, romfs_sb.s_inode_cnt,
+	       romfs_sb.s_blk_cnt);
+
+	fwrite((uint8_t *)&romfs_sb, sizeof(uint8_t), super_blk_size, file);
+	fwrite((uint8_t *)&inodes, sizeof(uint8_t), inode_table_size, file);
+	fwrite((uint8_t *)&romfs_blk, sizeof(uint8_t), block_region_size, file);
+
+	fclose(file);
+}
+
+int main(int argc, char **argv)
+{
 	int opt;
 	while((opt = getopt(argc, argv, "o:d:")) != -1) {
 		switch(opt) {
@@ -306,10 +329,7 @@ int main(int argc, char **argv)
 	int retval = create_file("/document/test.txt", S_IFREG);
 	printf("create file: %d\n", retval);
 
-	char *test = "romfs test string";
-	fwrite(test, sizeof(char), strlen(test) + 1, file);
-
-	fclose(file);
+	export_romfs();
 
 	return 0;
 }
