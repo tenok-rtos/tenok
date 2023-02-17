@@ -36,18 +36,11 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *start_addr = &reg_file->file_inode->i_data[0];
-	uint8_t *end_addr   = start_addr + ROOTFS_BLK_SIZE;
+	uint8_t *read_addr = reg_file->file_inode->i_data + offset + reg_file->pos;
+	int retval = fs_read(reg_file->file_inode, read_addr, (uint8_t *)buf, size);
 
-	uint8_t *read_addr = start_addr + offset + reg_file->pos;
-
-	if((read_addr + size) > end_addr) {
-		return EFAULT;
-	}
-
-	memcpy(buf, read_addr, sizeof(uint8_t) * size);
-
-	reg_file->pos += size;
+	if(retval >= 0)
+		reg_file->pos += size;
 
 	return size;
 }
@@ -56,20 +49,13 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *start_addr = &reg_file->file_inode->i_data[0];
-	uint8_t *end_addr   = start_addr + ROOTFS_BLK_SIZE;
+	uint8_t *write_addr = reg_file->file_inode->i_data + offset + reg_file->pos;
+	int retval = fs_write(reg_file->file_inode, write_addr, (uint8_t *)buf, size);
 
-	uint8_t *write_addr = start_addr + offset + reg_file->pos;
+	if(retval >= 0)
+		reg_file->pos += size;
 
-	if((write_addr + size) > end_addr) {
-		return EFAULT;
-	}
-
-	memcpy(write_addr, buf, sizeof(uint8_t) * size);
-
-	reg_file->pos += size;
-
-	return 0;
+	return retval;
 }
 
 long reg_file_llseek(struct file *filp, long offset, int whence)

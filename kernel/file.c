@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "util.h"
 #include "file.h"
 #include "kernel.h"
@@ -17,6 +18,9 @@ extern struct memory_pool mem_pool;
 struct super_block rootfs_super;
 struct inode inodes[INODE_CNT_MAX];
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
+
+int mount_cnt = 0;
+struct mount mount_points[MOUNT_CNT_MAX];
 
 int file_cnt = 0;
 
@@ -69,12 +73,12 @@ void file_system_init(void)
 	rootfs_super.blk_cnt = 0;
 }
 
-struct inode *fs_search_entry_in_dir(struct inode *inode, char *file_name)
+struct inode *fs_search_file(struct inode *inode, char *file_name)
 {
 	/* the function take a diectory inode and return the inode of the entry to find */
 
 	/* currently the dentry table is empty */
-	if(inode->i_data == NULL)
+	if(list_is_empty(&inode->i_dentry) == true)
 		return NULL;
 
 	/* compare the file name in the dentry list */
@@ -102,7 +106,57 @@ int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
 	return blocks;
 }
 
-struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file_type)
+int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t size)
+{
+	if(inode->i_rdev == RDEV_ROOTFS) {
+		uint8_t *start_addr = (uint8_t *)rootfs_blk;
+		uint8_t *end_addr   = (uint8_t *)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
+
+		if((write_addr > end_addr) || (write_addr < start_addr))
+			return EFAULT;
+
+		memcpy(write_addr, data, sizeof(uint8_t) * size);
+
+		return size;
+	} else {
+		/* get storage device file */
+		struct file *dev_file = mount_points[inode->i_rdev].dev_file;
+
+		/* get write function pointer */
+		ssize_t (*_write)(struct file *filp, const char *buf, size_t size, loff_t offset);
+		_write = dev_file->f_op->write;
+
+		/* write memory */
+		return _write(dev_file, write_addr, size, 0);
+	}
+}
+
+int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size)
+{
+	if(inode->i_rdev == RDEV_ROOTFS) {
+		uint8_t *start_addr = (uint8_t *)rootfs_blk;
+		uint8_t *end_addr   = (uint8_t *)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
+
+		if((read_addr > end_addr) || (read_addr < start_addr))
+			return EFAULT;
+
+		memcpy(data, read_addr, sizeof(uint8_t) * size);
+
+		return size;
+	} else {
+		/* get storage device file */
+		struct file *dev_file = mount_points[inode->i_rdev].dev_file;
+
+		/* get read function pointer */
+		ssize_t (*_read)(struct file *filp, char *buf, size_t size, loff_t offset);
+		_read = dev_file->f_op->read;
+
+		/* read memory */
+		return _read(dev_file, read_addr, size, 0);
+	}
+}
+
+struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {
 	/* inodes numbers is full */
 	if(rootfs_super.inode_cnt >= INODE_CNT_MAX)
@@ -167,8 +221,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 		break;
 	case S_IFCHR:
-		//char device instance is created by the register_chrdev()
-
 		new_inode->i_mode   = S_IFCHR;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
@@ -178,8 +230,6 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 
 		break;
 	case S_IFBLK:
-		//block device instance is created by the register_blkdev()
-
 		new_inode->i_mode   = S_IFBLK;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
@@ -222,7 +272,7 @@ struct inode *fs_add_new_file(struct inode *inode_dir, char *file_name, int file
 	rootfs_super.inode_cnt++; //update inode number for the next file
 
 	/* currently no files is under the directory */
-	if(inode_dir->i_data == NULL)
+	if(list_is_empty(&inode_dir->i_dentry) == true)
 		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
@@ -293,12 +343,12 @@ int create_file(char *pathname, uint8_t file_type)
 				continue;
 
 			/* search the entry and get the inode */
-			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_file(inode_curr, entry_curr);
 
 			/* check if the directory exists */
 			if(inode == NULL) {
 				/* directory does not exist, create one */
-				inode = fs_add_new_file(inode_curr, entry_curr, S_IFDIR);
+				inode = fs_add_file(inode_curr, entry_curr, S_IFDIR);
 
 				if(inode == NULL)
 					return -1;
@@ -312,14 +362,14 @@ int create_file(char *pathname, uint8_t file_type)
 			/* no more path string to be splitted */
 
 			/* check if the file already exists */
-			if(fs_search_entry_in_dir(inode_curr, entry_curr) != NULL)
+			if(fs_search_file(inode_curr, entry_curr) != NULL)
 				return -1;
 
 			/* if the last character of the pathname is not equal to '/', it is a file */
 			int len = strlen(pathname);
 			if(pathname[len - 1] != '/') {
 				/* create new inode for the file */
-				inode = fs_add_new_file(inode_curr, entry_curr, file_type);
+				inode = fs_add_file(inode_curr, entry_curr, file_type);
 
 				/* check if the inode is created successfully */
 				if(inode == NULL)
@@ -359,7 +409,7 @@ int open_file(char *pathname)
 				continue;
 
 			/* search the entry and get the inode */
-			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_file(inode_curr, entry_curr);
 
 			if(inode == NULL)
 				return -1; //directory does not exist
@@ -367,7 +417,7 @@ int open_file(char *pathname)
 			inode_curr = inode;
 		} else {
 			/* check if the file exists */
-			inode = fs_search_entry_in_dir(inode_curr, entry_curr);
+			inode = fs_search_file(inode_curr, entry_curr);
 
 			if(inode == NULL)
 				return -1;

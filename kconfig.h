@@ -22,6 +22,8 @@
 
 #define FILE_NAME_LEN_MAX     30
 
+#define MOUNT_CNT_MAX         5
+
 #define INODE_CNT_MAX         100
 
 #define ROOTFS_BLK_SIZE       128  //bytes
