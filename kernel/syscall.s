@@ -34,67 +34,72 @@ fork:
 sleep:
 	syscall #5
 
+.type   mount, %function
+.global mount
+mount:
+	syscall #6
+
 .type   open, %function
 .global open
 open:
-	syscall #6
+	syscall #7
 
 .type   close, %function
 .global close
 close:
-	syscall #7
+	syscall #8
 
 .type   read, %function
 .global read
 read:
-	syscall #8
+	syscall #9
 
 .type   write, %function
 .global write
 write:
-	syscall #9
+	syscall #10
 
 .type   lseek, %function
 .global lseek
 lseek:
-	syscall #10
+	syscall #11
 
 .type   fstat, %function
 .global fstat
 fstat:
-	syscall #11
+	syscall #12
 
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #12
+	syscall #13
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #13
+	syscall #14
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #14
+	syscall #15
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #15
+	syscall #16
 
 .type   mkdir, %function
 .global mkdir
 mkdir:
-        syscall #16
+        syscall #17
 
 .type   rmdir, %function
 .global rmdir
 rmdir:
-        syscall #17
+        syscall #18
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #18
+	syscall #19

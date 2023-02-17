@@ -23,6 +23,7 @@ void sys_set_irq(void);
 void sys_set_program_name(void);
 void sys_fork(void);
 void sys_sleep(void);
+void sys_mount(void);
 void sys_open(void);
 void sys_close(void);
 void sys_read(void);
@@ -65,19 +66,20 @@ syscall_info_t syscall_table[] = {
 	/* posix syscall: */
 	DEF_SYSCALL(fork, 4),
 	DEF_SYSCALL(sleep, 5),
-	DEF_SYSCALL(open, 6),
-	DEF_SYSCALL(close, 7),
-	DEF_SYSCALL(read, 8),
-	DEF_SYSCALL(write, 9),
-	DEF_SYSCALL(lseek, 10),
-	DEF_SYSCALL(fstat, 11),
-	DEF_SYSCALL(getpriority, 12),
-	DEF_SYSCALL(setpriority, 13),
-	DEF_SYSCALL(getpid, 14),
-	DEF_SYSCALL(mknod, 15),
-	DEF_SYSCALL(mkdir, 16),
-	DEF_SYSCALL(rmdir, 17),
-	DEF_SYSCALL(os_sem_wait, 18)
+	DEF_SYSCALL(mount, 6),
+	DEF_SYSCALL(open, 7),
+	DEF_SYSCALL(close, 8),
+	DEF_SYSCALL(read, 9),
+	DEF_SYSCALL(write, 10),
+	DEF_SYSCALL(lseek, 11),
+	DEF_SYSCALL(fstat, 12),
+	DEF_SYSCALL(getpriority, 13),
+	DEF_SYSCALL(setpriority, 14),
+	DEF_SYSCALL(getpid, 15),
+	DEF_SYSCALL(mknod, 16),
+	DEF_SYSCALL(mkdir, 17),
+	DEF_SYSCALL(rmdir, 18),
+	DEF_SYSCALL(os_sem_wait, 19)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -278,6 +280,27 @@ void sys_sleep(void)
 
 	/* set retval */
 	running_task->stack_top->r0 = 0;
+}
+
+void sys_mount(void)
+{
+	char *source = (char *)running_task->stack_top->r0;
+	char *target = (char *)running_task->stack_top->r1;
+
+	int task_fd = running_task->pid + 1;
+
+	/* if pending flag is set means the request is already sent */
+	if(running_task->syscall_pending == false) {
+		request_mount(task_fd, source, target);
+	}
+
+	/* receive the mount result */
+	int result;
+	if(fifo_read(files[task_fd], (char *)&result, sizeof(result), 0)) {
+		//return the file descriptor
+		running_task->stack_top->r0 = result;
+	}
+
 }
 
 void sys_open(void)
