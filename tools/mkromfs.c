@@ -284,7 +284,7 @@ int create_file(char *pathname, uint8_t file_type)
 	}
 }
 
-void export_romfs(void)
+void romfs_export(void)
 {
 	FILE *file = fopen(output_path, "wb");
 
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
 
 	create_file("/rom_data/test.txt", S_IFREG);
 
-	export_romfs();
+	romfs_export();
 
 	return 0;
 }

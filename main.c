@@ -252,7 +252,7 @@ void first(void)
 
 void init(void *param)
 {
-	file_system_init();
+	rootfs_init();
 
 	rom_dev_init();
 
