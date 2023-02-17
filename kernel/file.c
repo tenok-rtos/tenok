@@ -57,7 +57,7 @@ int register_blkdev(char *name, struct file_operations *fops)
 	files[fd] = dev_file;
 }
 
-void file_system_init(void)
+void rootfs_init(void)
 {
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
@@ -162,12 +162,8 @@ int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size)
 	}
 }
 
-struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
+struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 {
-	/* inodes numbers is full */
-	if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
-		return NULL;
-
 	/* calculate how many dentries can a block hold */
 	int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
 
@@ -190,8 +186,17 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
 	}
 
+	return (struct dentry *)dir_data_p;
+}
+
+struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
+{
+	/* inodes numbers is full */
+	if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
+		return NULL;
+
 	/* configure the new dentry */
-	struct dentry *new_dentry = (struct dentry*)dir_data_p;
+	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
 	new_dentry->file_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
 	new_dentry->parent_inode  = inode_dir->i_ino; //save the inode of the parent directory
 	strcpy(new_dentry->file_name, file_name);     //copy the file name
@@ -205,6 +210,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
+	new_inode->i_rdev   = RDEV_ROOTFS;
 	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
 	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_fd     = fd;
@@ -287,7 +293,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
 
-	dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
+	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
 	inode_dir->i_blocks = calculate_dentry_block_size(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
@@ -299,45 +305,23 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 	if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
 		return NULL;
 
-	/* calculate how many dentries can a block hold */
-	int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
-
-	/* calculate how many dentries the directory has */
-	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-
-	/* check if current block can fit a new dentry */
-	bool fit = ((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) &&
-	           (inode_dir->i_size != 0) /* no memory is allocated if size = 0 */;
-
-	/* allocate memory for the new dentry */
-	uint8_t *dir_data_p;
-	if(fit == true) {
-		struct list *list_end = inode_dir->i_dentry.last;
-		struct dentry *dir = list_entry(list_end, struct dentry, list);
-		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
-	} else {
-		/* can not fit, requires a new block */
-		dir_data_p = (uint8_t *)&rootfs_blk[mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt];
-		mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
-	}
-
 	/* configure the new dentry */
-	struct dentry *new_dentry = (struct dentry*)dir_data_p;
+	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
 	new_dentry->file_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
 	new_dentry->parent_inode  = inode_dir->i_ino;         //save the inode of the parent directory
 	strcpy(new_dentry->file_name, mnt_dentry->file_name); //copy the file name
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
-        new_inode->i_mode   = mnt_inode->i_mode;
-        new_inode->i_rdev   = mnt_inode->i_rdev;
-        new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
-        new_inode->i_parent = inode_dir->i_ino;
-        new_inode->i_fd     = 0; //no file descriptor for a mounted file
-        new_inode->i_size   = mnt_inode->i_size;
-        new_inode->i_blocks = mnt_inode->i_blocks;
-        new_inode->i_data   = mnt_inode->i_data;
-        new_inode->i_dentry = mnt_inode->i_dentry;
+	new_inode->i_mode   = mnt_inode->i_mode;
+	new_inode->i_rdev   = mnt_inode->i_rdev;
+	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
+	new_inode->i_parent = inode_dir->i_ino;
+	new_inode->i_fd     = 0; //no file descriptor for a mounted file
+	new_inode->i_size   = mnt_inode->i_size;
+	new_inode->i_blocks = mnt_inode->i_blocks;
+	new_inode->i_data   = mnt_inode->i_data;
+	new_inode->i_dentry = mnt_inode->i_dentry;
 
 	/* update inode number for the next file */
 	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
@@ -352,7 +336,7 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
 
-	dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
+	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
 	inode_dir->i_blocks = calculate_dentry_block_size(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
@@ -557,8 +541,8 @@ int _mount(char *source, char *target)
 		return -1;
 
 	/* get the rootfs inode to mount the storage */
-	struct inode *mount_inode = open_directory(target);
-	if(mount_inode == NULL)
+	struct inode *target_inode = open_directory(target);
+	if(target_inode == NULL)
 		return -1;
 
 	/* get storage device file */
@@ -576,18 +560,18 @@ int _mount(char *source, char *target)
 	/* read the super block from the device */
 	dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sizeof(struct super_block), super_blk_addr);
 
-	/* read the root inode */
+	/* read the root inode of the storage */
 	struct inode inode;
 	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inodes_addr);
 
-	/* read the root directory dentry */
+	/* read the root directory dentry of the storage */
 	struct dentry dentry;
 	struct dentry *dentry_addr = list_entry(inode.i_dentry.next, struct dentry, list);
 	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), (loff_t)dentry_addr);
 
 	/* mount root directory files of the storage */
 	inode.i_rdev = mount_cnt;
-	fs_mount_file(&inodes[0], &inode, &dentry);
+	fs_mount_file(target_inode, &inode, &dentry);
 
 	mount_cnt++;
 

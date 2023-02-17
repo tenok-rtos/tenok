@@ -76,7 +76,7 @@ struct file_operations {
 	ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
-void file_system_init(void);
+void rootfs_init(void);
 
 int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
