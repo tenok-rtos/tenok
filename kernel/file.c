@@ -496,25 +496,29 @@ int _mount(char *source, char *target)
 	if(mount_inode == NULL)
 		return -1;
 
+	/* get storage device file */
 	struct file *dev_file = files[source_fd];
 	mount_points[mount_cnt].dev_file = dev_file;
 
 	/* get read function pointer */
-	ssize_t (*_read)(struct file *filp, char *buf, size_t size, loff_t offset);
-	_read = dev_file->f_op->read;
+	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* read the super block of the mounted storage*/
-	loff_t super_blk_addr = 0; //read from the beginning
-	_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sizeof(struct super_block), super_blk_addr);
-
-	/* load root directory of the mounted storage */
+	/* calculate the start address of the super block, inode table, and block region */
+	loff_t super_blk_addr = 0;
 	loff_t inodes_addr = super_blk_addr + sizeof(struct super_block);
 	loff_t block_addr = inodes_addr + (sizeof(struct inode) * INODE_CNT_MAX);
 
-	volatile int size = sizeof(struct inode);
+	/* read the super block from the device */
+	dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sizeof(struct super_block), super_blk_addr);
 
-	struct inode mnt_inode_root;
-	_read(dev_file, (uint8_t *)&mnt_inode_root, sizeof(struct inode), inodes_addr);
+	/* read the root inode */
+	struct inode inode;
+	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inodes_addr);
+
+	/* read the root directory dentry */
+	struct dentry dentry;
+	struct dentry *dentry_addr = list_entry(inode.i_dentry.next, struct dentry, list);
+	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), (loff_t)dentry_addr);
 
 	mount_cnt++;
 

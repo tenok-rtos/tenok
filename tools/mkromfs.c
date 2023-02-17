@@ -312,7 +312,7 @@ void export_romfs(void)
 
 				if(dentry->list.last == &inodes[i].i_dentry) {
 					/* inode.i_dentry is stored in the inodes region */
-					dentry->list.last = (struct list *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size;
+					dentry->list.last = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
 				} else {
 					/* other are stored in the block region */
 					dentry->list.last = (struct list *)((uint8_t *)dentry->list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
@@ -320,11 +320,14 @@ void export_romfs(void)
 
 				if(dentry->list.next == &inodes[i].i_dentry) {
 					/* inode.i_dentry is stored in the inodes region */
-					dentry->list.next = (struct list *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size;
+					dentry->list.next = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
 				} else {
 					/* other are stored in the block region */
 					dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
 				}
+
+				printf("[file_name:\"%s\", file_inode=%d, last=%d, next=%d]\n",
+				       dentry->file_name, dentry->file_inode, (uint32_t)dentry->list.last, (uint32_t)dentry->list.next);
 
 				list_curr = list_next;
 			} while(list_curr != list_start);
@@ -338,7 +341,7 @@ void export_romfs(void)
 	       "used inode count: %d\n"
 	       "used block count: %d\n",
 	       sb_size, inodes_size, blocks_size,
-               romfs_sb.s_inode_cnt,
+	       romfs_sb.s_inode_cnt,
 	       romfs_sb.s_blk_cnt);
 
 	fwrite((uint8_t *)&romfs_sb, sizeof(uint8_t), sb_size, file);
