@@ -266,7 +266,7 @@ int main(void)
 	led_init();
 	uart3_init(115200);
 
-	os_start(init);
+	sched_start(init);
 
 	return 0;
 }
