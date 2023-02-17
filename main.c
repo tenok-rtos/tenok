@@ -251,16 +251,6 @@ void first(void)
 void mount_rom(void)
 {
 	mount("/dev/rom", "/");
-
-	char rom_buf[100] = {0};
-	int fd = open("/dev/rom", 0, 0);
-
-	if(fd < 0) {
-		return;
-	}
-
-	read(fd, rom_buf, 17);
-	uart3_puts(rom_buf);
 }
 
 void init(void *param)
