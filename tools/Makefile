@@ -3,10 +3,16 @@
 ROMFS=./romfs.bin
 ROMFS_OBJ=./romfs.o
 
+CFLAGS=
+CFLAGS+=-I../kernel
+
+SRC=../kernel/list.c \
+	 ./mkromfs.c
+
 all: $(ROMFS_OBJ)
 
-$(ROMFS): ./mkromfs.c
-	gcc -o mkromfs $<
+$(ROMFS): $(SRC)
+	gcc $(CFLAGS) -o mkromfs $(SRC)
 	./mkromfs
 
 $(ROMFS_OBJ): $(ROMFS)
