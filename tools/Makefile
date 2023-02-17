@@ -4,6 +4,9 @@ ROMFS=./romfs.bin
 ROMFS_OBJ=./romfs.o
 
 CFLAGS=
+CFLAGS+=-mx32 #to make the pointer be 4 bytes instead of 8 bytes
+#CFLAGS+=-Wpadded
+
 CFLAGS+=-I../kernel
 
 SRC=../kernel/list.c \
