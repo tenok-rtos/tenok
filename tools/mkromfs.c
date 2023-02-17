@@ -126,7 +126,8 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
 	} else {
 		/* can not fit, requires a new block */
-		dir_data_p = (uint8_t *)&romfs_blk[romfs_sb.s_blk_cnt];
+		dir_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
+
 		romfs_sb.s_blk_cnt++;
 	}
 
@@ -148,7 +149,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	switch(file_type) {
 	case S_IFREG: {
 		/* allocate memory for the new file */
-		uint8_t *file_data_p = (uint8_t *)&romfs_blk[romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE];
+		uint8_t *file_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
 		romfs_sb.s_blk_cnt++;
 
 		new_inode->i_mode   = S_IFREG;
@@ -287,29 +288,46 @@ void export_romfs(void)
 {
 	FILE *file = fopen(output_path, "wb");
 
-	int super_blk_size = sizeof(romfs_sb);
-	int inode_table_size = sizeof(inodes);
-	int block_region_size = sizeof(romfs_blk);
+	uint32_t sb_size = sizeof(romfs_sb);
+	uint32_t inodes_size = sizeof(inodes);
+	uint32_t blocks_size = sizeof(romfs_blk);
 
 	/* memory space conversion */
 	int i;
 	for(i = 0; i < romfs_sb.s_inode_cnt; i++) {
-		inodes[i].i_data -= (uint32_t)romfs_blk;
+		/* adjust the inode.i_data (which is point to the block region) */
+		inodes[i].i_data = inodes[i].i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
 
 		if(inodes[i].i_mode == S_IFDIR) {
 			struct list *list_start = &inodes[i].i_dentry;
 			struct list *list_curr = list_start;
 
+			/* adjust dentries */
 			do {
+				/* preserve the next pointer before modifying */
 				struct list *list_next = list_curr->next;
 
+				/* obtain the dentry */
 				struct dentry *dentry = list_entry(list_curr, struct dentry, list);
-				dentry->list.last = (struct list *)((uint8_t *)dentry->list.last - (uint32_t)romfs_blk);
-				dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk);
+
+				if(dentry->list.last == &inodes[i].i_dentry) {
+					/* inode.i_dentry is stored in the inodes region */
+					dentry->list.last = (struct list *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size;
+				} else {
+					/* other are stored in the block region */
+					dentry->list.last = (struct list *)((uint8_t *)dentry->list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
+				}
+
+				if(dentry->list.next == &inodes[i].i_dentry) {
+					/* inode.i_dentry is stored in the inodes region */
+					dentry->list.next = (struct list *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size;
+				} else {
+					/* other are stored in the block region */
+					dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
+				}
 
 				list_curr = list_next;
 			} while(list_curr != list_start);
-
 		}
 	}
 
@@ -319,13 +337,13 @@ void export_romfs(void)
 	       "block region size: %d bytes\n"
 	       "used inode count: %d\n"
 	       "used block count: %d\n",
-	       super_blk_size, inode_table_size,
-	       block_region_size, romfs_sb.s_inode_cnt,
+	       sb_size, inodes_size, blocks_size,
+               romfs_sb.s_inode_cnt,
 	       romfs_sb.s_blk_cnt);
 
-	fwrite((uint8_t *)&romfs_sb, sizeof(uint8_t), super_blk_size, file);
-	fwrite((uint8_t *)&inodes, sizeof(uint8_t), inode_table_size, file);
-	fwrite((uint8_t *)&romfs_blk, sizeof(uint8_t), block_region_size, file);
+	fwrite((uint8_t *)&romfs_sb, sizeof(uint8_t), sb_size, file);
+	fwrite((uint8_t *)&inodes, sizeof(uint8_t), inodes_size, file);
+	fwrite((uint8_t *)&romfs_blk, sizeof(uint8_t), blocks_size, file);
 
 	fclose(file);
 }
