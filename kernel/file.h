@@ -14,6 +14,8 @@
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
 
+#define RDEV_ROOTFS 0
+
 enum {
 	FS_CREATE_FILE = 1,
 	FS_OPEN_FILE   = 2,
@@ -24,9 +26,15 @@ struct super_block {
 	int blk_cnt;
 };
 
+struct mount {
+	struct file *dev_file;
+};
+
 /* index node */
 struct inode {
 	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
+
+	uint8_t  i_rdev;      //the device on which this file system is mounted
 
 	uint32_t i_ino;       //inode number
 	uint32_t i_parent;    //inode number of the parent directory
@@ -70,6 +78,9 @@ void file_system_init(void);
 
 int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
+
+int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t size);
+int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
