@@ -250,6 +250,8 @@ void first(void)
 
 void mount_rom(void)
 {
+	mount("/dev/rom", "/");
+
 	char rom_buf[100] = {0};
 	int fd = open("/dev/rom", 0, 0);
 

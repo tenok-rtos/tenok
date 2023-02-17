@@ -19,6 +19,7 @@
 enum {
 	FS_CREATE_FILE = 1,
 	FS_OPEN_FILE   = 2,
+	FS_MOUNT       = 3,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -85,6 +86,7 @@ int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size)
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
+void request_mount(int reply_fd, char *source, char *path);
 
 void file_system(void);
 

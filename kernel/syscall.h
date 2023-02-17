@@ -26,6 +26,7 @@ void set_irq(uint32_t state);
 void set_program_name(char *name);
 int fork(void);
 uint32_t sleep(uint32_t ticks);
+int mount(const char *source, const char *target);
 int open(const char *pathname, int flags, _mode_t);
 int close(int fd);
 ssize_t read(int fd, void *buf, size_t count);
