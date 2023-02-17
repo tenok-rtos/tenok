@@ -22,9 +22,7 @@ enum {
 } FS_SERVER_CMDS;
 
 struct super_block {
-	uint32_t blk_size;
 	uint32_t blk_cnt;
-
 	uint32_t inode_cnt;
 };
 
