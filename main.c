@@ -232,6 +232,8 @@ void first(void)
 
 	mk_cpuinfo();
 
+	mount("/dev/rom", "/");
+
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) shell_task();
@@ -248,11 +250,6 @@ void first(void)
 	}
 }
 
-void mount_rom(void)
-{
-	mount("/dev/rom", "/");
-}
-
 void init(void *param)
 {
 	file_system_init();
@@ -260,8 +257,6 @@ void init(void *param)
 	rom_dev_init();
 
 	if(!fork()) file_system();
-
-	mount_rom();
 
 	first();
 }
