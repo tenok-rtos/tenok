@@ -23,13 +23,13 @@ enum {
 } FS_SERVER_CMDS;
 
 struct super_block {
-	uint32_t s_blk_cnt;
-	uint32_t s_inode_cnt;
+	uint32_t s_blk_cnt;   //number of the used blocks
+	uint32_t s_inode_cnt; //number of the used inodes
 };
 
 struct mount {
-	struct file *dev_file;
-	struct super_block super_blk;
+	struct file *dev_file;        //driver file of the mounted storage device
+	struct super_block super_blk; //super block of the mounted storage device
 };
 
 /* index node */
@@ -37,7 +37,7 @@ struct inode {
 	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
 	uint8_t  i_rdev;      //the device on which this file system is mounted
-	bool     i_sync;      //check if the mounted files under the directory is loaded into the ram
+	bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
 
 	uint32_t i_ino;       //inode number
 	uint32_t i_parent;    //inode number of the parent directory
@@ -53,16 +53,16 @@ struct inode {
 
 /* directory entry */
 struct dentry {
-	char     file_name[FILE_NAME_LEN_MAX]; //file name
+	char     d_name[FILE_NAME_LEN_MAX]; //file name
 
-	uint32_t file_inode;   //the inode of the file
-	uint32_t parent_inode; //the parent directory's inode of the file
+	uint32_t d_inode;  //the inode of the file
+	uint32_t d_parent; //the inode of the parent directory
 
-	struct list list;
+	struct list d_list;
 };
 
 struct stat {
-	uint8_t st_mode;
+	uint8_t st_mode; //file type
 };
 
 struct file {
