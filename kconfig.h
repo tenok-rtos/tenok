@@ -15,8 +15,8 @@
 
 #define PIPE_DEPTH         50
 
-#define SYSCALL_INTR_PRI   5    //isr priority higher than this value
-//will not be disabled
+#define SYSCALL_INTR_PRI   5    /* isr priority higher than this value *
+                                 * will not be disabled                */
 
 /* file system */
 #define FILE_SYSTEM_FD     0
