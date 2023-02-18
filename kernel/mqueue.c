@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include "fs.h"
 #include "mqueue.h"
-#include "util.h"
 #include "mpool.h"
 #include "ringbuf.h"
 #include "kconfig.h"

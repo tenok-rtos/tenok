@@ -4,7 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "util.h"
 #include "list.h"
 #include "kconfig.h"
 
@@ -15,6 +14,9 @@
 #define S_IFDIR 4 //directory
 
 #define RDEV_ROOTFS 0
+
+typedef int  ssize_t;
+typedef long loff_t;
 
 enum {
 	FS_CREATE_FILE = 1,

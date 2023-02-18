@@ -1,10 +1,10 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "list.h"
-#include "util.h"
 #include "mqueue.h"
 #include "semaphore.h"
 #include "fs.h"
@@ -15,7 +15,7 @@ void set_program_name(char *name);
 int fork(void);
 uint32_t sleep(uint32_t ticks);
 int mount(const char *source, const char *target);
-int open(const char *pathname, int flags, _mode_t);
+int open(const char *pathname, int flags, mode_t);
 int close(int fd);
 ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
@@ -24,7 +24,7 @@ int fstat(int fd, struct stat *statbuf);
 uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
-int mknod(const char *pathname, _mode_t mode, _dev_t dev);
+int mknod(const char *pathname, mode_t mode, dev_t dev);
 int os_sem_wait(sem_t *sem);
 
 #endif
