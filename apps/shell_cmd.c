@@ -100,36 +100,19 @@ void print_mount_directory(char *str, struct inode *inode_dir)
 	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* calculate the first dentry address */
-	dentry_addr = (loff_t)inode_dir->i_data;
-
-	/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
-	if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX))
-		return; //this is a empty directory
-
-	/* load the first dentry from the storage */
-	dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
-
-	/* load the file inode from the storage */
-	inode_addr = sb_size + (inode_size * dentry.file_inode);
-	dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
-
-	if(inode.i_mode == S_IFDIR) {
-		sprintf(str, "%s%s/  ", str, dentry.file_name);
-	} else {
-		sprintf(str, "%s%s  ", str, dentry.file_name);
-	}
+	/* get the list head of the dentry list */
+	struct list i_dentry_list = inode_dir->i_dentry;
+	dentry.list = i_dentry_list;
 
 	while(1) {
-		/* calculate the next dentry address */
+		/* if the address points to the inodes region, then the iteration is back to the list head */
+		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX))
+			return; //no more dentry to read
+
+		/* calculate the address of the next dentry to read */
 		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
 
-		/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
-		if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX)) {
-			break; //no more dentry to read
-		}
-
-		/* load the first dentry from the storage */
+		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
 		/* load the file inode from the storage */

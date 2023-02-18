@@ -345,8 +345,6 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 {
-	char str[200] = {0};
-
 	const uint32_t sb_size = sizeof(struct super_block);
 	const uint32_t inode_size = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
@@ -361,38 +359,22 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	struct file *dev_file = mount_points[inode_src->i_rdev].dev_file;
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* calculate the first dentry address */
-	dentry_addr = (loff_t)inode_src->i_data;
-
-	/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
-	if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX))
-		goto leave; //this is a empty directory
-
-	/* load the first dentry from the storage */
-	dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
-
-	/* load the file inode from the storage */
-	inode_addr = sb_size + (inode_size * dentry.file_inode);
-	dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
-
-	/* overwrite the device number */
-	inode.i_rdev = inode_src->i_rdev;
-
-	/* mount the file */
-	fs_mount_file(inode_target, &inode, &dentry);
+	/* get the list head of the dentry list */
+	struct list i_dentry_list = inode_src->i_dentry;
+	dentry.list = i_dentry_list;
 
 	while(1) {
-		/* if the address is in the inodes region (i.e., this is a address of inode.i_dentry) */
+		/* if the address points to the inodes region, then the iteration is back to the list head */
 		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX))
 			goto leave; //no more dentry to read
 
-		/* calculate the next dentry address */
+		/* calculate the address of the next dentry to read */
 		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
 
-		/* load the first dentry from the storage */
+		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
-		/* load the file inode from the storage */
+		/* load the file inode from the storage device */
 		inode_addr = sb_size + (inode_size * dentry.file_inode);
 		dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
 
