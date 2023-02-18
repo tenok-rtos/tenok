@@ -8,7 +8,7 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 * Spinlock
 * Mutex
 * Semaphore
-* FIFO and named pipe
+* FIFO (named pipe)
 * Message queue
 * Shell
 * Simple rootfs and romfs
