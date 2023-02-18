@@ -18,7 +18,7 @@ CFLAGS+=-D ARM_MATH_CM4 \
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
 
-CFLAGS+=-Wl,-T,startup/stm32_flash.ld
+CFLAGS+=-Wl,-T,platform/stm32_flash.ld
 
 ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
 
@@ -27,7 +27,7 @@ CFLAGS+=-I./lib/CMSIS/Include
 CFLAGS+=-I$(ST_LIB)/inc
 
 CFLAGS+=-I./
-CFLAGS+=-I./startup/
+CFLAGS+=-I./platform
 CFLAGS+=-I./common
 CFLAGS+=-I./drivers
 CFLAGS+=-I./kernel
@@ -68,7 +68,7 @@ OBJS+=./tools/romfs.o
 
 DEPEND=$(SRC:.c=.d)
 
-ASM=./startup/startup_stm32f4xx.s \
+ASM=./platform/startup_stm32f4xx.s \
 	./kernel/context_switch.s \
 	./kernel/syscall.s \
 	./kernel/spinlock.s
