@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "util.h"
 #include "fs.h"
 #include "kernel.h"
 #include "syscall.h"

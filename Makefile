@@ -28,7 +28,6 @@ CFLAGS+=-I$(ST_LIB)/inc
 
 CFLAGS+=-I./
 CFLAGS+=-I./platform
-CFLAGS+=-I./common
 CFLAGS+=-I./drivers
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm

@@ -1,7 +1,7 @@
 #include <stddef.h>
+#include <stdint.h>
 #include "fs.h"
 #include "fifo.h"
-#include "util.h"
 #include "mpool.h"
 #include "ringbuf.h"
 #include "kconfig.h"
