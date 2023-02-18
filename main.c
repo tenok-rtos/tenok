@@ -36,6 +36,7 @@ struct shell_struct shell;
 void led_task1(void)
 {
 	set_program_name("led1");
+	setpriority(0, getpid(), 3);
 
 	int state = 1;
 	while(1) {
@@ -44,8 +45,6 @@ void led_task1(void)
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
 
-		volatile int retval = setpriority(0, getpid(), 3);
-
 		state = (state + 1) % 2;
 	}
 }
@@ -53,6 +52,7 @@ void led_task1(void)
 void led_task2(void)
 {
 	set_program_name("led2");
+	setpriority(0, getpid(), 3);
 
 	int state = 1;
 	while(1) {
@@ -72,6 +72,7 @@ void led_task2(void)
 void shell_task(void)
 {
 	set_program_name("shell");
+	setpriority(0, getpid(), 2);
 
 	/* shell initialization */
 	char ret_shell_cmd[CMD_LEN_MAX];
@@ -244,9 +245,7 @@ void first(void)
 	//if(!fork()) message_queue_task2();
 
 	//idle loop if no work to do
-	while(1) {
-		volatile int pid = getpid();
-	}
+	while(1);
 }
 
 void init(void *param)

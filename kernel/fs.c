@@ -787,7 +787,7 @@ void request_mount(int reply_fd, char *source, char *target)
 void file_system(void)
 {
 	set_program_name("file system");
-	setpriority(PRIO_PROCESS, getpid(), 0);
+	setpriority(PRIO_PROCESS, getpid(), 1);
 
 	while(1) {
 		int file_cmd;
