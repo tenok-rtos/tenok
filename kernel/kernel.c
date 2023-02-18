@@ -476,7 +476,7 @@ void set_basepri(void)
 {
 	asm volatile ("mov r0,      %0\n"
 	              "msr basepri, r0\n"
-	              :: "i"(SYSCALL_INTR_PRIORITY << 4));
+	              :: "i"(SYSCALL_INTR_PRI << 4));
 }
 
 void preempt_disable(void)
@@ -507,7 +507,7 @@ void sched_start(task_func_t first_task)
 {
 	/* set interrupt priorities */
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-	NVIC_SetPriority(SysTick_IRQn, SYSCALL_INTR_PRIORITY);
+	NVIC_SetPriority(SysTick_IRQn, SYSCALL_INTR_PRI);
 	NVIC_SetPriority(SVCall_IRQn, 0);
 
 	uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
@@ -533,7 +533,7 @@ void sched_start(task_func_t first_task)
 	task_create(first_task, 0);
 
 	/* enable the systicl timer */
-	SysTick_Config(SystemCoreClock / OS_TICK_FREQUENCY);
+	SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
 	/* launch the first task */
 	running_task = &tasks[0];

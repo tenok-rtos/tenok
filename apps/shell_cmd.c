@@ -220,7 +220,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char str[200] = {0};
-	char path[200] = {'/'};
+	char path[PATH_LEN_MAX] = {'/'};
 
 	shell_get_pwd(path);
 
@@ -230,7 +230,7 @@ void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 
 void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char path[200] = {0};
+	char path[PATH_LEN_MAX] = {0};
 
 	if(param_list[1][0] != '/') {
 		/* input is a relative path */
