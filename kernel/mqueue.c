@@ -8,54 +8,39 @@
 #include "syscall.h"
 
 extern tcb_t *running_task;
-extern struct memory_pool mem_pool;
-extern struct file *files[FILE_CNT_LIMIT];
-extern int file_cnt;
 
-static struct file_operations mq_ops;
-
-mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
+int mqueue_init(int fd, struct file **files, struct mq_attr *attr, struct memory_pool *mem_pool)
 {
-	preempt_disable();
-
-	/* if file count reached the limit */
-	if(file_cnt >= FILE_CNT_LIMIT) {
-		return -1;
-	}
-
 	/* initialize the ring buffer pipe */
-	struct ringbuf *pipe = memory_pool_alloc(&mem_pool, sizeof(struct ringbuf));
-	uint8_t *pipe_mem = memory_pool_alloc(&mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
+	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
+	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
 	ringbuf_init(pipe, pipe_mem, attr->mq_msgsize, attr->mq_maxmsg);
 
 	/* register message queue to the file table */
 	struct list *wait_list = &((&pipe->file)->task_wait_list);
 	list_init(wait_list);
-	pipe->file.f_op = &mq_ops;
-	files[file_cnt] = &pipe->file;
+	pipe->file.f_op = NULL;
+	files[fd] = &pipe->file;
 
-	mqd_t mqdes = file_cnt;
-	file_cnt++;
-
-	preempt_enable();
-
-	return mqdes;
+	return 0;
 }
 
-ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
+ssize_t mqueue_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
-	preempt_disable();
-
-	struct file *filp = files[mqdes];
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 
 	/* block the task if the request size is larger than the mq can serve */
-	while(msg_len > pipe->count) {
+	if(msg_len > pipe->count) {
 		/* put the current task into the file waiting list */
 		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
 
-		/* start sleeping until the resource is available */
-		sched_yield();
+		/* turn on the syscall pending flag */
+		running_task->syscall_pending = true;
+
+		return 0;
+	} else {
+		/* request can be fulfilled, turn off the syscall pending flag */
+		running_task->syscall_pending = false;
 	}
 
 	/* pop data from the pipe */
@@ -64,16 +49,11 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 		ringbuf_get(pipe, &msg_ptr[i]);
 	}
 
-	preempt_enable();
-
 	return msg_len;
 }
 
-int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
+ssize_t mqueue_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
-	preempt_disable();
-
-	struct file *filp = files[mqdes];
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
 	struct list *wait_list = &filp->task_wait_list;
 
@@ -93,8 +73,6 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 			wake_up(wait_list);
 		}
 	}
-
-	preempt_enable();
 
 	return msg_len;
 }

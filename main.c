@@ -113,8 +113,8 @@ void fifo_task1(void)
 		int i;
 		for(i = 0; i < len; i++) {
 			write(fd, &data[i], 1);
-			sleep(200);
 		}
+		sleep(200);
 	}
 }
 
@@ -185,7 +185,7 @@ void message_queue_task1(void)
 
 	while(1) {
 		mq_send(mqdes_print, (char *)&msg, 1, 0);
-		sleep(1000);
+		sleep(200);
 	}
 }
 
