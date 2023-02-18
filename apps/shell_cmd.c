@@ -86,6 +86,11 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 
 void print_mount_directory(char *str, struct inode *inode_dir)
 {
+	if(inode_dir->i_sync == false) {
+		//TODO: handled with the file server
+		fs_mount_directory(inode_dir, inode_dir);
+	}
+
 	const uint32_t sb_size = sizeof(struct super_block);
 	const uint32_t inode_size = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
@@ -150,14 +155,10 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	char str[200] = {0};
 
 	/* no file is under this directory */
-	if(list_is_empty(&inode_curr->i_dentry) == true)
+	if(inode_curr->i_size == 0)
 		return;
 
 	if(inode_curr->i_rdev != RDEV_ROOTFS) {
-		/* synchronize the files under the directory before reading */
-		if(inode_curr->i_sync == false)
-			fs_mount_directory(inode_curr, inode_curr); //TODO: handled by the file server
-
 		print_mount_directory(str, inode_curr);
 	} else {
 		print_rootfs_directory(str, inode_curr);
