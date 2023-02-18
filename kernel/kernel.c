@@ -51,11 +51,8 @@ int task_nums = 0;
 struct memory_pool mem_pool;
 uint8_t mem_pool_buf[MEM_POOL_SIZE];
 
-/* files */
-//reserve 1 for path server, 1 for each task, and FILE_CNT_LIMIT for new files
+/* file table */
 struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
-
-bool irq_off = false;
 
 /* system call table */
 syscall_info_t syscall_table[] = {
@@ -225,11 +222,9 @@ void sys_set_irq(void)
 	if(state) {
 		//asm volatile ("cpsie i"); //enable all irq
 		reset_basepri();
-		irq_off = false;
 	} else {
 		//asm volatile ("cpsid i"); //disable all irq
 		set_basepri();
-		irq_off = true;
 	}
 }
 
@@ -370,8 +365,14 @@ void sys_fstat(void)
 	int fd = running_task->stack_top->r0;
 	struct stat *statbuf = (struct stat *)running_task->stack_top->r1;
 
-	if(files[fd]->file_inode != NULL) {
-		statbuf->st_mode = files[fd]->file_inode->i_mode;
+	struct inode *inode = files[fd]->file_inode;
+
+	if(inode != NULL) {
+		statbuf->st_mode   = inode->i_mode;
+		statbuf->st_ino    = inode->i_ino;
+		statbuf->st_rdev   = inode->i_rdev;
+		statbuf->st_size   = inode->i_size;
+		statbuf->st_blocks = inode->i_blocks;
 	}
 
 	running_task->stack_top->r0 = 0; //pass return value

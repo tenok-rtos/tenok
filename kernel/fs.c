@@ -308,7 +308,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 		mount_points[inode_dir->i_rdev].super_blk.s_blk_cnt++;
 
 		new_inode->i_mode   = S_IFREG;
-		new_inode->i_size   = 1;
+		new_inode->i_size   = 0;
 		new_inode->i_blocks = 1;
 		new_inode->i_data   = file_data_p;
 
@@ -372,7 +372,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 		new_inode->i_size   = mnt_inode->i_size;
 		new_inode->i_blocks = mnt_inode->i_blocks;
 		new_inode->i_data   = mnt_inode->i_data;
-		new_inode->i_sync   = false;
+		new_inode->i_sync   = true;
 		new_inode->i_dentry = mnt_inode->i_dentry;
 
 		/* update inode number for the next file */
