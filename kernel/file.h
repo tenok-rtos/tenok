@@ -37,6 +37,7 @@ struct inode {
 	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
 	uint8_t  i_rdev;      //the device on which this file system is mounted
+	bool     i_sync;      //check if the mounted files under the directory is loaded into the ram
 
 	uint32_t i_ino;       //inode number
 	uint32_t i_parent;    //inode number of the parent directory
@@ -83,6 +84,8 @@ int register_blkdev(char *name, struct file_operations *fops);
 
 int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t size);
 int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size);
+
+void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);

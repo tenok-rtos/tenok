@@ -84,10 +84,8 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 	shell_puts(str);
 }
 
-void _fs_enumerate_mount_directory(struct inode *inode_dir)
+void print_mount_directory(char *str, struct inode *inode_dir)
 {
-	char str[200] = {0};
-
 	const uint32_t sb_size = sizeof(struct super_block);
 	const uint32_t inode_size = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
@@ -144,25 +142,10 @@ void _fs_enumerate_mount_directory(struct inode *inode_dir)
 			sprintf(str, "%s%s  ", str, dentry.file_name);
 		}
 	}
-
-	sprintf(str, "%s\n\r", str);
-	shell_puts(str);
 }
 
-void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void print_rootfs_directory(char *str, struct inode *inode_dir)
 {
-	char str[200] = {0};
-
-	/* no file is under this directory */
-	if(list_is_empty(&inode_curr->i_dentry) == true)
-		return;
-
-	if(inode_curr->i_rdev != RDEV_ROOTFS) {
-		_fs_enumerate_mount_directory(inode_curr);
-		return;
-	}
-
-	/* traverse all files under the directory */
 	struct list *list_curr;
 	list_for_each(list_curr, &inode_curr->i_dentry) {
 		struct dentry *dir = list_entry(list_curr, struct dentry, list);
@@ -176,6 +159,25 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		} else {
 			sprintf(str, "%s%s  ", str, dir->file_name);
 		}
+	}
+}
+
+void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char str[200] = {0};
+
+	/* no file is under this directory */
+	if(list_is_empty(&inode_curr->i_dentry) == true)
+		return;
+
+	if(inode_curr->i_rdev != RDEV_ROOTFS) {
+		/* synchronize the files under the directory before reading */
+		if(inode_curr->i_sync == false)
+			fs_mount_directory(inode_curr, inode_curr); //TODO: handled by the file server
+
+		print_mount_directory(str, inode_curr);
+	} else {
+		print_rootfs_directory(str, inode_curr);
 	}
 
 	sprintf(str, "%s\n\r", str);

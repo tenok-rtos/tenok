@@ -25,6 +25,7 @@ struct inode {
 	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
 	uint8_t  i_rdev;      //the device on which this file system is mounted
+	bool     i_sync;      //check if the mounted files under the directory is loaded into the ram
 
 	uint32_t i_ino;       //inode number
 	uint32_t i_parent;    //inode number of the parent directory
