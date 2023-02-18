@@ -7,6 +7,7 @@
 
 extern struct shell_struct shell;
 extern struct inode inodes[INODE_CNT_MAX];
+extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
 struct inode *inode_curr = NULL;
 
@@ -83,6 +84,48 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 	shell_puts(str);
 }
 
+void fs_enumerate_mount_directory(struct inode *inode_dir)
+{
+	char str[200] = {0};
+
+	const uint32_t sb_size = sizeof(struct super_block);
+
+	loff_t inode_addr;
+	struct inode inode;
+
+	loff_t dentry_addr;
+	struct dentry dentry;
+
+	/* load storage device file */
+	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
+	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
+
+	/* parent directory dentry */
+	dentry_addr = (loff_t)inode_dir->i_data;
+	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), dentry_addr);
+
+	/* parent directory inode */
+	inode_addr = sb_size + (sizeof(inode) * dentry.file_inode);
+	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inode_addr);
+
+	/* file dentry */
+	dentry_addr = (loff_t)inode.i_data;
+	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), dentry_addr);
+
+	/* file inode */
+	inode_addr = sb_size + (sizeof(inode) * dentry.file_inode);
+	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inode_addr);
+
+	if(inode.i_mode == S_IFDIR) {
+		sprintf(str, "%s%s/  ", str, dentry.file_name);
+	} else {
+		sprintf(str, "%s%s  ", str, dentry.file_name);
+	}
+
+	sprintf(str, "%s\n\r", str);
+	shell_puts(str);
+}
+
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char str[200] = {0};
@@ -90,6 +133,11 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	/* no file is under this directory */
 	if(list_is_empty(&inode_curr->i_dentry) == true)
 		return;
+
+	if(inode_curr->i_rdev != RDEV_ROOTFS) {
+		fs_enumerate_mount_directory(inode_curr);
+		return;
+	}
 
 	/* traverse all files under the directory */
 	struct list *list_curr;
