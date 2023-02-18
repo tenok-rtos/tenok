@@ -317,10 +317,6 @@ void sys_open(void)
 	}
 }
 
-void sys_close(void)
-{
-}
-
 void sys_read(void)
 {
 	int fd = running_task->stack_top->r0;
