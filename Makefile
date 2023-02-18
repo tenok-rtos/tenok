@@ -18,7 +18,7 @@ CFLAGS+=-D ARM_MATH_CM4 \
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
 
-CFLAGS+=-Wl,-T,platform/stm32_flash.ld
+CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
 ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
 
