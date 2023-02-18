@@ -30,6 +30,7 @@ gdbauto:
 	cgdb -x ./gdbauto.gdb
 
 clean:
+	rm -rf mkromfs
 	rm -rf $(ROMFS)
 	rm -rf $(ROMFS_OBJ)
 
