@@ -321,6 +321,7 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 	new_inode->i_size   = mnt_inode->i_size;
 	new_inode->i_blocks = mnt_inode->i_blocks;
 	new_inode->i_data   = mnt_inode->i_data;
+	new_inode->i_sync   = false;
 	new_inode->i_dentry = mnt_inode->i_dentry;
 
 	/* update inode number for the next file */
@@ -365,7 +366,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 	/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
 	if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX))
-		return; //this is a empty directory
+		goto leave; //this is a empty directory
 
 	/* load the first dentry from the storage */
 	dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
@@ -383,7 +384,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	while(1) {
 		/* if the address is in the inodes region (i.e., this is a address of inode.i_dentry) */
 		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX))
-			break; //no more dentry to read
+			goto leave; //no more dentry to read
 
 		/* calculate the next dentry address */
 		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
@@ -401,6 +402,9 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 		/* mount the file */
 		fs_mount_file(inode_target, &inode, &dentry);
 	}
+
+leave:
+	inode_src->i_sync = true;
 }
 
 char *split_path(char *entry, char *path)
