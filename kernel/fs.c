@@ -722,7 +722,7 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type)
 	memcpy(&buf[buf_size], &file_type, sizeof(file_type));
 	buf_size += sizeof(file_type);
 
-	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
+	fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
 void request_open_file(int reply_fd, char *path)
@@ -747,7 +747,7 @@ void request_open_file(int reply_fd, char *path)
 	memcpy(&buf[buf_size], path, path_len);
 	buf_size += path_len;
 
-	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
+	fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
 void request_mount(int reply_fd, char *source, char *target)
@@ -781,7 +781,7 @@ void request_mount(int reply_fd, char *source, char *target)
 	memcpy(&buf[buf_size], target, target_len);
 	buf_size += target_len;
 
-	fifo_write(files[PATH_SERVER_FD], buf, buf_size, 0);
+	fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
 void file_system(void)
@@ -791,21 +791,21 @@ void file_system(void)
 
 	while(1) {
 		int file_cmd;
-		read(PATH_SERVER_FD, &file_cmd, sizeof(file_cmd));
+		read(FILE_SYSTEM_FD, &file_cmd, sizeof(file_cmd));
 
 		int reply_fd;
-		read(PATH_SERVER_FD, &reply_fd, sizeof(reply_fd));
+		read(FILE_SYSTEM_FD, &reply_fd, sizeof(reply_fd));
 
 		switch(file_cmd) {
 		case FS_CREATE_FILE: {
 			int  path_len;
-			read(PATH_SERVER_FD, &path_len, sizeof(path_len));
+			read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
 
 			char path[PATH_LEN_MAX];
-			read(PATH_SERVER_FD, path, path_len);
+			read(FILE_SYSTEM_FD, path, path_len);
 
 			uint8_t file_type;
-			read(PATH_SERVER_FD, &file_type, sizeof(file_type));
+			read(FILE_SYSTEM_FD, &file_type, sizeof(file_type));
 
 			int new_fd = create_file(path, file_type);
 			write(reply_fd, &new_fd, sizeof(new_fd));
@@ -814,10 +814,10 @@ void file_system(void)
 		}
 		case FS_OPEN_FILE: {
 			int  path_len;
-			read(PATH_SERVER_FD, &path_len, sizeof(path_len));
+			read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
 
 			char path[PATH_LEN_MAX];
-			read(PATH_SERVER_FD, path, path_len);
+			read(FILE_SYSTEM_FD, path, path_len);
 
 			int open_fd = open_file(path);
 			write(reply_fd, &open_fd, sizeof(open_fd));
@@ -826,16 +826,16 @@ void file_system(void)
 		}
 		case FS_MOUNT: {
 			int source_len;
-			read(PATH_SERVER_FD, &source_len, sizeof(source_len));
+			read(FILE_SYSTEM_FD, &source_len, sizeof(source_len));
 
 			char source[PATH_LEN_MAX];
-			read(PATH_SERVER_FD, source, source_len);
+			read(FILE_SYSTEM_FD, source, source_len);
 
 			int target_len;
-			read(PATH_SERVER_FD, &target_len, sizeof(target_len));
+			read(FILE_SYSTEM_FD, &target_len, sizeof(target_len));
 
 			char target[PATH_LEN_MAX];
-			read(PATH_SERVER_FD, &target, target_len);
+			read(FILE_SYSTEM_FD, &target, target_len);
 
 			int result = _mount(source, target);
 			write(reply_fd, &result, sizeof(result));
