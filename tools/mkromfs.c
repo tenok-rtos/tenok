@@ -370,7 +370,8 @@ int main(int argc, char **argv)
 
 	romfs_init();
 
-	create_file("/rom_data/test.txt", S_IFREG);
+	create_file("/rom_data/test1.txt", S_IFREG);
+	create_file("/rom_data/test2.txt", S_IFREG);
 
 	romfs_export();
 
