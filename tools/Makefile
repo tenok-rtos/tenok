@@ -4,6 +4,7 @@ ROMFS=./romfs.bin
 ROMFS_OBJ=./romfs.o
 
 CFLAGS=
+CFLAGS+=-g
 CFLAGS+=-mx32 #to make the pointer be 4 bytes instead of 8 bytes
 #CFLAGS+=-Wpadded
 
@@ -22,8 +23,14 @@ $(ROMFS_OBJ): $(ROMFS)
 	@echo "OBJCPY" $@ $<
 	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm --prefix-sections '.rom' $(ROMFS) $(ROMFS_OBJ)
 
+gdbserver:
+	gdbserver :1234 ./mkromfs
+
+gdbauto:
+	cgdb -x ./gdbauto.gdb
+
 clean:
 	rm -rf $(ROMFS)
 	rm -rf $(ROMFS_OBJ)
 
-.PHONY: clean
+.PHONY: gdbserver gdbauto clean
