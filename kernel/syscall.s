@@ -44,52 +44,62 @@ mount:
 open:
 	syscall #7
 
-.type   close, %function
-.global close
-close:
-	syscall #8
-
 .type   read, %function
 .global read
 read:
-	syscall #9
+	syscall #8
 
 .type   write, %function
 .global write
 write:
-	syscall #10
+	syscall #9
 
 .type   lseek, %function
 .global lseek
 lseek:
-	syscall #11
+	syscall #10
 
 .type   fstat, %function
 .global fstat
 fstat:
-	syscall #12
+	syscall #11
 
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #13
+	syscall #12
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #14
+	syscall #13
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #15
+	syscall #14
 
 .type   mknod, %function
 .global mknod
 mknod:
+	syscall #15
+
+.type   mq_open, %function
+.global mq_open
+mq_open:
 	syscall #16
+
+.type   mq_receive, %function
+.global mq_receive
+mq_receive:
+	syscall #17
+
+.type   mq_send, %function
+.global mq_send
+mq_send:
+	syscall #18
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #17
+	syscall #19

@@ -14,14 +14,13 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
+extern int file_cnt;
 
 struct inode inodes[INODE_CNT_MAX];
 uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
 
 struct mount mount_points[MOUNT_CNT_MAX + 1]; //0 is reserved for the rootfs
 int mount_cnt = 0;
-
-int file_cnt = 0;
 
 int register_chrdev(char *name, struct file_operations *fops)
 {
