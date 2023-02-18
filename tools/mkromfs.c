@@ -153,10 +153,15 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		uint8_t *file_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
 		romfs_sb.s_blk_cnt++;
 
+		//XXX
+		char test_str[] = {'c', 'a', 't', '\n', '\r',-1};
+
 		new_inode->i_mode   = S_IFREG;
 		new_inode->i_size   = 1;
 		new_inode->i_blocks = 1;
 		new_inode->i_data   = file_data_p;
+
+		memcpy(file_data_p, test_str, sizeof(char) * 6);
 
 		break;
 	}

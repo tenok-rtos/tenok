@@ -11,6 +11,7 @@
 #include "uart.h"
 
 int create_file(char *pathname, uint8_t file_type);
+struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry);
 
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
@@ -73,24 +74,79 @@ void rootfs_init(void)
 	mount_cnt = 1;
 }
 
-struct inode *fs_search_file(struct inode *inode, char *file_name)
+struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_name)
 {
-	/* the function take a diectory inode and return the inode of the entry to find */
+	const uint32_t sb_size = sizeof(struct super_block);
+	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t dentry_size = sizeof(struct dentry);
 
-	/* currently the dentry table is empty */
-	if(list_is_empty(&inode->i_dentry) == true)
-		return NULL;
+	loff_t inode_addr;
+	struct inode inode;
 
+	loff_t dentry_addr;
+	struct dentry dentry;
+
+	/* load storage device file */
+	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
+	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
+
+	/* get the list head of the dentry list */
+	struct list i_dentry_list = inode_dir->i_dentry;
+	dentry.list = i_dentry_list;
+
+	while(1) {
+		/* if the address points to the inodes region, then the iteration is back to the list head */
+		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
+			inode_dir->i_sync = true;
+			return NULL; //no more dentry to read
+		}
+
+		/* calculate the address of the next dentry to read */
+		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
+
+		/* load the dentry from the storage device */
+		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
+
+		if(strcmp(dentry.file_name, file_name) == 0) {
+			/* load the file inode from the storage device */
+			inode_addr = sb_size + (inode_size * dentry.file_inode);
+			dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
+
+			/* overwrite the device number */
+			inode.i_rdev = inode_dir->i_rdev;
+
+			/* mount the file */
+			return fs_mount_file(inode_dir, &inode, &dentry);
+		}
+	}
+}
+
+struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name)
+{
 	/* compare the file name in the dentry list */
 	struct list *list_curr;
-	list_for_each(list_curr, &inode->i_dentry) {
+	list_for_each(list_curr, &inode_dir->i_dentry) {
 		struct dentry *dentry = list_entry(list_curr, struct dentry, list);
 
 		if(strcmp(dentry->file_name, file_name) == 0)
 			return &inodes[dentry->file_inode];
 	}
-
 	return NULL;
+}
+
+//input : directory inode, file name
+//output: file inode
+struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
+{
+	/* currently the dentry table is empty */
+	if(inode_dir->i_size == 0)
+		return NULL;
+
+	if(inode_dir->i_rdev == RDEV_ROOTFS) {
+		return fs_rootfs_search_file(inode_dir, file_name);
+	} else {
+		return fs_search_mounted_file(inode_dir, file_name);
+	}
 }
 
 int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
@@ -317,12 +373,30 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 	new_inode->i_rdev   = mnt_inode->i_rdev;
 	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
 	new_inode->i_parent = inode_dir->i_ino;
-	new_inode->i_fd     = 0; //no file descriptor for a mounted file
 	new_inode->i_size   = mnt_inode->i_size;
 	new_inode->i_blocks = mnt_inode->i_blocks;
 	new_inode->i_data   = mnt_inode->i_data;
 	new_inode->i_sync   = false;
 	new_inode->i_dentry = mnt_inode->i_dentry;
+
+	/* dispatch a fd number for the regular file */
+	if(mnt_inode->i_mode == S_IFREG) {
+		/* dispatch a new file descriptor number */
+		if(file_cnt >= FILE_CNT_LIMIT) {
+			return NULL; //file table is full
+		} else {
+			new_inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
+			file_cnt++;
+		}
+
+		/* create new regular file */
+		int result = reg_file_init(new_inode->i_fd, new_inode, (struct file **)&files, &mem_pool);
+
+		if(result != 0)
+			return NULL;
+
+		files[new_inode->i_fd]->file_inode = new_inode;
+	}
 
 	/* update inode number for the next file */
 	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
@@ -365,8 +439,10 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 	while(1) {
 		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX))
-			goto leave; //no more dentry to read
+		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
+			inode_src->i_sync = true;
+			return; //no more dentry to read
+		}
 
 		/* calculate the address of the next dentry to read */
 		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
@@ -384,9 +460,6 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 		/* mount the file */
 		fs_mount_file(inode_target, &inode, &dentry);
 	}
-
-leave:
-	inode_src->i_sync = true;
 }
 
 char *split_path(char *entry, char *path)
