@@ -9,9 +9,8 @@
 #include "semaphore.h"
 #include "shell.h"
 #include "shell_cmd.h"
-#include "file.h"
+#include "fs.h"
 #include "mutex.h"
-#include "file.h"
 #include "rom_dev.h"
 
 sem_t sem_led;

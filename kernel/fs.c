@@ -2,7 +2,7 @@
 #include <string.h>
 #include <errno.h>
 #include "util.h"
-#include "file.h"
+#include "fs.h"
 #include "kernel.h"
 #include "syscall.h"
 #include "fifo.h"

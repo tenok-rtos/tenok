@@ -4,7 +4,7 @@
 #include "stddef.h"
 #include "stdint.h"
 #include "stdbool.h"
-#include "file.h"
+#include "fs.h"
 
 struct ringbuf {
 	int     start;

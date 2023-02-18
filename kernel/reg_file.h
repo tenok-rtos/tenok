@@ -1,7 +1,7 @@
 #ifndef __REG_FILE_H__
 #define __REG_FILE_H__
 
-#include "file.h"
+#include "fs.h"
 
 struct reg_file {
 	int pos;

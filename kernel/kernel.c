@@ -8,7 +8,7 @@
 #include "kconfig.h"
 #include "list.h"
 #include "mpool.h"
-#include "file.h"
+#include "fs.h"
 #include "fifo.h"
 #include "mqueue.h"
 

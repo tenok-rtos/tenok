@@ -2,7 +2,7 @@
 #include <string.h>
 #include "shell.h"
 #include "kernel.h"
-#include "file.h"
+#include "fs.h"
 #include "syscall.h"
 
 extern struct shell_struct shell;
