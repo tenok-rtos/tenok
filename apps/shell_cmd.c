@@ -84,7 +84,7 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 	shell_puts(str);
 }
 
-void fs_enumerate_mount_directory(struct inode *inode_dir)
+void _fs_enumerate_mount_directory(struct inode *inode_dir)
 {
 	char str[200] = {0};
 
@@ -158,7 +158,7 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		return;
 
 	if(inode_curr->i_rdev != RDEV_ROOTFS) {
-		fs_enumerate_mount_directory(inode_curr);
+		_fs_enumerate_mount_directory(inode_curr);
 		return;
 	}
 
