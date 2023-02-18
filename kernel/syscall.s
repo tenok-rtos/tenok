@@ -89,17 +89,7 @@ getpid:
 mknod:
 	syscall #16
 
-.type   mkdir, %function
-.global mkdir
-mkdir:
-        syscall #17
-
-.type   rmdir, %function
-.global rmdir
-rmdir:
-        syscall #18
-
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #19
+	syscall #17

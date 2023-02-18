@@ -9,18 +9,6 @@
 #include "semaphore.h"
 #include "fs.h"
 
-#define DEF_SYSCALL(func, _num) \
-	{.syscall_handler = sys_ ## func, .num = _num}
-
-#define DEF_IRQ_ENTRY(func, _num) \
-	{.syscall_handler = func, .num = _num}
-
-typedef struct {
-	void (* syscall_handler)(void);
-	uint32_t num;
-} syscall_info_t;
-
-/* syscall function prototypes */
 void sched_yield(void);
 void set_irq(uint32_t state);
 void set_program_name(char *name);
@@ -37,8 +25,6 @@ uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
 int mknod(const char *pathname, _mode_t mode, _dev_t dev);
-int mkdir(const char *pathname, _mode_t mode);
-int rmdir(const char *pathname);
 int os_sem_wait(sem_t *sem);
 
 #endif
