@@ -553,21 +553,27 @@ int _mount(char *source, char *target)
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
 	/* calculate the start address of the super block, inode table, and block region */
+	const uint32_t sb_size = sizeof(struct super_block);
+	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t dentry_size = sizeof(struct dentry);
 	loff_t super_blk_addr = 0;
-	loff_t inodes_addr = super_blk_addr + sizeof(struct super_block);
-	loff_t block_addr = inodes_addr + (sizeof(struct inode) * INODE_CNT_MAX);
+	loff_t inodes_addr = super_blk_addr + sb_size;
+	loff_t block_addr = inodes_addr + (inode_size * INODE_CNT_MAX);
 
 	/* read the super block from the device */
-	dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sizeof(struct super_block), super_blk_addr);
+	dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sb_size, super_blk_addr);
 
 	/* read the root inode of the storage */
 	struct inode inode;
-	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inodes_addr);
+	dev_read(dev_file, (uint8_t *)&inode, inode_size, inodes_addr);
 
 	/* read the root directory dentry of the storage */
 	struct dentry dentry;
 	struct dentry *dentry_addr = list_entry(inode.i_dentry.next, struct dentry, list);
-	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), (loff_t)dentry_addr);
+	dev_read(dev_file, (uint8_t *)&dentry, dentry_size, (loff_t)dentry_addr);
+
+	inodes_addr = sb_size + (inode_size * dentry.file_inode);
+	dev_read(dev_file, (uint8_t *)&inode, inode_size, inodes_addr);
 
 	/* mount root directory files of the storage */
 	inode.i_rdev = mount_cnt;

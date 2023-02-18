@@ -89,6 +89,8 @@ void fs_enumerate_mount_directory(struct inode *inode_dir)
 	char str[200] = {0};
 
 	const uint32_t sb_size = sizeof(struct super_block);
+	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t dentry_size = sizeof(struct dentry);
 
 	loff_t inode_addr;
 	struct inode inode;
@@ -100,26 +102,47 @@ void fs_enumerate_mount_directory(struct inode *inode_dir)
 	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* parent directory dentry */
+	/* calculate the first dentry address */
 	dentry_addr = (loff_t)inode_dir->i_data;
-	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), dentry_addr);
 
-	/* parent directory inode */
-	inode_addr = sb_size + (sizeof(inode) * dentry.file_inode);
-	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inode_addr);
+	/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
+	if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX))
+		return; //this is a empty directory
 
-	/* file dentry */
-	dentry_addr = (loff_t)inode.i_data;
-	dev_read(dev_file, (uint8_t *)&dentry, sizeof(dentry), dentry_addr);
+	/* load the first dentry from the storage */
+	dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
-	/* file inode */
-	inode_addr = sb_size + (sizeof(inode) * dentry.file_inode);
-	dev_read(dev_file, (uint8_t *)&inode, sizeof(inode), inode_addr);
+	/* load the file inode from the storage */
+	inode_addr = sb_size + (inode_size * dentry.file_inode);
+	dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
 
 	if(inode.i_mode == S_IFDIR) {
 		sprintf(str, "%s%s/  ", str, dentry.file_name);
 	} else {
 		sprintf(str, "%s%s  ", str, dentry.file_name);
+	}
+
+	while(1) {
+		/* calculate the next dentry address */
+		dentry_addr = (loff_t)dentry.list.next;
+
+		/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
+		if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX)) {
+			break; //no more dentry to read
+		}
+
+		/* load the first dentry from the storage */
+		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
+
+		/* load the file inode from the storage */
+		inode_addr = sb_size + (inode_size * dentry.file_inode);
+		dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
+
+		if(inode.i_mode == S_IFDIR) {
+			sprintf(str, "%s%s/  ", str, dentry.file_name);
+		} else {
+			sprintf(str, "%s%s  ", str, dentry.file_name);
+		}
 	}
 
 	sprintf(str, "%s\n\r", str);
