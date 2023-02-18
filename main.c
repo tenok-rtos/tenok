@@ -32,7 +32,6 @@ struct cmd_list_entry shell_cmd_list[] = {
 
 struct shell_struct shell;
 
-
 void led_task1(void)
 {
 	set_program_name("led1");
@@ -244,8 +243,7 @@ void first(void)
 	//if(!fork()) message_queue_task1();
 	//if(!fork()) message_queue_task2();
 
-	//idle loop if no work to do
-	while(1);
+	while(1); //idle loop when nothing to do
 }
 
 void init(void *param)
