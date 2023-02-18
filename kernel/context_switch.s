@@ -87,11 +87,11 @@ os_env_init:
 	isb              //flush the cpu pipeline
 
 	/* switch to handler mode via svc */
-        push {r7}   //preserve old r7 for overwriting
-        mov  r7, #0 //write syscall number to r7 as new value
-        svc  0      //trigger svc interrupt handler
-        nop
-        pop  {r7}   //resume old r7 value
+	push {r7}   //preserve old r7 for overwriting
+	mov  r7, #0 //write syscall number to r7 as new value
+	svc  0      //trigger svc interrupt handler
+	nop
+	pop  {r7}   //resume old r7 value
 
 	/* enter into the kernel, disable all interrupts */
 	//cpsid i 
