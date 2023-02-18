@@ -121,7 +121,7 @@ static struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_
 	}
 }
 
-static struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name)
+struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name)
 {
 	/* compare the file name in the dentry.d_list */
 	struct list *list_curr;

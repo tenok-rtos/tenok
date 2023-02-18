@@ -84,7 +84,7 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 	shell_puts(str);
 }
 
-void print_mount_directory(char *str, struct inode *inode_dir)
+static void print_mount_directory(char *str, struct inode *inode_dir)
 {
 	if(inode_dir->i_sync == false) {
 		//TODO: handled with the file server
@@ -132,7 +132,7 @@ void print_mount_directory(char *str, struct inode *inode_dir)
 	}
 }
 
-void print_rootfs_directory(char *str, struct inode *inode_dir)
+static void print_rootfs_directory(char *str, struct inode *inode_dir)
 {
 	struct list *list_curr;
 	list_for_each(list_curr, &inode_curr->i_dentry) {
@@ -182,7 +182,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		}
 
 		/* no file is under this directory */
-		if(list_is_empty(&inode_curr->i_dentry) == true) {
+		if(inode_curr->i_size == 0) {
 			sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
@@ -205,6 +205,11 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 				}
 			}
 		}
+
+		/* can not find the file */
+		sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
+		shell_puts(str);
+		return;
 	} else {
 		sprintf(str, "cd: too many arguments\n\r");
 		shell_puts(str);
