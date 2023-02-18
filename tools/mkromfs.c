@@ -162,7 +162,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		char test_str[] = {'c', 'a', 't', '\n', '\r',-1};
 
 		new_inode->i_mode   = S_IFREG;
-		new_inode->i_size   = 1;
+		new_inode->i_size   = 6; //XXX
 		new_inode->i_blocks = 1;
 		new_inode->i_data   = file_data_p;
 

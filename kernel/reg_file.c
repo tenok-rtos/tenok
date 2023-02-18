@@ -51,8 +51,10 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
 	uint8_t *write_addr = reg_file->file_inode->i_data + offset + reg_file->pos;
 	int retval = fs_write(reg_file->file_inode, write_addr, (uint8_t *)buf, size);
 
-	if(retval >= 0)
+	if(retval >= 0) {
 		reg_file->pos += size;
+		reg_file->file.file_inode->i_size += size;
+	}
 
 	return retval;
 }

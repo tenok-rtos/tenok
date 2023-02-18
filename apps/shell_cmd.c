@@ -263,9 +263,9 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 	/* read file content until EOF is detected */
 	signed char c;
 	char str[200] = {0};
-	int i = 0;
 
-	while(1) {
+	int i;
+	for(i = 0; i < stat.st_size; i++) {
 		read(fd, &c, 1);
 
 		if(c == EOF) {
@@ -273,7 +273,6 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 			break;
 		} else {
 			str[i] = c;
-			i++;
 		}
 	}
 

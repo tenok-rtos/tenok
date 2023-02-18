@@ -62,7 +62,11 @@ struct dentry {
 };
 
 struct stat {
-	uint8_t st_mode; //file type
+	uint8_t  st_mode;   //file type
+	uint32_t st_ino;    //inode number
+	uint32_t st_rdev;   //device number
+	uint32_t st_size;   //total size in bytes
+	uint32_t st_blocks; //number of the blocks used by the file
 };
 
 struct file {
