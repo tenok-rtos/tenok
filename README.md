@@ -4,16 +4,18 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 
 ## Features
 
-* POSIX APIs
+* POSIX style
 * Spinlock
 * Mutex
 * Semaphore
-* FIFO (Named pipe)
+* FIFO and named pipe
 * Message queue
 * Shell
-* A simple ROM file system
+* Simple rootfs and romfs
 
 ## Supported Platforms
+
+### ARM Cortex-M4
 
 * [STM32F4Discovery](https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
 * QEMU Emulation of [netduinoplus2](https://qemu.readthedocs.io/en/latest/system/arm/stm32.html) (STM32F405RGT6)
