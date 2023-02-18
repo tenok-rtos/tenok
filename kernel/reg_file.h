@@ -9,7 +9,7 @@ struct reg_file {
 	struct file file;
 };
 
-int reg_file_init(int fd, struct inode *file_inode, struct file **files, struct memory_pool *mem_pool);
+int reg_file_init(struct inode *file_inode, struct file **files, struct memory_pool *mem_pool);
 
 #endif
 

@@ -284,16 +284,12 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL;
 
-		files[fd]->file_inode = new_inode;
-
 		break;
 	case S_IFCHR:
 		new_inode->i_mode   = S_IFCHR;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL;
-
-		files[fd]->file_inode = NULL;
 
 		break;
 	case S_IFBLK:
@@ -302,12 +298,10 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL;
 
-		files[fd]->file_inode = NULL;
-
 		break;
 	case S_IFREG:
 		/* create new regular file */
-		result = reg_file_init(fd, new_inode, (struct file **)&files, &mem_pool);
+		result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
 
 		/* allocate memory for the new file */
 		uint8_t *file_data_p = (uint8_t *)(mount_points[inode_dir->i_rdev].super_blk.s_blk_cnt * ROOTFS_BLK_SIZE);
@@ -317,8 +311,6 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		new_inode->i_size   = 1;
 		new_inode->i_blocks = 1;
 		new_inode->i_data   = file_data_p;
-
-		files[fd]->file_inode = new_inode;
 
 		break;
 	case S_IFDIR:
@@ -390,12 +382,10 @@ struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, st
 		}
 
 		/* create new regular file */
-		int result = reg_file_init(new_inode->i_fd, new_inode, (struct file **)&files, &mem_pool);
+		int result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
 
 		if(result != 0)
 			return NULL;
-
-		files[new_inode->i_fd]->file_inode = new_inode;
 	}
 
 	/* update inode number for the next file */
