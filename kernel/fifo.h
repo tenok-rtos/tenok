@@ -1,7 +1,7 @@
 #ifndef __FIFO_H__
 #define __FIFO_H__
 
-#include "file.h"
+#include "fs.h"
 #include "ringbuf.h"
 #include "mpool.h"
 

@@ -1,5 +1,5 @@
 #include <stddef.h>
-#include "file.h"
+#include "fs.h"
 #include "mqueue.h"
 #include "util.h"
 #include "mpool.h"

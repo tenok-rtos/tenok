@@ -7,7 +7,7 @@
 #include "util.h"
 #include "mqueue.h"
 #include "semaphore.h"
-#include "file.h"
+#include "fs.h"
 
 #define DEF_SYSCALL(func, _num) \
 	{.syscall_handler = sys_ ## func, .num = _num}

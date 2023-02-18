@@ -1,7 +1,7 @@
 #ifndef __MQUEUE_H__
 #define __MQUEUE_H__
 
-#include "file.h"
+#include "fs.h"
 #include "ringbuf.h"
 #include "mpool.h"
 

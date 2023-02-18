@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
-#include "file.h"
+#include "fs.h"
 #include "mpool.h"
 #include "syscall.h"
 #include "reg_file.h"
