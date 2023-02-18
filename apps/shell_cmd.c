@@ -124,7 +124,7 @@ void fs_enumerate_mount_directory(struct inode *inode_dir)
 
 	while(1) {
 		/* calculate the next dentry address */
-		dentry_addr = (loff_t)dentry.list.next;
+		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
 
 		/* if the address is the inodes region (i.e., this is a address of inode.i_dentry) */
 		if(dentry_addr < (sb_size + inode_size * INODE_CNT_MAX)) {
