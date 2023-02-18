@@ -37,10 +37,10 @@ void shell_get_pwd(char *path)
 
 		struct list *list_curr;
 		list_for_each(list_curr, &inode->i_dentry) {
-			struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
+			struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-			if(dir->d_inode == inode_last) {
-				sprintf(path, "%s%s/", path, dir->d_name);
+			if(dentry->d_inode == inode_last) {
+				sprintf(path, "%s%s/", path, dentry->d_name);
 				break;
 			}
 		}
@@ -136,16 +136,16 @@ void print_rootfs_directory(char *str, struct inode *inode_dir)
 {
 	struct list *list_curr;
 	list_for_each(list_curr, &inode_curr->i_dentry) {
-		struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
+		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
 		/* get the file inode */
-		int file_inode_num = dir->d_inode;
+		int file_inode_num = dentry->d_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
 		if(file_inode->i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dir->d_name);
+			sprintf(str, "%s%s/  ", str, dentry->d_name);
 		} else {
-			sprintf(str, "%s%s  ", str, dir->d_name);
+			sprintf(str, "%s%s  ", str, dentry->d_name);
 		}
 	}
 }
@@ -191,10 +191,10 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		/* compare all the file names under the current directory */
 		struct list *list_curr;
 		list_for_each(list_curr, &inode_curr->i_dentry) {
-			struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
+			struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-			if(strcmp(dir->d_name, param_list[1]) == 0) {
-				struct inode *inode = &inodes[dir->d_inode];
+			if(strcmp(dentry->d_name, param_list[1]) == 0) {
+				struct inode *inode = &inodes[dentry->d_inode];
 				if(inode->i_mode != S_IFDIR) {
 					sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 					shell_puts(str);
