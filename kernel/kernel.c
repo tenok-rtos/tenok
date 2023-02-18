@@ -34,8 +34,6 @@ void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mknod(void);
-void sys_mkdir(void);
-void sys_rmdir(void);
 void sys_os_sem_wait(void);
 
 /* task lists */
@@ -56,11 +54,11 @@ struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 
 /* system call table */
 syscall_info_t syscall_table[] = {
-	/* non-posix syscall: */
+	/* non-posix syscalls: */
 	DEF_SYSCALL(sched_yield, 1),
 	DEF_SYSCALL(set_irq, 2),
 	DEF_SYSCALL(set_program_name, 3),
-	/* posix syscall: */
+	/* posix syscalls: */
 	DEF_SYSCALL(fork, 4),
 	DEF_SYSCALL(sleep, 5),
 	DEF_SYSCALL(mount, 6),
@@ -74,9 +72,7 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(setpriority, 14),
 	DEF_SYSCALL(getpid, 15),
 	DEF_SYSCALL(mknod, 16),
-	DEF_SYSCALL(mkdir, 17),
-	DEF_SYSCALL(rmdir, 18),
-	DEF_SYSCALL(os_sem_wait, 19)
+	DEF_SYSCALL(os_sem_wait, 17)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -295,7 +291,6 @@ void sys_mount(void)
 		//return the file descriptor
 		running_task->stack_top->r0 = result;
 	}
-
 }
 
 void sys_open(void)
@@ -443,14 +438,6 @@ void sys_mknod(void)
 	}
 }
 
-void sys_mkdir(void)
-{
-}
-
-void sys_rmdir(void)
-{
-}
-
 void sys_os_sem_wait(void)
 {
 	sem_t *sem = (sem_t *)running_task->stack_top->r0;
@@ -574,7 +561,7 @@ void sched_start(task_func_t first_task)
 
 void sprint_tasks(char *str)
 {
-	sprintf(str, "PID\tPR\tCMD\n\r");
+	sprintf(str, "PID\tPR\tNAME\n\r");
 
 	int i;
 	for(i = 0; i < task_nums; i++) {
