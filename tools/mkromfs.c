@@ -16,8 +16,13 @@
 #define S_IFDIR 4 //directory
 
 struct super_block {
-	uint32_t s_blk_cnt;
-	uint32_t s_inode_cnt;
+	uint32_t s_blk_cnt;   //number of the used blocks
+	uint32_t s_inode_cnt; //number of the used inodes
+};
+
+struct mount {
+	struct file *dev_file;        //driver file of the mounted storage device
+	struct super_block super_blk; //super block of the mounted storage device
 };
 
 /* index node */
@@ -25,7 +30,7 @@ struct inode {
 	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
 	uint8_t  i_rdev;      //the device on which this file system is mounted
-	bool     i_sync;      //check if the mounted files under the directory is loaded into the ram
+	bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
 
 	uint32_t i_ino;       //inode number
 	uint32_t i_parent;    //inode number of the parent directory
@@ -41,12 +46,12 @@ struct inode {
 
 /* directory entry */
 struct dentry {
-	char     file_name[FILE_NAME_LEN_MAX]; //file name
+	char     d_name[FILE_NAME_LEN_MAX]; //file name
 
-	uint32_t file_inode;   //the inode of the file
-	uint32_t parent_inode; //the parent directory's inode of the file
+	uint32_t d_inode;  //the inode of the file
+	uint32_t d_parent; //the inode of the parent directory
 
-	struct list list;
+	struct list d_list;
 };
 
 struct super_block romfs_sb;
@@ -81,10 +86,10 @@ struct inode *fs_search_file(struct inode *inode, char *file_name)
 	/* compare the file name in the dentry list */
 	struct list *list_curr;
 	list_for_each(list_curr, &inode->i_dentry) {
-		struct dentry *dentry = list_entry(list_curr, struct dentry, list);
+		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-		if(strcmp(dentry->file_name, file_name) == 0)
-			return &inodes[dentry->file_inode];
+		if(strcmp(dentry->d_name, file_name) == 0)
+			return &inodes[dentry->d_inode];
 	}
 
 	return NULL;
@@ -123,7 +128,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 	uint8_t *dir_data_p;
 	if(fit == true) {
 		struct list *list_end = inode_dir->i_dentry.last;
-		struct dentry *dir = list_entry(list_end, struct dentry, list);
+		struct dentry *dir = list_entry(list_end, struct dentry, d_list);
 		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
 	} else {
 		/* can not fit, requires a new block */
@@ -134,9 +139,9 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
 	/* configure the new dentry */
 	struct dentry *new_dentry = (struct dentry*)dir_data_p;
-	new_dentry->file_inode    = romfs_sb.s_inode_cnt; //assign new inode number for the file
-	new_dentry->parent_inode  = inode_dir->i_ino; //save the inode of the parent directory
-	strcpy(new_dentry->file_name, file_name);     //copy the file name
+	new_dentry->d_inode  = romfs_sb.s_inode_cnt; //assign new inode number for the file
+	new_dentry->d_parent = inode_dir->i_ino; //save the inode of the parent directory
+	strcpy(new_dentry->d_name, file_name);     //copy the file name
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[romfs_sb.s_inode_cnt];
@@ -185,7 +190,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
-	list_push(&inode_dir->i_dentry, &new_dentry->list);
+	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
 
 	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
@@ -315,26 +320,26 @@ void romfs_export(void)
 				struct list *list_next = list_curr->next;
 
 				/* obtain the dentry */
-				struct dentry *dentry = list_entry(list_curr, struct dentry, list);
+				struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-				if(dentry->list.last == &inodes[i].i_dentry) {
+				if(dentry->d_list.last == &inodes[i].i_dentry) {
 					/* inode.i_dentry is stored in the inodes region */
-					dentry->list.last = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
+					dentry->d_list.last = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
 				} else {
 					/* other are stored in the block region */
-					dentry->list.last = (struct list *)((uint8_t *)dentry->list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
+					dentry->d_list.last = (struct list *)((uint8_t *)dentry->d_list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
 				}
 
-				if(dentry->list.next == &inodes[i].i_dentry) {
+				if(dentry->d_list.next == &inodes[i].i_dentry) {
 					/* inode.i_dentry is stored in the inodes region */
-					dentry->list.next = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
+					dentry->d_list.next = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
 				} else {
 					/* other are stored in the block region */
-					dentry->list.next = (struct list *)((uint8_t *)dentry->list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
+					dentry->d_list.next = (struct list *)((uint8_t *)dentry->d_list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
 				}
 
 				printf("[file_name:\"%s\", file_inode:%d, last:%d, next:%d]\n",
-				       dentry->file_name, dentry->file_inode, (uint32_t)dentry->list.last, (uint32_t)dentry->list.next);
+				       dentry->d_name, dentry->d_inode, (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
 
 				list_curr = list_next;
 			} while(list_curr != list_start);

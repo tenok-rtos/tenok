@@ -37,10 +37,10 @@ void shell_get_pwd(char *path)
 
 		struct list *list_curr;
 		list_for_each(list_curr, &inode->i_dentry) {
-			struct dentry *dir = list_entry(list_curr, struct dentry, list);
+			struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
 
-			if(dir->file_inode == inode_last) {
-				sprintf(path, "%s%s/", path, dir->file_name);
+			if(dir->d_inode == inode_last) {
+				sprintf(path, "%s%s/", path, dir->d_name);
 				break;
 			}
 		}
@@ -91,8 +91,8 @@ void print_mount_directory(char *str, struct inode *inode_dir)
 		fs_mount_directory(inode_dir, inode_dir);
 	}
 
-	const uint32_t sb_size = sizeof(struct super_block);
-	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t sb_size     = sizeof(struct super_block);
+	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
 
 	loff_t inode_addr;
@@ -107,27 +107,27 @@ void print_mount_directory(char *str, struct inode *inode_dir)
 
 	/* get the list head of the dentry list */
 	struct list i_dentry_list = inode_dir->i_dentry;
-	dentry.list = i_dentry_list;
+	dentry.d_list = i_dentry_list;
 
 	while(1) {
 		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX))
+		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
 			return; //no more dentry to read
 
 		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
 
 		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
 		/* load the file inode from the storage */
-		inode_addr = sb_size + (inode_size * dentry.file_inode);
+		inode_addr = sb_size + (inode_size * dentry.d_inode);
 		dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
 
 		if(inode.i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dentry.file_name);
+			sprintf(str, "%s%s/  ", str, dentry.d_name);
 		} else {
-			sprintf(str, "%s%s  ", str, dentry.file_name);
+			sprintf(str, "%s%s  ", str, dentry.d_name);
 		}
 	}
 }
@@ -136,16 +136,16 @@ void print_rootfs_directory(char *str, struct inode *inode_dir)
 {
 	struct list *list_curr;
 	list_for_each(list_curr, &inode_curr->i_dentry) {
-		struct dentry *dir = list_entry(list_curr, struct dentry, list);
+		struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
 
 		/* get the file inode */
-		int file_inode_num = dir->file_inode;
+		int file_inode_num = dir->d_inode;
 		struct inode *file_inode = &inodes[file_inode_num];
 
 		if(file_inode->i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dir->file_name);
+			sprintf(str, "%s%s/  ", str, dir->d_name);
 		} else {
-			sprintf(str, "%s%s  ", str, dir->file_name);
+			sprintf(str, "%s%s  ", str, dir->d_name);
 		}
 	}
 }
@@ -191,10 +191,10 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		/* compare all the file names under the current directory */
 		struct list *list_curr;
 		list_for_each(list_curr, &inode_curr->i_dentry) {
-			struct dentry *dir = list_entry(list_curr, struct dentry, list);
+			struct dentry *dir = list_entry(list_curr, struct dentry, d_list);
 
-			if(strcmp(dir->file_name, param_list[1]) == 0) {
-				struct inode *inode = &inodes[dir->file_inode];
+			if(strcmp(dir->d_name, param_list[1]) == 0) {
+				struct inode *inode = &inodes[dir->d_inode];
 				if(inode->i_mode != S_IFDIR) {
 					sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 					shell_puts(str);

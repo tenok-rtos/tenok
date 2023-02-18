@@ -26,11 +26,11 @@ int file_cnt = 0;
 
 int register_chrdev(char *name, struct file_operations *fops)
 {
-	char dev_path[100] = {0};
-	sprintf(dev_path, "/dev/%s", name);
+	char devpath[100] = {0};
+	sprintf(devpath, "/dev/%s", name);
 
 	/* create new file in the file system */
-	int fd = create_file(dev_path, S_IFCHR);
+	int fd = create_file(devpath, S_IFCHR);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
@@ -43,11 +43,11 @@ int register_chrdev(char *name, struct file_operations *fops)
 
 int register_blkdev(char *name, struct file_operations *fops)
 {
-	char dev_path[100] = {0};
-	sprintf(dev_path, "/dev/%s", name);
+	char devpath[100] = {0};
+	sprintf(devpath, "/dev/%s", name);
 
 	/* create new file in the file system */
-	int fd = create_file(dev_path, S_IFBLK);
+	int fd = create_file(devpath, S_IFBLK);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
@@ -76,8 +76,8 @@ void rootfs_init(void)
 
 static struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_name)
 {
-	const uint32_t sb_size = sizeof(struct super_block);
-	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t sb_size     = sizeof(struct super_block);
+	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
 
 	loff_t inode_addr;
@@ -90,26 +90,26 @@ static struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_
 	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* get the list head of the dentry list */
+	/* get the list head of the dentry.d_list */
 	struct list i_dentry_list = inode_dir->i_dentry;
-	dentry.list = i_dentry_list;
+	dentry.d_list = i_dentry_list;
 
 	while(1) {
 		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
+		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
 			inode_dir->i_sync = true;
 			return NULL; //no more dentry to read
 		}
 
 		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
 
 		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
-		if(strcmp(dentry.file_name, file_name) == 0) {
+		if(strcmp(dentry.d_name, file_name) == 0) {
 			/* load the file inode from the storage device */
-			inode_addr = sb_size + (inode_size * dentry.file_inode);
+			inode_addr = sb_size + (inode_size * dentry.d_inode);
 			dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
 
 			/* overwrite the device number */
@@ -123,13 +123,13 @@ static struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_
 
 static struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name)
 {
-	/* compare the file name in the dentry list */
+	/* compare the file name in the dentry.d_list */
 	struct list *list_curr;
 	list_for_each(list_curr, &inode_dir->i_dentry) {
-		struct dentry *dentry = list_entry(list_curr, struct dentry, list);
+		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-		if(strcmp(dentry->file_name, file_name) == 0)
-			return &inodes[dentry->file_inode];
+		if(strcmp(dentry->d_name, file_name) == 0)
+			return &inodes[dentry->d_inode];
 	}
 	return NULL;
 }
@@ -234,7 +234,7 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 	uint8_t *dir_data_p;
 	if(fit == true) {
 		struct list *list_end = inode_dir->i_dentry.last;
-		struct dentry *dir = list_entry(list_end, struct dentry, list);
+		struct dentry *dir = list_entry(list_end, struct dentry, d_list);
 		dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
 	} else {
 		/* can not fit, requires a new block */
@@ -253,9 +253,9 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 
 	/* configure the new dentry */
 	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-	new_dentry->file_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-	new_dentry->parent_inode  = inode_dir->i_ino; //save the inode of the parent directory
-	strcpy(new_dentry->file_name, file_name);     //copy the file name
+	new_dentry->d_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
+	new_dentry->d_parent  = inode_dir->i_ino; //save the inode of the parent directory
+	strcpy(new_dentry->d_name, file_name);    //copy the file name
 
 	/* file table is full */
 	if(file_cnt >= FILE_CNT_LIMIT)
@@ -336,7 +336,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
-	list_push(&inode_dir->i_dentry, &new_dentry->list);
+	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
 
 	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
@@ -347,7 +347,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	return new_inode;
 }
 
-//if sync_now is set as false, the file system will only update the dentry list of the parent directory
+//if sync_now is set as false, the file system will only update the dentry.d_list of the parent directory
 static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry, bool sync_now)
 {
 	/* inodes numbers is full */
@@ -356,9 +356,9 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 
 	/* configure the new dentry */
 	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-	new_dentry->file_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-	new_dentry->parent_inode  = inode_dir->i_ino;         //save the inode of the parent directory
-	strcpy(new_dentry->file_name, mnt_dentry->file_name); //copy the file name
+	new_dentry->d_inode  = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
+	new_dentry->d_parent = inode_dir->i_ino;        //save the inode of the parent directory
+	strcpy(new_dentry->d_name, mnt_dentry->d_name); //copy the file name
 
 	struct inode *new_inode = NULL;
 
@@ -401,7 +401,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
-	list_push(&inode_dir->i_dentry, &new_dentry->list);
+	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
 
 	/* update size and block information of the inode */
 	inode_dir->i_size += sizeof(struct dentry);
@@ -417,8 +417,8 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	if(inode_target->i_sync == true)
 		return;
 
-	const uint32_t sb_size = sizeof(struct super_block);
-	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t sb_size     = sizeof(struct super_block);
+	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
 
 	loff_t inode_addr;
@@ -431,25 +431,25 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	struct file *dev_file = mount_points[inode_src->i_rdev].dev_file;
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
-	/* get the list head of the dentry list */
+	/* get the list head of the dentry.d_list */
 	struct list i_dentry_list = inode_src->i_dentry;
-	dentry.list = i_dentry_list;
+	dentry.d_list = i_dentry_list;
 
 	while(1) {
 		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
+		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
 			inode_src->i_sync = true;
 			return; //no more dentry to read
 		}
 
 		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.list.next, struct dentry, list);
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
 
 		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
 		/* load the file inode from the storage device */
-		inode_addr = sb_size + (inode_size * dentry.file_inode);
+		inode_addr = sb_size + (inode_size * dentry.d_inode);
 		dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
 
 		/* overwrite the device number */
@@ -466,7 +466,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 //get the first entry of a given path. e.g., given a input"dir1/file1.txt" yields with "dir".
 //input : path
 //output: entry
-static char *split_path(char *entry, char *path)
+static char *splitpath(char *entry, char *path)
 {
 	while(1) {
 		bool found_dir = (*path == '/');
@@ -501,15 +501,15 @@ static int create_file(char *pathname, uint8_t file_type)
 	struct inode *inode;
 
 	char entry_curr[PATH_LEN_MAX];
-	char *_path = pathname;
+	char *path = pathname;
 
-	_path = split_path(entry_curr, _path); //get rid of the first '/'
+	path = splitpath(entry_curr, path); //get rid of the first '/'
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		_path = split_path(entry_curr, _path);
+		path = splitpath(entry_curr, path);
 
-		if(_path != NULL) {
+		if(path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
 
 			/* two successive '/' are detected */
@@ -567,15 +567,15 @@ static int open_file(char *pathname)
 	struct inode *inode;
 
 	char entry_curr[PATH_LEN_MAX] = {0};
-	char *_path = pathname;
+	char *path = pathname;
 
-	_path = split_path(entry_curr, _path); //get rid of the first '/'
+	path = splitpath(entry_curr, path); //get rid of the first '/'
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		_path = split_path(entry_curr, _path);
+		path = splitpath(entry_curr, path);
 
-		if(_path != NULL) {
+		if(path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
 
 			/* two successive '/' are detected */
@@ -616,16 +616,16 @@ struct inode *open_directory(char *pathname)
 	struct inode *inode;
 
 	char entry_curr[PATH_LEN_MAX] = {0};
-	char *_path = pathname;
+	char *path = pathname;
 
-	_path = split_path(entry_curr, _path); //get rid of the first '/'
-	if(_path == NULL) {
+	path = splitpath(entry_curr, path); //get rid of the first '/'
+	if(path == NULL) {
 		return inode_curr;
 	}
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		_path = split_path(entry_curr, _path);
+		path = splitpath(entry_curr, path);
 
 		/* two successive '/' are detected */
 		if(entry_curr[0] == '\0')
@@ -645,7 +645,7 @@ struct inode *open_directory(char *pathname)
 		inode_curr = inode;
 
 		/* no more sub-string to be splitted */
-		if(_path == NULL)
+		if(path == NULL)
 			break;
 	}
 
@@ -672,8 +672,8 @@ static int _mount(char *source, char *target)
 	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
 
 	/* calculate the start address of the super block, inode table, and block region */
-	const uint32_t sb_size = sizeof(struct super_block);
-	const uint32_t inode_size = sizeof(struct inode);
+	const uint32_t sb_size     = sizeof(struct super_block);
+	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
 	loff_t super_blk_addr = 0;
 	loff_t inodes_addr = super_blk_addr + sb_size;
