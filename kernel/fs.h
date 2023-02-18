@@ -90,6 +90,7 @@ int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t siz
 int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
+struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
