@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include "list.h"
 
+#define OUTPUT            "./romfs.bin"
+
 #define FILE_NAME_LEN_MAX 30
 #define PATH_LEN_MAX      128
 #define INODE_CNT_MAX     100
@@ -62,8 +64,6 @@ struct super_block romfs_sb;
 struct inode inodes[INODE_CNT_MAX];
 uint8_t romfs_blk[ROMFS_BLK_CNT][ROMFS_BLK_SIZE];
 
-char *output_path = "./romfs.bin";
-
 void romfs_init(void)
 {
 	/* configure the root directory inode */
@@ -82,19 +82,18 @@ void romfs_init(void)
 	romfs_sb.s_blk_addr  = romfs_sb.s_ino_addr + (sizeof(struct inode) * INODE_CNT_MAX);
 }
 
-struct inode *fs_search_file(struct inode *inode, char *file_name)
+struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 {
-	/* the function take a diectory inode and return the inode of the entry to find */
-
 	/* currently the dentry table is empty */
-	if(list_is_empty(&inode->i_dentry) == true)
+	if(inode_dir->i_size == 0)
 		return NULL;
 
-	/* compare the file name in the dentry list */
+	/* traversal of the dentry list */
 	struct list *list_curr;
-	list_for_each(list_curr, &inode->i_dentry) {
+	list_for_each(list_curr, &inode_dir->i_dentry) {
 		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
+		/* compare the file name with the dentry */
 		if(strcmp(dentry->d_name, file_name) == 0)
 			return &inodes[dentry->d_inode];
 	}
@@ -210,11 +209,6 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
 char *split_path(char *entry, char *path)
 {
-	/*
-	 * get the first entry of a given path.
-	 * e.g., input = "some_dir/test_file", output = "some_dir"
-	 */
-
 	while(1) {
 		bool found_dir = (*path == '/');
 
@@ -238,7 +232,7 @@ char *split_path(char *entry, char *path)
 	return path; //return the address of the left path string
 }
 
-int create_file(char *pathname, uint8_t file_type)
+static int create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
@@ -247,64 +241,60 @@ int create_file(char *pathname, uint8_t file_type)
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
 
-	char entry_curr[PATH_LEN_MAX];
-	char *_path = pathname;
+	char entry[PATH_LEN_MAX];
+	char *path = pathname;
 
-	_path = split_path(entry_curr, _path); //get rid of the first '/'
+	path = split_path(entry, path); //get rid of the first '/'
 
 	while(1) {
-		/* split the path and get the entry hierarchically */
-		_path = split_path(entry_curr, _path);
+		/* split the path and get the entry name at each layer */
+		path = split_path(entry, path);
 
-		if(_path != NULL) {
+		/* two successive '/' are detected */
+		if(entry[0] == '\0')
+			continue;
+
+		/* search the entry and get the inode */
+		inode = fs_search_file(inode_curr, entry);
+
+		if(path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
-
-			/* two successive '/' are detected */
-			if(entry_curr[0] == '\0')
-				continue;
-
-			/* search the entry and get the inode */
-			inode = fs_search_file(inode_curr, entry_curr);
 
 			/* check if the directory exists */
 			if(inode == NULL) {
 				/* directory does not exist, create one */
-				inode = fs_add_file(inode_curr, entry_curr, S_IFDIR);
+				inode = fs_add_file(inode_curr, entry, S_IFDIR);
 
+				/* failed to create the directory */
 				if(inode == NULL)
 					return -1;
-
-				inode_curr = inode;
-			} else {
-				/* directory exists */
-				inode_curr = inode;
 			}
-		} else {
-			/* no more path string to be splitted */
 
-			/* check if the file already exists */
-			if(fs_search_file(inode_curr, entry_curr) != NULL)
+			inode_curr = inode;
+		} else {
+			/* no more path to be splitted, the remained string should be the file name */
+
+			/* make sure the last char is not equal to '/' */
+			int len = strlen(pathname);
+			if(pathname[len - 1] == '/')
 				return -1;
 
-			/* if the last character of the pathname is not equal to '/', it is a file */
-			int len = strlen(pathname);
-			if(pathname[len - 1] != '/') {
-				/* create new inode for the file */
-				inode = fs_add_file(inode_curr, entry_curr, file_type);
+			/* create new inode for the file */
+			inode = fs_add_file(inode_curr, entry, file_type);
 
-				/* check if the inode is created successfully */
-				if(inode == NULL)
-					return -1; //failed to create the file
+			/* failed to create the file */
+			if(inode == NULL)
+				return -1;
 
-				return 0;
-			}
+			/* file is created successfully */
+			return inode->i_fd;
 		}
 	}
 }
 
 void romfs_export(void)
 {
-	FILE *file = fopen(output_path, "wb");
+	FILE *file = fopen(OUTPUT, "wb");
 
 	uint32_t sb_size = sizeof(romfs_sb);
 	uint32_t inodes_size = sizeof(inodes);
