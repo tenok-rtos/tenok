@@ -72,27 +72,26 @@ void rootfs_init(void)
 	mount_cnt = 1;
 }
 
-static bool fs_read_dentry(uint8_t rdev, struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
+static void fs_read_list(uint8_t rdev, struct file *dev_file, uint32_t list_addr, struct list *list)
 {
 	if(rdev == RDEV_ROOTFS) {
-		/* copy the dentry from the rootfs memotry */
+		/* copy the list from the rootfs memory */
+		memcpy(list, (uint8_t *)list_addr, sizeof(struct list));
+	} else {
+		/* read the list from the storage device */
+		dev_file->f_op->read(dev_file, (uint8_t *)list, sizeof(struct list), list_addr);
+	}
+}
+
+static void fs_read_dentry(uint8_t rdev, struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
+{
+	if(rdev == RDEV_ROOTFS) {
+		/* copy the dentry from the rootfs memory */
 		memcpy(dentry, (uint8_t *)dentry_addr, sizeof(struct dentry));
 	} else {
-		/* calculate the end address of the inode table */
-		uint32_t inodes_end_addr = sizeof(struct super_block) +
-		                           (sizeof(struct inode) * INODE_CNT_MAX);
-
-		/* if the address is located in the inode table region, it is point to the
-		 * dentry list head, i.e., &inode.i_dentry */
-		if(dentry_addr < inodes_end_addr) {
-			return false; //nothing to read
-		}
-
-		/* load the dentry from the storage device */
+		/* read the dentry from the storage device */
 		dev_file->f_op->read(dev_file, (uint8_t *)dentry, sizeof(struct dentry), dentry_addr);
 	}
-
-	return true;
 }
 
 static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_num, struct inode *inode)
@@ -109,59 +108,6 @@ static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_nu
 	}
 }
 
-static struct inode *fs_search_mounted_file(struct inode *inode_dir, char *file_name)
-{
-	struct inode inode;
-	struct dentry dentry;
-
-	/* load storage device file */
-	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
-
-	/* get the head of the dentry list */
-	struct list dentry_head = inode_dir->i_dentry;
-	dentry.d_list = dentry_head;
-
-	while(1) {
-
-		/* calculate the address of the next dentry to read */
-		uint32_t dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
-
-		/* load the dentry from the storage device */
-		if(fs_read_dentry(inode_dir->i_rdev, dev_file, dentry_addr, &dentry) == false) {
-			inode_dir->i_sync = true;
-			return NULL;
-		}
-
-		/* compare the file name */
-		if(strcmp(dentry.d_name, file_name) == 0) {
-			if(inode_dir->i_rdev == RDEV_ROOTFS) {
-				return &inodes[dentry.d_inode];
-			} else {
-				/* load the file inode from the storage device */
-				fs_read_inode(inode_dir->i_rdev, dev_file, dentry.d_inode, &inode);
-
-				/* overwrite the device number */
-				inode.i_rdev = inode_dir->i_rdev;
-
-				return fs_mount_file(inode_dir, &inode, &dentry, true);
-			}
-		}
-	}
-}
-
-struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name)
-{
-	/* compare the file name in the dentry.d_list */
-	struct list *list_curr;
-	list_for_each(list_curr, &inode_dir->i_dentry) {
-		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
-
-		if(strcmp(dentry->d_name, file_name) == 0)
-			return &inodes[dentry->d_inode];
-	}
-	return NULL;
-}
-
 //input : directory inode, file name
 //output: file inode
 struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
@@ -170,10 +116,49 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	if(inode_dir->i_size == 0)
 		return NULL;
 
-	if(inode_dir->i_rdev == RDEV_ROOTFS) {
-		return fs_rootfs_search_file(inode_dir, file_name);
-	} else {
-		return fs_search_mounted_file(inode_dir, file_name);
+	/* load storage device file */
+	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
+
+	/* read the first "dentry.d_list" stored at "inode.i_data" in the storage */
+	struct list list;
+	struct dentry *dentry_first = (struct dentry *)inode_dir->i_data;
+	uint32_t list_head_addr     = (uint32_t)&dentry_first->d_list;
+	fs_read_list(inode_dir->i_rdev, dev_file, list_head_addr, &list);
+
+	/* get the list head of the dentries */
+	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
+
+	/* initialize the dentry pointer for iteration */
+	struct dentry dentry = {.d_list = inode_dir->i_dentry};
+
+	struct list *d_list_curr;
+	while(1) {
+		if((d_list_curr = dentry.d_list.next) == d_list_head)
+			return NULL; //iteration is complete
+
+		/* calculate the dentry address to read */
+		uint32_t dentry_addr = (loff_t)list_entry(d_list_curr, struct dentry, d_list);
+
+		/* load the dentry from the storage device */
+		fs_read_dentry(inode_dir->i_rdev, dev_file, dentry_addr, &dentry);
+
+		/* compare the file name */
+		if(strcmp(dentry.d_name, file_name) == 0) {
+			if(inode_dir->i_rdev == RDEV_ROOTFS) {
+				return &inodes[dentry.d_inode];
+			} else {
+				inode_dir->i_sync = true;
+
+				/* read the file inode from the storage device */
+				struct inode inode;
+				fs_read_inode(inode_dir->i_rdev, dev_file, dentry.d_inode, &inode);
+
+				/* overwrite the device number */
+				inode.i_rdev = inode_dir->i_rdev;
+
+				return fs_mount_file(inode_dir, &inode, &dentry, true);
+			}
+		}
 	}
 }
 
