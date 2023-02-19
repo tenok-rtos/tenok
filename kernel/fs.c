@@ -463,7 +463,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	}
 }
 
-//get the first entry of a given path. e.g., given a input"dir1/file1.txt" yields with "dir".
+//get the first entry of a given path. e.g., given a input "dir1/file1.txt" yields with "dir".
 //input : path
 //output: entry name and the reduced string of path
 static char *split_path(char *entry, char *path)
