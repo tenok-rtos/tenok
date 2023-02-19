@@ -383,14 +383,10 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	new_inode->i_blocks = mnt_inode->i_blocks;
 	new_inode->i_data   = mnt_inode->i_data;
 	new_inode->i_sync   = false; //the content will be synchronized only when the user open it
-	new_inode->i_dentry = mnt_inode->i_dentry;
+	list_init(&new_inode->i_dentry);
 
 	/* update inode number for the next file */
 	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
-
-	/* currently no files is under the directory */
-	if(list_is_empty(&inode_dir->i_dentry) == true)
-		inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
 
 	/* insert the new file under the current directory */
 	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
@@ -754,16 +750,11 @@ void fs_print_mount_directory(char *str, struct inode *inode_dir)
 	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
 
 	/* initialize the dentry pointer for iteration */
-	struct dentry dentry = {.d_list = inode_dir->i_dentry};
+	loff_t dentry_addr = (uint32_t)inode_dir->i_data;
 
-	struct list *d_list_curr;
+	struct dentry dentry;
+
 	while(1) {
-		if((d_list_curr = dentry.d_list.next) == d_list_head)
-			break; //iteration is complete
-
-		/* calculate the dentry address to read */
-		uint32_t dentry_addr = (loff_t)list_entry(d_list_curr, struct dentry, d_list);
-
 		/* read the dentry from the storage device */
 		fs_read_dentry(dev_file, dentry_addr, &dentry);
 
@@ -776,6 +767,12 @@ void fs_print_mount_directory(char *str, struct inode *inode_dir)
 		} else {
 			sprintf(str, "%s%s  ", str, dentry.d_name);
 		}
+
+		/* calculate the address of the next dentry to read */
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
+
+		if((dentry.d_list.next = dentry.d_list.next) == d_list_head)
+			break; //iteration is complete
 	}
 
 	sprintf(str, "%s\n\r", str);
