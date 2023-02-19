@@ -182,17 +182,12 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	/* get the list head of the dentries */
 	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
 
-	/* initialize the dentry pointer for iteration */
-	struct dentry dentry = {.d_list = inode_dir->i_dentry};
+        /* initialize the dentry pointer for iteration */
+        loff_t dentry_addr = (uint32_t)inode_dir->i_data;
 
-	struct list *d_list_curr;
+        struct dentry dentry;
+
 	while(1) {
-		if((d_list_curr = dentry.d_list.next) == d_list_head)
-			return NULL; //iteration is complete
-
-		/* calculate the dentry address to read */
-		uint32_t dentry_addr = (loff_t)list_entry(d_list_curr, struct dentry, d_list);
-
 		/* load the dentry from the storage device */
 		fs_read_dentry(dev_file, dentry_addr, &dentry);
 
@@ -211,6 +206,12 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 				return fs_mount_file(inode_dir, &inode, &dentry);
 			}
 		}
+
+		/* calculate the address of the next dentry to read */
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
+
+		if(dentry.d_list.next == d_list_head)
+			return NULL; //end of the iteration, file not found
 	}
 }
 
