@@ -94,6 +94,7 @@ int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 struct inode *fs_rootfs_search_file(struct inode *inode_dir, char *file_name);
+void fs_print_mount_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
