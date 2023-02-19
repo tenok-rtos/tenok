@@ -69,6 +69,8 @@ void rootfs_init(void)
 	/* configure the root directory inode */
 	struct inode *inode_root = &inodes[0];
 	inode_root->i_mode   = S_IFDIR;
+	inode_root->i_rdev   = RDEV_ROOTFS;
+	inode_root->i_sync   = true;
 	inode_root->i_ino    = 0;
 	inode_root->i_size   = 0;
 	inode_root->i_blocks = 0;
@@ -94,14 +96,30 @@ void rootfs_init(void)
 	mount_cnt = 1;
 }
 
+bool rootfs_mem_check(uint32_t addr)
+{
+	bool pass = false;
+
+	uint32_t inode_start_addr = (uint32_t)inodes;
+	uint32_t inode_end_addr = (uint32_t)inodes + (sizeof(struct inode) * INODE_CNT_MAX);
+
+	if((addr >= inode_start_addr) && (addr <= inode_end_addr))
+		pass = true;
+
+	uint32_t blk_start_addr = (uint32_t)rootfs_blk;
+	uint32_t blk_end_addr = (uint32_t)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
+
+	if((addr >= blk_start_addr) && (addr <= blk_end_addr))
+		pass = true;
+
+	return pass;
+}
+
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
 	uint8_t *read_addr = (uint8_t *)offset; //offset is the address to read the data
 
-	uint8_t *start_addr = (uint8_t *)rootfs_blk;
-	uint8_t *end_addr   = (uint8_t *)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
-
-	if((read_addr > end_addr) || (read_addr < start_addr))
+	if(rootfs_mem_check((uint32_t)read_addr) == false)
 		return EFAULT;
 
 	memcpy(buf, read_addr, size);
@@ -113,10 +131,7 @@ ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t off
 {
 	uint8_t *write_addr = (uint8_t *)offset; //offset is the address to read the data
 
-	uint8_t *start_addr = (uint8_t *)rootfs_blk;
-	uint8_t *end_addr   = (uint8_t *)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
-
-	if((write_addr > end_addr) || (write_addr < start_addr))
+	if(rootfs_mem_check((uint32_t)write_addr) == false)
 		return EFAULT;
 
 	memcpy(write_addr, buf, size);
@@ -186,8 +201,6 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 			if(inode_dir->i_rdev == RDEV_ROOTFS) {
 				return &inodes[dentry.d_inode];
 			} else {
-				inode_dir->i_sync = true;
-
 				/* read the file inode from the storage device */
 				struct inode inode;
 				fs_read_inode(inode_dir->i_rdev, dev_file, dentry.d_inode, &inode);
@@ -241,7 +254,7 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 	return (struct dentry *)dir_data_p;
 }
 
-//create a file under a directory
+//create a file under a directory (currently support for rootfs only)
 static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {
 	/* inodes numbers is full */
@@ -267,6 +280,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
 	new_inode->i_parent = inode_dir->i_ino;
 	new_inode->i_fd     = fd;
+	new_inode->i_sync   = true;
 
 	/* file instantiation */
 	int result = 0;
@@ -345,7 +359,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	return new_inode;
 }
 
-//if sync_now is set as false, the file system will only update the dentry.d_list of the parent directory
+//if sync_now is set as false, the file will not be created instantly
 static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry, bool sync_now)
 {
 	/* inodes numbers is full */
@@ -360,38 +374,36 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 
 	struct inode *new_inode = NULL;
 
-	if(sync_now == true) {
-		/* configure the new file inode */
-		new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
-		new_inode->i_mode   = mnt_inode->i_mode;
-		new_inode->i_rdev   = mnt_inode->i_rdev;
-		new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
-		new_inode->i_parent = inode_dir->i_ino;
-		new_inode->i_size   = mnt_inode->i_size;
-		new_inode->i_blocks = mnt_inode->i_blocks;
-		new_inode->i_data   = mnt_inode->i_data;
-		new_inode->i_sync   = true;
-		new_inode->i_dentry = mnt_inode->i_dentry;
+	/* configure the new file inode */
+	new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
+	new_inode->i_mode   = mnt_inode->i_mode;
+	new_inode->i_rdev   = mnt_inode->i_rdev;
+	new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
+	new_inode->i_parent = inode_dir->i_ino;
+	new_inode->i_size   = mnt_inode->i_size;
+	new_inode->i_blocks = mnt_inode->i_blocks;
+	new_inode->i_data   = mnt_inode->i_data;
+	new_inode->i_sync   = sync_now;
+	new_inode->i_dentry = mnt_inode->i_dentry;
 
-		/* update inode number for the next file */
-		mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
+	/* update inode number for the next file */
+	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
 
-		/* dispatch a fd number for the regular file */
-		if(mnt_inode->i_mode == S_IFREG) {
-			/* dispatch a new file descriptor number */
-			if(file_cnt >= FILE_CNT_LIMIT) {
-				return NULL; //file table is full
-			} else {
-				new_inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
-				file_cnt++;
-			}
-
-			/* create new regular file */
-			int result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
-
-			if(result != 0)
-				return NULL;
+	/* dispatch a fd number for the regular file */
+	if((mnt_inode->i_mode == S_IFREG) && (sync_now == true)) {
+		/* dispatch a new file descriptor number */
+		if(file_cnt >= FILE_CNT_LIMIT) {
+			return NULL; //file table is full
+		} else {
+			new_inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
+			file_cnt++;
 		}
+
+		/* create new regular file */
+		int result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
+
+		if(result != 0)
+			return NULL;
 	}
 
 	/* currently no files is under the directory */
@@ -410,13 +422,45 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	return new_inode;
 }
 
+static bool fs_sync_file(struct inode *inode)
+{
+	/* rootfs files require no synchronization */
+	if(inode->i_rdev == RDEV_ROOTFS)
+		return false;
+
+	/* only regular files require synchronization */
+	if(inode->i_mode != S_IFREG)
+		return false;
+
+	/* the file is already synchronized */
+	if(inode->i_sync == true)
+		return false;
+
+	/* file table is full */
+	if(file_cnt >= FILE_CNT_LIMIT)
+		return false;
+
+	/* dispatch a new file descriptor number */
+	inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
+	file_cnt++;
+
+	/* create a new regular file */
+	int result = reg_file_init(inode, (struct file **)&files, &mem_pool);
+
+	/* failed to create a new regular file */
+	if(result != 0)
+		return false;
+
+	/* update the synchronization flag */
+	inode->i_sync = true;
+
+	return true;
+}
+
 //mount a directory of a external storage under the rootfs
 //input: "inode_src" (directory inode to mount) and "inode_target" (where to mount)
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 {
-	if(inode_target->i_sync == true)
-		return;
-
 	const uint32_t sb_size     = sizeof(struct super_block);
 	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
@@ -598,6 +642,10 @@ static int open_file(char *pathname)
 			inode_curr = inode;
 		} else {
 			/* no more path to be splitted, the remained string should be the file name */
+
+			/* check if the file requires synchronization */
+			if((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync))
+				fs_sync_file(inode); //synchronize the file
 
 			/* failed, not a file */
 			if(inode->i_mode == S_IFDIR)
