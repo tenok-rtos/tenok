@@ -146,6 +146,7 @@ static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_nu
 	dev_file->f_op->read(dev_file, (uint8_t *)inode, sizeof(struct inode), inode_addr);
 }
 
+//search a file under the given directory
 //input : directory inode, file name
 //output: file inode
 struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
@@ -240,6 +241,7 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 	return (struct dentry *)dir_data_p;
 }
 
+//create a file under a directory
 static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {
 	/* inodes numbers is full */
@@ -408,6 +410,8 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	return new_inode;
 }
 
+//mount a directory of a external storage under the rootfs
+//input: "inode_src" (directory inode to mount) and "inode_target" (where to mount)
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 {
 	if(inode_target->i_sync == true)
@@ -461,7 +465,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 //get the first entry of a given path. e.g., given a input"dir1/file1.txt" yields with "dir".
 //input : path
-//output: entry
+//output: entry name and the reduced string of path
 static char *split_path(char *entry, char *path)
 {
 	while(1) {
@@ -488,6 +492,8 @@ static char *split_path(char *entry, char *path)
 }
 
 //create a file by given the pathname, notice that the function only accept absolute path
+//input : path name and file type
+//output: file descriptor number
 static int create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
@@ -549,6 +555,8 @@ static int create_file(char *pathname, uint8_t file_type)
 }
 
 //open a file by given the pathname, notice that the function only accept absolute path
+//input : path name
+//output: file descriptor number
 static int open_file(char *pathname)
 {
 	/* input: file path, output: file descriptor number */
@@ -595,7 +603,8 @@ static int open_file(char *pathname)
 			if(inode->i_mode == S_IFDIR)
 				return -1;
 
-			return inode->i_fd; //return the file descriptor number
+			/* file is opened successfully */
+			return inode->i_fd;
 		}
 	}
 }
