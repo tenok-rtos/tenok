@@ -84,72 +84,6 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 	shell_puts(str);
 }
 
-static void print_mount_directory(char *str, struct inode *inode_dir)
-{
-	if(inode_dir->i_sync == false) {
-		//TODO: handled with the file server
-		fs_mount_directory(inode_dir, inode_dir);
-	}
-
-	const uint32_t sb_size     = sizeof(struct super_block);
-	const uint32_t inode_size  = sizeof(struct inode);
-	const uint32_t dentry_size = sizeof(struct dentry);
-
-	loff_t inode_addr;
-	struct inode inode;
-
-	loff_t dentry_addr;
-	struct dentry dentry;
-
-	/* load storage device file */
-	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
-	ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
-
-	/* get the list head of the dentry list */
-	struct list i_dentry_list = inode_dir->i_dentry;
-	dentry.d_list = i_dentry_list;
-
-	while(1) {
-		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
-			return; //no more dentry to read
-
-		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
-
-		/* load the dentry from the storage device */
-		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
-
-		/* load the file inode from the storage */
-		inode_addr = sb_size + (inode_size * dentry.d_inode);
-		dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
-
-		if(inode.i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dentry.d_name);
-		} else {
-			sprintf(str, "%s%s  ", str, dentry.d_name);
-		}
-	}
-}
-
-static void print_rootfs_directory(char *str, struct inode *inode_dir)
-{
-	struct list *list_curr;
-	list_for_each(list_curr, &inode_curr->i_dentry) {
-		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
-
-		/* get the file inode */
-		int file_inode_num = dentry->d_inode;
-		struct inode *file_inode = &inodes[file_inode_num];
-
-		if(file_inode->i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dentry->d_name);
-		} else {
-			sprintf(str, "%s%s  ", str, dentry->d_name);
-		}
-	}
-}
-
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char str[200] = {0};
@@ -159,12 +93,12 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		return;
 
 	if(inode_curr->i_rdev != RDEV_ROOTFS) {
-		print_mount_directory(str, inode_curr);
-	} else {
-		print_rootfs_directory(str, inode_curr);
+		if(inode_curr->i_sync == false)
+			fs_mount_directory(inode_curr, inode_curr); //FIXME
 	}
 
-	sprintf(str, "%s\n\r", str);
+	fs_print_mount_directory(str, inode_curr);
+
 	shell_puts(str);
 }
 
