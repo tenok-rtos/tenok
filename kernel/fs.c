@@ -732,7 +732,7 @@ static int _mount(char *source, char *target)
 	return 0;
 }
 
-void fs_print_mount_directory(char *str, struct inode *inode_dir)
+void fs_print_directory(char *str, struct inode *inode_dir)
 {
 	/* currently the dentry table is empty */
 	if(inode_dir->i_size == 0)
