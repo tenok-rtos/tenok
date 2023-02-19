@@ -97,7 +97,7 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 			fs_mount_directory(inode_curr, inode_curr); //FIXME
 	}
 
-	fs_print_mount_directory(str, inode_curr);
+	fs_print_directory(str, inode_curr);
 
 	shell_puts(str);
 }
