@@ -497,59 +497,53 @@ static int create_file(char *pathname, uint8_t file_type)
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
 
-	char entry_curr[PATH_LEN_MAX];
+	char entry[PATH_LEN_MAX];
 	char *path = pathname;
 
-	path = split_path(entry_curr, path); //get rid of the first '/'
+	path = split_path(entry, path); //get rid of the first '/'
 
 	while(1) {
-		/* split the path and get the entry hierarchically */
-		path = split_path(entry_curr, path);
+		/* split the path and get the entry name at each layer */
+		path = split_path(entry, path);
+
+		/* two successive '/' are detected */
+		if(entry[0] == '\0')
+			continue;
+
+		/* search the entry and get the inode */
+		inode = fs_search_file(inode_curr, entry);
 
 		if(path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
 
-			/* two successive '/' are detected */
-			if(entry_curr[0] == '\0')
-				continue;
-
-			/* search the entry and get the inode */
-			inode = fs_search_file(inode_curr, entry_curr);
-
 			/* check if the directory exists */
 			if(inode == NULL) {
 				/* directory does not exist, create one */
-				inode = fs_add_file(inode_curr, entry_curr, S_IFDIR);
+				inode = fs_add_file(inode_curr, entry, S_IFDIR);
 
+				/* failed to create the directory */
 				if(inode == NULL)
 					return -1;
-
-				inode_curr = inode;
-			} else {
-				/* directory exists */
-				inode_curr = inode;
 			}
+
+			inode_curr = inode;
 		} else {
-			/* no more path string to be splitted */
+			/* no more path to be splitted, the remained string should be the file name */
 
-			/* check if the file already exists */
-			if(fs_search_file(inode_curr, entry_curr) != NULL)
-				return -1;
-
-			/* if the last character of the pathname is not equal to '/', it is a file */
+			/* make sure the last char is not equal to '/' */
 			int len = strlen(pathname);
-			if(pathname[len - 1] != '/') {
-				/* create new inode for the file */
-				inode = fs_add_file(inode_curr, entry_curr, file_type);
-
-				/* check if the inode is created successfully */
-				if(inode == NULL)
-					return -1; //failed to create the file
-
-				return inode->i_fd;
-			} else {
+			if(pathname[len - 1] == '/')
 				return -1;
-			}
+
+			/* create new inode for the file */
+			inode = fs_add_file(inode_curr, entry, file_type);
+
+			/* failed to create the file */
+			if(inode == NULL)
+				return -1;
+
+			/* file is created successfully */
+			return inode->i_fd;
 		}
 	}
 }
