@@ -10,7 +10,6 @@
 #include "uart.h"
 
 static int create_file(char *pathname, uint8_t file_type);
-static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry);
 
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -332,6 +331,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	return new_inode;
 }
 
+//must be called by the fs_mount_directory() function since current design only supports mounting a whole directory
 static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry)
 {
 	/* inodes numbers is full */
@@ -355,7 +355,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	new_inode->i_size   = mnt_inode->i_size;
 	new_inode->i_blocks = mnt_inode->i_blocks;
 	new_inode->i_data   = mnt_inode->i_data;
-	new_inode->i_sync   = false; //the content will be synchronized only when the user open it
+	new_inode->i_sync   = false; //the content will be synchronized only when the file is opened
 	list_init(&new_inode->i_dentry);
 
 	/* update inode number for the next file */
@@ -365,10 +365,10 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
 
 	/* update size and block information of the inode */
-	//inode_dir->i_size += sizeof(struct dentry);
+	inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	//inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
@@ -434,6 +434,14 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 	struct list i_dentry_list = inode_src->i_dentry;
 
 	dentry_addr = (uint32_t)inode_src->i_data;
+
+	/* for a mounted directory, reset the block size and file size fields of the directory inode since they  *
+	 * are copied from the storage device, but the data is not synchronized! therefore, we now mount all the *
+	 * files under this directory and the reset information will be resumed later.                           */
+	if(inode_target->i_sync == false) {
+		inode_target->i_size   = 0;
+		inode_target->i_blocks = 0;
+	}
 
 	while(1) {
 		/* load the dentry from the storage device */
@@ -611,10 +619,10 @@ static int open_file(char *pathname)
 	}
 }
 
+//input : file path
+//output: directory inode
 struct inode *open_directory(char *pathname)
 {
-	/* input: file path, output: directory inode */
-
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
 		return NULL;
