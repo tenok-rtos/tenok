@@ -163,7 +163,7 @@ static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_nu
 //search a file under the given directory
 //input : directory inode, file name
 //output: file inode
-struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
+static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 {
 	/* currently the dentry table is empty */
 	if(inode_dir->i_size == 0)
