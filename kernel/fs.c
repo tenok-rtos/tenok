@@ -170,49 +170,21 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	if(inode_dir->i_size == 0)
 		return NULL;
 
-	/* load storage device file */
-	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
+	/* mount to synchronize the current directory */
+	if(inode_dir->i_sync == false)
+		fs_mount_directory(inode_dir, inode_dir);
 
-	/* read the first "dentry.d_list" stored at "inode.i_data" in the storage */
-	struct list list;
-	struct dentry *dentry_first = (struct dentry *)inode_dir->i_data;
-	uint32_t list_head_addr     = (uint32_t)&dentry_first->d_list;
-	fs_read_list(dev_file, list_head_addr, &list);
+	/* traversal of the dentry list */
+	struct list *list_curr;
+	list_for_each(list_curr, &inode_dir->i_dentry) {
+		struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-	/* get the list head of the dentries */
-	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
-
-        /* initialize the dentry pointer for iteration */
-        loff_t dentry_addr = (uint32_t)inode_dir->i_data;
-
-        struct dentry dentry;
-
-	while(1) {
-		/* load the dentry from the storage device */
-		fs_read_dentry(dev_file, dentry_addr, &dentry);
-
-		/* compare the file name */
-		if(strcmp(dentry.d_name, file_name) == 0) {
-			if(inode_dir->i_rdev == RDEV_ROOTFS) {
-				return &inodes[dentry.d_inode];
-			} else {
-				/* read the file inode from the storage device */
-				struct inode inode;
-				fs_read_inode(inode_dir->i_rdev, dev_file, dentry.d_inode, &inode);
-
-				/* overwrite the device number */
-				inode.i_rdev = inode_dir->i_rdev;
-
-				return fs_mount_file(inode_dir, &inode, &dentry);
-			}
-		}
-
-		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
-
-		if(dentry.d_list.next == d_list_head)
-			return NULL; //end of the iteration, file not found
+		/* compare the file name with the dentry */
+		if(strcmp(dentry->d_name, file_name) == 0)
+			return &inodes[dentry->d_inode];
 	}
+
+	return NULL;
 }
 
 static int calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
@@ -393,10 +365,10 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	list_push(&inode_dir->i_dentry, &new_dentry->d_list);
 
 	/* update size and block information of the inode */
-	inode_dir->i_size += sizeof(struct dentry);
+	//inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+	//inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
