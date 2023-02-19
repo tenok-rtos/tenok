@@ -546,6 +546,8 @@ static int create_file(char *pathname, uint8_t file_type)
 					return -1; //failed to create the file
 
 				return inode->i_fd;
+			} else {
+				return -1;
 			}
 		}
 	}
