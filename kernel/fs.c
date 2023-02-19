@@ -771,7 +771,7 @@ void fs_print_mount_directory(char *str, struct inode *inode_dir)
 		/* calculate the address of the next dentry to read */
 		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
 
-		if((dentry.d_list.next = dentry.d_list.next) == d_list_head)
+		if(dentry.d_list.next == d_list_head)
 			break; //iteration is complete
 	}
 
