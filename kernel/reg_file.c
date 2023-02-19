@@ -6,10 +6,13 @@
 #include "mpool.h"
 #include "syscall.h"
 #include "reg_file.h"
+#include "kconfig.h"
 
 long reg_file_llseek(struct file *filp, long offset, int whence);
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+
+extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
 static struct file_operations reg_file_ops = {
 	.llseek = reg_file_llseek,
@@ -35,8 +38,17 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *read_addr = reg_file->file_inode->i_data + offset + reg_file->pos;
-	int retval = fs_read(reg_file->file_inode, read_addr, (uint8_t *)buf, size);
+	/* get file inode */
+	struct inode *inode = reg_file->file_inode;
+
+	/* get storage device file */
+	struct file *driver_file = mount_points[inode->i_rdev].dev_file;
+
+	/* calculate the read address */
+	uint32_t read_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+
+	/* read data */
+	int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, size, read_addr);
 
 	if(retval >= 0)
 		reg_file->pos += size;
@@ -48,8 +60,17 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
 {
 	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	uint8_t *write_addr = reg_file->file_inode->i_data + offset + reg_file->pos;
-	int retval = fs_write(reg_file->file_inode, write_addr, (uint8_t *)buf, size);
+	/* get file inode */
+	struct inode *inode = reg_file->file_inode;
+
+	/* get storage device file */
+	struct file *driver_file = mount_points[inode->i_rdev].dev_file;
+
+	/* calculate the read address */
+	uint32_t write_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+
+	/* write data */
+	int retval = driver_file->f_op->write(NULL, (uint8_t *)buf, size, write_addr);
 
 	if(retval >= 0) {
 		reg_file->pos += size;
