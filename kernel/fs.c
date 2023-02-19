@@ -10,7 +10,7 @@
 #include "uart.h"
 
 static int create_file(char *pathname, uint8_t file_type);
-static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry, bool sync_now);
+static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry);
 
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -208,7 +208,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 				/* overwrite the device number */
 				inode.i_rdev = inode_dir->i_rdev;
 
-				return fs_mount_file(inode_dir, &inode, &dentry, true);
+				return fs_mount_file(inode_dir, &inode, &dentry);
 			}
 		}
 	}
@@ -359,8 +359,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	return new_inode;
 }
 
-//if sync_now is set as false, the file will not be created instantly
-static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry, bool sync_now)
+static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry)
 {
 	/* inodes numbers is full */
 	if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
@@ -383,28 +382,11 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	new_inode->i_size   = mnt_inode->i_size;
 	new_inode->i_blocks = mnt_inode->i_blocks;
 	new_inode->i_data   = mnt_inode->i_data;
-	new_inode->i_sync   = sync_now;
+	new_inode->i_sync   = false; //the content will be synchronized only when the user open it
 	new_inode->i_dentry = mnt_inode->i_dentry;
 
 	/* update inode number for the next file */
 	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
-
-	/* dispatch a fd number for the regular file */
-	if((mnt_inode->i_mode == S_IFREG) && (sync_now == true)) {
-		/* dispatch a new file descriptor number */
-		if(file_cnt >= FILE_CNT_LIMIT) {
-			return NULL; //file table is full
-		} else {
-			new_inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
-			file_cnt++;
-		}
-
-		/* create new regular file */
-		int result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
-
-		if(result != 0)
-			return NULL;
-	}
 
 	/* currently no files is under the directory */
 	if(list_is_empty(&inode_dir->i_dentry) == true)
@@ -481,10 +463,8 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 	while(1) {
 		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX)) {
-			inode_src->i_sync = true;
-			return; //no more dentry to read
-		}
+		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
+			break; //no more dentry to read
 
 		/* calculate the address of the next dentry to read */
 		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
@@ -499,12 +479,12 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 		/* overwrite the device number */
 		inode.i_rdev = inode_src->i_rdev;
 
-		/* files will not be synchronized with the file system before using */
-		bool sync_now = inode.i_mode == S_IFDIR ? true : false;
-
 		/* mount the file */
-		fs_mount_file(inode_target, &inode, &dentry, sync_now);
+		fs_mount_file(inode_target, &inode, &dentry);
 	}
+
+	/* the directory is now synchronized */
+	inode_target->i_sync = true;
 }
 
 //get the first entry of a given path. e.g., given a input "dir1/file1.txt" yields with "dir".
@@ -644,7 +624,7 @@ static int open_file(char *pathname)
 			/* no more path to be splitted, the remained string should be the file name */
 
 			/* check if the file requires synchronization */
-			if((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync))
+			if((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync == false))
 				fs_sync_file(inode); //synchronize the file
 
 			/* failed, not a file */
