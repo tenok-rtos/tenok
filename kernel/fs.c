@@ -443,6 +443,10 @@ static bool fs_sync_file(struct inode *inode)
 //input: "inode_src" (directory inode to mount) and "inode_target" (where to mount)
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 {
+	/* nothing to mount */
+	if(inode_src->i_size == 0)
+		return;
+
 	const uint32_t sb_size     = sizeof(struct super_block);
 	const uint32_t inode_size  = sizeof(struct inode);
 	const uint32_t dentry_size = sizeof(struct dentry);
@@ -459,16 +463,10 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 	/* get the list head of the dentry.d_list */
 	struct list i_dentry_list = inode_src->i_dentry;
-	dentry.d_list = i_dentry_list;
+
+	dentry_addr = (uint32_t)inode_src->i_data;
 
 	while(1) {
-		/* if the address points to the inodes region, then the iteration is back to the list head */
-		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
-			break; //no more dentry to read
-
-		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
-
 		/* load the dentry from the storage device */
 		dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
 
@@ -481,6 +479,13 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 
 		/* mount the file */
 		fs_mount_file(inode_target, &inode, &dentry);
+
+		/* calculate the address of the next dentry to read */
+		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
+
+		/* if the address points to the inodes region, then the iteration is back to the list head */
+		if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
+			break; //no more dentry to read
 	}
 
 	/* the directory is now synchronized */
