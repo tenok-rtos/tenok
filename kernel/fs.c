@@ -462,7 +462,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 //get the first entry of a given path. e.g., given a input"dir1/file1.txt" yields with "dir".
 //input : path
 //output: entry
-static char *splitpath(char *entry, char *path)
+static char *split_path(char *entry, char *path)
 {
 	while(1) {
 		bool found_dir = (*path == '/');
@@ -487,6 +487,7 @@ static char *splitpath(char *entry, char *path)
 	return path; //return the address of the left path string
 }
 
+//create a file by given the pathname, notice that the function only accept absolute path
 static int create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
@@ -499,11 +500,11 @@ static int create_file(char *pathname, uint8_t file_type)
 	char entry_curr[PATH_LEN_MAX];
 	char *path = pathname;
 
-	path = splitpath(entry_curr, path); //get rid of the first '/'
+	path = split_path(entry_curr, path); //get rid of the first '/'
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		path = splitpath(entry_curr, path);
+		path = split_path(entry_curr, path);
 
 		if(path != NULL) {
 			/* the path can be further splitted, which means it is a directory */
@@ -553,6 +554,7 @@ static int create_file(char *pathname, uint8_t file_type)
 	}
 }
 
+//open a file by given the pathname, notice that the function only accept absolute path
 static int open_file(char *pathname)
 {
 	/* input: file path, output: file descriptor number */
@@ -564,38 +566,40 @@ static int open_file(char *pathname)
 	struct inode *inode_curr = &inodes[0]; //start from the root node
 	struct inode *inode;
 
-	char entry_curr[PATH_LEN_MAX] = {0};
+	char entry[PATH_LEN_MAX] = {0};
 	char *path = pathname;
 
-	path = splitpath(entry_curr, path); //get rid of the first '/'
+	path = split_path(entry, path); //get rid of the first '/'
 
 	while(1) {
-		/* split the path and get the entry hierarchically */
-		path = splitpath(entry_curr, path);
+		/* split the path and get the entry name at each layer */
+		path = split_path(entry, path);
+
+		/* two successive '/' are detected */
+		if(entry[0] == '\0')
+			continue;
+
+		/* search the entry and get the inode */
+		inode = fs_search_file(inode_curr, entry);
+
+		/* file or directory not found */
+		if(inode == NULL)
+			return -1;
 
 		if(path != NULL) {
-			/* the path can be further splitted, which means it is a directory */
+			/* the path can be further splitted, we can get deeper into the directory */
 
-			/* two successive '/' are detected */
-			if(entry_curr[0] == '\0')
-				continue;
-
-			/* search the entry and get the inode */
-			inode = fs_search_file(inode_curr, entry_curr);
-
-			if(inode == NULL)
-				return -1; //directory does not exist
+			/* failed, not a directory */
+			if(inode->i_mode != S_IFDIR)
+				return -1;
 
 			inode_curr = inode;
 		} else {
-			/* check if the file exists */
-			inode = fs_search_file(inode_curr, entry_curr);
+			/* no more path to be splitted, the remained string should be the file name */
 
-			if(inode == NULL)
-				return -1;
-
+			/* failed, not a file */
 			if(inode->i_mode == S_IFDIR)
-				return -1; //not a file, no file descriptor number to be return
+				return -1;
 
 			return inode->i_fd; //return the file descriptor number
 		}
@@ -616,14 +620,14 @@ struct inode *open_directory(char *pathname)
 	char entry_curr[PATH_LEN_MAX] = {0};
 	char *path = pathname;
 
-	path = splitpath(entry_curr, path); //get rid of the first '/'
+	path = split_path(entry_curr, path); //get rid of the first '/'
 	if(path == NULL) {
 		return inode_curr;
 	}
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		path = splitpath(entry_curr, path);
+		path = split_path(entry_curr, path);
 
 		/* two successive '/' are detected */
 		if(entry_curr[0] == '\0')
