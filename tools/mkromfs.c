@@ -18,6 +18,10 @@
 struct super_block {
 	uint32_t s_blk_cnt;   //number of the used blocks
 	uint32_t s_inode_cnt; //number of the used inodes
+
+	uint32_t s_sb_addr;   //start address of the super block
+	uint32_t s_ino_addr;  //start address of the inode table
+	uint32_t s_blk_addr;  //start address of the blocks region
 };
 
 struct mount {
@@ -73,6 +77,9 @@ void romfs_init(void)
 
 	romfs_sb.s_inode_cnt = 1;
 	romfs_sb.s_blk_cnt   = 0;
+	romfs_sb.s_sb_addr   = 0;
+	romfs_sb.s_ino_addr  = sizeof(struct super_block);
+	romfs_sb.s_blk_addr  = romfs_sb.s_ino_addr + (sizeof(struct inode) * INODE_CNT_MAX);
 }
 
 struct inode *fs_search_file(struct inode *inode, char *file_name)

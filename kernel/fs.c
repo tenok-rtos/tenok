@@ -12,6 +12,9 @@
 static int create_file(char *pathname, uint8_t file_type);
 static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_inode, struct dentry *mnt_dentry, bool sync_now);
 
+ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
+ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+
 extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
 extern struct memory_pool mem_pool;
 extern int file_cnt;
@@ -21,6 +24,11 @@ uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
 
 struct mount mount_points[MOUNT_CNT_MAX + 1]; //0 is reserved for the rootfs
 int mount_cnt = 0;
+
+static struct file_operations rootfs_file_ops = {
+	.read = rootfs_read,
+	.write = rootfs_write
+};
 
 int register_chrdev(char *name, struct file_operations *fops)
 {
@@ -67,45 +75,57 @@ void rootfs_init(void)
 	inode_root->i_data   = NULL;
 	list_init(&inode_root->i_dentry);
 
-	mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt = 1;
-	mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt   = 0;
+	/* create new file for the rootfs */
+	struct file *rootfs_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+	rootfs_file->f_op = &rootfs_file_ops;
+
+	int fd = file_cnt + TASK_NUM_MAX + 1;
+	files[fd] = rootfs_file;
+	file_cnt++;
+
+	/* mount the rootfs */
+	struct super_block *rootfs_super_blk = &mount_points[RDEV_ROOTFS].super_blk;
+	rootfs_super_blk->s_inode_cnt = 1;
+	rootfs_super_blk->s_blk_cnt   = 0;
+	rootfs_super_blk->s_sb_addr   = (uint32_t)rootfs_super_blk;
+	rootfs_super_blk->s_ino_addr  = (uint32_t)inodes;
+	rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blk;
+	mount_points[RDEV_ROOTFS].dev_file = rootfs_file;
 	mount_cnt = 1;
 }
 
-static void fs_read_list(uint8_t rdev, struct file *dev_file, uint32_t list_addr, struct list *list)
+ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-	if(rdev == RDEV_ROOTFS) {
-		/* copy the list from the rootfs memory */
-		memcpy(list, (uint8_t *)list_addr, sizeof(struct list));
-	} else {
-		/* read the list from the storage device */
-		dev_file->f_op->read(dev_file, (uint8_t *)list, sizeof(struct list), list_addr);
-	}
+	uint8_t *addr = (uint8_t *)offset; //offset is the address to read the data
+	memcpy(buf, addr, size);
 }
 
-static void fs_read_dentry(uint8_t rdev, struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
+ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-	if(rdev == RDEV_ROOTFS) {
-		/* copy the dentry from the rootfs memory */
-		memcpy(dentry, (uint8_t *)dentry_addr, sizeof(struct dentry));
-	} else {
-		/* read the dentry from the storage device */
-		dev_file->f_op->read(dev_file, (uint8_t *)dentry, sizeof(struct dentry), dentry_addr);
-	}
+	uint8_t *addr = (uint8_t *)offset; //offset is the address to write the data
+	memcpy(addr, buf, size);
+}
+
+static void fs_read_list(struct file *dev_file, uint32_t list_addr, struct list *list)
+{
+	/* read the list */
+	dev_file->f_op->read(dev_file, (uint8_t *)list, sizeof(struct list), list_addr);
+}
+
+static void fs_read_dentry(struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
+{
+	/* read the dentry */
+	dev_file->f_op->read(dev_file, (uint8_t *)dentry, sizeof(struct dentry), dentry_addr);
 }
 
 static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_num, struct inode *inode)
 {
-	if(rdev == RDEV_ROOTFS) {
-		/* copy the inode from the rootfs memory */
-		memcpy(inode, (uint8_t *)&inodes[inode_num], sizeof(struct inode));
-	} else {
-		/* calculate the address of the inode */
-		uint32_t inode_addr = sizeof(struct super_block) + (sizeof(struct inode) * inode_num);
+	/* calculate the inode address */
+	struct super_block *super_blk = &mount_points[rdev].super_blk;
+	uint32_t inode_addr = super_blk->s_ino_addr + (sizeof(struct inode) * inode_num);
 
-		/* read inode from the storage device */
-		dev_file->f_op->read(dev_file, (uint8_t *)inode, sizeof(struct inode), inode_addr);
-	}
+	/* read the inode */
+	dev_file->f_op->read(dev_file, (uint8_t *)inode, sizeof(struct inode), inode_addr);
 }
 
 //input : directory inode, file name
@@ -123,7 +143,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	struct list list;
 	struct dentry *dentry_first = (struct dentry *)inode_dir->i_data;
 	uint32_t list_head_addr     = (uint32_t)&dentry_first->d_list;
-	fs_read_list(inode_dir->i_rdev, dev_file, list_head_addr, &list);
+	fs_read_list(dev_file, list_head_addr, &list);
 
 	/* get the list head of the dentries */
 	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
@@ -140,7 +160,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 		uint32_t dentry_addr = (loff_t)list_entry(d_list_curr, struct dentry, d_list);
 
 		/* load the dentry from the storage device */
-		fs_read_dentry(inode_dir->i_rdev, dev_file, dentry_addr, &dentry);
+		fs_read_dentry(dev_file, dentry_addr, &dentry);
 
 		/* compare the file name */
 		if(strcmp(dentry.d_name, file_name) == 0) {
@@ -162,7 +182,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	}
 }
 
-static int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
+static int calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 {
 	/* calculate how many dentries can a block hold */
 	int dentry_per_blk = block_size / sizeof(struct dentry);
@@ -178,7 +198,7 @@ static int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
 int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t size)
 {
 	if(inode->i_rdev == RDEV_ROOTFS) {
-		/* virtual address translation */
+		/* address translation */
 		write_addr += (uint32_t)rootfs_blk;
 
 		uint8_t *start_addr = (uint8_t *)rootfs_blk;
@@ -206,7 +226,7 @@ int fs_write(struct inode *inode, uint8_t *write_addr, uint8_t *data, size_t siz
 int fs_read(struct inode *inode, uint8_t *read_addr, uint8_t *data, size_t size)
 {
 	if(inode->i_rdev == RDEV_ROOTFS) {
-		/* virtual address translation */
+		/* address translation */
 		read_addr += (uint32_t)rootfs_blk;
 
 		uint8_t *start_addr = (uint8_t *)rootfs_blk;
@@ -355,7 +375,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	inode_dir->i_blocks = calculate_dentry_block_size(ROOTFS_BLK_SIZE, dentry_cnt);
+	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
@@ -420,7 +440,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	inode_dir->i_blocks = calculate_dentry_block_size(ROOTFS_BLK_SIZE, dentry_cnt);
+	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
