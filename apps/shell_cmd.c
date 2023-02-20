@@ -7,7 +7,6 @@
 
 extern struct shell_struct shell;
 extern struct inode inodes[INODE_CNT_MAX];
-extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
 struct inode *shell_dir_curr = NULL;
 

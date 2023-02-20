@@ -10,6 +10,7 @@
 #include "uart.h"
 
 static int create_file(char *pathname, uint8_t file_type);
+static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -95,7 +96,7 @@ void rootfs_init(void)
 	mount_cnt = 1;
 }
 
-bool rootfs_mem_check(uint32_t addr)
+static bool rootfs_mem_check(uint32_t addr)
 {
 	bool pass = false;
 
@@ -186,7 +187,7 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	return NULL;
 }
 
-static int calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
+static int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 {
 	/* calculate how many dentries can a block hold */
 	int dentry_per_blk = block_size / sizeof(struct dentry);
@@ -326,7 +327,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+	inode_dir->i_blocks = fs_calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
@@ -368,7 +369,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	inode_dir->i_size += sizeof(struct dentry);
 
 	int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-	inode_dir->i_blocks = calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+	inode_dir->i_blocks = fs_calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
 
 	return new_inode;
 }
@@ -410,7 +411,7 @@ static bool fs_sync_file(struct inode *inode)
 
 //mount a directory of a external storage under the rootfs
 //input: "inode_src" (directory inode to mount) and "inode_target" (where to mount)
-void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
+static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 {
 	/* nothing to mount */
 	if(inode_src->i_size == 0)
@@ -472,7 +473,7 @@ void fs_mount_directory(struct inode *inode_src, struct inode *inode_target)
 //get the first entry of a given path. e.g., given a input "dir1/file1.txt" yields with "dir".
 //input : path
 //output: entry name and the reduced string of path
-static char *split_path(char *entry, char *path)
+static char *fs_split_path(char *entry, char *path)
 {
 	while(1) {
 		bool found_dir = (*path == '/');
@@ -512,11 +513,11 @@ static int create_file(char *pathname, uint8_t file_type)
 	char entry[PATH_LEN_MAX];
 	char *path = pathname;
 
-	path = split_path(entry, path); //get rid of the first '/'
+	path = fs_split_path(entry, path); //get rid of the first '/'
 
 	while(1) {
 		/* split the path and get the entry name at each layer */
-		path = split_path(entry, path);
+		path = fs_split_path(entry, path);
 
 		/* two successive '/' are detected */
 		if(entry[0] == '\0')
@@ -563,7 +564,7 @@ static int create_file(char *pathname, uint8_t file_type)
 //open a file by given the pathname, notice that the function only accept absolute path
 //input : path name
 //output: file descriptor number
-static int open_file(char *pathname)
+static int fs_open_file(char *pathname)
 {
 	/* input: file path, output: file descriptor number */
 
@@ -577,11 +578,11 @@ static int open_file(char *pathname)
 	char entry[PATH_LEN_MAX] = {0};
 	char *path = pathname;
 
-	path = split_path(entry, path); //get rid of the first '/'
+	path = fs_split_path(entry, path); //get rid of the first '/'
 
 	while(1) {
 		/* split the path and get the entry name at each layer */
-		path = split_path(entry, path);
+		path = fs_split_path(entry, path);
 
 		/* two successive '/' are detected */
 		if(entry[0] == '\0')
@@ -621,7 +622,7 @@ static int open_file(char *pathname)
 
 //input : file path
 //output: directory inode
-struct inode *open_directory(char *pathname)
+struct inode *fs_open_directory(char *pathname)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
@@ -633,14 +634,14 @@ struct inode *open_directory(char *pathname)
 	char entry_curr[PATH_LEN_MAX] = {0};
 	char *path = pathname;
 
-	path = split_path(entry_curr, path); //get rid of the first '/'
+	path = fs_split_path(entry_curr, path); //get rid of the first '/'
 	if(path == NULL) {
 		return inode_curr;
 	}
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
-		path = split_path(entry_curr, path);
+		path = fs_split_path(entry_curr, path);
 
 		/* two successive '/' are detected */
 		if(entry_curr[0] == '\0')
@@ -674,12 +675,12 @@ struct inode *open_directory(char *pathname)
 static int _mount(char *source, char *target)
 {
 	/* get the file of the storage to be mounted */
-	int source_fd = open_file(source);
+	int source_fd = fs_open_file(source);
 	if(source_fd < 0)
 		return -1;
 
 	/* get the rootfs inode to mount the storage */
-	struct inode *target_inode = open_directory(target);
+	struct inode *target_inode = fs_open_directory(target);
 	if(target_inode == NULL)
 		return -1;
 
@@ -914,7 +915,7 @@ void file_system(void)
 			char path[PATH_LEN_MAX];
 			read(FILE_SYSTEM_FD, path, path_len);
 
-			int open_fd = open_file(path);
+			int open_fd = fs_open_file(path);
 			write(reply_fd, &open_fd, sizeof(open_fd));
 
 			break;
@@ -926,7 +927,7 @@ void file_system(void)
 			char path[PATH_LEN_MAX];
 			read(FILE_SYSTEM_FD, path, path_len);
 
-			struct inode *inode_dir = open_directory(path);
+			struct inode *inode_dir = fs_open_directory(path);
 
 			write(reply_fd, &inode_dir, sizeof(inode_dir));
 
