@@ -22,7 +22,7 @@ ssize_t write(int fd, const void *buf, size_t count);
 long lseek(int fd, long offset, int whence);
 int fstat(int fd, struct stat *statbuf);
 void opendir(const char *name, DIR *dir);
-struct dirent *readdir(DIR *dirp);
+int readdir(DIR *dirp, struct dirent *dirent);
 uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);

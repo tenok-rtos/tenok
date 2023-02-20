@@ -77,13 +77,13 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	opendir(path, &dir);
 
 	/* enumerate the directory */
-	struct dirent *dirent;
-	while((dirent = readdir(&dir)) != NULL) {
-		//if(inode_file.i_mode == S_IFDIR) {
-		//        sprintf(str, "%s%s/  ", str, dirent->d_name);
-		//} else {
-		sprintf(str, "%s%s  ", str, dirent->d_name);
-		//}
+	struct dirent dirent;
+	while((readdir(&dir, &dirent)) != -1) {
+		if(dirent.d_type == S_IFDIR) {
+			sprintf(str, "%s%s/  ", str, dirent.d_name);
+		} else {
+			sprintf(str, "%s%s  ", str, dirent.d_name);
+		}
 	}
 
 	sprintf(str, "%s\n\r", str);

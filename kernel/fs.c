@@ -743,19 +743,24 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
 	}
 }
 
-struct dirent *fs_read_dir(DIR *dirp)
+int fs_readdir(DIR *dirp, struct dirent *dirent)
 {
 	/* no more dentry to read */
 	if(dirp->dentry_list == &dirp->inode_dir->i_dentry)
-		return NULL;
+		return -1;
 
 	/* read the dentry */
 	struct dentry *dentry = list_entry(dirp->dentry_list, struct dentry, d_list);
 
+	/* copy dirent data */
+	dirent->d_ino = dentry->d_inode;
+	dirent->d_type = inodes[dentry->d_inode].i_mode;
+	strncpy(dirent->d_name, dentry->d_name, FILE_NAME_LEN_MAX);
+
 	/* update the dentry pointer */
 	dirp->dentry_list = dirp->dentry_list->next;
 
-	return dentry;
+	return 0;
 }
 
 void fs_print_directory(char *str, struct inode *inode_dir)
