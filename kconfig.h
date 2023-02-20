@@ -8,6 +8,8 @@
 #define TASK_MAX_PRIORITY  5
 #define TASK_NAME_LEN_MAX  50
 
+#define PRINT_SIZE_MAX     400
+
 #define MEM_POOL_SIZE      4096
 
 #define FILE_CNT_LIMIT     20

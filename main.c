@@ -89,7 +89,7 @@ void shell_task(void)
 
 	/* greeting */
 	char s[100] = {0};
-	sprintf(s, "firmware build time: %s %s\n\rtype `help' for help\n\r\n\r", __TIME__, __DATE__);
+	snprintf(s, 100, "firmware build time: %s %s\n\rtype `help' for help\n\r\n\r", __TIME__, __DATE__);
 	shell_puts(s);
 
 	while(1) {
@@ -125,11 +125,11 @@ void fifo_task2(void)
 
 	int fd = open("/fifo_test", 0, 0);
 	char data[10] = {0};
-	char str[20];
+	char str[50];
 
 	while(1) {
 		read(fd, &data, 5);
-		sprintf(str, "received: %s\n\r", data);
+		snprintf(str, 50, "received: %s\n\r", data);
 		uart3_puts(str);
 	}
 }
@@ -174,7 +174,7 @@ void message_queue_task1(void)
 	my_message_t msg;
 
 	char *str = "hello world!\n\r";
-	strcpy(msg.data, str);
+	strncpy(msg.data, str, PRINT_SIZE_MAX);
 
 	struct mq_attr attr = {
 		.mq_flags = 0,

@@ -145,9 +145,9 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
 	/* configure the new dentry */
 	struct dentry *new_dentry = (struct dentry*)dir_data_p;
-	new_dentry->d_inode  = romfs_sb.s_inode_cnt; //assign new inode number for the file
-	new_dentry->d_parent = inode_dir->i_ino; //save the inode of the parent directory
-	strcpy(new_dentry->d_name, file_name);     //copy the file name
+	new_dentry->d_inode  = romfs_sb.s_inode_cnt;               //assign new inode number for the file
+	new_dentry->d_parent = inode_dir->i_ino;                   //save the inode of the parent directory
+	strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX); //copy the file name
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[romfs_sb.s_inode_cnt];

@@ -26,8 +26,8 @@ static void shell_ctrl_c_handler(struct shell_struct *shell)
 
 static void shell_unknown_cmd_handler(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char s[200];
-	sprintf(s, "unknown command: %s\n\r", param_list[0]);
+	char s[50 + CMD_LEN_MAX];
+	snprintf(s, 50 + CMD_LEN_MAX, "unknown command: %s\n\r", param_list[0]);
 	shell_puts(s);
 }
 
@@ -102,10 +102,11 @@ static void shell_insert_char(struct shell_struct *shell, char c)
 
 static void shell_refresh_line(struct shell_struct *shell)
 {
-	char s[PROMPT_LEN_MAX * 2];
-	sprintf(s, "\33[2K\r"   /* clear current line */
-	        "%s%s\r"        /* show prompt */
-	        "\033[%dC",     /* move cursor */
+	char s[PROMPT_LEN_MAX * 5];
+	snprintf(s, PROMPT_LEN_MAX * 5,
+                "\33[2K\r"   /* clear current line */
+	        "%s%s\r"     /* show prompt */
+	        "\033[%dC",  /* move cursor */
 	        shell->prompt_msg, shell->buf, shell->prompt_len + shell->cursor_pos);
 	shell_puts(s);
 }
@@ -135,7 +136,7 @@ static void shell_push_new_history(struct shell_struct *shell, char *cmd)
 	shell_history_t *curr_history;
 	if(shell->history_num < HISTORY_MAX_SIZE) {
 		curr_history = &shell->history[HISTORY_MAX_SIZE - shell->history_num - 1];
-		strcpy(curr_history->cmd, cmd);
+		strncpy(curr_history->cmd, cmd, CMD_LEN_MAX);
 		shell->history_num++;
 		shell->history_top = curr_history;
 		return;
@@ -150,13 +151,13 @@ static void shell_push_new_history(struct shell_struct *shell, char *cmd)
 		}
 		history_end = history_end->next;
 	}
-	strcpy(history_end->cmd, shell->buf);
+	strncpy(history_end->cmd, shell->buf, CMD_LEN_MAX);
 	shell->history_top = history_end;
 }
 
 void shell_print_history(struct shell_struct *shell)
 {
-	char s[CMD_LEN_MAX * 2];
+	char s[CMD_LEN_MAX * 3];
 
 	shell_history_t *history_print = shell->history_top;
 	int i;
@@ -165,7 +166,7 @@ void shell_print_history(struct shell_struct *shell)
 			break;
 		}
 
-		sprintf(s, "%d %s\n\r", i+1, history_print->cmd);
+		snprintf(s, CMD_LEN_MAX * 3, "%d %s\n\r", i+1, history_print->cmd);
 		shell_puts(s);
 
 		history_print = history_print->next;
@@ -265,7 +266,7 @@ void shell_cli(struct shell_struct *shell)
 						break;
 					}
 					if(shell->read_history == false) {
-						strcpy(shell->typing_preserve, shell->buf);
+						strncpy(shell->typing_preserve, shell->buf, CMD_LEN_MAX);
 						shell->history_disp = shell->history_top;
 						shell->history_disp_curr = 0;
 						shell->read_history = true;
@@ -274,10 +275,10 @@ void shell_cli(struct shell_struct *shell)
 					}
 					/* restore user's typing if finished traveling through the whole list */
 					if(shell->history_disp_curr < shell->history_num) {
-						strcpy(shell->buf, shell->history_disp->cmd);
+						strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
 						shell->history_disp_curr++;
 					} else {
-						strcpy(shell->buf, shell->typing_preserve);
+						strncpy(shell->buf, shell->typing_preserve, CMD_LEN_MAX);
 						shell->history_disp = shell->history_top;
 						shell->history_disp_curr = 0;
 						shell->read_history = false;
@@ -293,10 +294,10 @@ void shell_cli(struct shell_struct *shell)
 					}
 					/* restore user's typing if finished traveling through the whole list */
 					if(shell->history_disp_curr > 1) {
-						strcpy(shell->buf, shell->history_disp->cmd);
+						strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
 						shell->history_disp_curr--;
 					} else {
-						strcpy(shell->buf, shell->typing_preserve);
+						strncpy(shell->buf, shell->typing_preserve, CMD_LEN_MAX);
 						shell->history_disp = shell->history_top;
 						shell->history_disp_curr = 0;
 						shell->read_history = false;

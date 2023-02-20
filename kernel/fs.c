@@ -33,7 +33,7 @@ static struct file_operations rootfs_file_ops = {
 int register_chrdev(char *name, struct file_operations *fops)
 {
 	char devpath[100] = {0};
-	sprintf(devpath, "/dev/%s", name);
+	snprintf(devpath, PATH_LEN_MAX, "/dev/%s", name);
 
 	/* create new file in the file system */
 	int fd = create_file(devpath, S_IFCHR);
@@ -50,7 +50,7 @@ int register_chrdev(char *name, struct file_operations *fops)
 int register_blkdev(char *name, struct file_operations *fops)
 {
 	char devpath[100] = {0};
-	sprintf(devpath, "/dev/%s", name);
+	snprintf(devpath, PATH_LEN_MAX, "/dev/%s", name);
 
 	/* create new file in the file system */
 	int fd = create_file(devpath, S_IFBLK);
@@ -236,9 +236,9 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 
 	/* configure the new dentry */
 	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-	new_dentry->d_inode    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-	new_dentry->d_parent  = inode_dir->i_ino; //save the inode of the parent directory
-	strcpy(new_dentry->d_name, file_name);    //copy the file name
+	new_dentry->d_inode  = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
+	new_dentry->d_parent = inode_dir->i_ino;                                //save the inode of the parent directory
+	strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX);              //copy the file name
 
 	/* file table is full */
 	if(file_cnt >= FILE_CNT_LIMIT)
@@ -342,8 +342,8 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 	/* configure the new dentry */
 	struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
 	new_dentry->d_inode  = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-	new_dentry->d_parent = inode_dir->i_ino;        //save the inode of the parent directory
-	strcpy(new_dentry->d_name, mnt_dentry->d_name); //copy the file name
+	new_dentry->d_parent = inode_dir->i_ino;                                //save the inode of the parent directory
+	strncpy(new_dentry->d_name, mnt_dentry->d_name, FILE_NAME_LEN_MAX);     //copy the file name
 
 	struct inode *new_inode = NULL;
 
@@ -741,7 +741,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
 			struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
 			if(dentry->d_inode == inode_last) {
-				sprintf(path, "%s%s/", path, dentry->d_name);
+				snprintf(path, PATH_LEN_MAX, "%s%s/", path, dentry->d_name);
 				break;
 			}
 		}
