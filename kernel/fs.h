@@ -21,7 +21,8 @@ typedef long loff_t;
 enum {
 	FS_CREATE_FILE = 1,
 	FS_OPEN_FILE   = 2,
-	FS_MOUNT       = 3,
+	FS_OPEN_DIR    = 3,
+	FS_MOUNT       = 4,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -67,6 +68,13 @@ struct dentry {
 	struct list d_list;
 };
 
+typedef struct inode DIR;
+
+struct dirent {
+	uint32_t d_ino;
+	char     d_name[FILE_NAME_LEN_MAX];
+};
+
 struct stat {
 	uint8_t  st_mode;   //file type
 	uint32_t st_ino;    //inode number
@@ -93,10 +101,12 @@ int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
+void fs_get_pwd(char *path, DIR *dir_curr);
 void fs_print_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
+void request_open_directory(int reply_fd, char *path);
 void request_mount(int reply_fd, char *source, char *path);
 
 void file_system(void);

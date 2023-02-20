@@ -29,6 +29,8 @@ void sys_read(void);
 void sys_write(void);
 void sys_lseek(void);
 void sys_fstat(void);
+void sys_opendir(void);
+void sys_readdir(void);
 void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
@@ -70,14 +72,16 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(write, 9),
 	DEF_SYSCALL(lseek, 10),
 	DEF_SYSCALL(fstat, 11),
-	DEF_SYSCALL(getpriority, 12),
-	DEF_SYSCALL(setpriority, 13),
-	DEF_SYSCALL(getpid, 14),
-	DEF_SYSCALL(mknod, 15),
-	DEF_SYSCALL(mq_open, 16),
-	DEF_SYSCALL(mq_receive, 17),
-	DEF_SYSCALL(mq_send, 18),
-	DEF_SYSCALL(os_sem_wait, 19)
+	DEF_SYSCALL(opendir, 12),
+	DEF_SYSCALL(readdir, 13),
+	DEF_SYSCALL(getpriority, 14),
+	DEF_SYSCALL(setpriority, 15),
+	DEF_SYSCALL(getpid, 16),
+	DEF_SYSCALL(mknod, 17),
+	DEF_SYSCALL(mq_open, 18),
+	DEF_SYSCALL(mq_receive, 19),
+	DEF_SYSCALL(mq_send, 20),
+	DEF_SYSCALL(os_sem_wait, 21)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -372,6 +376,31 @@ void sys_fstat(void)
 	}
 
 	running_task->stack_top->r0 = 0; //pass return value
+}
+
+void sys_opendir(void)
+{
+	char *name = (char *)running_task->stack_top->r0;
+
+	char *pathname = (char *)running_task->stack_top->r0;
+
+	int task_fd = running_task->pid + 1;
+
+	/* if pending flag is set means the request is already sent */
+	if(running_task->syscall_pending == false) {
+		request_open_directory(task_fd, pathname);
+	}
+
+	/* inquire the file descriptor from the path server */
+	DIR *dir;
+	if(fifo_read(files[task_fd], (char *)&dir, sizeof(dir), 0)) {
+		//return the directory
+		running_task->stack_top->r0 = (uint32_t)dir;
+	}
+}
+
+void sys_readdir(void)
+{
 }
 
 void sys_getpriority(void)

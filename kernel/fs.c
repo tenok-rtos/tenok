@@ -621,7 +621,7 @@ static int open_file(char *pathname)
 
 //input : file path
 //output: directory inode
-struct inode *open_directory(char *pathname)
+DIR *open_directory(char *pathname)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
@@ -710,6 +710,37 @@ static int _mount(char *source, char *target)
 	mount_cnt++;
 
 	return 0;
+}
+
+void fs_get_pwd(char *path, DIR *dir_curr)
+{
+	path[0] = '/';
+	path[1] = '\0';
+
+	DIR *inode = dir_curr;
+
+	while(1) {
+		if(inode->i_ino == 0)
+			return;
+
+		/* switch to the parent directory */
+		uint32_t inode_last = inode->i_ino;
+		inode = &inodes[inode->i_parent];
+
+		/* no file is under this directory */
+		if(list_is_empty(&inode->i_dentry) == true)
+			return;
+
+		struct list *list_curr;
+		list_for_each(list_curr, &inode->i_dentry) {
+			struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
+
+			if(dentry->d_inode == inode_last) {
+				sprintf(path, "%s%s/", path, dentry->d_name);
+				break;
+			}
+		}
+	}
 }
 
 void fs_print_directory(char *str, struct inode *inode_dir)
@@ -812,6 +843,31 @@ void request_open_file(int reply_fd, char *path)
 	fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
+void request_open_directory(int reply_fd, char *path)
+{
+	int fs_cmd = FS_OPEN_DIR;
+	int path_len = strlen(path) + 1;
+
+	const int overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path_len);
+	char buf[PATH_LEN_MAX + overhead];
+
+	int buf_size = 0;
+
+	memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
+	buf_size += sizeof(fs_cmd);
+
+	memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
+	buf_size += sizeof(reply_fd);
+
+	memcpy(&buf[buf_size], &path_len, sizeof(path_len));
+	buf_size += sizeof(path_len);
+
+	memcpy(&buf[buf_size], path, path_len);
+	buf_size += path_len;
+
+	fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+}
+
 void request_mount(int reply_fd, char *source, char *target)
 {
 	int fs_cmd = FS_MOUNT;
@@ -883,6 +939,19 @@ void file_system(void)
 
 			int open_fd = open_file(path);
 			write(reply_fd, &open_fd, sizeof(open_fd));
+
+			break;
+		}
+		case FS_OPEN_DIR: {
+			int  path_len;
+			read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
+
+			char path[PATH_LEN_MAX];
+			read(FILE_SYSTEM_FD, path, path_len);
+
+			DIR *dir = open_directory(path);
+
+			write(reply_fd, &dir, sizeof(dir));
 
 			break;
 		}
