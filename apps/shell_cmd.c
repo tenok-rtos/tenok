@@ -63,11 +63,6 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	if(shell_dir_curr->i_size == 0)
 		return;
 
-	if(shell_dir_curr->i_rdev != RDEV_ROOTFS) {
-		if(shell_dir_curr->i_sync == false)
-			fs_mount_directory(shell_dir_curr, shell_dir_curr); //FIXME
-	}
-
 	/* get current directoory path */
 	char path[PATH_LEN_MAX] = {0};
 	fs_get_pwd(path, shell_dir_curr);
