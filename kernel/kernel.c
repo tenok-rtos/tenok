@@ -395,11 +395,15 @@ void sys_opendir(void)
 	if(fifo_read(files[task_fd], (char *)&inode_dir, sizeof(inode_dir), 0)) {
 		//return the directory
 		dirp->inode_dir = inode_dir;
+		dirp->dentry_list = inode_dir->i_dentry.next;
 	}
 }
 
 void sys_readdir(void)
 {
+	DIR *dirp = (DIR *)running_task->stack_top->r0;
+
+	running_task->stack_top->r0 = (uint32_t)fs_read_dir(dirp);
 }
 
 void sys_getpriority(void)

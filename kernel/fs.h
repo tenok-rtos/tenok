@@ -15,6 +15,8 @@
 
 #define RDEV_ROOTFS 0
 
+#define dirent dentry //aliasing
+
 typedef int  ssize_t;
 typedef long loff_t;
 
@@ -70,13 +72,8 @@ struct dentry {
 
 typedef struct dirstream {
 	struct inode  *inode_dir;
-	struct dentry *dentry_ptr;
+	struct list   *dentry_list;
 } DIR;
-
-struct dirent {
-	uint32_t d_ino;
-	char     d_name[FILE_NAME_LEN_MAX];
-};
 
 struct stat {
 	uint8_t  st_mode;   //file type
@@ -105,6 +102,7 @@ int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 void fs_get_pwd(char *path, struct inode *dir_curr);
+struct dirent *fs_read_dir(DIR *dirp);
 void fs_print_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);

@@ -68,7 +68,25 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 			fs_mount_directory(shell_dir_curr, shell_dir_curr); //FIXME
 	}
 
-	fs_print_directory(str, shell_dir_curr);
+	/* get current directoory path */
+	char path[PATH_LEN_MAX] = {0};
+	fs_get_pwd(path, shell_dir_curr);
+
+	/* open the directory */
+	DIR dir;
+	opendir(path, &dir);
+
+	/* enumerate the directory */
+	struct dirent *dirent;
+	while((dirent = readdir(&dir)) != NULL) {
+		//if(inode_file.i_mode == S_IFDIR) {
+		//        sprintf(str, "%s%s/  ", str, dirent->d_name);
+		//} else {
+		sprintf(str, "%s%s  ", str, dirent->d_name);
+		//}
+	}
+
+	sprintf(str, "%s\n\r", str);
 
 	shell_puts(str);
 }
