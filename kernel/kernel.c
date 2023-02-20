@@ -81,7 +81,6 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(mq_open, 18),
 	DEF_SYSCALL(mq_receive, 19),
 	DEF_SYSCALL(mq_send, 20),
-	DEF_SYSCALL(os_sem_wait, 21)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -529,23 +528,6 @@ void sys_mq_send(void)
 
 	if(running_task->syscall_pending == false)
 		running_task->stack_top->r0 = retval; //pass return value
-}
-
-void sys_os_sem_wait(void)
-{
-	sem_t *sem = (sem_t *)running_task->stack_top->r0;
-
-	spin_lock_irq(&sem->lock);
-
-	sem->count--;
-	if(sem->count < 0) {
-		/* put the current task into the semaphore waiting list */
-		prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
-	}
-
-	spin_unlock_irq(&sem->lock);
-
-	running_task->stack_top->r0 = 0;
 }
 
 uint32_t get_proc_mode(void)

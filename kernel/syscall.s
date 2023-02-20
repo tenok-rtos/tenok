@@ -108,8 +108,3 @@ mq_receive:
 .global mq_send
 mq_send:
 	syscall #20
-
-.type   os_sem_wait, %function
-.global os_sem_wait
-os_sem_wait:
-	syscall #21
