@@ -104,10 +104,10 @@ static void shell_refresh_line(struct shell_struct *shell)
 {
 	char s[PROMPT_LEN_MAX * 5];
 	snprintf(s, PROMPT_LEN_MAX * 5,
-                "\33[2K\r"   /* clear current line */
-	        "%s%s\r"     /* show prompt */
-	        "\033[%dC",  /* move cursor */
-	        shell->prompt_msg, shell->buf, shell->prompt_len + shell->cursor_pos);
+	         "\33[2K\r"   /* clear current line */
+	         "%s%s\r"     /* show prompt */
+	         "\033[%dC",  /* move cursor */
+	         shell->prompt_msg, shell->buf, shell->prompt_len + shell->cursor_pos);
 	shell_puts(s);
 }
 

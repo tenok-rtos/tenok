@@ -32,6 +32,7 @@ CFLAGS+=-I./drivers
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./apps
+CFLAGS+=-I./examples
 
 SRC=./lib/CMSIS/system_stm32f4xx.c
 
@@ -60,6 +61,9 @@ SRC+=./kernel/fifo.c \
 	./drivers/uart.c \
 	./apps/shell.c \
 	./apps/shell_cmd.c \
+	./examples/fifo-ex.c \
+	./examples/mutex-ex.c \
+	./examples/mqueue-ex.c \
 	./main.c \
 
 OBJS=$(SRC:.c=.o)

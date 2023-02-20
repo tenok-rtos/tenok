@@ -10,14 +10,12 @@
 #include "shell.h"
 #include "shell_cmd.h"
 #include "fs.h"
-#include "mutex.h"
 #include "rom_dev.h"
+#include "examples.h"
 
 extern struct inode *shell_dir_curr;
 
 sem_t sem_led;
-_pthread_mutex_t mutex_print;
-mqd_t mqdes_print;
 
 /* shell */
 struct cmd_list_entry shell_cmd_list[] = {
@@ -102,106 +100,6 @@ void shell_task(void)
 	}
 }
 
-void fifo_task1(void)
-{
-	set_program_name("fifo1");
-
-	int fd = open("/fifo_test", 0, 0);
-	char data[] = "hello";
-	int len = strlen(data);
-
-	while(1) {
-		int i;
-		for(i = 0; i < len; i++) {
-			write(fd, &data[i], 1);
-		}
-		sleep(200);
-	}
-}
-
-void fifo_task2(void)
-{
-	set_program_name("fifo2");
-
-	int fd = open("/fifo_test", 0, 0);
-	char data[10] = {0};
-	char str[50];
-
-	while(1) {
-		read(fd, &data, 5);
-		snprintf(str, 50, "received: %s\n\r", data);
-		uart3_puts(str);
-	}
-}
-
-void mutex_task1(void)
-{
-	set_program_name("mutex1");
-
-	char *str = "mutex task 1\n\r";
-
-	while(1) {
-		pthread_mutex_lock(&mutex_print);
-		uart3_puts(str);
-		sleep(100);
-		pthread_mutex_unlock(&mutex_print);
-	}
-}
-
-void mutex_task2(void)
-{
-	set_program_name("mutex2");
-
-	char *str = "mutex task 2\n\r";
-
-	while(1) {
-		pthread_mutex_lock(&mutex_print);
-		uart3_puts(str);
-		sleep(100);
-		pthread_mutex_unlock(&mutex_print);
-	}
-}
-
-/* define your own customized message type */
-typedef struct {
-	char data[20];
-} my_message_t;
-
-void message_queue_task1(void)
-{
-	set_program_name("queue1");
-
-	my_message_t msg;
-
-	char *str = "hello world!\n\r";
-	strncpy(msg.data, str, PRINT_SIZE_MAX);
-
-	struct mq_attr attr = {
-		.mq_flags = 0,
-		.mq_maxmsg = 100,
-		.mq_msgsize = sizeof(my_message_t),
-		.mq_curmsgs = 0
-	};
-	mqdes_print = mq_open("/my_message", 0, &attr);
-
-	while(1) {
-		mq_send(mqdes_print, (char *)&msg, 1, 0);
-		sleep(200);
-	}
-}
-
-void message_queue_task2(void)
-{
-	set_program_name("queue2");
-
-	my_message_t msg;
-
-	while(1) {
-		mq_receive(mqdes_print, (char *)&msg, 1, 0);
-		uart3_puts(msg.data);
-	}
-}
-
 void mk_cpuinfo(void)
 {
 	/* create a new regular file */
@@ -228,8 +126,6 @@ void first(void)
 	set_program_name("first");
 
 	sem_init(&sem_led, 0, 0);
-	mknod("/fifo_test", 0, S_IFIFO);
-	pthread_mutex_init(&mutex_print, 0);
 
 	mk_cpuinfo();
 
@@ -238,12 +134,10 @@ void first(void)
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
 	if(!fork()) shell_task();
-	//if(!fork()) fifo_task1();
-	//if(!fork()) fifo_task2();
-	//if(!fork()) mutex_task1();
-	//if(!fork()) mutex_task2();
-	//if(!fork()) message_queue_task1();
-	//if(!fork()) message_queue_task2();
+
+	//run_fifo_example();
+	//run_mutex_example();
+	//run_mqueue_example();
 
 	while(1); //idle loop when nothing to do
 }
@@ -251,7 +145,6 @@ void first(void)
 void init(void *param)
 {
 	rootfs_init();
-
 	rom_dev_init();
 
 	if(!fork()) file_system();
