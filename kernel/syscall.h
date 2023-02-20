@@ -21,7 +21,7 @@ ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
 long lseek(int fd, long offset, int whence);
 int fstat(int fd, struct stat *statbuf);
-DIR *opendir(const char *name);
+void opendir(const char *name, DIR **dir);
 struct dirent *readdir(DIR *dirp);
 uint32_t getpriority(void);
 int setpriority(int which, int who, int prio);

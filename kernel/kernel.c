@@ -380,9 +380,8 @@ void sys_fstat(void)
 
 void sys_opendir(void)
 {
-	char *name = (char *)running_task->stack_top->r0;
-
 	char *pathname = (char *)running_task->stack_top->r0;
+	DIR **dirp = (DIR **)running_task->stack_top->r1;
 
 	int task_fd = running_task->pid + 1;
 
@@ -392,10 +391,10 @@ void sys_opendir(void)
 	}
 
 	/* inquire the file descriptor from the path server */
-	DIR *dir;
-	if(fifo_read(files[task_fd], (char *)&dir, sizeof(dir), 0)) {
+	struct inode *inode_dir;
+	if(fifo_read(files[task_fd], (char *)&inode_dir, sizeof(inode_dir), 0)) {
 		//return the directory
-		running_task->stack_top->r0 = (uint32_t)dir;
+		*dirp = inode_dir;
 	}
 }
 

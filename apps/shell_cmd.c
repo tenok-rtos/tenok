@@ -13,7 +13,7 @@ DIR *shell_dir_curr = NULL;
 
 void shell_path_init(void)
 {
-	shell_dir_curr = opendir("/");
+	opendir("/", &shell_dir_curr);
 }
 
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
@@ -76,7 +76,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	char str[200] = {0};
 
 	if(param_cnt == 1) {
-		shell_dir_curr = opendir("/");
+		opendir("/", &shell_dir_curr);
 	} else if(param_cnt == 2) {
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {
@@ -97,7 +97,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 		/* open the directory */
 		DIR *dir;
-		dir = opendir(path);
+		opendir(path, &shell_dir_curr);
 
 		/* directory not found */
 		if(dir == NULL) {
