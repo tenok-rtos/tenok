@@ -52,4 +52,3 @@ void run_mqueue_example(void)
 	if(!fork()) message_queue_task1();
 	if(!fork()) message_queue_task2();
 }
-
