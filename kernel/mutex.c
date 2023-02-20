@@ -16,11 +16,12 @@ int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr
 
 int pthread_mutex_unlock(_pthread_mutex_t *mutex)
 {
+	/* start of the critical section */
 	spin_lock_irq(&mutex->lock);
 
 	int retval = 0;
 
-	/* check mutex owner */
+	/* check if mutex is already occupied */
 	if(mutex->owner == running_task) {
 		/* release the mutex */
 		mutex->owner = NULL;
@@ -34,6 +35,7 @@ int pthread_mutex_unlock(_pthread_mutex_t *mutex)
 		retval = EPERM;
 	}
 
+	/* end of the critical section */
 	spin_unlock_irq(&mutex->lock);
 
 	return retval;
@@ -41,20 +43,30 @@ int pthread_mutex_unlock(_pthread_mutex_t *mutex)
 
 int pthread_mutex_lock(_pthread_mutex_t *mutex)
 {
-	spin_lock_irq(&mutex->lock);
+	while(1) {
+		/* start of the critical section */
+		spin_lock_irq(&mutex->lock);
 
-	if(mutex->owner != NULL) {
-		/* put the current task into the mutex waiting list */
-		prepare_to_wait(&mutex->wait_list, &running_task->list, TASK_WAIT);
+		/* check if mutex is already occupied */
+		if(mutex->owner != NULL) {
+			/* put the current task into the mutex waiting list */
+			prepare_to_wait(&mutex->wait_list, &running_task->list, TASK_WAIT);
 
-		spin_unlock_irq(&mutex->lock);
+			/* end of the critical section */
+			spin_unlock_irq(&mutex->lock);
 
-		sched_yield(); //yield the cpu and back to the kernel
-	} else {
-		/* set new owner of the mutex */
-		mutex->owner = running_task;
+			/* sleep */
+			sched_yield();
 
-		spin_unlock_irq(&mutex->lock);
+		} else {
+			/* occupy the mutex by setting the owner */
+			mutex->owner = running_task;
+
+			/* end of the critical section */
+			spin_unlock_irq(&mutex->lock);
+
+			break;
+		}
 	}
 
 	return 0;
