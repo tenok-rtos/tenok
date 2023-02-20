@@ -743,6 +743,21 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
 	}
 }
 
+struct dirent *fs_read_dir(DIR *dirp)
+{
+	/* no more dentry to read */
+	if(dirp->dentry_list == &dirp->inode_dir->i_dentry)
+		return NULL;
+
+	/* read the dentry */
+	struct dentry *dentry = list_entry(dirp->dentry_list, struct dentry, d_list);
+
+	/* update the dentry pointer */
+	dirp->dentry_list = dirp->dentry_list->next;
+
+	return dentry;
+}
+
 void fs_print_directory(char *str, struct inode *inode_dir)
 {
 	/* currently the dentry table is empty */
