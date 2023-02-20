@@ -15,8 +15,6 @@
 
 #define RDEV_ROOTFS 0
 
-#define dirent dentry //aliasing
-
 typedef int  ssize_t;
 typedef long loff_t;
 
@@ -63,18 +61,26 @@ struct inode {
 /* directory entry */
 struct dentry {
 	char     d_name[FILE_NAME_LEN_MAX]; //file name
-
 	uint32_t d_inode;  //the inode of the file
 	uint32_t d_parent; //the inode of the parent directory
 
 	struct list d_list;
 };
 
+//return type of the opendir() syscall
 typedef struct dirstream {
-	struct inode  *inode_dir;
-	struct list   *dentry_list;
+	struct inode  *inode_dir;   //directory inode
+	struct list   *dentry_list; //list pointer of the dentry to return
 } DIR;
 
+//return type of the readdir() syscall
+struct dirent {
+	char     d_name[FILE_NAME_LEN_MAX]; //file name
+	uint32_t d_ino;  //the inode of the file
+	uint8_t  d_type; //file type
+};
+
+//return type of the fstat() syscall
 struct stat {
 	uint8_t  st_mode;   //file type
 	uint32_t st_ino;    //inode number
@@ -102,7 +108,7 @@ int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 void fs_get_pwd(char *path, struct inode *dir_curr);
-struct dirent *fs_read_dir(DIR *dirp);
+int fs_readdir(DIR *dirp, struct dirent *dirent);
 void fs_print_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
