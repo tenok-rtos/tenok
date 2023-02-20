@@ -763,53 +763,6 @@ int fs_readdir(DIR *dirp, struct dirent *dirent)
 	return 0;
 }
 
-void fs_print_directory(char *str, struct inode *inode_dir)
-{
-	/* currently the dentry table is empty */
-	if(inode_dir->i_size == 0)
-		return;
-
-	/* load storage device file */
-	struct file *dev_file = mount_points[inode_dir->i_rdev].dev_file;
-
-	/* read the first "dentry.d_list" stored at "inode.i_data" in the storage */
-	struct list list;
-	struct dentry *dentry_first = (struct dentry *)inode_dir->i_data;
-	uint32_t list_head_addr     = (uint32_t)&dentry_first->d_list;
-	fs_read_list(dev_file, list_head_addr, &list);
-
-	/* get the list head of the dentries */
-	struct list *d_list_head = list.last; //&inode.i_dentry = dentry.d_list.last;
-
-	/* initialize the dentry pointer for iteration */
-	loff_t dentry_addr = (uint32_t)inode_dir->i_data;
-
-	struct dentry dentry;
-
-	while(1) {
-		/* read the dentry from the storage device */
-		fs_read_dentry(dev_file, dentry_addr, &dentry);
-
-		/* read the inode from the storage device */
-		struct inode inode_file;
-		fs_read_inode(inode_dir->i_rdev, dev_file, dentry.d_inode, &inode_file);
-
-		if(inode_file.i_mode == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dentry.d_name);
-		} else {
-			sprintf(str, "%s%s  ", str, dentry.d_name);
-		}
-
-		/* calculate the address of the next dentry to read */
-		dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
-
-		if(dentry.d_list.next == d_list_head)
-			break; //iteration is complete
-	}
-
-	sprintf(str, "%s\n\r", str);
-}
-
 void request_create_file(int reply_fd, char *path, uint8_t file_type)
 {
 	int fs_cmd = FS_CREATE_FILE;
