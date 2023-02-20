@@ -109,7 +109,6 @@ int register_blkdev(char *name, struct file_operations *fops);
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 void fs_get_pwd(char *path, struct inode *dir_curr);
 int fs_readdir(DIR *dirp, struct dirent *dirent);
-void fs_print_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
