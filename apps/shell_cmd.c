@@ -167,7 +167,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 	/* open the file */
 	int fd = open(path, 0, 0);
 	if(fd == -1) {
-		snprintf(str, PRINT_SIZE_MAX, "cat: %s: No such file or directory\n\r");
+		snprintf(str, PRINT_SIZE_MAX, "cat: %s: No such file or directory\n\r", path);
 		shell_puts(str);
 		return;
 	}
