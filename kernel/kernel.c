@@ -236,7 +236,7 @@ void sys_set_program_name(void)
 {
 	char *name = (char*)running_task->stack_top->r0;
 
-	strcpy(running_task->name, name);
+	strncpy(running_task->name, name, TASK_NUM_MAX);
 }
 
 void sys_fork(void)
@@ -634,12 +634,12 @@ void sched_start(task_func_t first_task)
 	}
 }
 
-void sprint_tasks(char *str)
+void sprint_tasks(char *str, size_t size)
 {
-	sprintf(str, "PID\tPR\tNAME\n\r");
+	snprintf(str, size, "PID\tPR\tNAME\n\r");
 
 	int i;
 	for(i = 0; i < task_nums; i++) {
-		sprintf(str, "%s%d\t%d\t%s\n\r", str, tasks[i].pid, tasks[i].priority, tasks[i].name);
+		snprintf(str, size, "%s%d\t%d\t%s\n\r", str, tasks[i].pid, tasks[i].priority, tasks[i].name);
 	}
 }

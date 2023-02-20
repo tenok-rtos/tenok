@@ -89,6 +89,6 @@ void preempt_enable(void);
 void reset_basepri(void);
 void set_basepri(void);
 
-void sprint_tasks(char *str);
+void sprint_tasks(char *str, size_t size);
 
 #endif

@@ -36,27 +36,27 @@ void shell_cmd_history(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int 
 
 void shell_cmd_ps(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char str[200];
-	sprint_tasks(str);
+	char str[PRINT_SIZE_MAX];
+	sprint_tasks(str, PRINT_SIZE_MAX);
 	shell_puts(str);
 }
 
 void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char str[200] = {0};
+	char str[PRINT_SIZE_MAX] = {0};
 
 	int i;
 	for(i = 1; i < param_cnt - 1; i++) {
-		sprintf(str, "%s%s ", str, param_list[i]);
+		snprintf(str, PRINT_SIZE_MAX, "%s%s ", str, param_list[i]);
 	}
-	sprintf(str, "%s%s\n\r", str, param_list[param_cnt-1]);
+	snprintf(str, PRINT_SIZE_MAX, "%s%s\n\r", str, param_list[param_cnt-1]);
 
 	shell_puts(str);
 }
 
 void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char str[200] = {0};
+	char str[PRINT_SIZE_MAX] = {0};
 
 	/* no file is under this directory */
 	if(shell_dir_curr->i_size == 0)
@@ -74,20 +74,20 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	struct dirent dirent;
 	while((readdir(&dir, &dirent)) != -1) {
 		if(dirent.d_type == S_IFDIR) {
-			sprintf(str, "%s%s/  ", str, dirent.d_name);
+			snprintf(str, PRINT_SIZE_MAX, "%s%s/  ", str, dirent.d_name);
 		} else {
-			sprintf(str, "%s%s  ", str, dirent.d_name);
+			snprintf(str, PRINT_SIZE_MAX, "%s%s  ", str, dirent.d_name);
 		}
 	}
 
-	sprintf(str, "%s\n\r", str);
+	snprintf(str, PRINT_SIZE_MAX, "%s\n\r", str);
 
 	shell_puts(str);
 }
 
 void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char str[200] = {0};
+	char str[PRINT_SIZE_MAX] = {0};
 
 	DIR dir;
 
@@ -96,7 +96,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		shell_dir_curr = dir.inode_dir;
 	} else if(param_cnt == 2) {
 		/* handle cd .. */
-		if(strcmp("..", param_list[1]) == 0) {
+		if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
 			shell_dir_curr = &inodes[inodes->i_parent];
 			return;
 		}
@@ -109,7 +109,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		} else {
 			/* handle the relative path */
 			fs_get_pwd(path, shell_dir_curr);
-			sprintf(path, "%s%s", path, param_list[1]);
+			snprintf(path, PATH_LEN_MAX, "%s%s", path, param_list[1]);
 		}
 
 		/* open the directory */
@@ -117,34 +117,33 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
 		/* directory not found */
 		if(dir.inode_dir == NULL) {
-			sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
+			snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
 		}
 
 		/* not a directory */
 		if(dir.inode_dir->i_mode != S_IFDIR) {
-			sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
+			snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
 		}
 
 		shell_dir_curr = dir.inode_dir;
 	} else {
-		sprintf(str, "cd: too many arguments\n\r");
-		shell_puts(str);
+		shell_puts("cd: too many  arguments\n\r");
 		return;
 	}
 }
 
 void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
-	char str[200] = {0};
+	char str[PRINT_SIZE_MAX] = {0};
 	char path[PATH_LEN_MAX] = {'/'};
 
 	fs_get_pwd(path, shell_dir_curr);
 
-	sprintf(str, "%s\n\r", path);
+	snprintf(str, PATH_LEN_MAX, "%s\n\r", path);
 	shell_puts(str);
 }
 
@@ -154,20 +153,21 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 
 	if(param_list[1][0] != '/') {
 		/* input is a relative path */
-		char pwd[200] = {0};
+		char pwd[PATH_LEN_MAX] = {0};
 		fs_get_pwd(pwd, shell_dir_curr);
 
-		sprintf(path, "%s%s", pwd, param_list[1]);
+		snprintf(path, PATH_LEN_MAX, "%s%s", pwd, param_list[1]);
 	} else {
 		/* input is a absolute path */
-		strcpy(path, param_list[1]);
+		strncpy(path, param_list[1], PATH_LEN_MAX);
 	}
+
+	char str[PRINT_SIZE_MAX] = {0};
 
 	/* open the file */
 	int fd = open(path, 0, 0);
 	if(fd == -1) {
-		char str[200] = {0};
-		sprintf(str, "cat: %s: No such file or directory\n\r", path);
+		snprintf(str, PRINT_SIZE_MAX, "cat: %s: No such file or directory\n\r");
 		shell_puts(str);
 		return;
 	}
@@ -176,8 +176,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 	struct stat stat;
 	fstat(fd, &stat);
 	if(stat.st_mode != S_IFREG) {
-		char str[200] = {0};
-		sprintf(str, "cat: %s: Invalid argument\n\r", path);
+		snprintf(str, PRINT_SIZE_MAX, "cat: %s: Invalid argument\n\r", path);
 		shell_puts(str);
 		return;
 	}
@@ -187,10 +186,12 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 
 	/* read file content until EOF is detected */
 	signed char c;
-	char str[200] = {0};
 
 	int i;
 	for(i = 0; i < stat.st_size; i++) {
+		if(i >= (PRINT_SIZE_MAX))
+			break;
+
 		read(fd, &c, 1);
 
 		if(c == EOF) {
