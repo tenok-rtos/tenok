@@ -9,7 +9,7 @@
 #define PARAM_LIST_SIZE_MAX 10
 #define PARAM_LEN_MAX 10
 
-#define HISTORY_MAX_SIZE 5
+#define HISTORY_MAX_SIZE 30
 
 #define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct cmd_list_entry))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
