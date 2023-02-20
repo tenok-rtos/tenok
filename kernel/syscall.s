@@ -64,42 +64,52 @@ lseek:
 fstat:
 	syscall #11
 
+.type   opendir, %function
+.global opendir
+opendir:
+	syscall #12
+
+.type   readdir, %function
+.global readdir
+readdir:
+	syscall #13
+
 .type   getpriority, %function
 .global getpriority
 getpriority:
-	syscall #12
+	syscall #14
 
 .type   setpriority, %function
 .global setpriority
 setpriority:
-	syscall #13
+	syscall #15
 
 .type   getpid, %function
 .global getpid
 getpid:
-	syscall #14
+	syscall #16
 
 .type   mknod, %function
 .global mknod
 mknod:
-	syscall #15
+	syscall #17
 
 .type   mq_open, %function
 .global mq_open
 mq_open:
-	syscall #16
+	syscall #18
 
 .type   mq_receive, %function
 .global mq_receive
 mq_receive:
-	syscall #17
+	syscall #19
 
 .type   mq_send, %function
 .global mq_send
 mq_send:
-	syscall #18
+	syscall #20
 
 .type   os_sem_wait, %function
 .global os_sem_wait
 os_sem_wait:
-	syscall #19
+	syscall #21

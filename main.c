@@ -13,6 +13,8 @@
 #include "mutex.h"
 #include "rom_dev.h"
 
+extern DIR *shell_dir_curr;
+
 sem_t sem_led;
 _pthread_mutex_t mutex_print;
 mqd_t mqdes_print;
@@ -91,7 +93,7 @@ void shell_task(void)
 	shell_puts(s);
 
 	while(1) {
-		shell_get_pwd(path_curr);
+		fs_get_pwd(path_curr, shell_dir_curr);
 		snprintf(prompt_msg, PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  path_curr);
 		shell.prompt_len = strlen(shell.prompt_msg);
 

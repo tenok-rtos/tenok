@@ -1,10 +1,10 @@
 #ifndef __SHELL_CMD_H__
 #define __SHELL_CMD_H__
 
+#include "fs.h"
 #include "shell.h"
 
 void shell_path_init(void);
-void shell_get_pwd(char *path);
 
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
 void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
