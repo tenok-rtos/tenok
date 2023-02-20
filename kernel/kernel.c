@@ -236,7 +236,7 @@ void sys_set_program_name(void)
 {
 	char *name = (char*)running_task->stack_top->r0;
 
-	strncpy(running_task->name, name, TASK_NUM_MAX);
+	strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
 }
 
 void sys_fork(void)
