@@ -68,7 +68,10 @@ struct dentry {
 	struct list d_list;
 };
 
-typedef struct inode DIR;
+typedef struct dirstream {
+	struct inode  *inode_dir;
+	struct dentry *dentry_ptr;
+} DIR;
 
 struct dirent {
 	uint32_t d_ino;
@@ -101,7 +104,7 @@ int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
-void fs_get_pwd(char *path, DIR *dir_curr);
+void fs_get_pwd(char *path, struct inode *dir_curr);
 void fs_print_directory(char *str, struct inode *inode_dir);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);

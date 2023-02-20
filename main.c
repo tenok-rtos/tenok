@@ -13,7 +13,7 @@
 #include "mutex.h"
 #include "rom_dev.h"
 
-extern DIR *shell_dir_curr;
+extern struct inode *shell_dir_curr;
 
 sem_t sem_led;
 _pthread_mutex_t mutex_print;

@@ -621,7 +621,7 @@ static int open_file(char *pathname)
 
 //input : file path
 //output: directory inode
-DIR *open_directory(char *pathname)
+struct inode *open_directory(char *pathname)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
@@ -712,12 +712,12 @@ static int _mount(char *source, char *target)
 	return 0;
 }
 
-void fs_get_pwd(char *path, DIR *dir_curr)
+void fs_get_pwd(char *path, struct inode *dir_curr)
 {
 	path[0] = '/';
 	path[1] = '\0';
 
-	DIR *inode = dir_curr;
+	struct inode *inode = dir_curr;
 
 	while(1) {
 		if(inode->i_ino == 0)
@@ -949,9 +949,9 @@ void file_system(void)
 			char path[PATH_LEN_MAX];
 			read(FILE_SYSTEM_FD, path, path_len);
 
-			DIR *dir = open_directory(path);
+			struct inode *inode_dir = open_directory(path);
 
-			write(reply_fd, &dir, sizeof(dir));
+			write(reply_fd, &inode_dir, sizeof(inode_dir));
 
 			break;
 		}

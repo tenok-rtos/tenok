@@ -381,7 +381,7 @@ void sys_fstat(void)
 void sys_opendir(void)
 {
 	char *pathname = (char *)running_task->stack_top->r0;
-	DIR **dirp = (DIR **)running_task->stack_top->r1;
+	DIR *dirp = (DIR *)running_task->stack_top->r1;
 
 	int task_fd = running_task->pid + 1;
 
@@ -394,7 +394,7 @@ void sys_opendir(void)
 	struct inode *inode_dir;
 	if(fifo_read(files[task_fd], (char *)&inode_dir, sizeof(inode_dir), 0)) {
 		//return the directory
-		*dirp = inode_dir;
+		dirp->inode_dir = inode_dir;
 	}
 }
 

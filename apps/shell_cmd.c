@@ -9,11 +9,13 @@ extern struct shell_struct shell;
 extern struct inode inodes[INODE_CNT_MAX];
 extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
-DIR *shell_dir_curr = NULL;
+struct inode *shell_dir_curr = NULL;
 
 void shell_path_init(void)
 {
-	opendir("/", &shell_dir_curr);
+	DIR dir;
+	opendir("/", &dir);
+	shell_dir_curr = dir.inode_dir;
 }
 
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
@@ -75,8 +77,11 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 {
 	char str[200] = {0};
 
+	DIR dir;
+
 	if(param_cnt == 1) {
-		opendir("/", &shell_dir_curr);
+		opendir("/", &dir);
+		shell_dir_curr = dir.inode_dir;
 	} else if(param_cnt == 2) {
 		/* handle cd .. */
 		if(strcmp("..", param_list[1]) == 0) {
@@ -96,24 +101,23 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		}
 
 		/* open the directory */
-		DIR *dir;
-		opendir(path, &shell_dir_curr);
+		opendir(path, &dir);
 
 		/* directory not found */
-		if(dir == NULL) {
+		if(dir.inode_dir == NULL) {
 			sprintf(str, "cd: %s: No such file or directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
 		}
 
 		/* not a directory */
-		if(dir->i_mode != S_IFDIR) {
+		if(dir.inode_dir->i_mode != S_IFDIR) {
 			sprintf(str, "cd: %s: Not a directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
 		}
 
-		shell_dir_curr = dir;
+		shell_dir_curr = dir.inode_dir;
 	} else {
 		sprintf(str, "cd: too many arguments\n\r");
 		shell_puts(str);
