@@ -664,6 +664,10 @@ struct inode *open_directory(char *pathname)
 			break;
 	}
 
+	/* synchronize the directory */
+	if(inode_curr->i_sync == false)
+		fs_mount_directory(inode_curr, inode_curr);
+
 	return inode_curr;
 }
 
