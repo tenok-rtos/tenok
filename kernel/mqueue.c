@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <errno.h>
 #include "fs.h"
 #include "mqueue.h"
 #include "mpool.h"
@@ -15,6 +16,11 @@ int mq_cnt = 0;
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
+	/* the message queue must be in nonblock mode by the design    *
+	 * (so the functions can be called in the kernel space safely) */
+	if(!(attr->mq_flags & O_NONBLOCK))
+		return -1;
+
 	/* initialize the ring buffer */
 	struct ringbuf *pipe = memory_pool_alloc(&mem_pool, sizeof(struct ringbuf));
 	uint8_t *pipe_mem = memory_pool_alloc(&mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
@@ -35,42 +41,34 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 	struct msg_queue *mq = &mq_table[mqdes];
 	struct list *task_wait_list = &mq->pipe->task_wait_list;
 
-	while(1) {
-		/* is the data in the ring buffer enough to server the user? */
-		if(msg_len > mq->pipe->count) {
-			/* start of the critical section */
-			spin_lock_irq(&mq->lock);
+	ssize_t retval;
 
-			/* put the current task into the file waiting list */
-			prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
+	/* start of the critical section */
+	spin_lock_irq(&mq->lock);
 
-			/* update the request size */
-			mq->request_size = msg_len;
+	/* is the data in the ring buffer enough to server the user? */
+	if(msg_len > mq->pipe->count) {
+		/* put the current task into the file waiting list */
+		prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
-			/* end of the critical section */
-			spin_unlock_irq(&mq->lock);
+		/* update the request size */
+		mq->request_size = msg_len;
 
-			/* yield the cpu */
-			sched_yield();
-		} else {
-			/* start of the critical section */
-			spin_lock_irq(&mq->lock);
-
-			/* pop data from the pipe */
-			int i;
-			for(i = 0; i < msg_len; i++) {
-				ringbuf_get(mq->pipe, &msg_ptr[i]);
-			}
-
-			/* end of the critical section */
-			spin_unlock_irq(&mq->lock);
-
-			break;
+		retval = EAGAIN;
+	} else {
+		/* pop data from the pipe */
+		int i;
+		for(i = 0; i < msg_len; i++) {
+			ringbuf_get(mq->pipe, &msg_ptr[i]);
 		}
+
+		retval = msg_len;
 	}
 
+	/* end of the critical section */
+	spin_unlock_irq(&mq->lock);
 
-	return msg_len;
+	return retval;
 }
 
 int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
@@ -79,7 +77,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 	struct list *task_wait_list = &mq->pipe->task_wait_list;
 
 	/* start of the critical section */
-	spin_lock_irq(&mq->lock);
+	spin_lock(&mq->lock);
 
 	/* push data into the pipe */
 	int i;
@@ -99,7 +97,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 	}
 
 	/* end of the critical section */
-	spin_unlock_irq(&mq->lock);
+	spin_unlock(&mq->lock);
 
 	return msg_len;
 }

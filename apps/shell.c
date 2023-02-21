@@ -15,14 +15,9 @@ void shell_serial_init(void)
 
 char shell_getc(void)
 {
-#if 0
-	int c;
-	read(serial_fd, &c, 1);
-
+	char c;
+	while(read(serial_fd, &c, 1) != 1);
 	return c;
-#else
-	return uart3_getc();
-#endif
 }
 
 void shell_puts(char *s)
