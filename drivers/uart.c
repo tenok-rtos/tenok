@@ -8,6 +8,8 @@
 
 #define ENABLE_UART3_DMA 0 //QEMU does not support dma emulation for stm32f4
 
+static void uart3_dma_puts(const char *data, size_t size);
+
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
@@ -47,11 +49,12 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-	int i;
-	for(i = 0; i < size; i++)
-		uart_putc(USART3, buf[i]);
-
-	return i;
+#if (ENABLE_UART3_DMA != 0)
+	uart3_dma_puts(buf, size);
+#else
+	uart_puts(USART3, buf, size);
+#endif
+	return size;
 }
 
 void uart3_init(uint32_t baudrate)
@@ -93,7 +96,6 @@ void uart3_init(uint32_t baudrate)
 		.NVIC_IRQChannelCmd = ENABLE
 	};
 	NVIC_Init(&nvic);
-	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
 #if (ENABLE_UART3_DMA != 0)
 	/* enable dma1's interrupt */
@@ -102,12 +104,11 @@ void uart3_init(uint32_t baudrate)
 #endif
 }
 
-void uart3_puts(char *str)
+static void uart3_dma_puts(const char *data, size_t size)
 {
-#if (ENABLE_UART3_DMA != 0)
 	/* initialize the dma */
 	DMA_InitTypeDef DMA_InitStructure = {
-		.DMA_BufferSize = (uint32_t)strlen(str),
+		.DMA_BufferSize = (uint32_t)size,
 		.DMA_FIFOMode = DMA_FIFOMode_Disable,
 		.DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
 		.DMA_MemoryBurst = DMA_MemoryBurst_Single,
@@ -120,7 +121,7 @@ void uart3_puts(char *str)
 		.DMA_Priority = DMA_Priority_Medium,
 		.DMA_Channel = DMA_Channel_7,
 		.DMA_DIR = DMA_DIR_MemoryToPeripheral,
-		.DMA_Memory0BaseAddr = (uint32_t)str
+		.DMA_Memory0BaseAddr = (uint32_t)data
 	};
 	DMA_Init(DMA1_Stream4, &DMA_InitStructure);
 	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
@@ -134,9 +135,6 @@ void uart3_puts(char *str)
 
 	/* wait until the dma complete the transmission */
 	sem_wait(&sem_uart3_tx);
-#else
-	uart_puts(USART3, str);
-#endif
 }
 
 void USART3_IRQHandler(void)
@@ -170,9 +168,9 @@ char uart_getc(USART_TypeDef *uart)
 	return USART_ReceiveData(uart);
 }
 
-void uart_puts(USART_TypeDef *uart, char *str)
+void uart_puts(USART_TypeDef *uart, const char *data, size_t size)
 {
-	for(; *str != '\0'; str++) {
-		uart_putc(uart, *str);
-	}
+	int i;
+	for(i = 0; i < size; i++)
+		uart_putc(uart, data[i]);
 }

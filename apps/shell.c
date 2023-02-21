@@ -22,11 +22,7 @@ char shell_getc(void)
 
 void shell_puts(char *s)
 {
-#if 0
 	write(serial_fd, s, strlen(s));
-#else
-	uart3_puts(s);
-#endif
 }
 
 static void shell_ctrl_c_handler(struct shell_struct *shell)
