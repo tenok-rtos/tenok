@@ -32,12 +32,13 @@ void message_queue_task2(void)
 	set_program_name("queue2");
 
 	my_message_t msg;
+	int serial_fd = open("/dev/serial0", 0, 0);
 
 	int n = 1; //numbers of message to receive at once
 
 	while(1) {
 		while(mq_receive(mqdes_print, (char *)&msg, n, 0) != n);
-		uart3_puts(msg.data);
+		write(serial_fd, msg.data, strlen(msg.data));
 	}
 }
 
