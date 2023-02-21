@@ -279,7 +279,7 @@ void sys_mount(void)
 	char *source = (char *)running_task->stack_top->r0;
 	char *target = (char *)running_task->stack_top->r1;
 
-	int task_fd = running_task->pid + 1;
+	int task_fd = running_task->pid;
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
@@ -298,7 +298,7 @@ void sys_open(void)
 {
 	char *pathname = (char *)running_task->stack_top->r0;
 
-	int task_fd = running_task->pid + 1;
+	int task_fd = running_task->pid;
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
@@ -375,7 +375,7 @@ void sys_opendir(void)
 	char *pathname = (char *)running_task->stack_top->r0;
 	DIR *dirp = (DIR *)running_task->stack_top->r1;
 
-	int task_fd = running_task->pid + 1;
+	int task_fd = running_task->pid;
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
@@ -443,7 +443,7 @@ void sys_mknod(void)
 	//mode_t mode = (mode_t)running_task->stack_top->r1;
 	dev_t dev = (dev_t)running_task->stack_top->r2;
 
-	int task_fd = running_task->pid + 1;
+	int task_fd = running_task->pid;
 
 	/* if pending flag is set means the request is already sent */
 	if(running_task->syscall_pending == false) {
@@ -527,7 +527,7 @@ void sched_start(task_func_t first_task)
 
 	/* initialize fifo for all tasks (including path server) */
 	int i;
-	for(i = 0; i < (TASK_NUM_MAX + 1); i++) {
+	for(i = 0; i < TASK_NUM_MAX; i++) {
 		fifo_init(i, (struct file **)&files, &mem_pool);
 	}
 
