@@ -28,14 +28,18 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
 	int i;
 	for(i = 0; i < size; i++)
-		uart_getc(USART3);
+		buf[i] = uart_getc(USART3);
+
+	return i;
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
 	int i;
 	for(i = 0; i < size; i++)
-		uart_putc(USART3, size);
+		uart_putc(USART3, buf[i]);
+
+	return i;
 }
 
 void uart3_init(uint32_t baudrate)

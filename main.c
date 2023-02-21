@@ -81,6 +81,7 @@ void shell_task(void)
 
 	shell_init(&shell, prompt_msg, ret_shell_cmd);
 	shell_path_init();
+	shell_serial_init();
 
 	/* clean screen */
 	shell_cls();
