@@ -20,7 +20,7 @@ void shell_path_init(void)
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char *s = "supported commands:\n\r"
-	          "help, clear, history, ps, echo, ls, cd, pwd, cat\n\r";
+	          "help, clear, history, ps, echo, ls, cd, pwd, cat, file\n\r";
 	shell_puts(s);
 }
 
@@ -202,5 +202,68 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
 		}
 	}
 
+	shell_puts(str);
+}
+
+void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char str[PRINT_SIZE_MAX] = {0};
+
+	/* no file is under this directory */
+	if(shell_dir_curr->i_size == 0)
+		return;
+
+	/* get current directoory path */
+	char path[PATH_LEN_MAX] = {0};
+	fs_get_pwd(path, shell_dir_curr);
+
+	/* open the directory */
+	DIR dir;
+	opendir(path, &dir);
+
+	char file_name[FILE_NAME_LEN_MAX] = {0};
+
+	/* check input agrument counts */
+	if(param_cnt != 2) {
+		shell_puts("Usage: file <file>\n\r");
+		return;
+	}
+
+	/* get rid of the directory symbol '/' */
+	int len = strlen(param_list[1]);
+	if(param_list[1][len - 1] == '/') {
+		strncpy(file_name, param_list[1], len - 1);
+	} else {
+		strncpy(file_name, param_list[1], FILE_NAME_LEN_MAX);
+	}
+
+	/* enumerate the directory */
+	struct dirent dirent;
+	while((readdir(&dir, &dirent)) != -1) {
+		if(strncmp(file_name, dirent.d_name, FILE_NAME_LEN_MAX) == 0) {
+			switch(dirent.d_type) {
+			case S_IFIFO:
+				snprintf(str, PRINT_SIZE_MAX, "%s: fifo (named pipe)\n\r", dirent.d_name);
+				break;
+			case S_IFCHR:
+				snprintf(str, PRINT_SIZE_MAX, "%s: character device\n\r", dirent.d_name);
+				break;
+			case S_IFBLK:
+				snprintf(str, PRINT_SIZE_MAX, "%s: block device\n\r", dirent.d_name);
+				break;
+			case S_IFREG:
+				snprintf(str, PRINT_SIZE_MAX, "%s: regular file\n\r", dirent.d_name);
+				break;
+			case S_IFDIR:
+				snprintf(str, PRINT_SIZE_MAX, "%s: directory\n\r", dirent.d_name);
+				break;
+			}
+
+			shell_puts(str);
+			return;
+		}
+	}
+
+	snprintf(str, PRINT_SIZE_MAX, "%s: cannot open `%s' (No such file or directory)\n\r", file_name, file_name);
 	shell_puts(str);
 }

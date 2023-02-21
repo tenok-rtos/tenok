@@ -27,7 +27,8 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(ls),
 	DEF_SHELL_CMD(cd),
 	DEF_SHELL_CMD(pwd),
-	DEF_SHELL_CMD(cat)
+	DEF_SHELL_CMD(cat),
+	DEF_SHELL_CMD(file)
 };
 
 struct shell_struct shell;
