@@ -512,6 +512,13 @@ void preempt_enable(void)
 	}
 }
 
+void os_service_init(void)
+{
+	rootfs_init();
+
+	if(!fork()) file_system();
+}
+
 void sched_start(task_func_t first_task)
 {
 	/* set interrupt priorities */

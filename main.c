@@ -123,15 +123,19 @@ void mk_cpuinfo(void)
 	write(fd, &c, 1);
 }
 
-void first(void)
+void first(void *param)
 {
 	set_program_name("first");
 
+	/* the service should be initialized before
+	 * forking any new tasks */
+	os_service_init();
+
 	sem_init(&sem_led, 0, 0);
-
 	mk_cpuinfo();
-
+	rom_dev_init();
 	mount("/dev/rom", "/");
+	serial0_init();
 
 	if(!fork()) led_task1();
 	if(!fork()) led_task2();
@@ -144,24 +148,16 @@ void first(void)
 	while(1); //idle loop when nothing to do
 }
 
-void init(void *param)
-{
-	rootfs_init();
-	rom_dev_init();
-
-	serial0_init();
-
-	if(!fork()) file_system();
-
-	first();
-}
-
 int main(void)
 {
 	led_init();
+
+	/* uart3 should be initialized before starting the os
+	 * since the configuration of the nvic requires using
+	 * privilege mode */
 	uart3_init(115200);
 
-	sched_start(init);
+	sched_start(first);
 
 	return 0;
 }

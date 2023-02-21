@@ -32,11 +32,12 @@ static struct file_operations rootfs_file_ops = {
 
 int register_chrdev(char *name, struct file_operations *fops)
 {
-	char devpath[100] = {0};
-	snprintf(devpath, PATH_LEN_MAX, "/dev/%s", name);
+	char dev_path[100] = {0};
+	snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
 
-	/* create new file in the file system */
-	int fd = create_file(devpath, S_IFCHR);
+	/* create new character device file */
+	mknod(dev_path, 0, S_IFCHR);
+	int fd = open(dev_path, 0, 0);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
@@ -48,11 +49,12 @@ int register_chrdev(char *name, struct file_operations *fops)
 
 int register_blkdev(char *name, struct file_operations *fops)
 {
-	char devpath[100] = {0};
-	snprintf(devpath, PATH_LEN_MAX, "/dev/%s", name);
+	char dev_path[100] = {0};
+	snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
 
-	/* create new file in the file system */
-	int fd = create_file(devpath, S_IFBLK);
+	/* create new block device file */
+	mknod(dev_path, 0, S_IFBLK);
+	int fd = open(dev_path, 0, 0);
 
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
