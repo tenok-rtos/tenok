@@ -8,69 +8,98 @@
 #include "syscall.h"
 
 extern tcb_t *running_task;
+extern struct memory_pool mem_pool;
 
-int mqueue_init(int fd, struct file **files, struct mq_attr *attr, struct memory_pool *mem_pool)
+struct msg_queue mq_table[MQUEUE_MAX_CNT];
+int mq_cnt = 0;
+
+mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
-	/* initialize the ring buffer pipe */
-	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
-	uint8_t *pipe_mem = memory_pool_alloc(mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
+	/* initialize the ring buffer */
+	struct ringbuf *pipe = memory_pool_alloc(&mem_pool, sizeof(struct ringbuf));
+	uint8_t *pipe_mem = memory_pool_alloc(&mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
 	ringbuf_init(pipe, pipe_mem, attr->mq_msgsize, attr->mq_maxmsg);
 
-	/* register message queue to the file table */
-	pipe->file.f_op = NULL;
-	files[fd] = &pipe->file;
+	/* register a new message queue */
+	int mqdes = mq_cnt;
+	mq_table[mqdes].pipe = pipe;
+	mq_table[mqdes].lock = 0;
+	mq_cnt++;
 
-	return 0;
+	/* return the message queue descriptor */
+	return mqdes;
 }
 
-ssize_t mqueue_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigned int msg_prio)
+ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
 {
-	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
+	struct msg_queue *mq = &mq_table[mqdes];
+	struct list *task_wait_list = &mq->pipe->task_wait_list;
 
-	/* block the task if the request size is larger than the mq can serve */
-	if(msg_len > pipe->count) {
-		/* put the current task into the file waiting list */
-		prepare_to_wait(&pipe->task_wait_list, &running_task->list, TASK_WAIT);
+	while(1) {
+		/* is the data in the ring buffer enough to server the user? */
+		if(msg_len > mq->pipe->count) {
+			/* start of the critical section */
+			spin_lock_irq(&mq->lock);
 
-		/* turn on the syscall pending flag */
-		running_task->syscall_pending = true;
+			/* put the current task into the file waiting list */
+			prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
-		return 0;
-	} else {
-		/* request can be fulfilled, turn off the syscall pending flag */
-		running_task->syscall_pending = false;
+			/* update the request size */
+			mq->request_size = msg_len;
+
+			/* end of the critical section */
+			spin_unlock_irq(&mq->lock);
+
+			/* yield the cpu */
+			sched_yield();
+		} else {
+			/* start of the critical section */
+			spin_lock_irq(&mq->lock);
+
+			/* pop data from the pipe */
+			int i;
+			for(i = 0; i < msg_len; i++) {
+				ringbuf_get(mq->pipe, &msg_ptr[i]);
+			}
+
+			/* end of the critical section */
+			spin_unlock_irq(&mq->lock);
+
+			break;
+		}
 	}
 
-	/* pop data from the pipe */
-	int i;
-	for(i = 0; i < msg_len; i++) {
-		ringbuf_get(pipe, &msg_ptr[i]);
-	}
 
 	return msg_len;
 }
 
-ssize_t mqueue_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
+int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
-	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
-	struct list *wait_list = &pipe->task_wait_list;
+	struct msg_queue *mq = &mq_table[mqdes];
+	struct list *task_wait_list = &mq->pipe->task_wait_list;
+
+	/* start of the critical section */
+	spin_lock_irq(&mq->lock);
 
 	/* push data into the pipe */
 	int i;
 	for(i = 0; i < msg_len; i++) {
-		ringbuf_put(pipe, &msg_ptr[i]);
+		ringbuf_put(mq->pipe, &msg_ptr[i]);
 	}
 
 	/* resume a blocked task if the pipe has enough data to serve */
-	if(!list_is_empty(wait_list)) {
-		tcb_t *task = list_entry(wait_list->next, tcb_t, list);
+	if(!list_is_empty(task_wait_list)) {
+		tcb_t *task = list_entry(task_wait_list->next, tcb_t, list);
 
 		/* check if read request size can be fulfilled */
-		if(task->file_request.size <= pipe->count) {
-			/* wake up the oldest task from the file waiting list */
-			wake_up(wait_list);
+		if(mq->request_size <= mq->pipe->count) {
+			/* wake up the oldest task from the waiting list */
+			wake_up(task_wait_list);
 		}
 	}
+
+	/* end of the critical section */
+	spin_unlock_irq(&mq->lock);
 
 	return msg_len;
 }

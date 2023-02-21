@@ -35,10 +35,6 @@ void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mknod(void);
-void sys_os_sem_wait(void);
-void sys_mq_open(void);
-void sys_mq_receive(void);
-void sys_mq_send(void);
 
 /* task lists */
 list_t ready_list[TASK_MAX_PRIORITY+1];
@@ -78,9 +74,6 @@ syscall_info_t syscall_table[] = {
 	DEF_SYSCALL(setpriority, 15),
 	DEF_SYSCALL(getpid, 16),
 	DEF_SYSCALL(mknod, 17),
-	DEF_SYSCALL(mq_open, 18),
-	DEF_SYSCALL(mq_receive, 19),
-	DEF_SYSCALL(mq_send, 20),
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -469,65 +462,6 @@ void sys_mknod(void)
 	} else {
 		running_task->stack_top->r0 = 0;
 	}
-}
-
-void sys_mq_open(void)
-{
-	const char *name = (char *)running_task->stack_top->r0;
-	int oflag = running_task->stack_top->r1;
-	struct mq_attr *attr = (struct mq_attr *)running_task->stack_top->r2;
-
-	/* if file count reached the limit */
-	if(file_cnt >= FILE_CNT_LIMIT) {
-		running_task->stack_top->r0 = -1;
-		return;
-	}
-
-	/* if file count reached the limit */
-	if(file_cnt >= FILE_CNT_LIMIT)
-		running_task->stack_top->r0 = -1; //return failure number
-
-	/* dispatch new file descriptor number */
-	int fd = file_cnt + TASK_NUM_MAX + 1;
-	file_cnt++;
-
-	/* initialize a new message queue */
-	int result = mqueue_init(fd, (struct file **)&files, attr, &mem_pool);
-
-	if(result == 0) {
-		running_task->stack_top->r0 = fd; //return mqdes
-	} else {
-		running_task->stack_top->r0 = -1; //return failure number
-	}
-}
-
-void sys_mq_receive(void)
-{
-	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
-	char *msg_ptr = (char *)running_task->stack_top->r1;
-	size_t msg_len = (size_t)running_task->stack_top->r2;
-	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
-
-	struct file *filp = files[mqdes];
-	ssize_t retval = mqueue_receive(filp, msg_ptr, msg_len, msg_prio);
-
-	if(running_task->syscall_pending == false)
-		running_task->stack_top->r0 = retval; //pass return value
-}
-
-void sys_mq_send(void)
-{
-	/* read arguments */
-	mqd_t mqdes = (mqd_t)running_task->stack_top->r0;
-	char *msg_ptr = (char *)running_task->stack_top->r1;
-	size_t msg_len = (size_t)running_task->stack_top->r2;
-	unsigned int msg_prio = (unsigned int)running_task->stack_top->r3;
-
-	struct file *filp = files[mqdes];
-	ssize_t retval = mqueue_send(filp, msg_ptr, msg_len, msg_prio);
-
-	if(running_task->syscall_pending == false)
-		running_task->stack_top->r0 = retval; //pass return value
 }
 
 uint32_t get_proc_mode(void)

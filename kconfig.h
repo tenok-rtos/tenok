@@ -20,6 +20,9 @@
 #define SYSCALL_INTR_PRI   5    /* isr priority higher than this value *
                                  * will not be disabled                */
 
+/* message queue */
+#define MQUEUE_MAX_CNT     50
+
 /* file system */
 #define FILE_SYSTEM_FD     0
 
