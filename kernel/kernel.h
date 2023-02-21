@@ -74,7 +74,7 @@ typedef struct tcb {
 	struct list list;
 }  tcb_t;
 
-void task_create(task_func_t task_func, uint8_t priority);
+void os_service_init(void);
 void sched_start(task_func_t first_task);
 
 void os_env_init(uint32_t stack);
