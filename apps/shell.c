@@ -4,24 +4,41 @@
 #include "stm32f4xx.h"
 #include "uart.h"
 #include "shell.h"
+#include "syscall.h"
 
-void shell_reset_struct(struct shell_struct *shell);
+int serial_fd = 0;
+
+void shell_serial_init(void)
+{
+	serial_fd = open("/dev/serial0", 0, 0);
+}
 
 char shell_getc(void)
 {
+#if 0
+	int c;
+	read(serial_fd, &c, 1);
+
+	return c;
+#else
 	return uart3_getc();
+#endif
 }
 
 void shell_puts(char *s)
 {
+#if 0
+	write(serial_fd, s, strlen(s));
+#else
 	uart3_puts(s);
+#endif
 }
 
 static void shell_ctrl_c_handler(struct shell_struct *shell)
 {
 	shell_puts("^C\n\r");
 	shell_puts(shell->prompt_msg);
-	shell_reset_struct(shell);
+	shell_reset(shell);
 }
 
 static void shell_unknown_cmd_handler(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
@@ -64,7 +81,7 @@ void shell_init(struct shell_struct *shell, char *prompt_msg, char *ret_cmd)
 	shell->read_history = false;
 }
 
-void shell_reset_struct(struct shell_struct *shell)
+void shell_reset(struct shell_struct *shell)
 {
 	shell->cursor_pos = 0;
 	shell->char_cnt = 0;
@@ -217,7 +234,7 @@ void shell_cli(struct shell_struct *shell)
 		case ENTER:
 			if(shell->char_cnt > 0) {
 				shell_puts("\n\r");
-				shell_reset_struct(shell);
+				shell_reset(shell);
 				shell_push_new_history(shell, shell->buf);
 				return;
 			} else {
@@ -411,12 +428,12 @@ void shell_cmd_exec(struct shell_struct *shell, struct cmd_list_entry *cmd_list,
 		if(strcmp(param_list[0], cmd_list[i].name) == 0) {
 			cmd_list[i].handler(param_list, param_cnt);
 			shell->buf[0] = '\0';
-			shell_reset_struct(shell);
+			shell_reset(shell);
 			return;
 		}
 	}
 
 	shell_unknown_cmd_handler(param_list, param_cnt);
 	shell->buf[0] = '\0';
-	shell_reset_struct(shell);
+	shell_reset(shell);
 }

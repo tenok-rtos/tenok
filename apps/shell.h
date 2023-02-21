@@ -64,8 +64,6 @@ typedef struct shell_history_struct {
 } shell_history_t;
 
 struct shell_struct {
-	int serial_fd;
-
 	int cursor_pos;
 	int char_cnt;
 	int prompt_len;
@@ -87,14 +85,17 @@ struct cmd_list_entry {
 	char name[PROMPT_LEN_MAX];
 };
 
+/* serial input/output */
+void shell_serial_init(void);
 char shell_getc(void);
 void shell_puts(char *s);
-
-void shell_init(struct shell_struct *_shell, char *prompt_msg, char *ret_cmd);
 void shell_cls(void);
+
+/* shell functions */
+void shell_reset(struct shell_struct *shell);
+void shell_init(struct shell_struct *_shell, char *prompt_msg, char *ret_cmd);
 void shell_cli(struct shell_struct *_shell);
 void shell_cmd_exec(struct shell_struct *shell, struct cmd_list_entry *cmd_list, int list_size);
-
 void shell_print_history(struct shell_struct *shell);
 
 #endif
