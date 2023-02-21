@@ -3,6 +3,8 @@
 
 #include "stm32f4xx.h"
 
+void serial0_init(void);
+
 void uart3_init(uint32_t baudrate);
 
 char uart3_getc(void);

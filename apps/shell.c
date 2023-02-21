@@ -36,7 +36,7 @@ void shell_cls(void)
 	shell_puts("\x1b[H\x1b[2J");
 }
 
-void shell_init_struct(struct shell_struct *shell, char *prompt_msg, char *ret_cmd)
+void shell_init(struct shell_struct *shell, char *prompt_msg, char *ret_cmd)
 {
 	shell->prompt_msg = prompt_msg;
 	shell->prompt_len = strlen(shell->prompt_msg);
