@@ -25,8 +25,6 @@ int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool)
 	ringbuf_init(pipe, pipe_mem, sizeof(uint8_t), PIPE_DEPTH);
 
 	/* register fifo to the file table */
-	struct list *wait_list = &((&pipe->file)->task_wait_list);
-	list_init(wait_list);
 	pipe->file.f_op = &fifo_ops;
 	files[fd] = &pipe->file;
 
@@ -40,7 +38,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset)
 	/* block the task if the request size is larger than the fifo can serve */
 	if(size > pipe->count) {
 		/* put the current task into the file waiting list */
-		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
+		prepare_to_wait(&pipe->task_wait_list, &running_task->list, TASK_WAIT);
 
 		/* turn on the syscall pending flag */
 		running_task->syscall_pending = true;
@@ -63,7 +61,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset)
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
-	struct list *wait_list = &filp->task_wait_list;
+	struct list *wait_list = &pipe->task_wait_list;
 
 	/* push data into the pipe */
 	int i;

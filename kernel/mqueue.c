@@ -17,8 +17,6 @@ int mqueue_init(int fd, struct file **files, struct mq_attr *attr, struct memory
 	ringbuf_init(pipe, pipe_mem, attr->mq_msgsize, attr->mq_maxmsg);
 
 	/* register message queue to the file table */
-	struct list *wait_list = &((&pipe->file)->task_wait_list);
-	list_init(wait_list);
 	pipe->file.f_op = NULL;
 	files[fd] = &pipe->file;
 
@@ -32,7 +30,7 @@ ssize_t mqueue_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigne
 	/* block the task if the request size is larger than the mq can serve */
 	if(msg_len > pipe->count) {
 		/* put the current task into the file waiting list */
-		prepare_to_wait(&filp->task_wait_list, &running_task->list, TASK_WAIT);
+		prepare_to_wait(&pipe->task_wait_list, &running_task->list, TASK_WAIT);
 
 		/* turn on the syscall pending flag */
 		running_task->syscall_pending = true;
@@ -55,7 +53,7 @@ ssize_t mqueue_receive(struct file *filp, char *msg_ptr, size_t msg_len, unsigne
 ssize_t mqueue_send(struct file *filp, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
 	struct ringbuf *pipe = container_of(filp, struct ringbuf, file);
-	struct list *wait_list = &filp->task_wait_list;
+	struct list *wait_list = &pipe->task_wait_list;
 
 	/* push data into the pipe */
 	int i;

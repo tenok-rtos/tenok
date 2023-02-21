@@ -41,7 +41,6 @@ int register_chrdev(char *name, struct file_operations *fops)
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
 	dev_file->f_op = fops;
-	list_init(&dev_file->task_wait_list);
 
 	/* register the new device file to the file table */
 	files[fd] = dev_file;
@@ -58,7 +57,6 @@ int register_blkdev(char *name, struct file_operations *fops)
 	/* allocate and initialize the new device file */
 	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
 	dev_file->f_op = fops;
-	list_init(&dev_file->task_wait_list);
 
 	/* register the new device file to the file table */
 	files[fd] = dev_file;
