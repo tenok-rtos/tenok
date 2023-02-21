@@ -1,7 +1,11 @@
 #ifndef __MPOOL_H__
 #define __MPOOL_H__
 
+#include "spinlock.h"
+
 struct memory_pool {
+	spinlock_t lock;
+
 	int     offset;
 	size_t  size;
 	uint8_t *mem;
