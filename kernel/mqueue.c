@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <errno.h>
+#include <string.h>
 #include "fs.h"
 #include "mqueue.h"
 #include "mpool.h"
@@ -30,6 +31,7 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 	int mqdes = mq_cnt;
 	mq_table[mqdes].pipe = pipe;
 	mq_table[mqdes].lock = 0;
+	strncpy(mq_table[mqdes].name, name, FILE_NAME_LEN_MAX);
 	mq_cnt++;
 
 	/* return the message queue descriptor */
