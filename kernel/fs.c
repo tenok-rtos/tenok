@@ -79,7 +79,7 @@ void rootfs_init(void)
 	struct file *rootfs_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
 	rootfs_file->f_op = &rootfs_file_ops;
 
-	int fd = file_cnt + TASK_NUM_MAX + 1;
+	int fd = file_cnt + TASK_NUM_MAX;
 	files[fd] = rootfs_file;
 	file_cnt++;
 
@@ -243,7 +243,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 		return NULL;
 
 	/* dispatch a new file descriptor number */
-	int fd = file_cnt + TASK_NUM_MAX + 1;
+	int fd = file_cnt + TASK_NUM_MAX;
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
@@ -391,7 +391,7 @@ static bool fs_sync_file(struct inode *inode)
 		return false;
 
 	/* dispatch a new file descriptor number */
-	inode->i_fd = file_cnt + TASK_NUM_MAX + 1;
+	inode->i_fd = file_cnt + TASK_NUM_MAX;
 	file_cnt++;
 
 	/* create a new regular file */

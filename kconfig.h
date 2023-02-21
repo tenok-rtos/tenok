@@ -24,7 +24,8 @@
 #define MQUEUE_MAX_CNT     50
 
 /* file system */
-#define FILE_SYSTEM_FD     0
+#define FILE_SYSTEM_FD     1    /* file system program is assumed to be the *
+                                 * second task to be launched               */
 
 #define PATH_LEN_MAX       128
 
