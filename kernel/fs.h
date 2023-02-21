@@ -15,6 +15,10 @@
 
 #define RDEV_ROOTFS 0
 
+#ifndef O_NONBLOCK
+#define O_NONBLOCK  00004000
+#endif
+
 typedef int  ssize_t;
 typedef long loff_t;
 

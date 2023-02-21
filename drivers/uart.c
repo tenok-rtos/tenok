@@ -3,6 +3,8 @@
 #include "semaphore.h"
 #include "uart.h"
 #include "fs.h"
+#include "mqueue.h"
+#include "syscall.h"
 
 #define ENABLE_UART3_DMA 0 //QEMU does not support dma emulation for stm32f4
 
@@ -10,9 +12,7 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
 sem_t sem_uart3_tx;
-sem_t sem_uart3_rx;
-
-char recvd_c;
+mqd_t mq_uart3_rx;
 
 static struct file_operations serial0_file_ops = {
 	.read = serial0_read,
@@ -22,15 +22,19 @@ static struct file_operations serial0_file_ops = {
 void serial0_init(void)
 {
 	register_chrdev("serial0", &serial0_file_ops);
+
+	struct mq_attr attr = {
+		.mq_flags = O_NONBLOCK,
+		.mq_maxmsg = 100,
+		.mq_msgsize = sizeof(uint8_t),
+		.mq_curmsgs = 0
+	};
+	mq_uart3_rx = mq_open("/serial0_mq_rx", 0, &attr);
 }
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-	int i;
-	for(i = 0; i < size; i++)
-		buf[i] = uart_getc(USART3);
-
-	return i;
+	return mq_receive(mq_uart3_rx, (char *)buf, size, 0);
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
@@ -46,7 +50,6 @@ void uart3_init(uint32_t baudrate)
 {
 	/* initialize the semaphores */
 	sem_init(&sem_uart3_tx, 0, 0);
-	sem_init(&sem_uart3_rx, 0, 0);
 
 	/* initialize the rcc */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
@@ -85,19 +88,13 @@ void uart3_init(uint32_t baudrate)
 		.NVIC_IRQChannelCmd = ENABLE
 	};
 	NVIC_Init(&nvic);
+	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
 #if (ENABLE_UART3_DMA != 0)
 	/* enable dma1's interrupt */
 	nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
 	NVIC_Init(&nvic);
 #endif
-}
-
-char uart3_getc(void)
-{
-	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
-	sem_wait(&sem_uart3_rx);
-	return recvd_c;
 }
 
 void uart3_puts(char *str)
@@ -140,9 +137,8 @@ void uart3_puts(char *str)
 void USART3_IRQHandler(void)
 {
 	if(USART_GetITStatus(USART3, USART_IT_RXNE) == SET) {
-		recvd_c = USART_ReceiveData(USART3);
-		USART_ITConfig(USART3, USART_IT_RXNE, DISABLE);
-		sem_post(&sem_uart3_rx);
+		uint8_t c = USART_ReceiveData(USART3);
+		mq_send(mq_uart3_rx, (char *)&c, 1, 0);
 	}
 }
 

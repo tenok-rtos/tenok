@@ -33,8 +33,10 @@ void message_queue_task2(void)
 
 	my_message_t msg;
 
+	int n = 1; //numbers of message to receive at once
+
 	while(1) {
-		mq_receive(mqdes_print, (char *)&msg, 1, 0);
+		while(mq_receive(mqdes_print, (char *)&msg, n, 0) != n);
 		uart3_puts(msg.data);
 	}
 }
@@ -42,7 +44,7 @@ void message_queue_task2(void)
 void run_mqueue_example(void)
 {
 	struct mq_attr attr = {
-		.mq_flags = 0,
+		.mq_flags = O_NONBLOCK,
 		.mq_maxmsg = 100,
 		.mq_msgsize = sizeof(my_message_t),
 		.mq_curmsgs = 0
