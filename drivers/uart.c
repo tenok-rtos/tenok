@@ -21,8 +21,10 @@ static struct file_operations serial0_file_ops = {
 
 void serial0_init(void)
 {
+	/* initialize serial0 as character device */
 	register_chrdev("serial0", &serial0_file_ops);
 
+	/* initialize the message queue for reception */
 	struct mq_attr attr = {
 		.mq_flags = O_NONBLOCK,
 		.mq_maxmsg = 100,
@@ -30,6 +32,12 @@ void serial0_init(void)
 		.mq_curmsgs = 0
 	};
 	mq_uart3_rx = mq_open("/serial0_mq_rx", 0, &attr);
+
+	/* initialize the semaphore for transmission */
+	sem_init(&sem_uart3_tx, 0, 0);
+
+	/* enable the uart interrupt service routine */
+	USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 }
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
@@ -48,9 +56,6 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t of
 
 void uart3_init(uint32_t baudrate)
 {
-	/* initialize the semaphores */
-	sem_init(&sem_uart3_tx, 0, 0);
-
 	/* initialize the rcc */
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
@@ -151,9 +156,6 @@ void DMA1_Stream4_IRQHandler(void)
 	}
 }
 
-/*================================================*
- * implementations of uart i/o with busy-waiting: *
- *================================================*/
 
 void uart_putc(USART_TypeDef *uart, char c)
 {
