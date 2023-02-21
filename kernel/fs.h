@@ -92,7 +92,6 @@ struct stat {
 struct file {
 	struct inode *file_inode;
 	struct file_operations *f_op;
-	struct list task_wait_list;
 };
 
 struct file_operations {

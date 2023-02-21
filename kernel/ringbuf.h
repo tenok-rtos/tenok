@@ -15,6 +15,7 @@ struct ringbuf {
 	size_t  type_size;
 
 	struct file file;
+	struct list task_wait_list;
 };
 
 void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_size);
