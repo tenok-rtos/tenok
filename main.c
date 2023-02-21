@@ -79,7 +79,7 @@ void shell_task(void)
 	char prompt_msg[PROMPT_LEN_MAX] = {0};
 	int  shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
-	shell_init_struct(&shell, prompt_msg, ret_shell_cmd);
+	shell_init(&shell, prompt_msg, ret_shell_cmd);
 	shell_path_init();
 
 	/* clean screen */
@@ -146,6 +146,8 @@ void init(void *param)
 {
 	rootfs_init();
 	rom_dev_init();
+
+	serial0_init();
 
 	if(!fork()) file_system();
 

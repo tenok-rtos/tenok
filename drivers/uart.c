@@ -2,13 +2,41 @@
 #include "stm32f4xx.h"
 #include "semaphore.h"
 #include "uart.h"
+#include "fs.h"
 
 #define ENABLE_UART3_DMA 0 //QEMU does not support dma emulation for stm32f4
+
+ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
+ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
 sem_t sem_uart3_tx;
 sem_t sem_uart3_rx;
 
 char recvd_c;
+
+static struct file_operations serial0_file_ops = {
+	.read = serial0_read,
+	.write = serial0_write
+};
+
+void serial0_init(void)
+{
+	register_chrdev("serial0", &serial0_file_ops);
+}
+
+ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
+{
+	int i;
+	for(i = 0; i < size; i++)
+		uart_getc(USART3);
+}
+
+ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+{
+	int i;
+	for(i = 0; i < size; i++)
+		uart_putc(USART3, size);
+}
 
 void uart3_init(uint32_t baudrate)
 {
