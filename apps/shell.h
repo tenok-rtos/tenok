@@ -8,7 +8,7 @@
 #define PARAM_LIST_SIZE_MAX 10
 #define PARAM_LEN_MAX       10
 
-#define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct shell_cmd))
+#define SHELL_CMD_LIST_CNT(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
 
 enum {
@@ -59,6 +59,10 @@ struct shell_history {
 	struct list list;
 };
 
+struct shell_autocompl {
+	char cmd[SHELL_CMD_LEN_MAX];
+};
+
 struct shell {
 	int cursor_pos;
 	int char_cnt;
@@ -69,7 +73,10 @@ struct shell {
 	char input_backup[SHELL_CMD_LEN_MAX];
 
 	/* autocomplete */
-	bool ac_ready;
+	bool show_autocompl;
+	int  autocompl_cnt;
+	int  autocompl_curr;
+	struct shell_autocompl *autocompl; //allocate the amount of the commands you have
 
 	/* history */
 	int  history_max_cnt;
@@ -97,7 +104,8 @@ void shell_cls(void);
 /* shell functions */
 void shell_init(struct shell *shell, char *ret_cmd,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
-                struct shell_history *history, int history_max_cnt);
+                struct shell_history *history, int history_max_cnt,
+		struct shell_autocompl *autocompl);
 void shell_set_prompt(struct shell *shell, char *new_prompt);
 void shell_listen(struct shell *_shell);
 void shell_execute(struct shell *shell);

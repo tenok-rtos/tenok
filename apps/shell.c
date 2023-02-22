@@ -56,7 +56,8 @@ void shell_cls(void)
 
 void shell_init(struct shell *shell, char *ret_cmd,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
-                struct shell_history *history, int history_max_cnt)
+                struct shell_history *history, int history_max_cnt,
+                struct shell_autocompl *autocompl)
 {
 	shell->prompt[0] = '\0';
 	shell->prompt_len = 0;
@@ -70,7 +71,13 @@ void shell_init(struct shell *shell, char *ret_cmd,
 	shell->history_cnt = 0;
 	shell->history_max_cnt = history_max_cnt;
 	shell->show_history = false;
+	shell->autocompl = autocompl;
 	list_init(&shell->history_head);
+
+	int i;
+	for(i = 0; i < cmd_cnt; i++) {
+		shell->autocompl[i].cmd[0] = '\0';
+	}
 }
 
 void shell_set_prompt(struct shell *shell, char *new_prompt)
@@ -174,7 +181,7 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 	shell->show_history = false;
 }
 
-static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
+static bool shell_autocompl_cmp(char *user_input, char *shell_cmd, size_t size)
 {
 	int i;
 	for(i = 0; i < size; i++) {
@@ -187,44 +194,87 @@ static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
 
 static void shell_reset_autocomplete(struct shell *shell)
 {
-	shell->ac_ready = false;
+	shell->show_autocompl = false;
+}
+
+static void shell_generate_suggest_words(struct shell *shell, int argc0_start, int argc0_end)
+{
+	/* reset the suggested word count of the autocomplete */
+        shell->autocompl_cnt = 0;
+
+        /* calculate the length of the first argument */
+        int argc0_len = shell->cursor_pos - argc0_start;
+
+        /* calculate the length of the whole user input command  */
+        int cmd_len = strlen(shell->buf);
+
+        /* the user input that get rid of the space before the first agrument */
+        char *user_cmd = &shell->buf[argc0_start];
+        char *shell_cmd;
+
+        char *suggest_str;
+
+        int i;
+        for(i = 0; i < shell->cmd_cnt; i++) {
+		/* load the compare command from the shell command list */
+                char *shell_cmd = shell->shell_cmds[i].name;
+
+		/* compare the user input with the shell command */
+                if(shell_autocompl_cmp(user_cmd, shell_cmd, argc0_len) == true) {
+			/* copy string from the start to the beginning of the firt argument */
+			suggest_str = shell->autocompl[shell->autocompl_cnt].cmd;
+			memcpy(suggest_str, &shell->buf[0], argc0_start);
+			
+			/* insert the suggestion word */
+			suggest_str += argc0_start;
+			memcpy(suggest_str, shell_cmd, strlen(shell_cmd));
+
+			/* copy the string from the insertion tail to the end of the first argument */
+			suggest_str += strlen(shell_cmd);
+			int cnt = &shell->buf[argc0_end] - &shell->buf[shell->cursor_pos];
+			memcpy(suggest_str, &shell->buf[shell->cursor_pos], cnt);
+
+			/* copy string from the first argument tail to the end */
+			suggest_str += cnt;
+			cnt = &shell->buf[cmd_len] - &shell->buf[argc0_end];
+			memcpy(suggest_str, &shell->buf[argc0_end], cnt);
+
+			/* append the end character */
+			suggest_str += cnt;
+			*suggest_str = '\0';
+
+			//shell_puts(shell->autocompl[i].cmd);
+			//shell_puts("\n\r");
+
+			shell->autocompl_cnt++;
+		}
+	}
 }
 
 static void shell_autocomplete(struct shell *shell)
 {
 	/* find the start position of the first argument */
-	int start_pos = 0;
-	while((shell->buf[start_pos] == ' ') && (start_pos < shell->char_cnt))
-		start_pos++;
+	int argc0_start = 0;
+	while((shell->buf[argc0_start] == ' ') && (argc0_start < shell->char_cnt))
+		argc0_start++;
 
 	/* find the end position of the first argument */
-	int end_pos = start_pos;
-	while((shell->buf[end_pos] != ' ') && (end_pos < shell->char_cnt))
-		end_pos++;
+	int argc0_end = argc0_start;
+	while((shell->buf[argc0_end] != ' ') && (argc0_end < shell->char_cnt))
+		argc0_end++;
 
+#if 0
 	/* deactivate the autocompletion besides the first arguments */
-	if((shell->cursor_pos < start_pos) || (shell->cursor_pos > end_pos))
+	if((shell->cursor_pos < argc0_start) || (shell->cursor_pos > argc0_end))
 		return;
 
-	if(shell->ac_ready == true) {
+	if(shell->show_autocompl == true) {
 		return;
 	}
+#endif
+	shell_generate_suggest_words(shell, argc0_start, argc0_end);
 
-	int size = shell->cursor_pos - start_pos;
-
-	char *user_cmd = &shell->buf[start_pos];
-	char *shell_cmd;
-
-	/* populate the suggestion word list */
-	int i;
-	for(i = 0; i < shell->cmd_cnt; i++) {
-		shell_cmd = shell->shell_cmds[i].name;
-		if(shell_ac_compare(user_cmd, shell_cmd, size)) {
-			shell_puts(&shell_cmd[size]);
-		}
-	}
-
-	shell->ac_ready = true;
+	shell->show_autocompl = true;
 }
 
 void shell_print_history(struct shell *shell)
@@ -408,7 +458,7 @@ void shell_listen(struct shell *shell)
 		case CTRL_H:
 			break;
 		case TAB:
-			//shell_autocomplete(shell);
+			shell_autocomplete(shell);
 			break;
 		case CTRL_J:
 			break;
