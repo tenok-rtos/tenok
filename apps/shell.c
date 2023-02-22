@@ -49,35 +49,21 @@ void shell_init(struct shell *shell, char *prompt_msg, char *ret_cmd)
 {
 	shell->prompt_msg = prompt_msg;
 	shell->prompt_len = strlen(shell->prompt_msg);
-
+	shell->cursor_pos = 0;
 	shell->char_cnt = 0;
 	shell->buf = ret_cmd;
-
-	shell->cursor_pos = 0;
 	memset(shell->buf, '\0', CMD_LEN_MAX);
 
-	shell->history_top = &shell->history[0];
-	int i;
-	for(i = 0; i < (HISTORY_MAX_SIZE - 1); i++) {
-		shell->history[i].cmd[0] = '\0';
-		shell->history[i].next = &shell->history[i + 1];
-	}
-	for(i = 1; i < HISTORY_MAX_SIZE; i++) {
-		shell->history[i].last = &shell->history[i - 1];
-	}
-
-	shell->history[HISTORY_MAX_SIZE - 1].cmd[0] = '\0';
-	shell->history[HISTORY_MAX_SIZE - 1].next = shell->history_top;
-	shell->history[0].last = &shell->history[HISTORY_MAX_SIZE - 1];
-	shell->history_num = 0;
-	shell->read_history = false;
+	shell->history_cnt = 0;
+	shell->history_read_on = false;
+	list_init(&shell->history_head);
 }
 
 void shell_reset(struct shell *shell)
 {
 	shell->cursor_pos = 0;
 	shell->char_cnt = 0;
-	shell->read_history = false;
+	shell->history_read_on = false;
 }
 
 static void shell_remove_char(struct shell *shell, int remove_pos)
@@ -140,30 +126,35 @@ static void shell_cursor_shift_one_right(struct shell *shell)
 
 static void shell_push_new_history(struct shell *shell, char *cmd)
 {
-	/* the shell historys are stored in a circular linking list data
-	 * structure queue */
+	struct list *history_list;
+	struct shell_history *history_new;
 
-	/* if history list is not full, fill in by inverse array order */
-	shell_history_t *curr_history;
-	if(shell->history_num < HISTORY_MAX_SIZE) {
-		curr_history = &shell->history[HISTORY_MAX_SIZE - shell->history_num - 1];
-		strncpy(curr_history->cmd, cmd, CMD_LEN_MAX);
-		shell->history_num++;
-		shell->history_top = curr_history;
-		return;
+	/* check the size of the history list */
+	if(shell->history_cnt < HISTORY_MAX_SIZE) {
+		/* history list is not full, allocate new memory space */
+		history_list = &shell->history[HISTORY_MAX_SIZE - shell->history_cnt - 1].list;
+		shell->history_cnt++;
+
+		/* push new history record into the list */
+		history_new = list_entry(history_list, struct shell_history, list);
+		strncpy(history_new->cmd, shell->buf, CMD_LEN_MAX);
+		list_push(&shell->history_head, history_list);
+
+		/* update the display pointer of the lastest history to show */
+		shell->history_curr = history_list->next;
+		shell->history_latest = history_list;
+	} else {
+		/* history list is full, pop the oldest record */
+		history_list = list_pop(&shell->history_head);
+
+		/* push new history record into the list */
+		history_new = list_entry(history_list, struct shell_history, list);
+		strncpy(history_new->cmd, shell->buf, CMD_LEN_MAX);
+		list_push(&shell->history_head, history_list);
 	}
 
-	/* if history list is full, drop the oldest one */
-	shell_history_t *history_end = shell->history_top;
-	int i;
-	for(i = 0; i < (HISTORY_MAX_SIZE - 1); i++) {
-		if(history_end->cmd[0] == '\0') {
-			break;
-		}
-		history_end = history_end->next;
-	}
-	strncpy(history_end->cmd, shell->buf, CMD_LEN_MAX);
-	shell->history_top = history_end;
+	/* reset the history reading */
+	shell->history_read_on = false;
 }
 
 static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
@@ -223,17 +214,15 @@ void shell_print_history(struct shell *shell)
 {
 	char s[CMD_LEN_MAX * 3];
 
-	shell_history_t *history_print = shell->history_top;
-	int i;
-	for(i = 0; i < HISTORY_MAX_SIZE; i++) {
-		if(history_print->cmd[0] == '\0' ||  i == (HISTORY_MAX_SIZE - 1)) {
-			break;
-		}
+	struct list *list_curr;
+	struct shell_history *history;
 
-		snprintf(s, CMD_LEN_MAX * 3, "%d %s\n\r", i+1, history_print->cmd);
+	int i = 0;
+	list_for_each(list_curr, &shell->history_head) {
+		history = list_entry(list_curr, struct shell_history, list);
+
+		snprintf(s, CMD_LEN_MAX * 3, "%d %s\n\r", ++i, history->cmd);
 		shell_puts(s);
-
-		history_print = history_print->next;
 	}
 }
 
@@ -262,53 +251,60 @@ static void shell_ctrl_u_handler(struct shell *shell)
 
 static void shell_up_arrow_handler(struct shell *shell)
 {
-	if(shell->history_num == 0)
+	/* ignore the key pressing if the hisotry list is empty */
+	if(list_is_empty(&shell->history_head) == true)
 		return;
 
-	if(shell->read_history == false) {
+	if(shell->history_read_on == false) {
+		/* create a backup of the user input */
 		strncpy(shell->input_backup, shell->buf, CMD_LEN_MAX);
-		shell->history_disp = shell->history_top;
-		shell->history_disp_curr = 0;
-		shell->read_history = true;
-	} else {
-		shell->history_disp = shell->history_disp->next;
+
+		/* history reading mode is on */
+		shell->history_read_on = true;
 	}
 
-	/* restore user's typing if finished traveling through the whole list */
-	if(shell->history_disp_curr < shell->history_num) {
-		strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
-		shell->history_disp_curr++;
-	} else {
+	/* load the next history to show */
+	shell->history_curr = shell->history_curr->last;
+
+	/* check if there is more hisotry to present */
+	if(shell->history_curr == &shell->history_head) {
+		/* restore the user input if the traversal of the history list is done */
 		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
-		shell->history_disp = shell->history_top;
-		shell->history_disp_curr = 0;
-		shell->read_history = false;
+		shell->history_read_on = false;
+	} else {
+		/* display the history to the user */
+		struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
+		strncpy(shell->buf, history->cmd, CMD_LEN_MAX);
 	}
 
-	shell->char_cnt = strlen(shell->buf);
+	/* refresh the line */
+	shell->char_cnt   = strlen(shell->buf);
 	shell->cursor_pos = shell->char_cnt;
 	shell_refresh_line(shell);
 }
 
 static void shell_down_arrow_handler(struct shell *shell)
 {
-	if(shell->read_history == false)
+	/* user did not trigger the history reading */
+	if(shell->history_read_on == false)
 		return;
 
-	shell->history_disp = shell->history_disp->last;
+	/* load the previos history */
+	shell->history_curr = shell->history_curr->next;
 
-	/* restore user's typing if finished traveling through the whole list */
-	if(shell->history_disp_curr > 1) {
-		strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
-		shell->history_disp_curr--;
-	} else {
+	/* is the the traversal of the history list done? */
+	if(shell->history_curr == (shell->history_latest->next)) {
+		/* restore the user input */
 		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
-		shell->history_disp = shell->history_top;
-		shell->history_disp_curr = 0;
-		shell->read_history = false;
+		shell->history_read_on = false;
+	} else {
+		/* display the history to the user */
+		struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
+		strncpy(shell->buf, history->cmd, CMD_LEN_MAX);
 	}
 
-	shell->char_cnt = strlen(shell->buf);
+	/* refresh the line */
+	shell->char_cnt   = strlen(shell->buf);
 	shell->cursor_pos = shell->char_cnt;
 	shell_refresh_line(shell);
 }
@@ -479,7 +475,7 @@ void shell_listen(struct shell *shell)
 		case SPACE:
 		default: {
 			if(shell->char_cnt != (CMD_LEN_MAX - 1)) {
-				shell->read_history = false;
+				shell->history_read_on = false;
 				shell_insert_char(shell, c);
 				shell_refresh_line(shell);
 			}
