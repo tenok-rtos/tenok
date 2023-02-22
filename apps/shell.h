@@ -70,6 +70,10 @@ struct shell_struct {
 	char *buf;
 	char *prompt_msg;
 
+	/* autocomplete */
+	bool ac_ready;
+
+	/* history */
 	shell_history_t history[HISTORY_MAX_SIZE];
 	shell_history_t *history_top;
 	shell_history_t *history_end;
@@ -78,6 +82,9 @@ struct shell_struct {
 	int history_num;
 	int history_disp_curr;
 	bool read_history;
+
+	struct cmd_list_entry *shell_cmds;
+	int cmd_cnt;
 };
 
 struct cmd_list_entry {

@@ -84,6 +84,9 @@ void shell_task(void)
 	shell_path_init();
 	shell_serial_init();
 
+	shell.shell_cmds = shell_cmd_list;
+	shell.cmd_cnt = shell_cmd_cnt;
+
 	/* clean screen */
 	shell_cls();
 
