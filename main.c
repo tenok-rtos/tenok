@@ -18,7 +18,7 @@ extern struct inode *shell_dir_curr;
 sem_t sem_led;
 
 /* shell */
-struct cmd_list_entry shell_cmd_list[] = {
+struct shell_cmd shell_cmd_list[] = {
 	DEF_SHELL_CMD(help),
 	DEF_SHELL_CMD(clear),
 	DEF_SHELL_CMD(history),
@@ -31,7 +31,7 @@ struct cmd_list_entry shell_cmd_list[] = {
 	DEF_SHELL_CMD(file)
 };
 
-struct shell_struct shell;
+struct shell shell;
 
 void led_task1(void)
 {
