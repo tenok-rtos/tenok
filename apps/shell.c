@@ -163,6 +163,59 @@ static void shell_push_new_history(struct shell_struct *shell, char *cmd)
 	shell->history_top = history_end;
 }
 
+static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
+{
+	int i;
+	for(i = 0; i < size; i++) {
+		if(user_input[i] != shell_cmd[i])
+			return false;
+	}
+
+	return true;
+}
+
+static void shell_reset_autocomplete(struct shell_struct *shell)
+{
+	shell->ac_ready = false;
+}
+
+static void shell_autocomplete(struct shell_struct *shell)
+{
+	/* find the start position of the first argument */
+	int start_pos = 0;
+	while((shell->buf[start_pos] == ' ') && (start_pos < shell->char_cnt))
+		start_pos++;
+
+	/* find the end position of the first argument */
+	int end_pos = start_pos;
+	while((shell->buf[end_pos] != ' ') && (end_pos < shell->char_cnt))
+		end_pos++;
+
+	/* deactivate the autocompletion besides the first arguments */
+	if((shell->cursor_pos < start_pos) || (shell->cursor_pos > end_pos))
+		return;
+
+	if(shell->ac_ready == true) {
+		return;
+	}
+
+	int size = shell->cursor_pos - start_pos;
+
+	char *user_cmd = &shell->buf[start_pos];
+	char *shell_cmd;
+
+	/* populate the suggestion word list */
+	int i;
+	for(i = 0; i < shell->cmd_cnt; i++) {
+		shell_cmd = shell->shell_cmds[i].name;
+		if(shell_ac_compare(user_cmd, shell_cmd, size)) {
+			shell_puts(&shell_cmd[size]);
+		}
+	}
+
+	shell->ac_ready = true;
+}
+
 void shell_print_history(struct shell_struct *shell)
 {
 	char s[CMD_LEN_MAX * 3];
@@ -219,6 +272,7 @@ void shell_cli(struct shell_struct *shell)
 		case CTRL_H:
 			break;
 		case TAB:
+			//shell_autocomplete(shell);
 			break;
 		case CTRL_J:
 			break;
@@ -314,8 +368,10 @@ void shell_cli(struct shell_struct *shell)
 					shell->cursor_pos = shell->char_cnt;
 					shell_refresh_line(shell);
 				} else if(seq[1] == RIGHT_ARROW) {
+					shell_reset_autocomplete(shell);
 					shell_cursor_shift_one_right(shell);
 				} else if(seq[1] == LEFT_ARROW) {
+					shell_reset_autocomplete(shell);
 					shell_cursor_shift_one_left(shell);
 				} else if(seq[1] == HOME_XTERM) {
 					shell->cursor_pos = 0;
