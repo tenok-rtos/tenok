@@ -2,14 +2,15 @@
 #define __SHELL_H__
 
 #include <stdbool.h>
+#include "list.h"
 
-#define CMD_LEN_MAX 50
-#define PROMPT_LEN_MAX 50
+#define CMD_LEN_MAX         50
+#define PROMPT_LEN_MAX      50
 
 #define PARAM_LIST_SIZE_MAX 10
-#define PARAM_LEN_MAX 10
+#define PARAM_LEN_MAX       10
 
-#define HISTORY_MAX_SIZE 30
+#define HISTORY_MAX_SIZE    30
 
 #define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
@@ -57,11 +58,10 @@ enum {
 	BACKSPACE = 127,   /* backspace */
 } KEYS;
 
-typedef struct shell_history_struct {
+struct shell_history {
 	char cmd[CMD_LEN_MAX];
-	struct shell_history_struct *last;
-	struct shell_history_struct *next;
-} shell_history_t;
+	struct list list;
+};
 
 struct shell {
 	int cursor_pos;
@@ -77,13 +77,12 @@ struct shell {
 	bool ac_ready;
 
 	/* history */
-	int history_num;
-	int history_disp_curr;
-	bool read_history;
-	shell_history_t history[HISTORY_MAX_SIZE];
-	shell_history_t *history_top;
-	shell_history_t *history_end;
-	shell_history_t *history_disp;
+	int  history_cnt;
+	bool history_read_on;
+	struct shell_history history[HISTORY_MAX_SIZE];
+	struct list history_head;
+	struct list *history_curr;
+	struct list *history_latest;
 
 	/* shell commands */
 	struct shell_cmd *shell_cmds;
