@@ -100,8 +100,8 @@ void shell_task(void)
 		snprintf(prompt_msg, PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  path_curr);
 		shell.prompt_len = strlen(shell.prompt_msg);
 
-		shell_cli(&shell);
-		shell_cmd_exec(&shell, shell_cmd_list, shell_cmd_cnt);
+		shell_listen(&shell);
+		shell_execute(&shell);
 	}
 }
 

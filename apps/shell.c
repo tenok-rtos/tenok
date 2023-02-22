@@ -359,7 +359,7 @@ static void shell_backspace_handler(struct shell *shell)
 	shell_refresh_line(shell);
 }
 
-void shell_cli(struct shell *shell)
+void shell_listen(struct shell *shell)
 {
 	shell_puts(shell->prompt_msg);
 
@@ -534,16 +534,16 @@ static void shell_split_cmd_token(char *cmd, char param_list[PARAM_LIST_SIZE_MAX
 	*param_cnt = param_list_index + 1;
 }
 
-void shell_cmd_exec(struct shell *shell, struct shell_cmd *cmd_list, int list_size)
+void shell_execute(struct shell *shell)
 {
 	char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX] = {0};
 	int param_cnt;
 	shell_split_cmd_token(shell->buf, param_list, &param_cnt);
 
 	int i;
-	for(i = 0; i < list_size; i++) {
-		if(strcmp(param_list[0], cmd_list[i].name) == 0) {
-			cmd_list[i].handler(param_list, param_cnt);
+	for(i = 0; i < shell->cmd_cnt; i++) {
+		if(strcmp(param_list[0], shell->shell_cmds[i].name) == 0) {
+			shell->shell_cmds[i].handler(param_list, param_cnt);
 			shell->buf[0] = '\0';
 			shell_reset(shell);
 			return;
