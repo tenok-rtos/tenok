@@ -78,11 +78,10 @@ struct shell {
 
 	/* history */
 	int  history_cnt;
-	bool history_read_on;
+	bool show_history;
 	struct shell_history history[HISTORY_MAX_SIZE];
 	struct list history_head;
 	struct list *history_curr;
-	struct list *history_latest;
 
 	/* shell commands */
 	struct shell_cmd *shell_cmds;
