@@ -32,6 +32,7 @@ struct shell_cmd shell_cmd_list[] = {
 };
 
 struct shell shell;
+struct shell_history history[SHELL_HISTORY_MAX];
 
 void led_task1(void)
 {
@@ -68,24 +69,20 @@ void led_task2(void)
 		state = (state + 1) % 2;
 	}
 }
-
 void shell_task(void)
 {
 	set_program_name("shell");
 	setpriority(0, getpid(), 2);
 
-	/* shell initialization */
-	char ret_shell_cmd[CMD_LEN_MAX];
-	char path_curr[200] = {0};
-	char prompt_msg[PROMPT_LEN_MAX] = {0};
+	char ret_cmd[SHELL_CMD_LEN_MAX];
+	char shell_path[PATH_LEN_MAX] = {0};
+	char prompt[SHELL_PROMPT_LEN_MAX] = {0};
 	int  shell_cmd_cnt = SIZE_OF_SHELL_CMD_LIST(shell_cmd_list);
 
-	shell_init(&shell, prompt_msg, ret_shell_cmd);
+	/* shell initialization */
+	shell_init(&shell, ret_cmd, shell_cmd_list, shell_cmd_cnt, history, SHELL_HISTORY_MAX);
 	shell_path_init();
 	shell_serial_init();
-
-	shell.shell_cmds = shell_cmd_list;
-	shell.cmd_cnt = shell_cmd_cnt;
 
 	/* clean screen */
 	shell_cls();
@@ -96,9 +93,9 @@ void shell_task(void)
 	shell_puts(s);
 
 	while(1) {
-		fs_get_pwd(path_curr, shell_dir_curr);
-		snprintf(prompt_msg, PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  path_curr);
-		shell.prompt_len = strlen(shell.prompt_msg);
+		fs_get_pwd(shell_path, shell_dir_curr);
+		snprintf(prompt, SHELL_PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  shell_path);
+		shell_set_prompt(&shell, prompt);
 
 		shell_listen(&shell);
 		shell_execute(&shell);

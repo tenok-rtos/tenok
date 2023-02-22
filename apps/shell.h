@@ -3,14 +3,10 @@
 
 #include <stdbool.h>
 #include "list.h"
-
-#define CMD_LEN_MAX         50
-#define PROMPT_LEN_MAX      50
+#include "kconfig.h"
 
 #define PARAM_LIST_SIZE_MAX 10
 #define PARAM_LEN_MAX       10
-
-#define HISTORY_MAX_SIZE    30
 
 #define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
@@ -59,7 +55,7 @@ enum {
 } KEYS;
 
 struct shell_history {
-	char cmd[CMD_LEN_MAX];
+	char cmd[SHELL_CMD_LEN_MAX];
 	struct list list;
 };
 
@@ -69,17 +65,17 @@ struct shell {
 	int prompt_len;
 
 	char *buf;
-	char *prompt_msg;
-
-	char input_backup[CMD_LEN_MAX];
+	char prompt[SHELL_PROMPT_LEN_MAX];
+	char input_backup[SHELL_CMD_LEN_MAX];
 
 	/* autocomplete */
 	bool ac_ready;
 
 	/* history */
+	int  history_max_cnt;
 	int  history_cnt;
 	bool show_history;
-	struct shell_history history[HISTORY_MAX_SIZE];
+	struct shell_history *history; //memory for storing the history
 	struct list history_head;
 	struct list *history_curr;
 
@@ -90,18 +86,19 @@ struct shell {
 
 struct shell_cmd {
 	void (*handler)(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
-	char name[PROMPT_LEN_MAX];
+	char name[SHELL_PROMPT_LEN_MAX];
 };
 
 /* serial input/output */
 void shell_serial_init(void);
-char shell_getc(void);
 void shell_puts(char *s);
 void shell_cls(void);
 
 /* shell functions */
-void shell_reset(struct shell *shell);
-void shell_init(struct shell *_shell, char *prompt_msg, char *ret_cmd);
+void shell_init(struct shell *shell, char *ret_cmd,
+                struct shell_cmd *shell_cmds, int cmd_cnt,
+                struct shell_history *history, int history_max_cnt);
+void shell_set_prompt(struct shell *shell, char *new_prompt);
 void shell_listen(struct shell *_shell);
 void shell_execute(struct shell *shell);
 void shell_print_history(struct shell *shell);
