@@ -104,8 +104,8 @@ void shell_cls(void);
 /* shell functions */
 void shell_reset(struct shell *shell);
 void shell_init(struct shell *_shell, char *prompt_msg, char *ret_cmd);
-void shell_cli(struct shell *_shell);
-void shell_cmd_exec(struct shell *shell, struct shell_cmd *cmd_list, int list_size);
+void shell_listen(struct shell *_shell);
+void shell_execute(struct shell *shell);
 void shell_print_history(struct shell *shell);
 
 #endif
