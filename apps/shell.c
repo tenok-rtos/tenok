@@ -55,7 +55,7 @@ void shell_init(struct shell *shell, char *prompt_msg, char *ret_cmd)
 	memset(shell->buf, '\0', CMD_LEN_MAX);
 
 	shell->history_cnt = 0;
-	shell->history_read_on = false;
+	shell->show_history = false;
 	list_init(&shell->history_head);
 }
 
@@ -63,7 +63,6 @@ void shell_reset(struct shell *shell)
 {
 	shell->cursor_pos = 0;
 	shell->char_cnt = 0;
-	shell->history_read_on = false;
 }
 
 static void shell_remove_char(struct shell *shell, int remove_pos)
@@ -124,6 +123,11 @@ static void shell_cursor_shift_one_right(struct shell *shell)
 	shell_refresh_line(shell);
 }
 
+static void shell_reset_history_scrolling(struct shell *shell)
+{
+	shell->show_history = false;
+}
+
 static void shell_push_new_history(struct shell *shell, char *cmd)
 {
 	struct list *history_list;
@@ -139,10 +143,6 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 		history_new = list_entry(history_list, struct shell_history, list);
 		strncpy(history_new->cmd, shell->buf, CMD_LEN_MAX);
 		list_push(&shell->history_head, history_list);
-
-		/* update the display pointer of the lastest history to show */
-		shell->history_curr = history_list->next;
-		shell->history_latest = history_list;
 	} else {
 		/* history list is full, pop the oldest record */
 		history_list = list_pop(&shell->history_head);
@@ -153,8 +153,11 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 		list_push(&shell->history_head, history_list);
 	}
 
+	/* initialize the history pointer */
+	shell->history_curr = &shell->history_head;
+
 	/* reset the history reading */
-	shell->history_read_on = false;
+	shell->show_history = false;
 }
 
 static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
@@ -255,12 +258,12 @@ static void shell_up_arrow_handler(struct shell *shell)
 	if(list_is_empty(&shell->history_head) == true)
 		return;
 
-	if(shell->history_read_on == false) {
+	if(shell->show_history == false) {
 		/* create a backup of the user input */
 		strncpy(shell->input_backup, shell->buf, CMD_LEN_MAX);
 
 		/* history reading mode is on */
-		shell->history_read_on = true;
+		shell->show_history = true;
 	}
 
 	/* load the next history to show */
@@ -270,7 +273,7 @@ static void shell_up_arrow_handler(struct shell *shell)
 	if(shell->history_curr == &shell->history_head) {
 		/* restore the user input if the traversal of the history list is done */
 		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
-		shell->history_read_on = false;
+		shell->show_history = false;
 	} else {
 		/* display the history to the user */
 		struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
@@ -286,17 +289,17 @@ static void shell_up_arrow_handler(struct shell *shell)
 static void shell_down_arrow_handler(struct shell *shell)
 {
 	/* user did not trigger the history reading */
-	if(shell->history_read_on == false)
+	if(shell->show_history == false)
 		return;
 
 	/* load the previos history */
 	shell->history_curr = shell->history_curr->next;
 
 	/* is the the traversal of the history list done? */
-	if(shell->history_curr == (shell->history_latest->next)) {
+	if(shell->history_curr == &shell->history_head) {
 		/* restore the user input */
 		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
-		shell->history_read_on = false;
+		shell->show_history = false;
 	} else {
 		/* display the history to the user */
 		struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
@@ -341,6 +344,7 @@ static void shell_delete_handler(struct shell *shell)
 	if(shell->char_cnt == 0 || shell->cursor_pos == shell->char_cnt)
 		return;
 
+	shell_reset_history_scrolling(shell);
 	shell_remove_char(shell, shell->cursor_pos + 1);
 	shell->cursor_pos++;
 	shell_refresh_line(shell);
@@ -351,6 +355,7 @@ static void shell_backspace_handler(struct shell *shell)
 	if(shell->char_cnt == 0 || shell->cursor_pos == 0)
 		return;
 
+	shell_reset_history_scrolling(shell);
 	shell_remove_char(shell, shell->cursor_pos);
 	shell_refresh_line(shell);
 }
@@ -394,6 +399,7 @@ void shell_listen(struct shell *shell)
 		case CTRL_J:
 			break;
 		case ENTER:
+			shell_reset_history_scrolling(shell);
 			if(shell->char_cnt > 0) {
 				shell_puts("\n\r");
 				shell_reset(shell);
@@ -475,7 +481,7 @@ void shell_listen(struct shell *shell)
 		case SPACE:
 		default: {
 			if(shell->char_cnt != (CMD_LEN_MAX - 1)) {
-				shell->history_read_on = false;
+				shell_reset_history_scrolling(shell);
 				shell_insert_char(shell, c);
 				shell_refresh_line(shell);
 			}
