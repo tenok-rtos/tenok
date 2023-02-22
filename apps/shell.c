@@ -200,31 +200,31 @@ static void shell_reset_autocomplete(struct shell *shell)
 static void shell_generate_suggest_words(struct shell *shell, int argc0_start, int argc0_end)
 {
 	/* reset the suggested word count of the autocomplete */
-        shell->autocompl_cnt = 0;
+	shell->autocompl_cnt = 0;
 
-        /* calculate the length of the first argument */
-        int argc0_len = shell->cursor_pos - argc0_start;
+	/* calculate the length of the first argument */
+	int argc0_len = shell->cursor_pos - argc0_start;
 
-        /* calculate the length of the whole user input command  */
-        int cmd_len = strlen(shell->buf);
+	/* calculate the length of the whole user input command  */
+	int cmd_len = strlen(shell->buf);
 
-        /* the user input that get rid of the space before the first agrument */
-        char *user_cmd = &shell->buf[argc0_start];
-        char *shell_cmd;
+	/* the user input that get rid of the space before the first agrument */
+	char *user_cmd = &shell->buf[argc0_start];
+	char *shell_cmd;
 
-        char *suggest_str;
+	char *suggest_str;
 
-        int i;
-        for(i = 0; i < shell->cmd_cnt; i++) {
+	int i;
+	for(i = 0; i < shell->cmd_cnt; i++) {
 		/* load the compare command from the shell command list */
-                char *shell_cmd = shell->shell_cmds[i].name;
+		char *shell_cmd = shell->shell_cmds[i].name;
 
 		/* compare the user input with the shell command */
-                if(shell_autocompl_cmp(user_cmd, shell_cmd, argc0_len) == true) {
+		if(shell_autocompl_cmp(user_cmd, shell_cmd, argc0_len) == true) {
 			/* copy string from the start to the beginning of the firt argument */
 			suggest_str = shell->autocompl[shell->autocompl_cnt].cmd;
 			memcpy(suggest_str, &shell->buf[0], argc0_start);
-			
+
 			/* insert the suggestion word */
 			suggest_str += argc0_start;
 			memcpy(suggest_str, shell_cmd, strlen(shell_cmd));

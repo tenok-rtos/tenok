@@ -18,7 +18,7 @@ extern struct inode *shell_dir_curr;
 sem_t sem_led;
 
 /* shell */
-struct shell_cmd shell_cmd_list[] = {
+struct shell_cmd shell_cmds[] = {
 	DEF_SHELL_CMD(help),
 	DEF_SHELL_CMD(clear),
 	DEF_SHELL_CMD(history),
@@ -33,7 +33,7 @@ struct shell_cmd shell_cmd_list[] = {
 
 struct shell shell;
 struct shell_history history[SHELL_HISTORY_MAX];
-struct shell_autocompl autocompl[SHELL_CMD_LIST_CNT(shell_cmd_list)];
+struct shell_autocompl autocompl[SHELL_CMDS_CNT(shell_cmds)];
 
 void led_task1(void)
 {
@@ -78,10 +78,10 @@ void shell_task(void)
 	char ret_cmd[SHELL_CMD_LEN_MAX];
 	char shell_path[PATH_LEN_MAX] = {0};
 	char prompt[SHELL_PROMPT_LEN_MAX] = {0};
-	int  shell_cmd_cnt = SHELL_CMD_LIST_CNT(shell_cmd_list);
+	int  shell_cmd_cnt = SHELL_CMDS_CNT(shell_cmds);
 
 	/* shell initialization */
-	shell_init(&shell, ret_cmd, shell_cmd_list, shell_cmd_cnt, history, SHELL_HISTORY_MAX, autocompl);
+	shell_init(&shell, ret_cmd, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX, autocompl);
 	shell_path_init();
 	shell_serial_init();
 

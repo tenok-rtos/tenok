@@ -8,7 +8,7 @@
 #define PARAM_LIST_SIZE_MAX 10
 #define PARAM_LEN_MAX       10
 
-#define SHELL_CMD_LIST_CNT(list) (sizeof(list) / sizeof(struct shell_cmd))
+#define SHELL_CMDS_CNT(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
 
 enum {
@@ -105,7 +105,7 @@ void shell_cls(void);
 void shell_init(struct shell *shell, char *ret_cmd,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
                 struct shell_history *history, int history_max_cnt,
-		struct shell_autocompl *autocompl);
+                struct shell_autocompl *autocompl);
 void shell_set_prompt(struct shell *shell, char *new_prompt);
 void shell_listen(struct shell *_shell);
 void shell_execute(struct shell *shell);
