@@ -11,7 +11,7 @@
 
 #define HISTORY_MAX_SIZE 30
 
-#define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct cmd_list_entry))
+#define SIZE_OF_SHELL_CMD_LIST(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
 
 enum {
@@ -63,31 +63,34 @@ typedef struct shell_history_struct {
 	struct shell_history_struct *next;
 } shell_history_t;
 
-struct shell_struct {
+struct shell {
 	int cursor_pos;
 	int char_cnt;
 	int prompt_len;
+
 	char *buf;
 	char *prompt_msg;
+
+	char input_backup[CMD_LEN_MAX];
 
 	/* autocomplete */
 	bool ac_ready;
 
 	/* history */
+	int history_num;
+	int history_disp_curr;
+	bool read_history;
 	shell_history_t history[HISTORY_MAX_SIZE];
 	shell_history_t *history_top;
 	shell_history_t *history_end;
 	shell_history_t *history_disp;
-	char typing_preserve[CMD_LEN_MAX]; //preserve user's typing while checking the history
-	int history_num;
-	int history_disp_curr;
-	bool read_history;
 
-	struct cmd_list_entry *shell_cmds;
+	/* shell commands */
+	struct shell_cmd *shell_cmds;
 	int cmd_cnt;
 };
 
-struct cmd_list_entry {
+struct shell_cmd {
 	void (*handler)(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
 	char name[PROMPT_LEN_MAX];
 };
@@ -99,10 +102,10 @@ void shell_puts(char *s);
 void shell_cls(void);
 
 /* shell functions */
-void shell_reset(struct shell_struct *shell);
-void shell_init(struct shell_struct *_shell, char *prompt_msg, char *ret_cmd);
-void shell_cli(struct shell_struct *_shell);
-void shell_cmd_exec(struct shell_struct *shell, struct cmd_list_entry *cmd_list, int list_size);
-void shell_print_history(struct shell_struct *shell);
+void shell_reset(struct shell *shell);
+void shell_init(struct shell *_shell, char *prompt_msg, char *ret_cmd);
+void shell_cli(struct shell *_shell);
+void shell_cmd_exec(struct shell *shell, struct shell_cmd *cmd_list, int list_size);
+void shell_print_history(struct shell *shell);
 
 #endif

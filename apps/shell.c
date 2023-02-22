@@ -17,6 +17,7 @@ char shell_getc(void)
 {
 	char c;
 	while(read(serial_fd, &c, 1) != 1);
+
 	return c;
 }
 
@@ -25,7 +26,7 @@ void shell_puts(char *s)
 	write(serial_fd, s, strlen(s));
 }
 
-static void shell_ctrl_c_handler(struct shell_struct *shell)
+static void shell_ctrl_c_handler(struct shell *shell)
 {
 	shell_puts("^C\n\r");
 	shell_puts(shell->prompt_msg);
@@ -44,7 +45,7 @@ void shell_cls(void)
 	shell_puts("\x1b[H\x1b[2J");
 }
 
-void shell_init(struct shell_struct *shell, char *prompt_msg, char *ret_cmd)
+void shell_init(struct shell *shell, char *prompt_msg, char *ret_cmd)
 {
 	shell->prompt_msg = prompt_msg;
 	shell->prompt_len = strlen(shell->prompt_msg);
@@ -72,14 +73,14 @@ void shell_init(struct shell_struct *shell, char *prompt_msg, char *ret_cmd)
 	shell->read_history = false;
 }
 
-void shell_reset(struct shell_struct *shell)
+void shell_reset(struct shell *shell)
 {
 	shell->cursor_pos = 0;
 	shell->char_cnt = 0;
 	shell->read_history = false;
 }
 
-static void shell_remove_char(struct shell_struct *shell, int remove_pos)
+static void shell_remove_char(struct shell *shell, int remove_pos)
 {
 	int i;
 	for(i = (remove_pos - 1); i < (shell->char_cnt); i++) {
@@ -95,7 +96,7 @@ static void shell_remove_char(struct shell_struct *shell, int remove_pos)
 	}
 }
 
-static void shell_insert_char(struct shell_struct *shell, char c)
+static void shell_insert_char(struct shell *shell, char c)
 {
 	int i;
 	for(i = shell->char_cnt; i > (shell->cursor_pos - 1); i--) {
@@ -108,7 +109,7 @@ static void shell_insert_char(struct shell_struct *shell, char c)
 	shell->cursor_pos++;
 }
 
-static void shell_refresh_line(struct shell_struct *shell)
+static void shell_refresh_line(struct shell *shell)
 {
 	char s[PROMPT_LEN_MAX * 5];
 	snprintf(s, PROMPT_LEN_MAX * 5,
@@ -119,23 +120,25 @@ static void shell_refresh_line(struct shell_struct *shell)
 	shell_puts(s);
 }
 
-static void shell_cursor_shift_one_left(struct shell_struct *shell)
+static void shell_cursor_shift_one_left(struct shell *shell)
 {
-	if(shell->cursor_pos > 0) {
-		shell->cursor_pos--;
-		shell_refresh_line(shell);
-	}
+	if(shell->cursor_pos <= 0)
+		return;
+
+	shell->cursor_pos--;
+	shell_refresh_line(shell);
 }
 
-static void shell_cursor_shift_one_right(struct shell_struct *shell)
+static void shell_cursor_shift_one_right(struct shell *shell)
 {
-	if(shell->cursor_pos < shell->char_cnt) {
-		shell->cursor_pos++;
-		shell_refresh_line(shell);
-	}
+	if(shell->cursor_pos >= shell->char_cnt)
+		return;
+
+	shell->cursor_pos++;
+	shell_refresh_line(shell);
 }
 
-static void shell_push_new_history(struct shell_struct *shell, char *cmd)
+static void shell_push_new_history(struct shell *shell, char *cmd)
 {
 	/* the shell historys are stored in a circular linking list data
 	 * structure queue */
@@ -174,12 +177,12 @@ static bool shell_ac_compare(char *user_input, char *shell_cmd, size_t size)
 	return true;
 }
 
-static void shell_reset_autocomplete(struct shell_struct *shell)
+static void shell_reset_autocomplete(struct shell *shell)
 {
 	shell->ac_ready = false;
 }
 
-static void shell_autocomplete(struct shell_struct *shell)
+static void shell_autocomplete(struct shell *shell)
 {
 	/* find the start position of the first argument */
 	int start_pos = 0;
@@ -216,7 +219,7 @@ static void shell_autocomplete(struct shell_struct *shell)
 	shell->ac_ready = true;
 }
 
-void shell_print_history(struct shell_struct *shell)
+void shell_print_history(struct shell *shell)
 {
 	char s[CMD_LEN_MAX * 3];
 
@@ -234,7 +237,129 @@ void shell_print_history(struct shell_struct *shell)
 	}
 }
 
-void shell_cli(struct shell_struct *shell)
+static void shell_ctrl_a_handler(struct shell *shell)
+{
+	shell->cursor_pos = 0;
+	shell_refresh_line(shell);
+}
+
+static void shell_ctrl_e_handler(struct shell *shell)
+{
+	if(shell->char_cnt == 0)
+		return;
+
+	shell->cursor_pos = shell->char_cnt;
+	shell_refresh_line(shell);
+}
+
+static void shell_ctrl_u_handler(struct shell *shell)
+{
+	shell->buf[0] = '\0';
+	shell->char_cnt = 0;
+	shell->cursor_pos = 0;
+	shell_refresh_line(shell);
+}
+
+static void shell_up_arrow_handler(struct shell *shell)
+{
+	if(shell->history_num == 0)
+		return;
+
+	if(shell->read_history == false) {
+		strncpy(shell->input_backup, shell->buf, CMD_LEN_MAX);
+		shell->history_disp = shell->history_top;
+		shell->history_disp_curr = 0;
+		shell->read_history = true;
+	} else {
+		shell->history_disp = shell->history_disp->next;
+	}
+
+	/* restore user's typing if finished traveling through the whole list */
+	if(shell->history_disp_curr < shell->history_num) {
+		strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
+		shell->history_disp_curr++;
+	} else {
+		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
+		shell->history_disp = shell->history_top;
+		shell->history_disp_curr = 0;
+		shell->read_history = false;
+	}
+
+	shell->char_cnt = strlen(shell->buf);
+	shell->cursor_pos = shell->char_cnt;
+	shell_refresh_line(shell);
+}
+
+static void shell_down_arrow_handler(struct shell *shell)
+{
+	if(shell->read_history == false)
+		return;
+
+	shell->history_disp = shell->history_disp->last;
+
+	/* restore user's typing if finished traveling through the whole list */
+	if(shell->history_disp_curr > 1) {
+		strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
+		shell->history_disp_curr--;
+	} else {
+		strncpy(shell->buf, shell->input_backup, CMD_LEN_MAX);
+		shell->history_disp = shell->history_top;
+		shell->history_disp_curr = 0;
+		shell->read_history = false;
+	}
+
+	shell->char_cnt = strlen(shell->buf);
+	shell->cursor_pos = shell->char_cnt;
+	shell_refresh_line(shell);
+}
+
+static void shell_right_arrow_handler(struct shell *shell)
+{
+	shell_reset_autocomplete(shell);
+	shell_cursor_shift_one_right(shell);
+}
+
+static void shell_left_arrow_handler(struct shell *shell)
+{
+	shell_reset_autocomplete(shell);
+	shell_cursor_shift_one_left(shell);
+}
+
+static void shell_home_handler(struct shell *shell)
+{
+	shell->cursor_pos = 0;
+	shell_refresh_line(shell);
+}
+
+static void shell_end_handler(struct shell *shell)
+{
+	if(shell->char_cnt == 0)
+		return;
+
+	shell->cursor_pos = shell->char_cnt;
+	shell_refresh_line(shell);
+}
+
+static void shell_delete_handler(struct shell *shell)
+{
+	if(shell->char_cnt == 0 || shell->cursor_pos == shell->char_cnt)
+		return;
+
+	shell_remove_char(shell, shell->cursor_pos + 1);
+	shell->cursor_pos++;
+	shell_refresh_line(shell);
+}
+
+static void shell_backspace_handler(struct shell *shell)
+{
+	if(shell->char_cnt == 0 || shell->cursor_pos == 0)
+		return;
+
+	shell_remove_char(shell, shell->cursor_pos);
+	shell_refresh_line(shell);
+}
+
+void shell_cli(struct shell *shell)
 {
 	shell_puts(shell->prompt_msg);
 
@@ -247,11 +372,10 @@ void shell_cli(struct shell_struct *shell)
 		case NULL_CH:
 			break;
 		case CTRL_A:
-			shell->cursor_pos = 0;
-			shell_refresh_line(shell);
+			shell_ctrl_a_handler(shell);
 			break;
 		case CTRL_B:
-			shell_cursor_shift_one_left(shell);
+			shell_left_arrow_handler(shell);
 			break;
 		case CTRL_C:
 			shell_ctrl_c_handler(shell);
@@ -259,13 +383,10 @@ void shell_cli(struct shell_struct *shell)
 		case CTRL_D:
 			break;
 		case CTRL_E:
-			if(shell->char_cnt > 0) {
-				shell->cursor_pos = shell->char_cnt;
-				shell_refresh_line(shell);
-			}
+			shell_ctrl_e_handler(shell);
 			break;
 		case CTRL_F:
-			shell_cursor_shift_one_right(shell);
+			shell_right_arrow_handler(shell);
 			break;
 		case CTRL_G:
 			break;
@@ -306,10 +427,7 @@ void shell_cli(struct shell_struct *shell)
 		case CTRL_T:
 			break;
 		case CTRL_U:
-			shell->buf[0] = '\0';
-			shell->char_cnt = 0;
-			shell->cursor_pos = 0;
-			shell_refresh_line(shell);
+			shell_ctrl_u_handler(shell);
 			break;
 		case CTRL_W:
 			break;
@@ -324,87 +442,39 @@ void shell_cli(struct shell_struct *shell)
 			seq[1] = shell_getc();
 			if(seq[0] == ESC_SEQ2) {
 				if(seq[1] == UP_ARROW) {
-					if(shell->history_num == 0) {
-						break;
-					}
-					if(shell->read_history == false) {
-						strncpy(shell->typing_preserve, shell->buf, CMD_LEN_MAX);
-						shell->history_disp = shell->history_top;
-						shell->history_disp_curr = 0;
-						shell->read_history = true;
-					} else {
-						shell->history_disp = shell->history_disp->next;
-					}
-					/* restore user's typing if finished traveling through the whole list */
-					if(shell->history_disp_curr < shell->history_num) {
-						strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
-						shell->history_disp_curr++;
-					} else {
-						strncpy(shell->buf, shell->typing_preserve, CMD_LEN_MAX);
-						shell->history_disp = shell->history_top;
-						shell->history_disp_curr = 0;
-						shell->read_history = false;
-					}
-					shell->char_cnt = strlen(shell->buf);
-					shell->cursor_pos = shell->char_cnt;
-					shell_refresh_line(shell);
+					shell_up_arrow_handler(shell);
+					break;
 				} else if(seq[1] == DOWN_ARROW) {
-					if(shell->read_history == false) {
-						break;
-					} else {
-						shell->history_disp = shell->history_disp->last;
-					}
-					/* restore user's typing if finished traveling through the whole list */
-					if(shell->history_disp_curr > 1) {
-						strncpy(shell->buf, shell->history_disp->cmd, CMD_LEN_MAX);
-						shell->history_disp_curr--;
-					} else {
-						strncpy(shell->buf, shell->typing_preserve, CMD_LEN_MAX);
-						shell->history_disp = shell->history_top;
-						shell->history_disp_curr = 0;
-						shell->read_history = false;
-					}
-					shell->char_cnt = strlen(shell->buf);
-					shell->cursor_pos = shell->char_cnt;
-					shell_refresh_line(shell);
+					shell_down_arrow_handler(shell);
+					break;
 				} else if(seq[1] == RIGHT_ARROW) {
-					shell_reset_autocomplete(shell);
-					shell_cursor_shift_one_right(shell);
+					shell_right_arrow_handler(shell);
+					break;
 				} else if(seq[1] == LEFT_ARROW) {
-					shell_reset_autocomplete(shell);
-					shell_cursor_shift_one_left(shell);
+					shell_left_arrow_handler(shell);
+					break;
 				} else if(seq[1] == HOME_XTERM) {
-					shell->cursor_pos = 0;
-					shell_refresh_line(shell);
+					shell_home_handler(shell);
+					break;
 				} else if(seq[1] == HOME_VT100) {
-					shell->cursor_pos = 0;
-					shell_refresh_line(shell);
+					shell_home_handler(shell);
 					shell_getc();
+					break;
 				} else if(seq[1] == END_XTERM) {
-					if(shell->char_cnt > 0) {
-						shell->cursor_pos = shell->char_cnt;
-						shell_refresh_line(shell);
-					}
+					shell_end_handler(shell);
+					break;
 				} else if(seq[1] == END_VT100) {
-					if(shell->char_cnt > 0) {
-						shell->cursor_pos = shell->char_cnt;
-						shell_refresh_line(shell);
-					}
+					shell_end_handler(shell);
 					shell_getc();
+					break;
 				} else if(seq[1] == DELETE && shell_getc() == ESC_SEQ4) {
-					if(shell->char_cnt != 0 && shell->cursor_pos != shell->char_cnt) {
-						shell_remove_char(shell, shell->cursor_pos + 1);
-						shell->cursor_pos++;
-						shell_refresh_line(shell);
-					}
+					shell_delete_handler(shell);
+					break;
 				}
 			}
 			break;
 		case BACKSPACE:
-			if(shell->char_cnt != 0 && shell->cursor_pos != 0) {
-				shell_remove_char(shell, shell->cursor_pos);
-				shell_refresh_line(shell);
-			}
+			shell_backspace_handler(shell);
 			break;
 		case SPACE:
 		default: {
@@ -464,7 +534,7 @@ static void shell_split_cmd_token(char *cmd, char param_list[PARAM_LIST_SIZE_MAX
 	*param_cnt = param_list_index + 1;
 }
 
-void shell_cmd_exec(struct shell_struct *shell, struct cmd_list_entry *cmd_list, int list_size)
+void shell_cmd_exec(struct shell *shell, struct shell_cmd *cmd_list, int list_size)
 {
 	char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX] = {0};
 	int param_cnt;

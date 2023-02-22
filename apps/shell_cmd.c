@@ -5,7 +5,7 @@
 #include "fs.h"
 #include "syscall.h"
 
-extern struct shell_struct shell;
+extern struct shell shell;
 extern struct inode inodes[INODE_CNT_MAX];
 
 struct inode *shell_dir_curr = NULL;
