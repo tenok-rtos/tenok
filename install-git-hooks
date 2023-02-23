@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ln -sf ../../scripts/pre-commit.hook .git/hooks/pre-commit || exit 1
+chmod +x .git/hooks/pre-commit
