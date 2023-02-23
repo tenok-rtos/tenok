@@ -57,7 +57,6 @@ int pthread_mutex_lock(_pthread_mutex_t *mutex)
 
 			/* sleep */
 			sched_yield();
-
 		} else {
 			/* occupy the mutex by setting the owner */
 			mutex->owner = running_task;

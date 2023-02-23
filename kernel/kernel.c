@@ -210,7 +210,8 @@ void syscall_handler(void)
 
 void sys_sched_yield(void)
 {
-	return;
+	/* suspend the current task */
+	prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
 }
 
 void sys_set_irq(void)
