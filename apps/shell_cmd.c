@@ -66,9 +66,30 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 	char path[PATH_LEN_MAX] = {0};
 	fs_get_pwd(path, shell_dir_curr);
 
+	if(param_cnt == 2) {
+		if(param_list[1][0] != '/') {
+			/* user feed a relative path */
+			sprintf(path, "%s/%s", path, param_list[1]);
+		} else {
+			/* user feed a absolute path */
+			strncpy(path, param_list[1], PATH_LEN_MAX);
+		}
+	} else if(param_cnt > 2) {
+		shell_puts("ls: too many arguments\n\r");
+		return;
+	}
+
 	/* open the directory */
 	DIR dir;
-	opendir(path, &dir);
+	int retval = opendir(path, &dir);
+
+	/* check if the directory is successfull opened */
+	if(retval != 0) {
+		snprintf(str, PRINT_SIZE_MAX,
+		         "ls: cannot access '%s': No such file or directory\n\r", param_list[1]);
+		shell_puts(str);
+		return;
+	}
 
 	/* enumerate the directory */
 	struct dirent dirent;
