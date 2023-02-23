@@ -74,6 +74,7 @@ struct shell {
 
 	/* autocomplete */
 	bool show_autocompl;
+	int  autocompl_cursor_pos;
 	int  autocompl_cnt;
 	int  autocompl_curr;
 	struct shell_autocompl *autocompl; //allocate the amount of the commands you have
