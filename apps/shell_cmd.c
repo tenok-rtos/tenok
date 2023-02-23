@@ -6,7 +6,6 @@
 #include "syscall.h"
 
 extern struct shell shell;
-extern struct inode inodes[INODE_CNT_MAX];
 extern struct memory_pool mem_pool;
 
 struct inode *shell_dir_curr = NULL;
@@ -117,28 +116,29 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 		opendir("/", &dir);
 		shell_dir_curr = dir.inode_dir;
 	} else if(param_cnt == 2) {
-		/* handle cd .. */
-		if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
-			shell_dir_curr = &inodes[inodes->i_parent];
-			return;
-		}
-
 		char path[PATH_LEN_MAX] = {0};
 
-		if(param_list[1][0] == '/') {
-			/* handle the absolute path */
-			strncpy(path, param_list[1], PATH_LEN_MAX);
-		} else {
-			/* handle the relative path */
+		if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
+			/* handle cd .. */
 			fs_get_pwd(path, shell_dir_curr);
-			snprintf(path, PATH_LEN_MAX, "%s%s", path, param_list[1]);
+			snprintf(path, PATH_LEN_MAX, "%s..");
+		} else {
+			/* handle regular path */
+			if(param_list[1][0] == '/') {
+				/* handle the absolute path */
+				strncpy(path, param_list[1], PATH_LEN_MAX);
+			} else {
+				/* handle the relative path */
+				fs_get_pwd(path, shell_dir_curr);
+				snprintf(path, PATH_LEN_MAX, "%s%s", path, param_list[1]);
+			}
 		}
 
 		/* open the directory */
-		opendir(path, &dir);
+		int retval = opendir(path, &dir);
 
 		/* directory not found */
-		if(dir.inode_dir == NULL) {
+		if(retval != 0) {
 			snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", param_list[1]);
 			shell_puts(str);
 			return;
