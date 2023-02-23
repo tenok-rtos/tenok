@@ -1,40 +1,34 @@
 #!/bin/bash
 
+# Options
 ASTYLE_OPTS="--style=linux --indent=spaces=4 --indent-switches --suffix=none --exclude=lib --recursive"
 CPPCHECK_OPTS=". -i lib/ --error-exitcode=1 --force"
 
+# Check installation of the astyle
 ASTYLE=$(which astyle)
 if [ $? -ne 0 ]; then
-    echo "[!] astyle not installed. Unable to check source file format policy." >&2
-    exit 1
+	echo "[!] astyle not installed. Unable to check source file format policy." >&2
+	exit 1
 fi
 
-RETURN=0
-git diff --cached --name-status --diff-filter=ACMR |
-{
-    # Command grouping to workaround subshell issues. When the while loop is
-    # finished, the subshell copy is discarded, and the original variable
-    # RETURN of the parent hasn't changed properly.
-    while read STATUS FILE; do
-    if [[ "$FILE" =~ ^.+(c|cpp|h)$ ]]; then
-        $ASTYLE $ASTYLE_OPTS < $FILE > $FILE.beautified
-        md5sum -b $FILE | { read stdin; echo $stdin.beautified; } | md5sum -c --status -
-        if [ $? -ne 0 ]; then
-            echo "[!] $FILE does not respect the agreed coding standards." >&2
-            RETURN=1
-        fi
-        rm $FILE.beautified
+# Check formatting
+ASTYLE_RESULT=0
+FILES=`git diff --cached --name-only --diff-filter=ACMR | grep -E "\.(c|cpp|h)$"`
+for FILE in $FILES; do
+    $ASTYLE $ASTYLE_OPTS < $FILE | cmp -s $FILE -
+    if [ $? -ne 0 ]; then
+       echo "[!] $FILE does not respect the agreed coding style." >&2
+       ASTYLE_RESULT=1
     fi
-    done
+done
 
-    if [ $RETURN -eq 1 ]; then
-        echo ""
-        echo "Make sure you have run astyle with the 'make astyle'." >&2 
-    fi
+if [ $ASTYLE_RESULT -eq 1 ]; then
+	echo "" >&2
+	echo "Make sure you have run astyle with 'make astyle'" >&2
+	exit 1
+fi
 
-    exit $RETURN
-}
-
+# Check installation of the cppcheck
 CPPCHECK=$(which cppcheck)
 if [ $? -ne 0 ]; then
     echo "[!] cppcheck not installed. Unable to perform static analysis." >&2
@@ -47,7 +41,7 @@ if [ -z "$($CPPCHECK --version | grep -E '^Cppcheck\s2')" ]; then
     # Second, Cppcheck 1.x
     CPPCHECK_VER=$($CPPCHECK --version | sed -Ee 's/Cppcheck 1.([0-9]+)/\1/;q')
     if [ $CPPCHECK_VER -lt 90 ]; then
-        echo "[!] cppcheck version must be at least 1.90." >&2
+        echo    "[!] cppcheck version must be at least 1.90." >&2
         echo -e "    Check 'Developer Info' for building Cppcheck from source:\n" \
                 "          http://cppcheck.sourceforge.net/devinfo/" >&2
         exit 1
@@ -57,10 +51,26 @@ fi
 # Static analysis
 $CPPCHECK $CPPCHECK_OPTS >/dev/null
 if [ $? -ne 0 ]; then
-    RETURN=1
     echo "" >&2
     echo "Fail to pass static analysis." >&2
     echo
+    exit 1
 fi
 
-exit $RETURN
+# Prevent unsafe functions
+root=$(git rev-parse --show-toplevel)
+banned="([^f]gets\()|(sprintf\()|(strcpy\()"
+status=0
+for file in $(git diff --staged --name-only | grep -E "\.(c|cc|cpp|h|hh|hpp)\$")
+do
+    filepath="${root}/${file}"
+    output=$(grep -nrE "${banned}" "${filepath}")
+    if [ ! -z "${output}" ]; then
+        echo "Dangerous function detected in ${filepath}"
+        echo "${output}"
+        echo
+        echo "Read 'Common vulnerabilities guide for C programmers' carefully."
+        echo "(https://security.web.cern.ch/security/recommendations/en/codetools/c.shtml)"
+        exit 1
+    fi
+done
