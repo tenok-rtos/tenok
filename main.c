@@ -28,7 +28,8 @@ struct shell_cmd shell_cmds[] = {
 	DEF_SHELL_CMD(cd),
 	DEF_SHELL_CMD(pwd),
 	DEF_SHELL_CMD(cat),
-	DEF_SHELL_CMD(file)
+	DEF_SHELL_CMD(file),
+	DEF_SHELL_CMD(mpool)
 };
 
 struct shell shell;
