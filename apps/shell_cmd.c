@@ -7,6 +7,7 @@
 
 extern struct shell shell;
 extern struct inode inodes[INODE_CNT_MAX];
+extern struct memory_pool mem_pool;
 
 struct inode *shell_dir_curr = NULL;
 
@@ -20,7 +21,7 @@ void shell_path_init(void)
 void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
 	char *s = "supported commands:\n\r"
-	          "help, clear, history, ps, echo, ls, cd, pwd, cat, file\n\r";
+	          "help, clear, history, ps, echo, ls, cd, pwd, cat, file, mpool\n\r";
 	shell_puts(s);
 }
 
@@ -296,4 +297,13 @@ void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 
 	shell_puts(str);
 	return;
+}
+
+void shell_cmd_mpool(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+{
+	char str[PRINT_SIZE_MAX] = {0};
+
+	snprintf(str, PRINT_SIZE_MAX, "[kernel memory pool] size: %d bytes, used: %d\n\r",
+	         mem_pool.size, mem_pool.offset);
+	shell_puts(str);
 }
