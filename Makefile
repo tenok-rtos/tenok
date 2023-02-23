@@ -100,7 +100,7 @@ tools/romfs.o:
 	@$(CC) $(CFLAGS) -MMD -MP -c $< $(LDFLAGS) -o $@
 
 check:
-	cppcheck . -i lib/
+	$(CPPCHECK) . -i lib/
 
 clean:
 	rm -rf $(ELF)
