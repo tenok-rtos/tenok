@@ -585,10 +585,10 @@ void sched_start(task_func_t first_task)
 
 void sprint_tasks(char *str, size_t size)
 {
-    snprintf(str, size, "PID\tPR\tNAME\n\r");
+    int pos = snprintf(&str[0], size, "PID\tPR\tNAME\n\r");
 
     int i;
     for(i = 0; i < task_nums; i++) {
-        snprintf(str, size, "%s%d\t%d\t%s\n\r", str, tasks[i].pid, tasks[i].priority, tasks[i].name);
+        pos += snprintf(&str[pos], size, "%d\t%d\t%s\n\r", tasks[i].pid, tasks[i].priority, tasks[i].name);
     }
 }
