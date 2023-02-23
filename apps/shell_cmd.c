@@ -303,7 +303,7 @@ void shell_cmd_mpool(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int pa
 {
 	char str[PRINT_SIZE_MAX] = {0};
 
-	snprintf(str, PRINT_SIZE_MAX, "[kernel memory pool] size: %d bytes, used: %d\n\r",
+	snprintf(str, PRINT_SIZE_MAX, "[kernel memory pool] size: %d bytes, used: %d bytes\n\r",
 	         mem_pool.size, mem_pool.offset);
 	shell_puts(str);
 }

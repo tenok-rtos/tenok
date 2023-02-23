@@ -15,6 +15,7 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
 	return 0;
 }
 
+/* sem_post() can be called by both the user task and interrupt handler */
 int sem_post(sem_t *sem)
 {
 	spin_lock_irq(&sem->lock);
@@ -30,6 +31,7 @@ int sem_post(sem_t *sem)
 	return 0;
 }
 
+/* sem_wait() can only be called by the user task */
 int sem_wait(sem_t *sem)
 {
 	spin_lock_irq(&sem->lock);
