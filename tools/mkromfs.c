@@ -4,8 +4,11 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include "list.h"
 
+#define INPUT_DIR         "."
 #define OUTPUT            "./romfs.bin"
 
 #define FILE_NAME_LEN_MAX 30
@@ -360,6 +363,20 @@ void romfs_export(void)
     fclose(file);
 }
 
+char romfs_import_dir(const char *path)
+{
+    DIR *dir = opendir(path);
+    if(dir == NULL)
+        exit(1);
+
+    struct dirent* dirent = NULL;
+    while ((dirent = readdir(dir)) != NULL) {
+        //printf("%s\n", dirent->d_name);
+    }
+
+    closedir(dir);
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -377,6 +394,8 @@ int main(int argc, char **argv)
     }
 
     romfs_init();
+
+    romfs_import_dir(INPUT_DIR);
 
     create_file("/rom_data/test1.txt", S_IFREG);
     create_file("/rom_data/test2.txt", S_IFREG);
