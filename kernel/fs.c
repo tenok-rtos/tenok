@@ -15,7 +15,7 @@ static void fs_mount_directory(struct inode *inode_src, struct inode *inode_targ
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
-extern struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
+extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 extern struct memory_pool mem_pool;
 extern int file_cnt;
 
@@ -73,7 +73,7 @@ void rootfs_init(void)
 	struct file *rootfs_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
 	rootfs_file->f_op = &rootfs_file_ops;
 
-	int fd = file_cnt + TASK_NUM_MAX;
+	int fd = file_cnt + TASK_CNT_MAX;
 	files[fd] = rootfs_file;
 	file_cnt++;
 
@@ -241,11 +241,11 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX);              //copy the file name
 
 	/* file table is full */
-	if(file_cnt >= FILE_CNT_LIMIT)
+	if(file_cnt >= FILE_CNT_MAX)
 		return NULL;
 
 	/* dispatch a new file descriptor number */
-	int fd = file_cnt + TASK_NUM_MAX;
+	int fd = file_cnt + TASK_CNT_MAX;
 
 	/* configure the new file inode */
 	struct inode *new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
@@ -401,11 +401,11 @@ static bool fs_sync_file(struct inode *inode)
 		return false;
 
 	/* file table is full */
-	if(file_cnt >= FILE_CNT_LIMIT)
+	if(file_cnt >= FILE_CNT_MAX)
 		return false;
 
 	/* dispatch a new file descriptor number */
-	inode->i_fd = file_cnt + TASK_NUM_MAX;
+	inode->i_fd = file_cnt + TASK_CNT_MAX;
 	file_cnt++;
 
 	/* create a new regular file */

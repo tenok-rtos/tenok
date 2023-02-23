@@ -12,7 +12,7 @@
 extern tcb_t *running_task;
 extern struct memory_pool mem_pool;
 
-struct msg_queue mq_table[MQUEUE_MAX_CNT];
+struct msg_queue mq_table[MQUEUE_CNT_MAX];
 int mq_cnt = 0;
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)

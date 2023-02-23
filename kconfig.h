@@ -1,10 +1,11 @@
 #ifndef __KCONFIG_H__
 #define __KCONFIG_H__
 
+/* task and kernel */
 #define OS_TICK_FREQ         1000 //Hz
 
 #define TASK_STACK_SIZE      1024 //words
-#define TASK_NUM_MAX         10
+#define TASK_CNT_MAX         10
 #define TASK_MAX_PRIORITY    5
 #define TASK_NAME_LEN_MAX    50
 
@@ -14,7 +15,7 @@
                                    * will not be disabled                */
 
 /* message queue */
-#define MQUEUE_MAX_CNT       50
+#define MQUEUE_CNT_MAX       50
 
 /* file system */
 #define FILE_SYSTEM_FD       1    /* file system program is assumed to be the *
@@ -23,7 +24,7 @@
 #define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
                                    * the file operation request will failed        */
 
-#define FILE_CNT_LIMIT       20
+#define FILE_CNT_MAX         20
 #define FILE_NAME_LEN_MAX    30
 
 #define PATH_LEN_MAX         128
