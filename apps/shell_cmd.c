@@ -128,7 +128,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
                 /* handle cd .. */
                 fs_get_pwd(path, shell_dir_curr);
                 int pos = strlen(path);
-                snprintf(&path[pos], PATH_LEN_MAX, "..", path);
+                snprintf(&path[pos], PATH_LEN_MAX, "..");
             } else {
                 /* handle regular path */
                 if(param_list[1][0] == '/') {
