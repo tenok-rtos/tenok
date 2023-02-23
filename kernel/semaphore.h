@@ -5,9 +5,9 @@
 #include "list.h"
 
 typedef struct {
-	spinlock_t lock;
-	int32_t    count;
-	list_t     wait_list;
+    spinlock_t lock;
+    int32_t    count;
+    list_t     wait_list;
 } sem_t;
 
 int sem_init(sem_t *sem, int pshared, unsigned int value);

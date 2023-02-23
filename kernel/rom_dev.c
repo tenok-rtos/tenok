@@ -13,29 +13,29 @@ ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
 static struct file_operations rom_dev_ops = {
-	.read = rom_dev_read,
-	.write = rom_dev_write
+    .read = rom_dev_read,
+    .write = rom_dev_write
 };
 
 int rom_dev_init(void)
 {
-	register_blkdev("rom", &rom_dev_ops);
+    register_blkdev("rom", &rom_dev_ops);
 }
 
 ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-	char *read_addr = &_section_rom_start + offset;
+    char *read_addr = &_section_rom_start + offset;
 
-	if((read_addr + size) > &_section_rom_end) {
-		return EFAULT;
-	}
+    if((read_addr + size) > &_section_rom_end) {
+        return EFAULT;
+    }
 
-	memcpy(buf, read_addr, sizeof(char) * size);
+    memcpy(buf, read_addr, sizeof(char) * size);
 
-	return size;
+    return size;
 }
 
 ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-	return 0;
+    return 0;
 }

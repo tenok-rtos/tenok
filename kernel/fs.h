@@ -23,85 +23,85 @@ typedef int  ssize_t;
 typedef long loff_t;
 
 enum {
-	FS_CREATE_FILE = 1,
-	FS_OPEN_FILE   = 2,
-	FS_OPEN_DIR    = 3,
-	FS_MOUNT       = 4,
+    FS_CREATE_FILE = 1,
+    FS_OPEN_FILE   = 2,
+    FS_OPEN_DIR    = 3,
+    FS_MOUNT       = 4,
 } FS_SERVER_CMDS;
 
 struct super_block {
-	uint32_t s_blk_cnt;   //number of the used blocks
-	uint32_t s_inode_cnt; //number of the used inodes
+    uint32_t s_blk_cnt;   //number of the used blocks
+    uint32_t s_inode_cnt; //number of the used inodes
 
-	uint32_t s_sb_addr;   //start address of the super block
-	uint32_t s_ino_addr;  //start address of the inode table
-	uint32_t s_blk_addr;  //start address of the blocks region
+    uint32_t s_sb_addr;   //start address of the super block
+    uint32_t s_ino_addr;  //start address of the inode table
+    uint32_t s_blk_addr;  //start address of the blocks region
 };
 
 struct mount {
-	struct file *dev_file;        //driver file of the mounted storage device
-	struct super_block super_blk; //super block of the mounted storage device
+    struct file *dev_file;        //driver file of the mounted storage device
+    struct super_block super_blk; //super block of the mounted storage device
 };
 
 /* index node */
 struct inode {
-	uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
+    uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
-	uint8_t  i_rdev;      //the device on which this file system is mounted
-	bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
+    uint8_t  i_rdev;      //the device on which this file system is mounted
+    bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
 
-	uint32_t i_ino;       //inode number
-	uint32_t i_parent;    //inode number of the parent directory
+    uint32_t i_ino;       //inode number
+    uint32_t i_parent;    //inode number of the parent directory
 
-	uint32_t i_fd;        //file descriptor number
+    uint32_t i_fd;        //file descriptor number
 
-	uint32_t i_size;      //file size (bytes)
-	uint32_t i_blocks;    //block_numbers = file_size / block_size
-	uint8_t  *i_data;     //virtual address for the storage device
+    uint32_t i_size;      //file size (bytes)
+    uint32_t i_blocks;    //block_numbers = file_size / block_size
+    uint8_t  *i_data;     //virtual address for the storage device
 
-	struct list i_dentry; //list head of the dentry table
+    struct list i_dentry; //list head of the dentry table
 };
 
 /* directory entry */
 struct dentry {
-	char     d_name[FILE_NAME_LEN_MAX]; //file name
-	uint32_t d_inode;  //the inode of the file
-	uint32_t d_parent; //the inode of the parent directory
+    char     d_name[FILE_NAME_LEN_MAX]; //file name
+    uint32_t d_inode;  //the inode of the file
+    uint32_t d_parent; //the inode of the parent directory
 
-	struct list d_list;
+    struct list d_list;
 };
 
 //return type of the opendir() syscall
 typedef struct dirstream {
-	struct inode  *inode_dir;   //directory inode
-	struct list   *dentry_list; //list pointer of the dentry to return
+    struct inode  *inode_dir;   //directory inode
+    struct list   *dentry_list; //list pointer of the dentry to return
 } DIR;
 
 //return type of the readdir() syscall
 struct dirent {
-	char     d_name[FILE_NAME_LEN_MAX]; //file name
-	uint32_t d_ino;  //the inode of the file
-	uint8_t  d_type; //file type
+    char     d_name[FILE_NAME_LEN_MAX]; //file name
+    uint32_t d_ino;  //the inode of the file
+    uint8_t  d_type; //file type
 };
 
 //return type of the fstat() syscall
 struct stat {
-	uint8_t  st_mode;   //file type
-	uint32_t st_ino;    //inode number
-	uint32_t st_rdev;   //device number
-	uint32_t st_size;   //total size in bytes
-	uint32_t st_blocks; //number of the blocks used by the file
+    uint8_t  st_mode;   //file type
+    uint32_t st_ino;    //inode number
+    uint32_t st_rdev;   //device number
+    uint32_t st_size;   //total size in bytes
+    uint32_t st_blocks; //number of the blocks used by the file
 };
 
 struct file {
-	struct inode *file_inode;
-	struct file_operations *f_op;
+    struct inode *file_inode;
+    struct file_operations *f_op;
 };
 
 struct file_operations {
-	long    (*llseek)(struct file *filp, long offset, int whence);
-	ssize_t (*read)(struct file *filp, char *buf, size_t size, loff_t offset);
-	ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
+    long    (*llseek)(struct file *filp, long offset, int whence);
+    ssize_t (*read)(struct file *filp, char *buf, size_t size, loff_t offset);
+    ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
 void rootfs_init(void);

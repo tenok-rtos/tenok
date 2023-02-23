@@ -4,11 +4,11 @@
 #include "spinlock.h"
 
 struct memory_pool {
-	spinlock_t lock;
+    spinlock_t lock;
 
-	int     offset;
-	size_t  size;
-	uint8_t *mem;
+    int     offset;
+    size_t  size;
+    uint8_t *mem;
 };
 
 void memory_pool_init(struct memory_pool *mem_pool, uint8_t *mem, size_t size);

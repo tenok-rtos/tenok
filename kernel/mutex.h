@@ -8,9 +8,9 @@
 #define EPERM 1  //the current thread does not own the mutex
 
 typedef struct {
-	spinlock_t lock;
-	tcb_t      *owner;
-	list_t     wait_list;
+    spinlock_t lock;
+    tcb_t      *owner;
+    list_t     wait_list;
 } _pthread_mutex_t;
 
 typedef void pthread_mutex_attr_t;
