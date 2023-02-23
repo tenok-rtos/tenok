@@ -389,6 +389,13 @@ void sys_opendir(void)
 		//return the directory
 		dirp->inode_dir = inode_dir;
 		dirp->dentry_list = inode_dir->i_dentry.next;
+
+		/* pass return value */
+		if(dirp->inode_dir == NULL) {
+			running_task->stack_top->r0 = -1;
+		} else {
+			running_task->stack_top->r0 = 0;
+		}
 	}
 }
 
