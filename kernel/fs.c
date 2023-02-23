@@ -532,8 +532,13 @@ static int create_file(char *pathname, uint8_t file_type)
 		path = fs_split_path(entry, path);
 
 		/* two successive '/' are detected */
-		if(entry[0] == '\0')
-			continue;
+		if(entry[0] == '\0') {
+			if(path == NULL) {
+				return -1;
+			} else {
+				continue;
+			}
+		}
 
 		/* search the entry and get the inode */
 		inode = fs_search_file(inode_curr, entry);
@@ -597,8 +602,13 @@ static int fs_open_file(char *pathname)
 		path = fs_split_path(entry, path);
 
 		/* two successive '/' are detected */
-		if(entry[0] == '\0')
-			continue;
+		if(entry[0] == '\0') {
+			if(path == NULL) {
+				return -1;
+			} else {
+				continue;
+			}
+		}
 
 		/* search the entry and get the inode */
 		inode = fs_search_file(inode_curr, entry);
@@ -656,8 +666,13 @@ struct inode *fs_open_directory(char *pathname)
 		path = fs_split_path(entry_curr, path);
 
 		/* two successive '/' are detected */
-		if(entry_curr[0] == '\0')
-			continue;
+		if(entry_curr[0] == '\0') {
+			if(path == NULL) {
+				break;
+			} else {
+				continue;
+			}
+		}
 
 		/* search the entry and get the inode */
 		inode = fs_search_file(inode_curr, entry_curr);
