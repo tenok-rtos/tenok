@@ -162,6 +162,14 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 	if(inode_dir->i_size == 0)
 		return NULL;
 
+	/* return the current inode */
+	if(strncmp(".", file_name, FILE_NAME_LEN_MAX) == 0)
+		return inode_dir;
+
+	/* return the parent inode */
+	if(strncmp("..", file_name, FILE_NAME_LEN_MAX) == 0)
+		return &inodes[inode_dir->i_parent];
+
 	/* mount to synchronize the current directory */
 	if(inode_dir->i_sync == false)
 		fs_mount_directory(inode_dir, inode_dir);
@@ -565,7 +573,7 @@ static int create_file(char *pathname, uint8_t file_type)
 	}
 }
 
-//open a file by given the pathname, notice that the function only accept absolute path
+//open a file by given a pathname, notice that the path must start with the '/' symbol
 //input : path name
 //output: file descriptor number
 static int fs_open_file(char *pathname)
