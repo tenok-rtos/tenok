@@ -64,6 +64,7 @@ void led_task2(void)
 		sleep(1000);
 	}
 }
+
 void shell_task(void)
 {
 	set_program_name("shell");
