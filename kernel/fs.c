@@ -39,12 +39,8 @@ int register_chrdev(char *name, struct file_operations *fops)
 	mknod(dev_path, 0, S_IFCHR);
 	int fd = open(dev_path, 0, 0);
 
-	/* allocate and initialize the new device file */
-	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
-	dev_file->f_op = fops;
-
-	/* register the new device file to the file table */
-	files[fd] = dev_file;
+	/* link the file operations */
+	files[fd]->f_op = fops;
 }
 
 int register_blkdev(char *name, struct file_operations *fops)
@@ -56,12 +52,8 @@ int register_blkdev(char *name, struct file_operations *fops)
 	mknod(dev_path, 0, S_IFBLK);
 	int fd = open(dev_path, 0, 0);
 
-	/* allocate and initialize the new device file */
-	struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
-	dev_file->f_op = fops;
-
-	/* register the new device file to the file table */
-	files[fd] = dev_file;
+	/* link the file operations */
+	files[fd]->f_op = fops;
 }
 
 void rootfs_init(void)
@@ -261,7 +253,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 	switch(file_type) {
 	case S_IFIFO:
 		/* create new named pipe */
-		result = fifo_init(fd, (struct file **)&files, &mem_pool);
+		result = fifo_init(fd, (struct file **)&files, new_inode, &mem_pool);
 
 		new_inode->i_mode   = S_IFIFO;
 		new_inode->i_size   = 0;
@@ -269,23 +261,35 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 		new_inode->i_data   = NULL;
 
 		break;
-	case S_IFCHR:
+	case S_IFCHR: {
+		/* create new character device file */
+		struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+		dev_file->file_inode = new_inode;
+		files[fd] = dev_file;
+
 		new_inode->i_mode   = S_IFCHR;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL;
 
 		break;
-	case S_IFBLK:
+	}
+	case S_IFBLK: {
+		/* create new block device file */
+		struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+		dev_file->file_inode = new_inode;
+		files[fd] = dev_file;
+
 		new_inode->i_mode   = S_IFBLK;
 		new_inode->i_size   = 0;
 		new_inode->i_blocks = 0;
 		new_inode->i_data   = NULL;
 
 		break;
+	}
 	case S_IFREG:
 		/* create new regular file */
-		result = reg_file_init(new_inode, (struct file **)&files, &mem_pool);
+		result = reg_file_init((struct file **)&files, new_inode, &mem_pool);
 
 		/* allocate memory for the new file */
 		struct super_block *super_blk = &mount_points[inode_dir->i_rdev].super_blk;
@@ -397,7 +401,7 @@ static bool fs_sync_file(struct inode *inode)
 	file_cnt++;
 
 	/* create a new regular file */
-	int result = reg_file_init(inode, (struct file **)&files, &mem_pool);
+	int result = reg_file_init((struct file **)&files, inode, &mem_pool);
 
 	/* failed to create a new regular file */
 	if(result != 0)
