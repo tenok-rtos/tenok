@@ -110,7 +110,7 @@ int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
 void fs_get_pwd(char *path, struct inode *dir_curr);
-int fs_readdir(DIR *dirp, struct dirent *dirent);
+int fs_read_dir(DIR *dirp, struct dirent *dirent);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
