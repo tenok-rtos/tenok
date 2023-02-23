@@ -61,8 +61,6 @@ void led_task2(void)
 	while(1) {
 		sem_post(&sem_led);
 
-		volatile int pid = getpid();
-
 		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
