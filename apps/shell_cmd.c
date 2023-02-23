@@ -116,51 +116,55 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
     DIR dir;
 
-    if(param_cnt == 1) {
-        opendir("/", &dir);
-        shell_dir_curr = dir.inode_dir;
-    } else if(param_cnt == 2) {
-        char path[PATH_LEN_MAX] = {0};
+    switch(param_cnt) {
+        case 1:
+            opendir("/", &dir);
+            shell_dir_curr = dir.inode_dir;
+            return;
+        case 2: {
+            char path[PATH_LEN_MAX] = {0};
 
-        if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
-            /* handle cd .. */
-            fs_get_pwd(path, shell_dir_curr);
-            int pos = strlen(path);
-            snprintf(&path[pos], PATH_LEN_MAX, "..", path);
-        } else {
-            /* handle regular path */
-            if(param_list[1][0] == '/') {
-                /* handle the absolute path */
-                strncpy(path, param_list[1], PATH_LEN_MAX);
-            } else {
-                /* handle the relative path */
+            if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
+                /* handle cd .. */
                 fs_get_pwd(path, shell_dir_curr);
                 int pos = strlen(path);
-                snprintf(&path[pos], PATH_LEN_MAX, "%s", param_list[1]);
+                snprintf(&path[pos], PATH_LEN_MAX, "..", path);
+            } else {
+                /* handle regular path */
+                if(param_list[1][0] == '/') {
+                    /* handle the absolute path */
+                    strncpy(path, param_list[1], PATH_LEN_MAX);
+                } else {
+                    /* handle the relative path */
+                    fs_get_pwd(path, shell_dir_curr);
+                    int pos = strlen(path);
+                    snprintf(&path[pos], PATH_LEN_MAX, "%s", param_list[1]);
+                }
             }
-        }
 
-        /* open the directory */
-        int retval = opendir(path, &dir);
+            /* open the directory */
+            int retval = opendir(path, &dir);
 
-        /* directory not found */
-        if(retval != 0) {
-            snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", param_list[1]);
-            shell_puts(str);
+            /* directory not found */
+            if(retval != 0) {
+                snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", param_list[1]);
+                shell_puts(str);
+                return;
+            }
+
+            /* not a directory */
+            if(dir.inode_dir->i_mode != S_IFDIR) {
+                snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r", param_list[1]);
+                shell_puts(str);
+                return;
+            }
+
+            shell_dir_curr = dir.inode_dir;
             return;
         }
-
-        /* not a directory */
-        if(dir.inode_dir->i_mode != S_IFDIR) {
-            snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r", param_list[1]);
-            shell_puts(str);
+        default:
+            shell_puts("cd: too many  arguments\n\r");
             return;
-        }
-
-        shell_dir_curr = dir.inode_dir;
-    } else {
-        shell_puts("cd: too many  arguments\n\r");
-        return;
     }
 }
 
