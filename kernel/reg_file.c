@@ -15,96 +15,96 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
 extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
 static struct file_operations reg_file_ops = {
-	.llseek = reg_file_llseek,
-	.read = reg_file_read,
-	.write = reg_file_write
+    .llseek = reg_file_llseek,
+    .read = reg_file_read,
+    .write = reg_file_write
 };
 
 int reg_file_init(struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
 {
-	/* create new regular file */
-	struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
-	reg_file->pos         = 0;
-	reg_file->file_inode  = file_inode;
-	reg_file->file.f_op   = &reg_file_ops;
+    /* create new regular file */
+    struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
+    reg_file->pos         = 0;
+    reg_file->file_inode  = file_inode;
+    reg_file->file.f_op   = &reg_file_ops;
 
-	files[file_inode->i_fd] = &reg_file->file;
-	files[file_inode->i_fd]->file_inode = file_inode;
+    files[file_inode->i_fd] = &reg_file->file;
+    files[file_inode->i_fd]->file_inode = file_inode;
 
-	return 0;
+    return 0;
 }
 
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	/* get file inode */
-	struct inode *inode = reg_file->file_inode;
+    /* get file inode */
+    struct inode *inode = reg_file->file_inode;
 
-	/* get storage device file */
-	struct file *driver_file = mount_points[inode->i_rdev].dev_file;
+    /* get storage device file */
+    struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
-	/* calculate the read address */
-	uint32_t read_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+    /* calculate the read address */
+    uint32_t read_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
 
-	/* read data */
-	int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, size, read_addr);
+    /* read data */
+    int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, size, read_addr);
 
-	if(retval >= 0)
-		reg_file->pos += size;
+    if(retval >= 0)
+        reg_file->pos += size;
 
-	return size;
+    return size;
 }
 
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	/* get file inode */
-	struct inode *inode = reg_file->file_inode;
+    /* get file inode */
+    struct inode *inode = reg_file->file_inode;
 
-	/* get storage device file */
-	struct file *driver_file = mount_points[inode->i_rdev].dev_file;
+    /* get storage device file */
+    struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
-	/* calculate the read address */
-	uint32_t write_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+    /* calculate the read address */
+    uint32_t write_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
 
-	/* write data */
-	int retval = driver_file->f_op->write(NULL, (uint8_t *)buf, size, write_addr);
+    /* write data */
+    int retval = driver_file->f_op->write(NULL, (uint8_t *)buf, size, write_addr);
 
-	if(retval >= 0) {
-		reg_file->pos += size;
-		reg_file->file.file_inode->i_size += size;
-	}
+    if(retval >= 0) {
+        reg_file->pos += size;
+        reg_file->file.file_inode->i_size += size;
+    }
 
-	return retval;
+    return retval;
 }
 
 long reg_file_llseek(struct file *filp, long offset, int whence)
 {
-	struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-	char new_pos;
+    char new_pos;
 
-	switch(whence) {
-	case SEEK_SET:
-		new_pos = offset;
-		break;
-	case SEEK_END:
-		new_pos = ROOTFS_BLK_SIZE + offset;
-		break;
-	case SEEK_CUR:
-		new_pos = reg_file->pos + offset;
-		break;
-	default:
-		return -1;
-	}
+    switch(whence) {
+        case SEEK_SET:
+            new_pos = offset;
+            break;
+        case SEEK_END:
+            new_pos = ROOTFS_BLK_SIZE + offset;
+            break;
+        case SEEK_CUR:
+            new_pos = reg_file->pos + offset;
+            break;
+        default:
+            return -1;
+    }
 
-	if((new_pos >= 0) && (new_pos <= ROOTFS_BLK_SIZE)) {
-		reg_file->pos = new_pos;
+    if((new_pos >= 0) && (new_pos <= ROOTFS_BLK_SIZE)) {
+        reg_file->pos = new_pos;
 
-		return new_pos;
-	} else {
-		return -1;
-	}
+        return new_pos;
+    } else {
+        return -1;
+    }
 }

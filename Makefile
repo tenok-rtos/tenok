@@ -132,9 +132,11 @@ gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
 
 astyle:
-	astyle --style=linux --indent=tab=8 --exclude=lib --recursive "*.c,*.h"
+	astyle --style=linux --indent=spaces=4 --indent-switches \
+		--suffix=none  --exclude=lib --recursive "*.c,*.h"
+
 
 size:
 	$(SIZE) $(ELF)
 
-.PHONY:all clean qemu flash openocd gdbauto
+.PHONY: all clean qemu flash openocd gdbauto astyle size

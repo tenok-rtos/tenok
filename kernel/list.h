@@ -13,8 +13,8 @@
 	for ((curr) = (list)->next; (curr) != (list); (curr) = (curr)->next)
 
 typedef struct list {
-	struct list *last;
-	struct list *next;
+    struct list *last;
+    struct list *next;
 } list_t;
 
 void list_init(list_t *list);
