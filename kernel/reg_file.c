@@ -20,7 +20,7 @@ static struct file_operations reg_file_ops = {
 	.write = reg_file_write
 };
 
-int reg_file_init(struct inode *file_inode, struct file **files, struct memory_pool *mem_pool)
+int reg_file_init(struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
 {
 	/* create new regular file */
 	struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));

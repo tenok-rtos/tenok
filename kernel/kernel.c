@@ -543,7 +543,7 @@ void sched_start(task_func_t first_task)
 	/* initialize fifo for all tasks (including path server) */
 	int i;
 	for(i = 0; i < TASK_NUM_MAX; i++) {
-		fifo_init(i, (struct file **)&files, &mem_pool);
+		fifo_init(i, (struct file **)&files, NULL, &mem_pool);
 	}
 
 	/* initialize task ready lists */

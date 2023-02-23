@@ -17,7 +17,7 @@ static struct file_operations fifo_ops = {
 	.write = fifo_write
 };
 
-int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool)
+int fifo_init(int fd, struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
 {
 	/* initialize the ring buffer pipe */
 	struct ringbuf *pipe = memory_pool_alloc(mem_pool, sizeof(struct ringbuf));
@@ -26,6 +26,7 @@ int fifo_init(int fd, struct file **files, struct memory_pool *mem_pool)
 
 	/* register fifo to the file table */
 	pipe->file.f_op = &fifo_ops;
+	pipe->file.file_inode = file_inode;
 	files[fd] = &pipe->file;
 
 	return 0;
