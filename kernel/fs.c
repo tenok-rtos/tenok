@@ -513,7 +513,7 @@ static char *fs_split_path(char *entry, char *path)
 //create a file by given the pathname, notice that the function only accept absolute path
 //input : path name and file type
 //output: file descriptor number
-static int create_file(char *pathname, uint8_t file_type)
+static int fs_create_file(char *pathname, uint8_t file_type)
 {
 	/* a legal path name must start with '/' */
 	if(pathname[0] != '/')
@@ -628,6 +628,11 @@ static int fs_open_file(char *pathname)
 		} else {
 			/* no more path to be splitted, the remained string should be the file name */
 
+			/* make sure the last char is not equal to '/' */
+			int len = strlen(pathname);
+			if(pathname[len - 1] == '/')
+				return -1;
+
 			/* check if the file requires synchronization */
 			if((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync == false))
 				fs_sync_file(inode); //synchronize the file
@@ -657,9 +662,9 @@ struct inode *fs_open_directory(char *pathname)
 	char *path = pathname;
 
 	path = fs_split_path(entry_curr, path); //get rid of the first '/'
-	if(path == NULL) {
+
+	if(path == NULL)
 		return inode_curr;
-	}
 
 	while(1) {
 		/* split the path and get the entry hierarchically */
@@ -699,7 +704,7 @@ struct inode *fs_open_directory(char *pathname)
 	return inode_curr;
 }
 
-static int _mount(char *source, char *target)
+static int fs_mount(char *source, char *target)
 {
 	/* get the file of the storage to be mounted */
 	int source_fd = fs_open_file(source);
@@ -775,7 +780,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
 	}
 }
 
-int fs_readdir(DIR *dirp, struct dirent *dirent)
+int fs_read_dir(DIR *dirp, struct dirent *dirent)
 {
 	/* no more dentry to read */
 	if(dirp->dentry_list == &dirp->inode_dir->i_dentry)
@@ -930,7 +935,7 @@ void file_system(void)
 			uint8_t file_type;
 			read(FILE_SYSTEM_FD, &file_type, sizeof(file_type));
 
-			int new_fd = create_file(path, file_type);
+			int new_fd = fs_create_file(path, file_type);
 			write(reply_fd, &new_fd, sizeof(new_fd));
 
 			break;
@@ -973,7 +978,7 @@ void file_system(void)
 			char target[PATH_LEN_MAX];
 			read(FILE_SYSTEM_FD, &target, target_len);
 
-			int result = _mount(source, target);
+			int result = fs_mount(source, target);
 			write(reply_fd, &result, sizeof(result));
 
 			break;

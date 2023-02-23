@@ -404,7 +404,7 @@ void sys_readdir(void)
 	DIR *dirp = (DIR *)running_task->stack_top->r0;
 	struct dirent *dirent = (struct dirent *)running_task->stack_top->r1;
 
-	running_task->stack_top->r0 = (uint32_t)fs_readdir(dirp, dirent);
+	running_task->stack_top->r0 = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
 void sys_getpriority(void)
