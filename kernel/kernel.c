@@ -37,11 +37,11 @@ void sys_getpid(void);
 void sys_mknod(void);
 
 /* task lists */
-list_t ready_list[TASK_MAX_PRIORITY+1];
+list_t ready_list[TASK_MAX_PRIORITY + 1];
 list_t sleep_list;
 
 /* tasks */
-tcb_t tasks[TASK_NUM_MAX];
+tcb_t tasks[TASK_CNT_MAX];
 tcb_t *running_task = NULL;
 int task_nums = 0;
 
@@ -50,7 +50,7 @@ struct memory_pool mem_pool;
 uint8_t mem_pool_buf[MEM_POOL_SIZE];
 
 /* file table */
-struct file *files[TASK_NUM_MAX+FILE_CNT_LIMIT+1];
+struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* system call table */
@@ -80,7 +80,7 @@ int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
 void task_create(task_func_t task_func, uint8_t priority)
 {
-	if(task_nums > TASK_NUM_MAX) {
+	if(task_nums > TASK_CNT_MAX) {
 		return;
 	}
 
@@ -235,7 +235,7 @@ void sys_set_program_name(void)
 
 void sys_fork(void)
 {
-	if(task_nums > TASK_NUM_MAX) {
+	if(task_nums > TASK_CNT_MAX) {
 		running_task->stack_top->r0 = -1; //set failed retval
 	}
 
@@ -542,7 +542,7 @@ void sched_start(task_func_t first_task)
 
 	/* initialize fifo for all tasks (including path server) */
 	int i;
-	for(i = 0; i < TASK_NUM_MAX; i++) {
+	for(i = 0; i < TASK_CNT_MAX; i++) {
 		fifo_init(i, (struct file **)&files, NULL, &mem_pool);
 	}
 
