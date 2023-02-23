@@ -44,12 +44,14 @@ void shell_cmd_ps(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
     char str[PRINT_SIZE_MAX] = {0};
+    int pos = 0; //concatenation end position
 
     int i;
     for(i = 1; i < param_cnt - 1; i++) {
-        snprintf(str, PRINT_SIZE_MAX, "%s%s ", str, param_list[i]);
+        pos += sprintf(&str[pos], "%s ", param_list[i]);
     }
-    snprintf(str, PRINT_SIZE_MAX, "%s%s\n\r", str, param_list[param_cnt-1]);
+
+    pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n\r", param_list[param_cnt-1]);
 
     shell_puts(str);
 }
@@ -69,7 +71,8 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     if(param_cnt == 2) {
         if(param_list[1][0] != '/') {
             /* user feed a relative path */
-            sprintf(path, "%s/%s", path, param_list[1]);
+            int pos = strlen(path);
+            snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", param_list[1]);
         } else {
             /* user feed a absolute path */
             strncpy(path, param_list[1], PATH_LEN_MAX);
@@ -92,16 +95,17 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     }
 
     /* enumerate the directory */
+    int pos = 0;
     struct dirent dirent;
     while((readdir(&dir, &dirent)) != -1) {
         if(dirent.d_type == S_IFDIR) {
-            snprintf(str, PRINT_SIZE_MAX, "%s%s/  ", str, dirent.d_name);
+            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s/  ", dirent.d_name);
         } else {
-            snprintf(str, PRINT_SIZE_MAX, "%s%s  ", str, dirent.d_name);
+            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s  ", dirent.d_name);
         }
     }
 
-    snprintf(str, PRINT_SIZE_MAX, "%s\n\r", str);
+    snprintf(&str[pos], PRINT_SIZE_MAX, "\n\r");
 
     shell_puts(str);
 }
@@ -121,7 +125,8 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
         if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
             /* handle cd .. */
             fs_get_pwd(path, shell_dir_curr);
-            snprintf(path, PATH_LEN_MAX, "%s..");
+            int pos = strlen(path);
+            snprintf(&path[pos], PATH_LEN_MAX, "..", path);
         } else {
             /* handle regular path */
             if(param_list[1][0] == '/') {
@@ -130,7 +135,8 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
             } else {
                 /* handle the relative path */
                 fs_get_pwd(path, shell_dir_curr);
-                snprintf(path, PATH_LEN_MAX, "%s%s", path, param_list[1]);
+                int pos = strlen(path);
+                snprintf(&path[pos], PATH_LEN_MAX, "%s", param_list[1]);
             }
         }
 
@@ -249,7 +255,8 @@ void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 
     if(param_list[1][0] != '/') {
         /* user feed a relative path */
-        sprintf(path, "%s%s", path, param_list[1]);
+        int pos = strlen(path);
+        snprintf(&path[pos], PRINT_SIZE_MAX, "%s", param_list[1]);
     } else {
         /* user feed a absolute path */
         strncpy(path, param_list[1], PATH_LEN_MAX);

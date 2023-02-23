@@ -768,12 +768,14 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         if(list_is_empty(&inode->i_dentry) == true)
             return;
 
+        int pos = 0;
+
         struct list *list_curr;
         list_for_each(list_curr, &inode->i_dentry) {
             struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
             if(dentry->d_inode == inode_last) {
-                snprintf(path, PATH_LEN_MAX, "%s%s/", path, dentry->d_name);
+                pos += snprintf(&path[pos], PATH_LEN_MAX, "%s/", dentry->d_name);
                 break;
             }
         }
