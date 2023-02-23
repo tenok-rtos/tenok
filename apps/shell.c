@@ -7,6 +7,10 @@
 #include "syscall.h"
 #include "kconfig.h"
 
+static void shell_reset_line(struct shell *shell);
+static void shell_reset_autocomplete(struct shell *shell);
+static void shell_reset_history_scrolling(struct shell *shell);
+
 int serial_fd = 0;
 
 void shell_serial_init(void)
@@ -29,14 +33,11 @@ void shell_puts(char *s)
 	write(serial_fd, s, strlen(s));
 }
 
-static void shell_reset_line(struct shell *shell)
-{
-	shell->cursor_pos = 0;
-	shell->char_cnt = 0;
-}
-
 static void shell_ctrl_c_handler(struct shell *shell)
 {
+	shell_reset_autocomplete(shell);
+	shell_reset_history_scrolling(shell);
+
 	shell_puts("^C\n\r");
 	shell_puts(shell->prompt);
 	shell_reset_line(shell);
@@ -87,6 +88,12 @@ void shell_set_prompt(struct shell *shell, char *new_prompt)
 {
 	strncpy(shell->prompt, new_prompt, SHELL_PROMPT_LEN_MAX);
 	shell->prompt_len = strlen(shell->prompt);
+}
+
+static void shell_reset_line(struct shell *shell)
+{
+	shell->cursor_pos = 0;
+	shell->char_cnt = 0;
 }
 
 static void shell_remove_char(struct shell *shell, int remove_pos)
@@ -184,17 +191,6 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 	shell->show_history = false;
 }
 
-static bool shell_autocompl_cmp(char *user_input, char *shell_cmd, size_t size)
-{
-	int i;
-	for(i = 0; i < size; i++) {
-		if(user_input[i] != shell_cmd[i])
-			return false;
-	}
-
-	return true;
-}
-
 static void shell_reset_autocomplete(struct shell *shell)
 {
 	shell->show_autocompl = false;
@@ -202,49 +198,48 @@ static void shell_reset_autocomplete(struct shell *shell)
 
 static void shell_generate_suggest_words(struct shell *shell, int argc0_start, int argc0_end)
 {
-	/* reset the suggested word count of the autocomplete */
+	/* reset the suggestion candidate count of the autocomplete */
 	shell->autocompl_cnt = 0;
 
 	/* calculate the length of the first argument */
 	int argc0_len = shell->cursor_pos - argc0_start;
 
-	/* calculate the length of the whole user input command  */
+	/* calculate the length of the whole user input */
 	int cmd_len = strlen(shell->buf);
 
-	/* the user input that get rid of the space before the first agrument */
+	/* get the first argument get rid of the spaces */
 	char *user_cmd = &shell->buf[argc0_start];
-	char *shell_cmd;
-
-	char *suggest_str;
 
 	int i;
 	for(i = 0; i < shell->cmd_cnt; i++) {
-		/* load the compare command from the shell command list */
+		/* load the shell command from the command list for comparing */
 		char *shell_cmd = shell->shell_cmds[i].name;
 
-		/* compare the user input with the shell command */
-		if(shell_autocompl_cmp(user_cmd, shell_cmd, argc0_len) == true) {
-			/* copy string from the start to the beginning of the firt argument */
-			suggest_str = shell->autocompl[shell->autocompl_cnt].cmd;
-			memcpy(suggest_str, &shell->buf[0], argc0_start);
+		/* if the user input matches the shell command */
+		if(strncmp(user_cmd, shell_cmd, argc0_len) == 0) {
+			char *suggest_candidate;
 
-			/* insert the suggestion word */
-			suggest_str += argc0_start;
-			memcpy(suggest_str, shell_cmd, strlen(shell_cmd));
+			/* copy string from the beginning to the character before the firt argument */
+			suggest_candidate = shell->autocompl[shell->autocompl_cnt].cmd;
+			memcpy(suggest_candidate, &shell->buf[0], argc0_start);
+
+			/* insert the name of the matched shell command */
+			suggest_candidate += argc0_start;
+			memcpy(suggest_candidate, shell_cmd, strlen(shell_cmd));
 
 			/* copy the string from the insertion tail to the end of the first argument */
-			suggest_str += strlen(shell_cmd);
+			suggest_candidate += strlen(shell_cmd);
 			int cnt = &shell->buf[argc0_end] - &shell->buf[shell->cursor_pos];
-			memcpy(suggest_str, &shell->buf[shell->cursor_pos], cnt);
+			memcpy(suggest_candidate, &shell->buf[shell->cursor_pos], cnt);
 
-			/* copy string from the first argument tail to the end */
-			suggest_str += cnt;
+			/* copy string from the tail of the first argument to the end */
+			suggest_candidate += cnt;
 			cnt = &shell->buf[cmd_len] - &shell->buf[argc0_end];
-			memcpy(suggest_str, &shell->buf[argc0_end], cnt);
+			memcpy(suggest_candidate, &shell->buf[argc0_end], cnt);
 
 			/* append the end character */
-			suggest_str += cnt;
-			*suggest_str = '\0';
+			suggest_candidate += cnt;
+			*suggest_candidate = '\0';
 
 			shell->autocompl_cnt++;
 		}
@@ -263,12 +258,23 @@ static void shell_autocomplete(struct shell *shell)
 	while((shell->buf[argc0_end] != ' ') && (argc0_end < shell->char_cnt))
 		argc0_end++;
 
-#if 1
-	/* deactivate the autocompletion besides the first arguments */
-	if((shell->cursor_pos < argc0_start) || (shell->cursor_pos > argc0_end))
-		return;
-#endif
 
+	/* autocomplete is disabled after the first argument */
+	if(shell->cursor_pos > argc0_end)
+		return;
+
+	/* autocomplete is triggered before the first argument (i.e., spaces) */
+	if(shell->cursor_pos < argc0_start) {
+		argc0_start = shell->cursor_pos;
+		argc0_end = shell->cursor_pos;
+	}
+
+	/* reset the autocomplete if the cursor position changed */
+	if(shell->autocompl_cursor_pos != shell->cursor_pos) {
+		shell_reset_autocomplete(shell);
+	}
+
+	/* check if the autocomple has been initialized */
 	if(shell->show_autocompl == false) {
 		/* backup the user input */
 		strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
@@ -276,16 +282,17 @@ static void shell_autocomplete(struct shell *shell)
 		/* generate the suggestion word dictionary */
 		shell_generate_suggest_words(shell, argc0_start, argc0_end);
 
+		/* record the cursor positon */
+		shell->autocompl_cursor_pos = shell->cursor_pos;
+
 		shell->autocompl_curr = 0;
 		shell->show_autocompl = true;
 	}
 
-	/* is there any more autocomplete suggestion to display? */
+	/* is there any more candidate words? */
 	if(shell->autocompl_curr == shell->autocompl_cnt) {
 		/* restore the user input */
 		strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
-
-		/* reset the autocomplete */
 		shell_reset_autocomplete(shell);
 	} else {
 		/* overwrite the user input with autocomplete suggestion */
@@ -293,7 +300,7 @@ static void shell_autocomplete(struct shell *shell)
 		strncpy(shell->buf, suggestion, SHELL_CMD_LEN_MAX);
 	}
 
-	/* update the candidate word pointer */
+	/* prepare the next candidate word to show */
 	shell->autocompl_curr++;
 
 	/* refresh the line */
@@ -402,13 +409,11 @@ static void shell_down_arrow_handler(struct shell *shell)
 
 static void shell_right_arrow_handler(struct shell *shell)
 {
-	shell_reset_autocomplete(shell);
 	shell_cursor_shift_one_right(shell);
 }
 
 static void shell_left_arrow_handler(struct shell *shell)
 {
-	shell_reset_autocomplete(shell);
 	shell_cursor_shift_one_left(shell);
 }
 
@@ -432,6 +437,7 @@ static void shell_delete_handler(struct shell *shell)
 	if(shell->char_cnt == 0 || shell->cursor_pos == shell->char_cnt)
 		return;
 
+	shell_reset_autocomplete(shell);
 	shell_reset_history_scrolling(shell);
 	shell_remove_char(shell, shell->cursor_pos + 1);
 	shell->cursor_pos++;
@@ -443,6 +449,7 @@ static void shell_backspace_handler(struct shell *shell)
 	if(shell->char_cnt == 0 || shell->cursor_pos == 0)
 		return;
 
+	shell_reset_autocomplete(shell);
 	shell_reset_history_scrolling(shell);
 	shell_remove_char(shell, shell->cursor_pos);
 	shell_refresh_line(shell);
