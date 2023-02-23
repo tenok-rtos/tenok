@@ -54,7 +54,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 		prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
 		/* update the request size */
-		mq->request_size = msg_len;
+		running_task->file_request.size = msg_len;
 
 		retval = EAGAIN;
 	} else {
@@ -92,7 +92,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 		tcb_t *task = list_entry(task_wait_list->next, tcb_t, list);
 
 		/* check if read request size can be fulfilled */
-		if(mq->request_size <= mq->pipe->count) {
+		if(task->file_request.size <= mq->pipe->count) {
 			/* wake up the oldest task from the waiting list */
 			wake_up(task_wait_list);
 		}

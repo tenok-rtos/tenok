@@ -10,7 +10,6 @@ typedef int mqd_t;
 struct msg_queue {
 	spinlock_t lock;
 
-	size_t request_size;
 	char   name[FILE_NAME_LEN_MAX];
 
 	struct ringbuf *pipe;
