@@ -79,7 +79,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 	struct list *task_wait_list = &mq->pipe->task_wait_list;
 
 	/* start of the critical section */
-	spin_lock(&mq->lock);
+	spin_lock_irq(&mq->lock);
 
 	/* push data into the pipe */
 	int i;
@@ -99,7 +99,7 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 	}
 
 	/* end of the critical section */
-	spin_unlock(&mq->lock);
+	spin_unlock_irq(&mq->lock);
 
 	return msg_len;
 }
