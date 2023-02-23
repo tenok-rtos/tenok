@@ -20,7 +20,8 @@
 #define FILE_SYSTEM_FD       1    /* file system program is assumed to be the *
                                    * second task to be launched               */
 
-#define PIPE_DEPTH           50
+#define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
+                                   * the file operation request will failed        */
 
 #define FILE_CNT_LIMIT       20
 #define FILE_NAME_LEN_MAX    30
