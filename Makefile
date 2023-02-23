@@ -99,6 +99,9 @@ tools/romfs.o:
 	@echo "CC" $@
 	@$(CC) $(CFLAGS) -MMD -MP -c $< $(LDFLAGS) -o $@
 
+check:
+	cppcheck . -i lib/
+
 clean:
 	rm -rf $(ELF)
 	rm -rf $(OBJS)
@@ -135,8 +138,7 @@ astyle:
 	astyle --style=linux --indent=spaces=4 --indent-switches \
 		--suffix=none  --exclude=lib --recursive "*.c,*.h"
 
-
 size:
 	$(SIZE) $(ELF)
 
-.PHONY: all clean qemu flash openocd gdbauto astyle size
+.PHONY: all check clean qemu flash openocd gdbauto astyle size
