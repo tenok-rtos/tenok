@@ -55,7 +55,7 @@ void shell_cls(void)
 	shell_puts("\x1b[H\x1b[2J");
 }
 
-void shell_init(struct shell *shell, char *ret_cmd,
+void shell_init(struct shell *shell,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
                 struct shell_history *history, int history_max_cnt,
                 struct shell_autocompl *autocompl)
@@ -63,7 +63,6 @@ void shell_init(struct shell *shell, char *ret_cmd,
 	shell->prompt[0] = '\0';
 	shell->prompt_len = 0;
 	shell->cursor_pos = 0;
-	shell->buf = ret_cmd;
 	shell->buf[0] = '\0';
 	shell->char_cnt = 0;
 	shell->shell_cmds = shell_cmds;
