@@ -68,7 +68,7 @@ struct shell {
 	int char_cnt;
 	int prompt_len;
 
-	char *buf;
+	char buf[SHELL_CMD_LEN_MAX];
 	char prompt[SHELL_PROMPT_LEN_MAX];
 	char input_backup[SHELL_CMD_LEN_MAX];
 
@@ -103,7 +103,7 @@ void shell_puts(char *s);
 void shell_cls(void);
 
 /* shell functions */
-void shell_init(struct shell *shell, char *ret_cmd,
+void shell_init(struct shell *shell,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
                 struct shell_history *history, int history_max_cnt,
                 struct shell_autocompl *autocompl);

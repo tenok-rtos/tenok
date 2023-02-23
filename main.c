@@ -75,13 +75,12 @@ void shell_task(void)
 	set_program_name("shell");
 	setpriority(0, getpid(), 2);
 
-	char ret_cmd[SHELL_CMD_LEN_MAX];
 	char shell_path[PATH_LEN_MAX] = {0};
 	char prompt[SHELL_PROMPT_LEN_MAX] = {0};
 	int  shell_cmd_cnt = SHELL_CMDS_CNT(shell_cmds);
 
 	/* shell initialization */
-	shell_init(&shell, ret_cmd, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX, autocompl);
+	shell_init(&shell, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX, autocompl);
 	shell_path_init();
 	shell_serial_init();
 
