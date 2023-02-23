@@ -71,7 +71,10 @@ void shell_init(struct shell *shell, char *ret_cmd,
 	shell->history_cnt = 0;
 	shell->history_max_cnt = history_max_cnt;
 	shell->show_history = false;
+	shell->show_autocompl = false;
 	shell->autocompl = autocompl;
+	shell->autocompl_curr = 0;
+	shell->autocompl_cnt = 0;
 	list_init(&shell->history_head);
 
 	int i;
@@ -243,9 +246,6 @@ static void shell_generate_suggest_words(struct shell *shell, int argc0_start, i
 			suggest_str += cnt;
 			*suggest_str = '\0';
 
-			//shell_puts(shell->autocompl[i].cmd);
-			//shell_puts("\n\r");
-
 			shell->autocompl_cnt++;
 		}
 	}
@@ -263,18 +263,42 @@ static void shell_autocomplete(struct shell *shell)
 	while((shell->buf[argc0_end] != ' ') && (argc0_end < shell->char_cnt))
 		argc0_end++;
 
-#if 0
+#if 1
 	/* deactivate the autocompletion besides the first arguments */
 	if((shell->cursor_pos < argc0_start) || (shell->cursor_pos > argc0_end))
 		return;
-
-	if(shell->show_autocompl == true) {
-		return;
-	}
 #endif
-	shell_generate_suggest_words(shell, argc0_start, argc0_end);
 
-	shell->show_autocompl = true;
+	if(shell->show_autocompl == false) {
+		/* backup the user input */
+		strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
+
+		/* generate the suggestion word dictionary */
+		shell_generate_suggest_words(shell, argc0_start, argc0_end);
+
+		shell->autocompl_curr = 0;
+		shell->show_autocompl = true;
+	}
+
+	/* is there any more autocomplete suggestion to display? */
+	if(shell->autocompl_curr == shell->autocompl_cnt) {
+		/* restore the user input */
+		strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
+
+		/* reset the autocomplete */
+		shell_reset_autocomplete(shell);
+	} else {
+		/* overwrite the user input with autocomplete suggestion */
+		char *suggestion = shell->autocompl[shell->autocompl_curr].cmd;
+		strncpy(shell->buf, suggestion, SHELL_CMD_LEN_MAX);
+	}
+
+	/* update the candidate word pointer */
+	shell->autocompl_curr++;
+
+	/* refresh the line */
+	shell->char_cnt   = strlen(shell->buf);
+	shell_refresh_line(shell);
 }
 
 void shell_print_history(struct shell *shell)
@@ -464,6 +488,7 @@ void shell_listen(struct shell *shell)
 			break;
 		case ENTER:
 			shell_reset_history_scrolling(shell);
+			shell_reset_autocomplete(shell);
 			if(shell->char_cnt > 0) {
 				shell_puts("\n\r");
 				shell_reset_line(shell);
@@ -545,6 +570,7 @@ void shell_listen(struct shell *shell)
 		case SPACE:
 		default: {
 			if(shell->char_cnt != (SHELL_CMD_LEN_MAX - 1)) {
+				shell_reset_autocomplete(shell);
 				shell_reset_history_scrolling(shell);
 				shell_insert_char(shell, c);
 				shell_refresh_line(shell);
