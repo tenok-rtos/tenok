@@ -47,6 +47,8 @@ void led_task1(void)
 
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
 		GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 
 		state = (state + 1) % 2;
 	}
@@ -57,16 +59,9 @@ void led_task2(void)
 	set_program_name("led2");
 	setpriority(0, getpid(), 3);
 
-	int state = 1;
 	while(1) {
 		sem_post(&sem_led);
-
-		GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
-
 		sleep(1000);
-
-		state = (state + 1) % 2;
 	}
 }
 void shell_task(void)
