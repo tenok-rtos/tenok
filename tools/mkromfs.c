@@ -440,7 +440,7 @@ void romfs_import_file(char *src_path, char *dest_path)
     /* open the source file */
     FILE *file = fopen(src_path, "r");
     if(file == NULL) {
-        printf("%s: failed to open the file\n", src_path);
+        printf("%s: failed to open the file!\n", src_path);
         exit(-1);
     }
 
@@ -452,6 +452,12 @@ void romfs_import_file(char *src_path, char *dest_path)
     if(file_size == 0) {
         fclose(file);
         return;
+    }
+
+    /* check if the file is too big */
+    if(file_size > (ROMFS_BLK_SIZE * ROMFS_BLK_CNT)) {
+        printf("%s: the file is too big!\n", src_path);
+        exit(1);
     }
 
     /* read and close the source file */
