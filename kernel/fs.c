@@ -309,6 +309,11 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_blocks = 1;
             new_inode->i_data   = (uint32_t)file_data_p;
 
+            /* write the block header of the first block */
+            struct block_header blk_head = {.b_next = (uint32_t)NULL};
+            struct file *dev_file = mount_points[new_inode->i_rdev].dev_file;
+            dev_file->f_op->write(NULL, (uint8_t *)&blk_head, sizeof(blk_head), new_inode->i_data);
+
             break;
         case S_IFDIR:
             new_inode->i_mode   = S_IFDIR;
@@ -583,8 +588,6 @@ static int fs_create_file(char *pathname, uint8_t file_type)
 //output: file descriptor number
 static int fs_open_file(char *pathname)
 {
-    /* input: file path, output: file descriptor number */
-
     /* a legal path name must start with '/' */
     if(pathname[0] != '/')
         return -1;

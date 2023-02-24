@@ -45,7 +45,8 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     /* calculate the read address */
-    uint32_t read_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+    uint32_t blk_head_size = sizeof(struct block_header);
+    uint32_t read_addr = (uint32_t)inode->i_data + blk_head_size + offset + reg_file->pos;
 
     /* read data */
     int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, size, read_addr);
@@ -67,7 +68,8 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t o
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     /* calculate the read address */
-    uint32_t write_addr = (uint32_t)inode->i_data + offset + reg_file->pos;
+    uint32_t blk_head_size = sizeof(struct block_header);
+    uint32_t write_addr = (uint32_t)inode->i_data + blk_head_size + offset + reg_file->pos;
 
     /* write data */
     int retval = driver_file->f_op->write(NULL, (uint8_t *)buf, size, write_addr);

@@ -40,12 +40,17 @@ struct super_block {
     uint32_t s_blk_addr;  //start address of the blocks region
 };
 
+//block header will be placed to the top of every blocks of the regular file
+struct block_header {
+    uint32_t b_next; //virtual address of the next block
+};
+
 struct mount {
     struct file *dev_file;        //driver file of the mounted storage device
     struct super_block super_blk; //super block of the mounted storage device
 };
 
-/* index node */
+//index node
 struct inode {
     uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
@@ -64,7 +69,7 @@ struct inode {
     struct list i_dentry; //list head of the dentry table
 };
 
-/* directory entry */
+//directory entry
 struct dentry {
     char     d_name[FILE_NAME_LEN_MAX]; //file name
     uint32_t d_inode;  //the inode of the file
