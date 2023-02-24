@@ -49,7 +49,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
     uint32_t blk_free_size = ROOTFS_BLK_SIZE - sizeof(struct block_header);
 
     size_t remained_size = size;
-    size_t read_size;
+    size_t read_size = 0;
 
     while(1) {
         /* calculate the block address of the current file position to read */
@@ -60,7 +60,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
         uint32_t blk_end_addr = blk_start_addr + ROOTFS_BLK_SIZE;
 
         /* calculate the block offset of the current read position */
-        uint8_t blk_pos = reg_file->pos % ROOTFS_BLK_SIZE;
+        uint8_t blk_pos = reg_file->pos % blk_free_size;
 
         /* calculate the read address */
         uint32_t read_addr = blk_start_addr + blk_head_size + blk_pos;
@@ -68,7 +68,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
         /* calculate the size to read of the current block */
         uint32_t max_read_size = blk_free_size - blk_pos;
         if(remained_size > max_read_size) {
-            read_size == max_read_size;
+            read_size = max_read_size;
         } else {
             read_size = remained_size;
         }

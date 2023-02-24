@@ -809,24 +809,19 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent)
 //given a block index and return the address of that block
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
 {
-    uint32_t blk_addr;
-
+    /* load the device file */
     struct file *dev_file = mount_points[inode->i_rdev].dev_file;
-    struct block_header blk_head;
+
+    uint32_t blk_addr;
+    struct block_header blk_head = {.b_next = inode->i_data}; //first block address = inode->i_data
 
     int i;
-    for(i = 0; i <= blk_index; i++) {
-        if(i == 0) {
-            blk_addr = inode->i_data;
-        } else {
-            blk_addr = blk_head.b_next;
-        }
+    for(i = 0; i < (blk_index + 1); i++) {
+        /* get the address of the next block */
+        blk_addr = blk_head.b_next;
 
         /* read the block header */
         dev_file->f_op->read(NULL, (uint8_t *)&blk_head, sizeof(struct block_header), blk_addr);
-
-        /* update the address pointed to the next block */
-        blk_addr = blk_head.b_next;
     }
 
     return blk_addr;
