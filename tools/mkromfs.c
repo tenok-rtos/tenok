@@ -423,19 +423,19 @@ void romfs_export(void)
     fclose(file);
 }
 
-void romfs_import_file(char *src_path, char *dest_path)
+void romfs_import_file(char *host_path, char *romfs_path)
 {
     /* create new romfs file */
-    struct inode *inode = fs_create_file(dest_path, S_IFREG);
+    struct inode *inode = fs_create_file(romfs_path, S_IFREG);
     if(inode == NULL) {
         printf("[mkromfs] failed to create new file!\n");
         exit(-1);
     }
 
     /* open the source file */
-    FILE *file = fopen(src_path, "r");
+    FILE *file = fopen(host_path, "r");
     if(file == NULL) {
-        printf("%s: failed to open the file!\n", src_path);
+        printf("%s: failed to open the file!\n", host_path);
         exit(-1);
     }
 
@@ -452,7 +452,7 @@ void romfs_import_file(char *src_path, char *dest_path)
     /* check if the file is too big */
     int left_space = FS_BLK_SIZE * (FS_BLK_CNT - romfs_sb.s_blk_cnt);
     if(file_size > left_space) {
-        printf("%s: the space is not enough to fit the file!\n", src_path);
+        printf("%s: the space is not enough to fit the file!\n", host_path);
         exit(1);
     }
 
@@ -477,7 +477,7 @@ void romfs_import_file(char *src_path, char *dest_path)
     inode->i_size   = file_size;
     inode->i_blocks = blocks;
 
-    printf("[%s: file size=%ld, blocks=%d]\n", dest_path, file_size, blocks);
+    printf("[%s: file size=%ld, blocks=%d]\n", romfs_path, file_size, blocks);
 
     uint8_t *last_blk_addr = NULL;
     int file_size_remained = file_size;
@@ -533,27 +533,38 @@ void romfs_import_file(char *src_path, char *dest_path)
 }
 
 #define PATH_BUF_SIZE 500
-char romfs_import_dir(const char *import_path, const char *dest_path)
+char romfs_import_dir(const char *host_path, const char *romfs_path)
 {
-    DIR *dir = opendir(import_path);
+    /* open the directory */
+    DIR *dir = opendir(host_path);
     if(dir == NULL)
         exit(1);
 
+    /* enumerate all the files under the directory */
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
-        if(strcmp(dirent->d_name, ".") == 0)
+        /* ignore "." and ".." */
+        if(!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, ".."))
             continue;
 
-        if(strcmp(dirent->d_name, "..") == 0)
-            continue;
+        char romfs_child_path[PATH_BUF_SIZE] = {0};
+        char host_child_path[PATH_BUF_SIZE] = {0};
 
-        char romfs_file_name[PATH_BUF_SIZE] = {0};
-        snprintf(romfs_file_name, PATH_BUF_SIZE, "%s%s", dest_path, dirent->d_name);
+        if(dirent->d_type == DT_DIR) {
+            /* combine the children directory name with the parent path name */
+            snprintf(romfs_child_path, PATH_BUF_SIZE, "%s%s/", romfs_path, dirent->d_name);
+            snprintf(host_child_path, PATH_BUF_SIZE, "%s%s/", host_path, dirent->d_name);
 
-        char src_file_name[PATH_BUF_SIZE] = {0};
-        snprintf(src_file_name, PATH_BUF_SIZE, "%s%s", import_path, dirent->d_name);
+            /* import the directory recursively */
+            romfs_import_dir(host_child_path, romfs_child_path);
+        } else if(dirent->d_type == DT_REG) {
+            /* combine the children file name with the parent path name */
+            snprintf(romfs_child_path, PATH_BUF_SIZE, "%s%s", romfs_path, dirent->d_name);
+            snprintf(host_child_path, PATH_BUF_SIZE, "%s%s", host_path, dirent->d_name);
 
-        romfs_import_file(src_file_name, romfs_file_name);
+            /* import the files under the directory */
+            romfs_import_file(host_child_path, romfs_child_path);
+        }
     }
 
     closedir(dir);
@@ -576,9 +587,7 @@ int main(int argc, char **argv)
     }
 
     romfs_init();
-
     romfs_import_dir(INPUT_DIR, "/rom_data/");
-
     romfs_export();
 
     return 0;
