@@ -171,26 +171,10 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
     switch(file_type) {
         case S_IFREG: {
-            /* allocate memory for the new file */
-            uint8_t *file_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
-            romfs_sb.s_blk_cnt++;
-
-            //XXX
-            char test_str[] = {'c', 'a', 't', '\n', '\r',-1};
-
             new_inode->i_mode   = S_IFREG;
-            new_inode->i_size   = 6; //XXX
-            new_inode->i_blocks = 1;
-            new_inode->i_data   = (uint32_t)file_data_p;
-
-            struct block_header blk_head = {.b_next = (uint32_t)NULL};
-            uint32_t blk_head_size = sizeof(struct block_header);
-
-            int pos = 0;
-            memcpy(&file_data_p[pos], &blk_head, blk_head_size);
-            pos += blk_head_size;
-            memcpy(&file_data_p[pos], test_str, sizeof(char) * 6);
-            pos += sizeof(char) * 6;
+            new_inode->i_size   = 0;
+            new_inode->i_blocks = 0;
+            new_inode->i_data   = (uint32_t)NULL; //empty file
 
             break;
         }
@@ -198,7 +182,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
             new_inode->i_mode   = S_IFDIR;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = (uint32_t)NULL; //new directory without any files
+            new_inode->i_data   = (uint32_t)NULL; //empty directory
             list_init(&new_inode->i_dentry);
 
             break;
@@ -250,11 +234,11 @@ char *fs_split_path(char *entry, char *path)
     return path; //return the address of the left path string
 }
 
-static int fs_create_file(char *pathname, uint8_t file_type)
+static struct inode *fs_create_file(char *pathname, uint8_t file_type)
 {
     /* a legal path name must start with '/' */
     if(pathname[0] != '/')
-        return -1;
+        return NULL;
 
     struct inode *inode_curr = &inodes[0]; //start from the root node
     struct inode *inode;
@@ -285,7 +269,7 @@ static int fs_create_file(char *pathname, uint8_t file_type)
 
                 /* failed to create the directory */
                 if(inode == NULL)
-                    return -1;
+                    return NULL;
             }
 
             inode_curr = inode;
@@ -295,17 +279,17 @@ static int fs_create_file(char *pathname, uint8_t file_type)
             /* make sure the last char is not equal to '/' */
             int len = strlen(pathname);
             if(pathname[len - 1] == '/')
-                return -1;
+                return NULL;
 
             /* create new inode for the file */
             inode = fs_add_file(inode_curr, entry, file_type);
 
             /* failed to create the file */
             if(inode == NULL)
-                return -1;
+                return NULL;
 
             /* file is created successfully */
-            return inode->i_fd;
+            return inode;
         }
     }
 }
@@ -378,6 +362,43 @@ void romfs_export(void)
     fclose(file);
 }
 
+void romfs_import_file(char *path)
+{
+    struct inode *inode = fs_create_file(path, S_IFREG);
+    if(inode == NULL) {
+        printf("[mkromfs] failed to create new file!\n");
+        exit(-1);
+    }
+
+    /* read file content */
+    char test_str[] = {'c', 'a', 't', '\n', '\r',-1};
+
+    /* update inode information */
+    inode->i_size   = 6;
+    inode->i_blocks = 1;
+
+    /* block allocation */
+    uint8_t *file_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
+    inode->i_data = (uint32_t)file_data_p;
+    romfs_sb.s_blk_cnt++;
+
+    char *write_addr = (char *)inode->i_data;
+
+    /* construct new block header */
+    struct block_header blk_head = {.b_next = (uint32_t)NULL};
+    uint32_t blk_head_size = sizeof(struct block_header);
+
+    int pos = 0;
+
+    /* write block header */
+    memcpy(&write_addr[pos], &blk_head, blk_head_size);
+    pos += blk_head_size;
+
+    /* write content */
+    memcpy(&write_addr[pos], test_str, sizeof(char) * 6);
+    pos += sizeof(char) * 6;
+}
+
 char romfs_import_dir(const char *path)
 {
     DIR *dir = opendir(path);
@@ -412,8 +433,8 @@ int main(int argc, char **argv)
 
     romfs_import_dir(INPUT_DIR);
 
-    fs_create_file("/rom_data/test1.txt", S_IFREG);
-    fs_create_file("/rom_data/test2.txt", S_IFREG);
+    romfs_import_file("/rom_data/test1.txt");
+    romfs_import_file("/rom_data/test2.txt");
 
     romfs_export();
 
