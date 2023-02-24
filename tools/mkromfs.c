@@ -294,6 +294,99 @@ static struct inode *fs_create_file(char *pathname, uint8_t file_type)
     }
 }
 
+void romfs_address_conversion_dir(struct inode *inode)
+{
+    uint32_t sb_size = sizeof(romfs_sb);
+    uint32_t inodes_size = sizeof(inodes);
+    uint32_t blocks_size = sizeof(romfs_blk);
+
+    /* adjust inode.i_data (which points to the block region) */
+    inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
+
+    struct list *list_start = &inode->i_dentry;
+    struct list *list_curr = list_start;
+
+    /* adjust the dentry list */
+    do {
+        /* preserve the next pointer before modifying */
+        struct list *list_next = list_curr->next;
+
+        /* obtain the dentry */
+        struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
+
+        if(dentry->d_list.last == &inode->i_dentry) {
+            /* inode.i_dentry is stored in the inodes region */
+            dentry->d_list.last = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
+        } else {
+            /* other are stored in the block region */
+            dentry->d_list.last = (struct list *)((uint8_t *)dentry->d_list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
+        }
+
+        if(dentry->d_list.next == &inode->i_dentry) {
+            /* inode.i_dentry is stored in the inodes region */
+            dentry->d_list.next = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
+        } else {
+            /* other are stored in the block region */
+            dentry->d_list.next = (struct list *)((uint8_t *)dentry->d_list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
+        }
+
+        if(list_curr != list_start) {
+            printf("[dentry:\"%s\", file_inode:%d, last:%d, next:%d]\n",
+                   dentry->d_name, dentry->d_inode,
+                   (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
+        }
+
+        list_curr = list_next;
+    } while(list_curr != list_start);
+}
+
+void romfs_address_conversion_file(struct inode *inode)
+{
+    if(inode->i_size == 0)
+        return;
+
+    uint32_t sb_size = sizeof(romfs_sb);
+    uint32_t inodes_size = sizeof(inodes);
+    uint32_t blocks_size = sizeof(romfs_blk);
+
+    uint32_t blk_head_size = sizeof(struct block_header);
+    uint32_t blk_free_size = ROMFS_BLK_SIZE - blk_head_size;
+
+    /* calculate the blocks count */
+    int blocks = inode->i_size / blk_free_size;
+    if((inode->i_size % blk_free_size) > 0)
+        blocks++;
+
+    struct block_header *blk_head;
+    uint32_t next_blk_addr;
+
+    /* adjust the block headers of the file */
+    int i;
+    for(i = 0; i < blocks; i++) {
+        if(i == 0) {
+            /* get the address of the firt block from inode.i_data */
+            blk_head = (struct block_header *)inode->i_data;
+            next_blk_addr = blk_head->b_next;
+        } else {
+            /* get the address of the rest from the block header */
+            blk_head = (struct block_header *)next_blk_addr;
+            next_blk_addr = blk_head->b_next;
+        }
+
+        /* the last block header requires no adjustment */
+        if(blk_head->b_next == (uint32_t)NULL)
+            break;
+
+        /* adjust block_head.b_next (which points to the block region) */
+        blk_head->b_next = blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
+
+        printf("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i, (uint32_t)blk_head->b_next);
+    }
+
+    /* adjust inode.i_data (which points to the block region) */
+    inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
+}
+
 void romfs_export(void)
 {
     FILE *file = fopen(OUTPUT, "wb");
@@ -306,42 +399,13 @@ void romfs_export(void)
     printf("[romfs memory space conversion]\n");
     int i;
     for(i = 0; i < romfs_sb.s_inode_cnt; i++) {
-        /* adjust the inode.i_data (which is point to the block region) */
-        inodes[i].i_data = inodes[i].i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
-
         if(inodes[i].i_mode == S_IFDIR) {
-            struct list *list_start = &inodes[i].i_dentry;
-            struct list *list_curr = list_start;
-
-            /* adjust dentries */
-            do {
-                /* preserve the next pointer before modifying */
-                struct list *list_next = list_curr->next;
-
-                /* obtain the dentry */
-                struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
-
-                if(dentry->d_list.last == &inodes[i].i_dentry) {
-                    /* inode.i_dentry is stored in the inodes region */
-                    dentry->d_list.last = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
-                } else {
-                    /* other are stored in the block region */
-                    dentry->d_list.last = (struct list *)((uint8_t *)dentry->d_list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
-                }
-
-                if(dentry->d_list.next == &inodes[i].i_dentry) {
-                    /* inode.i_dentry is stored in the inodes region */
-                    dentry->d_list.next = (struct list *)((uint8_t *)&inodes[i].i_dentry - (uint32_t)inodes + sb_size);
-                } else {
-                    /* other are stored in the block region */
-                    dentry->d_list.next = (struct list *)((uint8_t *)dentry->d_list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
-                }
-
-                printf("[file_name:\"%s\", file_inode:%d, last:%d, next:%d]\n",
-                       dentry->d_name, dentry->d_inode, (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
-
-                list_curr = list_next;
-            } while(list_curr != list_start);
+            romfs_address_conversion_dir(&inodes[i]);
+        } else if(inodes[i].i_mode == S_IFREG) {
+            romfs_address_conversion_file(&inodes[i]);
+        } else {
+            printf("mkromfs: error, unknown file type.\n");
+            exit(-1);
         }
     }
 
