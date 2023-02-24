@@ -19,7 +19,7 @@ extern struct memory_pool mem_pool;
 extern int file_cnt;
 
 struct inode inodes[INODE_CNT_MAX];
-uint8_t rootfs_blk[ROOTFS_BLK_CNT][ROOTFS_BLK_SIZE];
+uint8_t rootfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
 
 struct mount mount_points[MOUNT_CNT_MAX + 1]; //0 is reserved for the rootfs
 int mount_cnt = 0;
@@ -99,7 +99,7 @@ static bool rootfs_mem_check(uint32_t addr)
         pass = true;
 
     uint32_t blk_start_addr = (uint32_t)rootfs_blk;
-    uint32_t blk_end_addr = (uint32_t)rootfs_blk + (ROOTFS_BLK_CNT * ROOTFS_BLK_SIZE);
+    uint32_t blk_end_addr = (uint32_t)rootfs_blk + (FS_BLK_CNT * FS_BLK_SIZE);
 
     if((addr >= blk_start_addr) && (addr <= blk_end_addr))
         pass = true;
@@ -203,7 +203,7 @@ static int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 {
     /* calculate how many dentries can a block hold */
-    int dentry_per_blk = ROOTFS_BLK_SIZE / sizeof(struct dentry);
+    int dentry_per_blk = FS_BLK_SIZE / sizeof(struct dentry);
 
     /* calculate how many dentries the directory has */
     int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
@@ -301,7 +301,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 
             /* allocate memory for the new file */
             struct super_block *super_blk = &mount_points[inode_dir->i_rdev].super_blk;
-            uint8_t *file_data_p = (uint8_t *)super_blk->s_blk_addr + (ROOTFS_BLK_SIZE * super_blk->s_blk_cnt);
+            uint8_t *file_data_p = (uint8_t *)super_blk->s_blk_addr + (FS_BLK_SIZE * super_blk->s_blk_cnt);
             mount_points[inode_dir->i_rdev].super_blk.s_blk_cnt++;
 
             new_inode->i_mode   = S_IFREG;
@@ -344,7 +344,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     inode_dir->i_size += sizeof(struct dentry);
 
     int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = fs_calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
 
     return new_inode;
 }
@@ -386,7 +386,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
     inode_dir->i_size += sizeof(struct dentry);
 
     int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = fs_calculate_dentry_blocks(ROOTFS_BLK_SIZE, dentry_cnt);
+    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
 
     return new_inode;
 }

@@ -2,9 +2,9 @@
 #define __KCONFIG_H__
 
 /* task and kernel */
-#define OS_TICK_FREQ         1000 //Hz
+#define OS_TICK_FREQ         1000 /* Hz */
 
-#define TASK_STACK_SIZE      1024 //words
+#define TASK_STACK_SIZE      1024 /* words */
 #define TASK_CNT_MAX         10
 #define TASK_MAX_PRIORITY    5
 #define TASK_NAME_LEN_MAX    50
@@ -32,8 +32,8 @@
 #define MOUNT_CNT_MAX        5
 #define INODE_CNT_MAX        100
 
-#define ROOTFS_BLK_SIZE      128  //bytes
-#define ROOTFS_BLK_CNT       100
+#define FS_BLK_SIZE          128  /* bytes, block size of the file system */
+#define FS_BLK_CNT           30   /* block count of the file system       */
 
 /* shell */
 #define SHELL_HISTORY_MAX    20
