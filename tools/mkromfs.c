@@ -380,11 +380,13 @@ void romfs_address_conversion_file(struct inode *inode)
         /* adjust block_head.b_next (which points to the block region) */
         blk_head->b_next = blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
 
-        printf("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i, (uint32_t)blk_head->b_next);
+        printf("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i+1, (uint32_t)blk_head->b_next);
     }
 
     /* adjust inode.i_data (which points to the block region) */
     inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
+
+    printf("[inode: #%d, block #0, next:%d]\n", inode->i_ino, inode->i_data);
 }
 
 void romfs_export(void)
