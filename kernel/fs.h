@@ -33,6 +33,8 @@ struct super_block {
     uint32_t s_blk_cnt;   //number of the used blocks
     uint32_t s_inode_cnt; //number of the used inodes
 
+    bool     s_rd_only;   //read only flag
+
     uint32_t s_sb_addr;   //start address of the super block
     uint32_t s_ino_addr;  //start address of the inode table
     uint32_t s_blk_addr;  //start address of the blocks region
@@ -47,8 +49,8 @@ struct mount {
 struct inode {
     uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
-    uint8_t  i_rdev;      //the device on which this file system is mounted
-    bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
+    uint8_t  i_rdev;      //the device on which the file is mounted
+    bool     i_sync;      //the mounted file is loaded into the rootfs or not
 
     uint32_t i_ino;       //inode number
     uint32_t i_parent;    //inode number of the parent directory
@@ -56,8 +58,8 @@ struct inode {
     uint32_t i_fd;        //file descriptor number
 
     uint32_t i_size;      //file size (bytes)
-    uint32_t i_blocks;    //block_numbers = file_size / block_size
-    uint8_t  *i_data;     //virtual address for the storage device
+    uint32_t i_blocks;    //block_numbers = file_size / (block_size - block_header_size)
+    uint32_t i_data;      //virtual address for accessing the storage
 
     struct list i_dentry; //list head of the dentry table
 };

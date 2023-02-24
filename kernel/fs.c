@@ -65,7 +65,7 @@ void rootfs_init(void)
     inode_root->i_ino    = 0;
     inode_root->i_size   = 0;
     inode_root->i_blocks = 0;
-    inode_root->i_data   = NULL;
+    inode_root->i_data   = (uint32_t)NULL;
     list_init(&inode_root->i_dentry);
 
     /* create new file for the rootfs */
@@ -80,6 +80,7 @@ void rootfs_init(void)
     struct super_block *rootfs_super_blk = &mount_points[RDEV_ROOTFS].super_blk;
     rootfs_super_blk->s_inode_cnt = 1;
     rootfs_super_blk->s_blk_cnt   = 0;
+    rootfs_super_blk->s_rd_only   = false;
     rootfs_super_blk->s_sb_addr   = (uint32_t)rootfs_super_blk;
     rootfs_super_blk->s_ino_addr  = (uint32_t)inodes;
     rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blk;
@@ -265,7 +266,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_mode   = S_IFIFO;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = NULL;
+            new_inode->i_data   = (uint32_t)NULL;
 
             break;
         case S_IFCHR: {
@@ -277,7 +278,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_mode   = S_IFCHR;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = NULL;
+            new_inode->i_data   = (uint32_t)NULL;
 
             break;
         }
@@ -290,7 +291,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_mode   = S_IFBLK;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = NULL;
+            new_inode->i_data   = (uint32_t)NULL;
 
             break;
         }
@@ -306,14 +307,14 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_mode   = S_IFREG;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 1;
-            new_inode->i_data   = file_data_p;
+            new_inode->i_data   = (uint32_t)file_data_p;
 
             break;
         case S_IFDIR:
             new_inode->i_mode   = S_IFDIR;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = NULL; //new directory without any files
+            new_inode->i_data   = (uint32_t)NULL; //new directory without any files
             list_init(&new_inode->i_dentry);
 
             break;
@@ -329,7 +330,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 
     /* currently no files is under the directory */
     if(list_is_empty(&inode_dir->i_dentry) == true)
-        inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
+        inode_dir->i_data = (uint32_t)new_dentry; //add the first dentry
 
     /* insert the new file under the current directory */
     list_push(&inode_dir->i_dentry, &new_dentry->d_list);
