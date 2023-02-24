@@ -9,8 +9,8 @@
 #include "list.h"
 #include "kconfig.h"
 
-#define INPUT_DIR         "../rom/"
-#define OUTPUT            "./romfs.bin"
+#define INPUT_DIR "../rom/"
+#define OUTPUT    "./romfs.bin"
 
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
