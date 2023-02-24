@@ -524,7 +524,7 @@ void os_service_init(void)
 {
     rootfs_init();
 
-    if(!fork()) file_system();
+    if(!fork()) file_system_task();
 }
 
 void sched_start(task_func_t first_task)
