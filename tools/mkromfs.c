@@ -371,32 +371,72 @@ void romfs_import_file(char *path)
     }
 
     /* read file content */
-    char test_str[] = {'c', 'a', 't', '\n', '\r',-1};
+    char file_content[] = {'c', 'a', 't', '\n', '\r',-1};
+    int file_size = 6;
+
+    /* calculate the required blocks number */
+    uint32_t blk_head_size = sizeof(struct block_header);
+    uint32_t blk_free_size = ROMFS_BLK_SIZE - blk_head_size;
+    int blocks = file_size / blk_free_size;
+    if((file_size % blk_free_size) > 0)
+        blocks++;
 
     /* update inode information */
-    inode->i_size   = 6;
-    inode->i_blocks = 1;
+    inode->i_size   = file_size;
+    inode->i_blocks = blocks;
 
-    /* block allocation */
-    uint8_t *file_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
-    inode->i_data = (uint32_t)file_data_p;
-    romfs_sb.s_blk_cnt++;
+    if(file_size == 0)
+        return;
 
-    char *write_addr = (char *)inode->i_data;
+    uint8_t *last_blk_addr = NULL;
+    int file_size_remained = file_size;
+    int file_pos = 0;
 
-    /* construct new block header */
-    struct block_header blk_head = {.b_next = (uint32_t)NULL};
-    uint32_t blk_head_size = sizeof(struct block_header);
+    int i;
+    for(i = 0; i < blocks; i++) {
+        /* new block allocation */
+        uint8_t *block_addr = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
+        romfs_sb.s_blk_cnt++;
 
-    int pos = 0;
+        /* first block to write */
+        if(i == 0) {
+            inode->i_data = (uint32_t)block_addr;
+        }
 
-    /* write block header */
-    memcpy(&write_addr[pos], &blk_head, blk_head_size);
-    pos += blk_head_size;
+        /* update the block header for the last block */
+        if(i > 0) {
+		struct block_header *blk_head_last =  (struct block_header *)last_blk_addr;
+                blk_head_last->b_next = (uint32_t)block_addr;
+	}
 
-    /* write content */
-    memcpy(&write_addr[pos], test_str, sizeof(char) * 6);
-    pos += sizeof(char) * 6;
+        int blk_pos = 0;
+	int write_size = 0;
+
+        /* calculate the write size for the current block */
+        if(file_size_remained > blk_free_size) {
+             /* too large to fit all */
+             write_size = blk_free_size;
+             file_size_remained -= blk_free_size;
+        } else {
+             /* enough to fit the left data */
+             write_size = file_size_remained;
+        }
+
+        /* write the block header */
+        struct block_header blk_head = {.b_next = (uint32_t)NULL};
+        memcpy(&block_addr[blk_pos], &blk_head, blk_head_size);
+        blk_pos += blk_head_size;
+
+        /* write the left file content */
+        memcpy(&block_addr[blk_pos], &file_content[file_pos], write_size);
+        blk_pos += write_size;
+
+        /* update the position of the file content that is written */
+        file_pos += write_size;
+
+        /* preserve the current block address */
+        last_blk_addr = block_addr; 
+    }
 }
 
 char romfs_import_dir(const char *path)
