@@ -405,21 +405,21 @@ void romfs_import_file(char *path)
 
         /* update the block header for the last block */
         if(i > 0) {
-		struct block_header *blk_head_last =  (struct block_header *)last_blk_addr;
-                blk_head_last->b_next = (uint32_t)block_addr;
-	}
+            struct block_header *blk_head_last =  (struct block_header *)last_blk_addr;
+            blk_head_last->b_next = (uint32_t)block_addr;
+        }
 
         int blk_pos = 0;
-	int write_size = 0;
+        int write_size = 0;
 
         /* calculate the write size for the current block */
         if(file_size_remained > blk_free_size) {
-             /* too large to fit all */
-             write_size = blk_free_size;
-             file_size_remained -= blk_free_size;
+            /* too large to fit all */
+            write_size = blk_free_size;
+            file_size_remained -= blk_free_size;
         } else {
-             /* enough to fit the left data */
-             write_size = file_size_remained;
+            /* enough to fit the left data */
+            write_size = file_size_remained;
         }
 
         /* write the block header */
@@ -435,7 +435,7 @@ void romfs_import_file(char *path)
         file_pos += write_size;
 
         /* preserve the current block address */
-        last_blk_addr = block_addr; 
+        last_blk_addr = block_addr;
     }
 }
 
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
     romfs_import_dir(INPUT_DIR);
 
     romfs_import_file("/rom_data/test1.txt");
-    romfs_import_file("/rom_data/test2.txt");
+    romfs_import_file("/rom_data/dir/test2.txt");
 
     romfs_export();
 

@@ -754,16 +754,14 @@ static int fs_mount(char *source, char *target)
 
 void fs_get_pwd(char *path, struct inode *dir_curr)
 {
-    path[0] = '/';
-    path[1] = '\0';
-
-    int pos = 1;
+    char old_path[PATH_LEN_MAX] = {0};
+    char new_path[PATH_LEN_MAX] = {0};
 
     struct inode *inode = dir_curr;
 
     while(1) {
         if(inode->i_ino == 0)
-            return;
+            break;
 
         /* switch to the parent directory */
         uint32_t inode_last = inode->i_ino;
@@ -771,18 +769,21 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
 
         /* no file is under this directory */
         if(list_is_empty(&inode->i_dentry) == true)
-            return;
+            break;
 
         struct list *list_curr;
         list_for_each(list_curr, &inode->i_dentry) {
             struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
             if(dentry->d_inode == inode_last) {
-                pos += snprintf(&path[pos], PATH_LEN_MAX, "%s/", dentry->d_name);
+                strncpy(old_path, new_path, PATH_LEN_MAX);
+                snprintf(new_path, PATH_LEN_MAX, "%s/%s", dentry->d_name, old_path);
                 break;
             }
         }
     }
+
+    snprintf(path, PATH_LEN_MAX, "/%s", new_path);
 }
 
 int fs_read_dir(DIR *dirp, struct dirent *dirent)
