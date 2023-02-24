@@ -8,7 +8,8 @@ CFLAGS+=-g
 CFLAGS+=-mx32 #to make the pointer be 4 bytes instead of 8 bytes
 #CFLAGS+=-Wpadded
 
-CFLAGS+=-I../kernel
+CFLAGS+=-I../ \
+	-I../kernel
 
 SRC=../kernel/list.c \
 	 ./mkromfs.c

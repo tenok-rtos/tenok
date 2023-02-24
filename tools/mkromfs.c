@@ -7,15 +7,10 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include "list.h"
+#include "kconfig.h"
 
 #define INPUT_DIR         "../rom/"
 #define OUTPUT            "./romfs.bin"
-
-#define FILE_NAME_LEN_MAX 30
-#define PATH_LEN_MAX      128
-#define INODE_CNT_MAX     100
-#define ROMFS_BLK_SIZE    128
-#define ROMFS_BLK_CNT     20
 
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
@@ -72,7 +67,7 @@ struct dentry {
 
 struct super_block romfs_sb;
 struct inode inodes[INODE_CNT_MAX];
-uint8_t romfs_blk[ROMFS_BLK_CNT][ROMFS_BLK_SIZE];
+uint8_t romfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
 
 void romfs_init(void)
 {
@@ -132,7 +127,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
         return NULL;
 
     /* calculate how many dentries can a block hold */
-    int dentry_per_blk = ROMFS_BLK_SIZE / sizeof(struct dentry);
+    int dentry_per_blk = FS_BLK_SIZE / sizeof(struct dentry);
 
     /* calculate how many dentries the directory has */
     int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
@@ -149,7 +144,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
         /* can not fit, requires a new block */
-        dir_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
+        dir_data_p = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
 
         romfs_sb.s_blk_cnt++;
     }
@@ -204,7 +199,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
     inode_dir->i_size += sizeof(struct dentry);
 
     dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = fs_calculate_dentry_blocks(ROMFS_BLK_SIZE, dentry_cnt);
+    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
 
     return new_inode;
 }
@@ -350,7 +345,7 @@ void romfs_address_conversion_file(struct inode *inode)
     uint32_t blocks_size = sizeof(romfs_blk);
 
     uint32_t blk_head_size = sizeof(struct block_header);
-    uint32_t blk_free_size = ROMFS_BLK_SIZE - blk_head_size;
+    uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
 
     /* calculate the blocks count */
     int blocks = inode->i_size / blk_free_size;
@@ -455,7 +450,7 @@ void romfs_import_file(char *src_path, char *dest_path)
     }
 
     /* check if the file is too big */
-    if(file_size > (ROMFS_BLK_SIZE * ROMFS_BLK_CNT)) {
+    if(file_size > (FS_BLK_SIZE * FS_BLK_CNT)) {
         printf("%s: the file is too big!\n", src_path);
         exit(1);
     }
@@ -472,7 +467,7 @@ void romfs_import_file(char *src_path, char *dest_path)
 
     /* calculate the required blocks number */
     uint32_t blk_head_size = sizeof(struct block_header);
-    uint32_t blk_free_size = ROMFS_BLK_SIZE - blk_head_size;
+    uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
     int blocks = file_size / blk_free_size;
     if((file_size % blk_free_size) > 0)
         blocks++;
@@ -490,7 +485,7 @@ void romfs_import_file(char *src_path, char *dest_path)
     int i;
     for(i = 0; i < blocks; i++) {
         /* new block allocation */
-        uint8_t *block_addr = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * ROMFS_BLK_SIZE);
+        uint8_t *block_addr = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
         romfs_sb.s_blk_cnt++;
 
         /* first block to write */

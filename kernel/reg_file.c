@@ -46,7 +46,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     uint32_t blk_head_size = sizeof(struct block_header);
-    uint32_t blk_free_size = ROOTFS_BLK_SIZE - sizeof(struct block_header);
+    uint32_t blk_free_size = FS_BLK_SIZE - sizeof(struct block_header);
 
     size_t remained_size = size;
     size_t read_size = 0;
@@ -57,7 +57,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
         /* get the start and end address of the block */
         uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
-        uint32_t blk_end_addr = blk_start_addr + ROOTFS_BLK_SIZE;
+        uint32_t blk_end_addr = blk_start_addr + FS_BLK_SIZE;
 
         /* calculate the block offset of the current read position */
         uint8_t blk_pos = reg_file->pos % blk_free_size;
@@ -130,7 +130,7 @@ long reg_file_llseek(struct file *filp, long offset, int whence)
             new_pos = offset;
             break;
         case SEEK_END:
-            new_pos = ROOTFS_BLK_SIZE + offset;
+            new_pos = FS_BLK_SIZE + offset;
             break;
         case SEEK_CUR:
             new_pos = reg_file->pos + offset;
@@ -139,7 +139,7 @@ long reg_file_llseek(struct file *filp, long offset, int whence)
             return -1;
     }
 
-    if((new_pos >= 0) && (new_pos <= ROOTFS_BLK_SIZE)) {
+    if((new_pos >= 0) && (new_pos <= FS_BLK_SIZE)) {
         reg_file->pos = new_pos;
 
         return new_pos;
