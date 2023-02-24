@@ -31,12 +31,17 @@ struct super_block {
     uint32_t s_blk_addr;  //start address of the blocks region
 };
 
+//block header will be placed to the top of every blocks of the regular file
+struct block_header {
+    uint32_t b_next; //virtual address of the next block
+};
+
 struct mount {
     struct file *dev_file;        //driver file of the mounted storage device
     struct super_block super_blk; //super block of the mounted storage device
 };
 
-/* index node */
+//index node
 struct inode {
     uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
@@ -55,7 +60,7 @@ struct inode {
     struct list i_dentry; //list head of the dentry table
 };
 
-/* directory entry */
+//directory entry
 struct dentry {
     char     d_name[FILE_NAME_LEN_MAX]; //file name
 
@@ -107,7 +112,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
     return NULL;
 }
 
-int calculate_dentry_block_size(size_t block_size, size_t dentry_cnt)
+int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 {
     /* calculate how many dentries can a block hold */
     int dentry_per_blk = block_size / sizeof(struct dentry);
@@ -178,7 +183,14 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
             new_inode->i_blocks = 1;
             new_inode->i_data   = (uint32_t)file_data_p;
 
-            memcpy(file_data_p, test_str, sizeof(char) * 6);
+            struct block_header blk_head = {.b_next = (uint32_t)NULL};
+            uint32_t blk_head_size = sizeof(struct block_header);
+
+            int pos = 0;
+            memcpy(&file_data_p[pos], &blk_head, blk_head_size);
+            pos += blk_head_size;
+            memcpy(&file_data_p[pos], test_str, sizeof(char) * 6);
+            pos += sizeof(char) * 6;
 
             break;
         }
@@ -208,12 +220,12 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
     inode_dir->i_size += sizeof(struct dentry);
 
     dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = calculate_dentry_block_size(ROMFS_BLK_SIZE, dentry_cnt);
+    inode_dir->i_blocks = fs_calculate_dentry_blocks(ROMFS_BLK_SIZE, dentry_cnt);
 
     return new_inode;
 }
 
-char *split_path(char *entry, char *path)
+char *fs_split_path(char *entry, char *path)
 {
     while(1) {
         bool found_dir = (*path == '/');
@@ -238,7 +250,7 @@ char *split_path(char *entry, char *path)
     return path; //return the address of the left path string
 }
 
-static int create_file(char *pathname, uint8_t file_type)
+static int fs_create_file(char *pathname, uint8_t file_type)
 {
     /* a legal path name must start with '/' */
     if(pathname[0] != '/')
@@ -250,11 +262,11 @@ static int create_file(char *pathname, uint8_t file_type)
     char entry[PATH_LEN_MAX];
     char *path = pathname;
 
-    path = split_path(entry, path); //get rid of the first '/'
+    path = fs_split_path(entry, path); //get rid of the first '/'
 
     while(1) {
         /* split the path and get the entry name at each layer */
-        path = split_path(entry, path);
+        path = fs_split_path(entry, path);
 
         /* two successive '/' are detected */
         if(entry[0] == '\0')
@@ -400,8 +412,8 @@ int main(int argc, char **argv)
 
     romfs_import_dir(INPUT_DIR);
 
-    create_file("/rom_data/test1.txt", S_IFREG);
-    create_file("/rom_data/test2.txt", S_IFREG);
+    fs_create_file("/rom_data/test1.txt", S_IFREG);
+    fs_create_file("/rom_data/test2.txt", S_IFREG);
 
     romfs_export();
 
