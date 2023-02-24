@@ -117,7 +117,7 @@ void request_open_file(int reply_fd, char *path);
 void request_open_directory(int reply_fd, char *path);
 void request_mount(int reply_fd, char *source, char *path);
 
-void file_system(void);
+void file_system_task(void);
 
 #endif
 

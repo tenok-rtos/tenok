@@ -9,7 +9,6 @@
 #include "reg_file.h"
 #include "uart.h"
 
-static int create_file(char *pathname, uint8_t file_type);
 static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
@@ -754,6 +753,8 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
     path[0] = '/';
     path[1] = '\0';
 
+    int pos = 1;
+
     struct inode *inode = dir_curr;
 
     while(1) {
@@ -767,8 +768,6 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         /* no file is under this directory */
         if(list_is_empty(&inode->i_dentry) == true)
             return;
-
-        int pos = 0;
 
         struct list *list_curr;
         list_for_each(list_curr, &inode->i_dentry) {
@@ -914,7 +913,7 @@ void request_mount(int reply_fd, char *source, char *target)
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
-void file_system(void)
+void file_system_task(void)
 {
     set_program_name("file system");
     setpriority(PRIO_PROCESS, getpid(), 1);
