@@ -34,27 +34,64 @@ int reg_file_init(struct file **files, struct inode *file_inode, struct memory_p
     return 0;
 }
 
+/* offset is not used by the reg_file_read() */
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-    /* get file inode */
+    /* get the file inode */
     struct inode *inode = reg_file->file_inode;
 
-    /* get storage device file */
+    /* get the device file */
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
-    /* calculate the read address */
     uint32_t blk_head_size = sizeof(struct block_header);
-    uint32_t read_addr = (uint32_t)inode->i_data + blk_head_size + offset + reg_file->pos;
+    uint32_t blk_free_size = ROOTFS_BLK_SIZE - sizeof(struct block_header);
 
-    /* read data */
-    int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, size, read_addr);
+    size_t remained_size = size;
+    size_t read_size;
 
-    if(retval >= 0)
-        reg_file->pos += size;
+    while(1) {
+        /* calculate the block address of the current file position to read */
+        int blk_i = reg_file->pos / blk_free_size;
 
-    return size;
+        /* get the start and end address of the block */
+        uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
+        uint32_t blk_end_addr = blk_start_addr + ROOTFS_BLK_SIZE;
+
+        /* calculate the block offset of the current read position */
+        uint8_t blk_pos = reg_file->pos % ROOTFS_BLK_SIZE;
+
+        /* calculate the read address */
+        uint32_t read_addr = blk_start_addr + blk_head_size + blk_pos;
+
+        /* calculate the size to read of the current block */
+        uint32_t max_read_size = blk_free_size - blk_pos;
+        if(remained_size > max_read_size) {
+            read_size == max_read_size;
+        } else {
+            read_size = remained_size;
+        }
+
+        /* read data */
+        int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, read_size, read_addr);
+
+        /* read failure */
+        if(retval < 0)
+            break;
+
+        /* update the remained size */
+        remained_size -= read_size;
+
+        /* update the file read position */
+        reg_file->pos += read_size;
+
+        /* no more data to read */
+        if(remained_size == 0)
+            break;
+    }
+
+    return size - remained_size;
 }
 
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset)

@@ -806,6 +806,32 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent)
     return 0;
 }
 
+//given a block index and return the address of that block
+uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
+{
+    uint32_t blk_addr;
+
+    struct file *dev_file = mount_points[inode->i_rdev].dev_file;
+    struct block_header blk_head;
+
+    int i;
+    for(i = 0; i <= blk_index; i++) {
+        if(i == 0) {
+            blk_addr = inode->i_data;
+        } else {
+            blk_addr = blk_head.b_next;
+        }
+
+        /* read the block header */
+        dev_file->f_op->read(NULL, (uint8_t *)&blk_head, sizeof(struct block_header), blk_addr);
+
+        /* update the address pointed to the next block */
+        blk_addr = blk_head.b_next;
+    }
+
+    return blk_addr;
+}
+
 void request_create_file(int reply_fd, char *path, uint8_t file_type)
 {
     int fs_cmd = FS_CREATE_FILE;
