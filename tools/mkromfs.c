@@ -24,6 +24,8 @@ struct super_block {
     uint32_t s_blk_cnt;   //number of the used blocks
     uint32_t s_inode_cnt; //number of the used inodes
 
+    bool     s_rd_only;   //read only flag
+
     uint32_t s_sb_addr;   //start address of the super block
     uint32_t s_ino_addr;  //start address of the inode table
     uint32_t s_blk_addr;  //start address of the blocks region
@@ -39,7 +41,7 @@ struct inode {
     uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
     uint8_t  i_rdev;      //the device on which this file system is mounted
-    bool     i_sync;      //the file of a mounted device is loaded into the rootfs or not
+    bool     i_sync;      //the mounted file is loaded into the rootfs or not
 
     uint32_t i_ino;       //inode number
     uint32_t i_parent;    //inode number of the parent directory
@@ -48,7 +50,7 @@ struct inode {
 
     uint32_t i_size;      //file size (bytes)
     uint32_t i_blocks;    //block_numbers = file_size / block_size
-    uint8_t  *i_data;     //virtual address for the storage device
+    uint32_t i_data;      //virtual address for accessing the storage
 
     struct list i_dentry; //list head of the dentry table
 };
@@ -75,11 +77,12 @@ void romfs_init(void)
     inode_root->i_ino    = 0;
     inode_root->i_size   = 0;
     inode_root->i_blocks = 0;
-    inode_root->i_data   = NULL;
+    inode_root->i_data   = (uint32_t)NULL;
     list_init(&inode_root->i_dentry);
 
     romfs_sb.s_inode_cnt = 1;
     romfs_sb.s_blk_cnt   = 0;
+    romfs_sb.s_rd_only   = true;
     romfs_sb.s_sb_addr   = 0;
     romfs_sb.s_ino_addr  = sizeof(struct super_block);
     romfs_sb.s_blk_addr  = romfs_sb.s_ino_addr + (sizeof(struct inode) * INODE_CNT_MAX);
@@ -173,7 +176,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
             new_inode->i_mode   = S_IFREG;
             new_inode->i_size   = 6; //XXX
             new_inode->i_blocks = 1;
-            new_inode->i_data   = file_data_p;
+            new_inode->i_data   = (uint32_t)file_data_p;
 
             memcpy(file_data_p, test_str, sizeof(char) * 6);
 
@@ -183,7 +186,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
             new_inode->i_mode   = S_IFDIR;
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
-            new_inode->i_data   = NULL; //new directory without any files
+            new_inode->i_data   = (uint32_t)NULL; //new directory without any files
             list_init(&new_inode->i_dentry);
 
             break;
@@ -196,7 +199,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
 
     /* currently no files is under the directory */
     if(list_is_empty(&inode_dir->i_dentry) == true)
-        inode_dir->i_data = (uint8_t *)new_dentry; //add the first dentry
+        inode_dir->i_data = (uint32_t)new_dentry; //add the first dentry
 
     /* insert the new file under the current directory */
     list_push(&inode_dir->i_dentry, &new_dentry->d_list);
