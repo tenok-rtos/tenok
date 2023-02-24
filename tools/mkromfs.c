@@ -450,8 +450,9 @@ void romfs_import_file(char *src_path, char *dest_path)
     }
 
     /* check if the file is too big */
-    if(file_size > (FS_BLK_SIZE * FS_BLK_CNT)) {
-        printf("%s: the file is too big!\n", src_path);
+    int left_space = FS_BLK_SIZE * (FS_BLK_CNT - romfs_sb.s_blk_cnt);
+    if(file_size > left_space) {
+        printf("%s: the space is not enough to fit the file!\n", src_path);
         exit(1);
     }
 
