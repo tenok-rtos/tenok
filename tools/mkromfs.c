@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include "list.h"
 
-#define INPUT_DIR         "."
+#define INPUT_DIR         "../rom/"
 #define OUTPUT            "./romfs.bin"
 
 #define FILE_NAME_LEN_MAX 30
@@ -362,17 +362,41 @@ void romfs_export(void)
     fclose(file);
 }
 
-void romfs_import_file(char *path)
+void romfs_import_file(char *src_path, char *dest_path)
 {
-    struct inode *inode = fs_create_file(path, S_IFREG);
+    /* create new romfs file */
+    struct inode *inode = fs_create_file(dest_path, S_IFREG);
     if(inode == NULL) {
         printf("[mkromfs] failed to create new file!\n");
         exit(-1);
     }
 
-    /* read file content */
-    char file_content[] = {'c', 'a', 't', '\n', '\r',-1};
-    int file_size = 6;
+    /* open the source file */
+    FILE *file = fopen(src_path, "r");
+    if(file == NULL) {
+        printf("%s: failed to open the file\n", src_path);
+        exit(-1);
+    }
+
+    /* get the source file size */
+    fseek(file, 0, SEEK_END); //get the file size
+    long file_size = ftell(file);
+
+    /* nothing to write to the romfs file */
+    if(file_size == 0) {
+        fclose(file);
+        return;
+    }
+
+    /* read and close the source file */
+    char *file_content = malloc(file_size + 1); //plus one for the EOF symbol
+    fseek(file, 0L, SEEK_SET);
+    fread(file_content, sizeof(char), file_size, file);
+    fclose(file);
+
+    /* append the EOF character */
+    file_content[file_size] = -1;
+    file_size++;
 
     /* calculate the required blocks number */
     uint32_t blk_head_size = sizeof(struct block_header);
@@ -385,8 +409,7 @@ void romfs_import_file(char *path)
     inode->i_size   = file_size;
     inode->i_blocks = blocks;
 
-    if(file_size == 0)
-        return;
+    printf("[%s: file size=%ld, blocks=%d]\n", dest_path, file_size, blocks);
 
     uint8_t *last_blk_addr = NULL;
     int file_size_remained = file_size;
@@ -437,17 +460,32 @@ void romfs_import_file(char *path)
         /* preserve the current block address */
         last_blk_addr = block_addr;
     }
+
+    free(file_content);
 }
 
-char romfs_import_dir(const char *path)
+#define PATH_BUF_SIZE 500
+char romfs_import_dir(const char *import_path, const char *dest_path)
 {
-    DIR *dir = opendir(path);
+    DIR *dir = opendir(import_path);
     if(dir == NULL)
         exit(1);
 
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
-        //printf("%s\n", dirent->d_name);
+        if(strcmp(dirent->d_name, ".") == 0)
+            continue;
+
+        if(strcmp(dirent->d_name, "..") == 0)
+            continue;
+
+        char romfs_file_name[PATH_BUF_SIZE] = {0};
+        snprintf(romfs_file_name, PATH_BUF_SIZE, "%s%s", dest_path, dirent->d_name);
+
+        char src_file_name[PATH_BUF_SIZE] = {0};
+        snprintf(src_file_name, PATH_BUF_SIZE, "%s%s", import_path, dirent->d_name);
+
+        romfs_import_file(src_file_name, romfs_file_name);
     }
 
     closedir(dir);
@@ -471,10 +509,7 @@ int main(int argc, char **argv)
 
     romfs_init();
 
-    romfs_import_dir(INPUT_DIR);
-
-    romfs_import_file("/rom_data/test1.txt");
-    romfs_import_file("/rom_data/dir/test2.txt");
+    romfs_import_dir(INPUT_DIR, "/rom_data/");
 
     romfs_export();
 
