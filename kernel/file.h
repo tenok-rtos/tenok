@@ -3,6 +3,14 @@
 
 #include "spinlock.h"
 
+#define FILE rtenv__FILE
+
+#define fopen  __fopen
+#define fread  __fread
+#define fwrite __fwrite
+#define fseek  __fseek
+#define fileno __fileno
+
 typedef struct {
     spinlock_t lock;
     int fd;

@@ -42,13 +42,4 @@
 
 #define PRINT_SIZE_MAX       400
 
-/* function and type names override of the libc */
-#define fopen  __fopen
-#define fread  __fread
-#define fwrite __fwrite
-#define fseek  __fseek
-#define fileno __fileno
-
-#define FILE rtenv__FILE
-
 #endif
