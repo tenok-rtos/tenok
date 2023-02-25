@@ -97,27 +97,6 @@ void shell_task(void)
     }
 }
 
-void mk_cpuinfo(void)
-{
-    /* create a new regular file */
-    mknod("/proc/cpuinfo", 0, S_IFREG);
-    int fd = open("/proc/cpuinfo", 0, 0);
-
-    char *str = "processor  : 0\n\r"
-                "model name : STM32F407 Microcontroller\n\r"
-                "cpu MHz    : 168\n\r"
-                "flash size : 1M\n\r"
-                "ram size   : 192K\n\r";
-
-    /* write file content */
-    int len = strlen(str);
-    write(fd, str, len);
-
-    /* write end-of-file */
-    signed char c = EOF;
-    write(fd, &c, 1);
-}
-
 void first(void *param)
 {
     set_program_name("first");
@@ -127,7 +106,6 @@ void first(void *param)
     os_service_init();
 
     sem_init(&sem_led, 0, 0);
-    mk_cpuinfo();
     rom_dev_init();
     mount("/dev/rom", "/");
     serial0_init();

@@ -213,7 +213,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
         return;
     }
 
-    /* reset the start position of the file */
+    /* reset the read position of the file */
     lseek(fd, 0, SEEK_SET);
 
     /* calculate the iteration times to print the whole file */

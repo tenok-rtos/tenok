@@ -97,32 +97,15 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
-
-    /* get file inode */
-    struct inode *inode = reg_file->file_inode;
-
-    /* get storage device file */
-    struct file *driver_file = mount_points[inode->i_rdev].dev_file;
-
-    /* calculate the read address */
-    uint32_t blk_head_size = sizeof(struct block_header);
-    uint32_t write_addr = (uint32_t)inode->i_data + blk_head_size + offset + reg_file->pos;
-
-    /* write data */
-    int retval = driver_file->f_op->write(NULL, (uint8_t *)buf, size, write_addr);
-
-    if(retval >= 0) {
-        reg_file->pos += size;
-        reg_file->file.file_inode->i_size += size;
-    }
-
-    return retval;
+    return 0; //currently handled by mkromfs program (check tools/)
 }
 
 long reg_file_llseek(struct file *filp, long offset, int whence)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+
+    /* get file inode */
+    struct inode *inode = reg_file->file_inode;
 
     char new_pos;
 
@@ -131,7 +114,7 @@ long reg_file_llseek(struct file *filp, long offset, int whence)
             new_pos = offset;
             break;
         case SEEK_END:
-            new_pos = FS_BLK_SIZE + offset;
+            new_pos = inode->i_size + offset;
             break;
         case SEEK_CUR:
             new_pos = reg_file->pos + offset;
@@ -140,7 +123,7 @@ long reg_file_llseek(struct file *filp, long offset, int whence)
             return -1;
     }
 
-    if((new_pos >= 0) && (new_pos <= FS_BLK_SIZE)) {
+    if((new_pos >= 0) && (new_pos < inode->i_size)) {
         reg_file->pos = new_pos;
 
         return new_pos;
