@@ -33,7 +33,7 @@
 #define INODE_CNT_MAX        100
 
 #define FS_BLK_SIZE          128  /* bytes, block size of the file system */
-#define FS_BLK_CNT           30   /* block count of the file system       */
+#define FS_BLK_CNT           100  /* block count of the file system       */
 
 /* shell */
 #define SHELL_HISTORY_MAX    20
