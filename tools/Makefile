@@ -26,11 +26,8 @@ $(ROMFS_OBJ): $(ROMFS)
 	@echo "OBJCPY" $@ $<
 	@$(OBJCOPY) -I binary -O elf32-littlearm -B arm --prefix-sections '.rom' $(ROMFS) $(ROMFS_OBJ)
 
-gdbserver:
-	gdbserver :1234 ./mkromfs
-
 gdbauto:
-	cgdb -x ./gdbauto.gdb
+	cgdb --args ./mkromfs
 
 clean:
 	rm -rf mkromfs
