@@ -4,6 +4,8 @@
 #include "kernel.h"
 #include "fs.h"
 #include "syscall.h"
+#include "reg_file.h"
+#include "file.h"
 
 extern struct shell shell;
 extern struct memory_pool mem_pool;
@@ -197,24 +199,18 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     char str[PRINT_SIZE_MAX] = {0};
 
     /* open the file */
-    int fd = open(path, 0, 0);
-    if(fd == -1) {
-        snprintf(str, PRINT_SIZE_MAX, "cat: %s: No such file or directory\n\r", path);
+    FILE file;
+    if(fopen(path, 0, &file)) {
+        snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
         shell_puts(str);
         return;
     }
 
-    /* check if the file is a regular file */
     struct stat stat;
-    fstat(fd, &stat);
-    if(stat.st_mode != S_IFREG) {
-        snprintf(str, PRINT_SIZE_MAX, "cat: %s: Invalid argument\n\r", path);
-        shell_puts(str);
-        return;
-    }
+    fstat(fileno(&file), &stat);
 
     /* reset the read position of the file */
-    lseek(fd, 0, SEEK_SET);
+    fseek(&file, 0, SEEK_SET);
 
     /* calculate the iteration times to print the whole file */
     int size = stat.st_size / PRINT_SIZE_MAX;
@@ -224,7 +220,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     /* read and print the file */
     int i;
     for(i = 0; i < size; i++) {
-        int recvd = read(fd, str, PRINT_SIZE_MAX - 1);
+        int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, &file);
         str[recvd] = '\0';
         shell_puts(str);
     }

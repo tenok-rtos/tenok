@@ -52,6 +52,7 @@ SRC+=./kernel/fifo.c \
 	./kernel/list.c \
 	./kernel/kernel.c \
 	./kernel/fs.c \
+        ./kernel/file.c \
 	./kernel/semaphore.c \
 	./kernel/mutex.c \
 	./kernel/rom_dev.c \
