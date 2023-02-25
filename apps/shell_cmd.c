@@ -48,7 +48,7 @@ void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
 
     int i;
     for(i = 1; i < param_cnt - 1; i++) {
-        pos += sprintf(&str[pos], "%s ", param_list[i]);
+        pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s ", param_list[i]);
     }
 
     pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n\r", param_list[param_cnt-1]);
@@ -216,25 +216,28 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     /* reset the start position of the file */
     lseek(fd, 0, SEEK_SET);
 
-    /* read file content until EOF is detected */
+    /* read file content until the EOF symbol is detected */
     signed char c;
 
-    int i;
-    for(i = 0; i < stat.st_size; i++) {
-        if(i >= (PRINT_SIZE_MAX))
-            break;
-
+    int i = 0;
+    do {
         read(fd, &c, 1);
+        str[i] = c;
 
-        if(c == EOF) {
-            str[i] = '\0';
-            break;
+        if(i == (PRINT_SIZE_MAX - 2)) {
+            str[PRINT_SIZE_MAX - 1] = '\0';
+            shell_puts(str);
+            i = 0;
         } else {
-            str[i] = c;
+            i++;
         }
-    }
+    } while(c != -1);
 
-    shell_puts(str);
+    /* print the remained texts */
+    if(i > 0) {
+        str[i-1] = '\0';
+        shell_puts(str);
+    }
 }
 
 void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
