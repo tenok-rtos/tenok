@@ -230,6 +230,10 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 //create a file under a directory (currently support for rootfs only)
 static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {
+    /* please create the regular file with mkromfs program for now (check tools/) */
+    if(file_type == S_IFREG)
+        return NULL;
+
     /* inodes numbers is full */
     if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
         return NULL;
@@ -299,20 +303,10 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             /* create new regular file */
             result = reg_file_init((struct file **)&files, new_inode, &mem_pool);
 
-            /* allocate memory for the new file */
-            struct super_block *super_blk = &mount_points[inode_dir->i_rdev].super_blk;
-            uint8_t *file_data_p = (uint8_t *)super_blk->s_blk_addr + (FS_BLK_SIZE * super_blk->s_blk_cnt);
-            mount_points[inode_dir->i_rdev].super_blk.s_blk_cnt++;
-
             new_inode->i_mode   = S_IFREG;
             new_inode->i_size   = 0;
-            new_inode->i_blocks = 1;
-            new_inode->i_data   = (uint32_t)file_data_p;
-
-            /* write the block header of the first block */
-            struct block_header blk_head = {.b_next = (uint32_t)NULL};
-            struct file *dev_file = mount_points[new_inode->i_rdev].dev_file;
-            dev_file->f_op->write(NULL, (uint8_t *)&blk_head, sizeof(blk_head), new_inode->i_data);
+            new_inode->i_blocks = 0;
+            new_inode->i_data   = (uint32_t)NULL;
 
             break;
         case S_IFDIR:
