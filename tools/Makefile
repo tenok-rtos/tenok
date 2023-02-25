@@ -14,11 +14,13 @@ CFLAGS+=-I../ \
 SRC=../kernel/list.c \
 	 ./mkromfs.c
 
+MKROMFS_FLAGS=-v #verbose option
+
 all: $(ROMFS_OBJ)
 
 $(ROMFS): $(SRC)
 	gcc $(CFLAGS) -o mkromfs $(SRC)
-	./mkromfs
+	./mkromfs $(MKROMFS_FLAGS) 
 
 $(ROMFS_OBJ): $(ROMFS)
 	@echo "OBJCPY" $@ $<

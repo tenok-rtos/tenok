@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <stdarg.h>
 #include "list.h"
 #include "kconfig.h"
 
@@ -14,6 +15,8 @@
 
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
+
+bool _verbose = false;
 
 struct super_block {
     uint32_t s_blk_cnt;   //number of the used blocks
@@ -68,6 +71,20 @@ struct dentry {
 struct super_block romfs_sb;
 struct inode inodes[INODE_CNT_MAX];
 uint8_t romfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
+
+int verbose(const char * restrict format, ...)
+{
+    if(!_verbose)
+        return 0;
+
+    va_list args;
+
+    va_start(args, format);
+    int ret = vprintf(format, args);
+    va_end(args);
+
+    return ret;
+}
 
 void romfs_init(void)
 {
@@ -326,9 +343,9 @@ void romfs_address_conversion_dir(struct inode *inode)
         }
 
         if(list_curr != list_start) {
-            printf("[dentry:\"%s\", file_inode:%d, last:%d, next:%d]\n",
-                   dentry->d_name, dentry->d_inode,
-                   (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
+            verbose("[dentry:\"%s\", file_inode:%d, last:%d, next:%d]\n",
+                    dentry->d_name, dentry->d_inode,
+                    (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
         }
 
         list_curr = list_next;
@@ -375,13 +392,13 @@ void romfs_address_conversion_file(struct inode *inode)
         /* adjust block_head.b_next (which points to the block region) */
         blk_head->b_next = blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
 
-        printf("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i+1, (uint32_t)blk_head->b_next);
+        verbose("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i+1, (uint32_t)blk_head->b_next);
     }
 
     /* adjust inode.i_data (which points to the block region) */
     inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
 
-    printf("[inode: #%d, block #0, next:%d]\n", inode->i_ino, inode->i_data);
+    verbose("[inode: #%d, block #0, next:%d]\n", inode->i_ino, inode->i_data);
 }
 
 void romfs_export(void)
@@ -393,7 +410,8 @@ void romfs_export(void)
     uint32_t blocks_size = sizeof(romfs_blk);
 
     /* memory space conversion */
-    printf("[romfs memory space conversion]\n");
+    verbose("================================\n"
+            "[romfs memory space conversion]\n");
     int i;
     for(i = 0; i < romfs_sb.s_inode_cnt; i++) {
         if(inodes[i].i_mode == S_IFDIR) {
@@ -405,13 +423,14 @@ void romfs_export(void)
             exit(-1);
         }
     }
+    verbose("================================\n");
 
-    printf("romfs generation report:\n"
+    printf("[romfs generation report]\n"
            "super block size: %d bytes\n"
-           "inode table size: %d bytes\n"
-           "block region size: %d bytes\n"
-           "used inode count: %d\n"
-           "used block count: %d\n",
+           "inodes size: %d bytes\n"
+           "blocks size: %d bytes\n"
+           "inode count: %d\n"
+           "block count: %d\n",
            sb_size, inodes_size, blocks_size,
            romfs_sb.s_inode_cnt,
            romfs_sb.s_blk_cnt);
@@ -477,7 +496,7 @@ void romfs_import_file(char *host_path, char *romfs_path)
     inode->i_size   = file_size;
     inode->i_blocks = blocks;
 
-    printf("[%s: file size=%ld, blocks=%d]\n", romfs_path, file_size, blocks);
+    printf("import %s => %s (size=%ld, blocks=%d)\n", host_path, romfs_path, file_size, blocks);
 
     uint8_t *last_blk_addr = NULL;
     int file_size_remained = file_size;
@@ -573,15 +592,10 @@ char romfs_import_dir(const char *host_path, const char *romfs_path)
 int main(int argc, char **argv)
 {
     int opt;
-    while((opt = getopt(argc, argv, "o:d:")) != -1) {
+    while((opt = getopt(argc, argv, "v")) != -1) {
         switch(opt) {
             case 'v':
-                break;
-            case 'd':
-                printf("d: %s\n", optarg);
-                break;
-            case 'o':
-                printf("o: %s\n", optarg);
+                _verbose = true;
                 break;
         }
     }
