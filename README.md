@@ -104,4 +104,4 @@ make gdbauto
 
 ## License
 
-neo-rtenv is releaseed under BSD 2-Clause License, for details please check [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
+neo-rtenv is releaseed under the BSD 2-Clause License, for detailed information please check [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
