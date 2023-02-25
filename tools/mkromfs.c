@@ -481,10 +481,6 @@ void romfs_import_file(char *host_path, char *romfs_path)
     fread(file_content, sizeof(char), file_size, file);
     fclose(file);
 
-    /* append the EOF character */
-    file_content[file_size] = -1;
-    file_size++;
-
     /* calculate the required blocks number */
     uint32_t blk_head_size = sizeof(struct block_header);
     uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
