@@ -204,7 +204,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
         return;
     }
 
-    /* check if the file mode is set as regular file */
+    /* check if the file is a regular file */
     struct stat stat;
     fstat(fd, &stat);
     if(stat.st_mode != S_IFREG) {
@@ -216,26 +216,16 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     /* reset the start position of the file */
     lseek(fd, 0, SEEK_SET);
 
-    /* read file content until the EOF symbol is detected */
-    signed char c;
+    /* calculate the iteration times to print the whole file */
+    int size = stat.st_size / PRINT_SIZE_MAX;
+    if((stat.st_size % PRINT_SIZE_MAX) > 0)
+        size++;
 
-    int i = 0;
-    do {
-        read(fd, &c, 1);
-        str[i] = c;
-
-        if(i == (PRINT_SIZE_MAX - 2)) {
-            str[PRINT_SIZE_MAX - 1] = '\0';
-            shell_puts(str);
-            i = 0;
-        } else {
-            i++;
-        }
-    } while(c != -1);
-
-    /* print the remained texts */
-    if(i > 0) {
-        str[i-1] = '\0';
+    /* read and print the file */
+    int i;
+    for(i = 0; i < size; i++) {
+        int recvd = read(fd, str, PRINT_SIZE_MAX - 1);
+        str[recvd] = '\0';
         shell_puts(str);
     }
 }

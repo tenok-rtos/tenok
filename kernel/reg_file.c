@@ -74,7 +74,8 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
         }
 
         /* read data */
-        int retval = driver_file->f_op->read(NULL, (uint8_t *)buf, read_size, read_addr);
+        int buf_pos = size - remained_size;
+        int retval = driver_file->f_op->read(NULL, (uint8_t *)&buf[buf_pos], read_size, read_addr);
 
         /* read failure */
         if(retval < 0)
