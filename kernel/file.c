@@ -10,6 +10,13 @@
 
 extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 
+/*
+ * when accessing regular files, the user should consider using fread/fwrite
+ * instead of read/write since the latter are executed in the kernel space,
+ * which has the potential of affecting the real-time performance, whereas
+ * the former is implemented to run in the user space, which is safer to use.
+ */
+
 int __fopen(const char *pathname, const char *mode, FILE *fstream)
 {
     /* open the file with the system call */
