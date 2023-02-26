@@ -537,6 +537,7 @@ static int fs_create_file(char *pathname, uint8_t file_type)
     struct inode *inode_curr = &inodes[0]; //iteration starts from the root node
     struct inode *inode;
 
+    char file_name[FILE_NAME_LEN_MAX];
     char entry[PATH_LEN_MAX];
     char *path = pathname;
 
@@ -554,6 +555,10 @@ static int fs_create_file(char *pathname, uint8_t file_type)
                 continue;
             }
         }
+
+        /* the last non-empty entry string is the file name */
+        if(entry[0] != '\0')
+            strncpy(file_name, entry, FILE_NAME_LEN_MAX);
 
         /* search the entry and get the inode */
         inode = fs_search_file(inode_curr, entry);
@@ -575,17 +580,12 @@ static int fs_create_file(char *pathname, uint8_t file_type)
         } else {
             /* no more path to be splitted, the remained string should be the file name */
 
-            /* make sure the last char is not equal to '/' */
-            int len = strlen(pathname);
-            if(pathname[len - 1] == '/')
-                return -1;
-
             /* file with the same name already exists */
             if(inode != NULL)
                 return -1;
 
             /* create new inode for the file */
-            inode = fs_add_file(inode_curr, entry, file_type);
+            inode = fs_add_file(inode_curr, file_name, file_type);
 
             /* failed to create the file */
             if(inode == NULL)
