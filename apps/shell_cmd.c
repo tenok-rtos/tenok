@@ -181,6 +181,24 @@ void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     shell_puts(str);
 }
 
+//print a string by the same time replace \n with \n\r
+void shell_print_lf_cr(char *str, int size)
+{
+    int i;
+    for(i = 0; i < size; i++) {
+        /* end of the string */
+        if(str[i] == '\0')
+            return;
+
+        if(str[i] == '\n') {
+            shell_puts("\n\r");
+        } else {
+            char s[2] = {str[i], '\0'};
+            shell_puts(s);
+        }
+    }
+}
+
 void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
 {
     char path[PATH_LEN_MAX] = {0};
@@ -222,7 +240,8 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     for(i = 0; i < size; i++) {
         int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, &file);
         str[recvd] = '\0';
-        shell_puts(str);
+
+        shell_print_lf_cr(str, recvd);
     }
 }
 
