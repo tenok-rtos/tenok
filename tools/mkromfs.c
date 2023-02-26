@@ -294,6 +294,10 @@ static struct inode *fs_create_file(char *pathname, uint8_t file_type)
             if(pathname[len - 1] == '/')
                 return NULL;
 
+            /* file with the same name already exists */
+            if(inode != NULL)
+                return -1;
+
             /* create new inode for the file */
             inode = fs_add_file(inode_curr, entry, file_type);
 
