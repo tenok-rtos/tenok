@@ -18,7 +18,27 @@ An experimental real-time operating system inspired by [rtenv](https://github.co
 ### ARM Cortex-M4
 
 * [STM32F4Discovery](https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
+  - Serial0 (UART3): PC10 (TX), PC11 (RX)
+         
 * QEMU Emulation of [netduinoplus2](https://qemu.readthedocs.io/en/latest/system/arm/stm32.html) (STM32F405RGT6)
+
+## Shell Keys
+
+* `Backspace`, `Delete`: Delete a single word
+
+* `Home`, `Ctrl+A`: Move cursor to the leftmost
+
+* `End`, `Ctrl+E`: Move cursor to the rightmost
+
+* `Ctrl+U`: Delete a whole line
+
+* `Left Arrow`, `Ctrl+B`: Move cursor one to left
+
+* `Right Arrow`, `Ctrl+F`: Move cursor one to right
+
+* `Up Arrow`, `Down Arrow`: Display previous typings
+
+* `Tab`: Command autocompletion
 
 ## Development Tools
 
@@ -104,4 +124,4 @@ make gdbauto
 
 ## License
 
-neo-rtenv is released under the BSD 2-Clause License, for detailed information please check [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
+neo-rtenv is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
