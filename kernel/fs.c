@@ -361,12 +361,17 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
 
     struct inode *new_inode = NULL;
 
+    /* dispatch a new file descriptor number */
+    int fd = file_cnt + TASK_CNT_MAX;
+    file_cnt++;
+
     /* configure the new file inode */
     new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
     new_inode->i_mode   = mnt_inode->i_mode;
     new_inode->i_rdev   = mnt_inode->i_rdev;
     new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
     new_inode->i_parent = inode_dir->i_ino;
+    new_inode->i_fd     = fd;
     new_inode->i_size   = mnt_inode->i_size;
     new_inode->i_blocks = mnt_inode->i_blocks;
     new_inode->i_data   = mnt_inode->i_data;
