@@ -78,6 +78,7 @@ ASM=./platform/startup_stm32f4xx.s \
 	./kernel/spinlock.s
 
 all:$(ELF)
+	@$(MAKE) -C ./tools -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
 	@echo "LD" $@
