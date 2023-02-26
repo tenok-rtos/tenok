@@ -93,7 +93,7 @@ struct shell {
 };
 
 struct shell_cmd {
-    void (*handler)(char param_list[SHELL_ARG_CNT][SHELL_ARG_LEN], int param_cnt);
+    void (*handler)(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN]);
     char name[SHELL_PROMPT_LEN_MAX];
 };
 
