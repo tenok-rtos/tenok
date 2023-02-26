@@ -43,7 +43,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
     shell_reset_line(shell);
 }
 
-static void shell_unknown_cmd_handler(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+static void shell_unknown_cmd_handler(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char s[50 + SHELL_CMD_LEN_MAX];
     snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
@@ -587,7 +587,7 @@ void shell_listen(struct shell *shell)
     }
 }
 
-static void shell_split_cmd_token(char *cmd, char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int *argc)
+static void shell_split_cmd_token(char *cmd, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int *argc)
 {
     bool no_param_after_space = false;
     int argv_index = 0;
@@ -609,7 +609,7 @@ static void shell_split_cmd_token(char *cmd, char argv[PARAM_LIST_SIZE_MAX][PARA
             j = 0;
 
             /* exceed maximum parameter count */
-            if(argv_index == PARAM_LIST_SIZE_MAX) {
+            if(argv_index == SHELL_ARG_CNT) {
                 *argc = argv_index;
                 return;
             }
@@ -634,7 +634,7 @@ static void shell_split_cmd_token(char *cmd, char argv[PARAM_LIST_SIZE_MAX][PARA
 
 void shell_execute(struct shell *shell)
 {
-    char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX] = {0};
+    char argv[SHELL_ARG_CNT][SHELL_ARG_LEN] = {0};
     int argc;
     shell_split_cmd_token(shell->buf, argv, &argc);
 

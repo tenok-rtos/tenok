@@ -5,8 +5,8 @@
 #include "list.h"
 #include "kconfig.h"
 
-#define PARAM_LIST_SIZE_MAX 10
-#define PARAM_LEN_MAX       10
+#define SHELL_ARG_CNT 10
+#define SHELL_ARG_LEN       10
 
 #define SHELL_CMDS_CNT(list) (sizeof(list) / sizeof(struct shell_cmd))
 #define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
@@ -93,7 +93,7 @@ struct shell {
 };
 
 struct shell_cmd {
-    void (*handler)(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt);
+    void (*handler)(char param_list[SHELL_ARG_CNT][SHELL_ARG_LEN], int param_cnt);
     char name[SHELL_PROMPT_LEN_MAX];
 };
 

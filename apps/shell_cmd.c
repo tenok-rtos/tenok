@@ -19,31 +19,31 @@ void shell_path_init(void)
     shell_dir_curr = dir.inode_dir;
 }
 
-void shell_cmd_help(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_help(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char *s = "supported commands:\n\r"
               "help, clear, history, ps, echo, ls, cd, pwd, cat, file, mpool\n\r";
     shell_puts(s);
 }
 
-void shell_cmd_clear(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_clear(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     shell_cls();
 }
 
-void shell_cmd_history(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_history(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     shell_print_history(&shell);
 }
 
-void shell_cmd_ps(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_ps(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX];
     sprint_tasks(str, PRINT_SIZE_MAX);
     shell_puts(str);
 }
 
-void shell_cmd_echo(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_echo(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
     int pos = 0;
@@ -58,7 +58,7 @@ void shell_cmd_echo(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
     shell_puts(str);
 }
 
-void shell_cmd_ls(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_ls(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -112,7 +112,7 @@ void shell_cmd_ls(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
     shell_puts(str);
 }
 
-void shell_cmd_cd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_cd(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -126,7 +126,7 @@ void shell_cmd_cd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
         case 2: {
             char path[PATH_LEN_MAX] = {0};
 
-            if(strncmp("..", argv[1], PARAM_LEN_MAX) == 0) {
+            if(strncmp("..", argv[1], SHELL_ARG_LEN) == 0) {
                 /* handle cd .. */
                 fs_get_pwd(path, shell_dir_curr);
                 int pos = strlen(path);
@@ -170,7 +170,7 @@ void shell_cmd_cd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
     }
 }
 
-void shell_cmd_pwd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_pwd(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
     char path[PATH_LEN_MAX] = {'/'};
@@ -199,7 +199,7 @@ static void shell_print_lf_cr(char *str, int size)
     }
 }
 
-void shell_cmd_cat(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_cat(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char path[PATH_LEN_MAX] = {0};
 
@@ -245,7 +245,7 @@ void shell_cmd_cat(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
     }
 }
 
-void shell_cmd_file(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_file(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -318,7 +318,7 @@ void shell_cmd_file(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
     return;
 }
 
-void shell_cmd_mpool(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
+void shell_cmd_mpool(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
