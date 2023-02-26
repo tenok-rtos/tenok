@@ -641,7 +641,7 @@ void shell_execute(struct shell *shell)
     int i;
     for(i = 0; i < shell->cmd_cnt; i++) {
         if(strcmp(argv[0], shell->shell_cmds[i].name) == 0) {
-            shell->shell_cmds[i].handler(argv, argc);
+            shell->shell_cmds[i].handler(argc, argv);
             shell->buf[0] = '\0';
             shell_reset_line(shell);
             return;
