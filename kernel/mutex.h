@@ -9,8 +9,8 @@
 
 typedef struct {
     spinlock_t lock;
-    tcb_t      *owner;
-    list_t     wait_list;
+    struct task_ctrl_blk *owner;
+    struct list wait_list;
 } _pthread_mutex_t;
 
 typedef void pthread_mutex_attr_t;

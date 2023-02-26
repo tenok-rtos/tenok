@@ -43,10 +43,10 @@ static void shell_ctrl_c_handler(struct shell *shell)
     shell_reset_line(shell);
 }
 
-static void shell_unknown_cmd_handler(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+static void shell_unknown_cmd_handler(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char s[50 + SHELL_CMD_LEN_MAX];
-    snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", param_list[0]);
+    snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
     shell_puts(s);
 }
 
@@ -195,19 +195,19 @@ static void shell_reset_autocomplete(struct shell *shell)
     shell->show_autocompl = false;
 }
 
-static void shell_generate_suggest_words(struct shell *shell, int argc0_start, int argc0_end)
+static void shell_generate_suggest_words(struct shell *shell, int argv0_start, int argv0_end)
 {
     /* reset the suggestion candidate count of the autocomplete */
     shell->autocompl_cnt = 0;
 
     /* calculate the length of the first argument */
-    int argc0_len = shell->cursor_pos - argc0_start;
+    int argv0_len = shell->cursor_pos - argv0_start;
 
     /* calculate the length of the whole user input */
     int cmd_len = strlen(shell->buf);
 
     /* get the first argument get rid of the spaces */
-    char *user_cmd = &shell->buf[argc0_start];
+    char *user_cmd = &shell->buf[argv0_start];
 
     int i;
     for(i = 0; i < shell->cmd_cnt; i++) {
@@ -215,26 +215,26 @@ static void shell_generate_suggest_words(struct shell *shell, int argc0_start, i
         char *shell_cmd = shell->shell_cmds[i].name;
 
         /* if the user input matches the shell command */
-        if(strncmp(user_cmd, shell_cmd, argc0_len) == 0) {
+        if(strncmp(user_cmd, shell_cmd, argv0_len) == 0) {
             char *suggest_candidate;
 
             /* copy string from the beginning to the character before the firt argument */
             suggest_candidate = shell->autocompl[shell->autocompl_cnt].cmd;
-            memcpy(suggest_candidate, &shell->buf[0], argc0_start);
+            memcpy(suggest_candidate, &shell->buf[0], argv0_start);
 
             /* insert the name of the matched shell command */
-            suggest_candidate += argc0_start;
+            suggest_candidate += argv0_start;
             memcpy(suggest_candidate, shell_cmd, strlen(shell_cmd));
 
             /* copy the string from the insertion tail to the end of the first argument */
             suggest_candidate += strlen(shell_cmd);
-            int cnt = &shell->buf[argc0_end] - &shell->buf[shell->cursor_pos];
+            int cnt = &shell->buf[argv0_end] - &shell->buf[shell->cursor_pos];
             memcpy(suggest_candidate, &shell->buf[shell->cursor_pos], cnt);
 
             /* copy string from the tail of the first argument to the end */
             suggest_candidate += cnt;
-            cnt = &shell->buf[cmd_len] - &shell->buf[argc0_end];
-            memcpy(suggest_candidate, &shell->buf[argc0_end], cnt);
+            cnt = &shell->buf[cmd_len] - &shell->buf[argv0_end];
+            memcpy(suggest_candidate, &shell->buf[argv0_end], cnt);
 
             /* append the end character */
             suggest_candidate += cnt;
@@ -248,24 +248,24 @@ static void shell_generate_suggest_words(struct shell *shell, int argc0_start, i
 static void shell_autocomplete(struct shell *shell)
 {
     /* find the start position of the first argument */
-    int argc0_start = 0;
-    while((shell->buf[argc0_start] == ' ') && (argc0_start < shell->char_cnt))
-        argc0_start++;
+    int argv0_start = 0;
+    while((shell->buf[argv0_start] == ' ') && (argv0_start < shell->char_cnt))
+        argv0_start++;
 
     /* find the end position of the first argument */
-    int argc0_end = argc0_start;
-    while((shell->buf[argc0_end] != ' ') && (argc0_end < shell->char_cnt))
-        argc0_end++;
+    int argv0_end = argv0_start;
+    while((shell->buf[argv0_end] != ' ') && (argv0_end < shell->char_cnt))
+        argv0_end++;
 
 
     /* autocomplete is disabled after the first argument */
-    if(shell->cursor_pos > argc0_end)
+    if(shell->cursor_pos > argv0_end)
         return;
 
     /* autocomplete is triggered before the first argument (i.e., spaces) */
-    if(shell->cursor_pos < argc0_start) {
-        argc0_start = shell->cursor_pos;
-        argc0_end = shell->cursor_pos;
+    if(shell->cursor_pos < argv0_start) {
+        argv0_start = shell->cursor_pos;
+        argv0_end = shell->cursor_pos;
     }
 
     /* reset the autocomplete if the cursor position changed */
@@ -279,7 +279,7 @@ static void shell_autocomplete(struct shell *shell)
         strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
 
         /* generate the suggestion word dictionary */
-        shell_generate_suggest_words(shell, argc0_start, argc0_end);
+        shell_generate_suggest_words(shell, argv0_start, argv0_end);
 
         /* record the cursor positon */
         shell->autocompl_cursor_pos = shell->cursor_pos;
@@ -587,10 +587,10 @@ void shell_listen(struct shell *shell)
     }
 }
 
-static void shell_split_cmd_token(char *cmd, char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int *param_cnt)
+static void shell_split_cmd_token(char *cmd, char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int *argc)
 {
     bool no_param_after_space = false;
-    int param_list_index = 0;
+    int argv_index = 0;
     int i = 0, j = 0;
 
     int cmd_s_len = strlen(cmd);
@@ -604,13 +604,13 @@ static void shell_split_cmd_token(char *cmd, char param_list[PARAM_LIST_SIZE_MAX
         if(cmd[i] == ' ') {
             no_param_after_space = true;
 
-            param_list[param_list_index][j] = '\0';
-            param_list_index++;
+            argv[argv_index][j] = '\0';
+            argv_index++;
             j = 0;
 
             /* exceed maximum parameter count */
-            if(param_list_index == PARAM_LIST_SIZE_MAX) {
-                *param_cnt = param_list_index;
+            if(argv_index == PARAM_LIST_SIZE_MAX) {
+                *argc = argv_index;
                 return;
             }
 
@@ -620,35 +620,35 @@ static void shell_split_cmd_token(char *cmd, char param_list[PARAM_LIST_SIZE_MAX
             }
         } else {
             no_param_after_space = false;
-            param_list[param_list_index][j] = cmd[i];
+            argv[argv_index][j] = cmd[i];
             j++;
         }
     }
 
     if(no_param_after_space == true) {
-        param_list_index--;
+        argv_index--;
     }
 
-    *param_cnt = param_list_index + 1;
+    *argc = argv_index + 1;
 }
 
 void shell_execute(struct shell *shell)
 {
-    char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX] = {0};
-    int param_cnt;
-    shell_split_cmd_token(shell->buf, param_list, &param_cnt);
+    char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX] = {0};
+    int argc;
+    shell_split_cmd_token(shell->buf, argv, &argc);
 
     int i;
     for(i = 0; i < shell->cmd_cnt; i++) {
-        if(strcmp(param_list[0], shell->shell_cmds[i].name) == 0) {
-            shell->shell_cmds[i].handler(param_list, param_cnt);
+        if(strcmp(argv[0], shell->shell_cmds[i].name) == 0) {
+            shell->shell_cmds[i].handler(argv, argc);
             shell->buf[0] = '\0';
             shell_reset_line(shell);
             return;
         }
     }
 
-    shell_unknown_cmd_handler(param_list, param_cnt);
+    shell_unknown_cmd_handler(argv, argc);
     shell->buf[0] = '\0';
     shell_reset_line(shell);
 }

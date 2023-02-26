@@ -12,15 +12,15 @@
 #define list_for_each(curr, list) \
 	for ((curr) = (list)->next; (curr) != (list); (curr) = (curr)->next)
 
-typedef struct list {
+struct list {
     struct list *last;
     struct list *next;
-} list_t;
+};
 
-void list_init(list_t *list);
-int list_is_empty(list_t *list);
-void list_remove(list_t *list);
-void list_push(list_t *list, list_t *new);
-list_t* list_pop(list_t *list);
+void list_init(struct list *list);
+int list_is_empty(struct list *list);
+void list_remove(struct list *list);
+void list_push(struct list *list, struct list *new);
+struct list *list_pop(struct list *list);
 
 #endif

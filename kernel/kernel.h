@@ -30,7 +30,7 @@ enum {
 } TASK_STATUS;
 
 /* layout of the user stack */
-typedef struct {
+struct task_stack {
     uint32_t r4;
     uint32_t r5;
     uint32_t r6;
@@ -50,11 +50,11 @@ typedef struct {
     uint32_t pc;
     uint32_t xpsr;
     uint32_t stack[TASK_STACK_SIZE - 17];
-} user_stack_t;
+};
 
 /* task control block */
-typedef struct tcb {
-    user_stack_t *stack_top;         //pointer of the stack top address
+struct task_ctrl_blk {
+    struct task_stack *stack_top;    //pointer of the stack top address
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
 
@@ -72,7 +72,7 @@ typedef struct tcb {
     } file_request;
 
     struct list list;
-}  tcb_t;
+};
 
 void os_service_init(void);
 void sched_start(task_func_t first_task);
@@ -80,8 +80,8 @@ void sched_start(task_func_t first_task);
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
 
-void prepare_to_wait(list_t *q, list_t *wait, int state);
-void wake_up(list_t *wait_list);
+void prepare_to_wait(struct list *q, struct list *wait, int state);
+void wake_up(struct list *wait_list);
 
 void preempt_disable(void);
 void preempt_enable(void);

@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include "list.h"
 
-void list_init(list_t *list)
+void list_init(struct list *list)
 {
     if(list != NULL) {
         list->last = list;
@@ -9,7 +9,7 @@ void list_init(list_t *list)
     }
 }
 
-int list_is_empty(list_t *list)
+int list_is_empty(struct list *list)
 {
     return list->next == list;
 }
@@ -22,7 +22,7 @@ void list_remove(struct list *list)
     }
 }
 
-void list_push(list_t *list, list_t *new)
+void list_push(struct list *list, struct list *new)
 {
     if(list != NULL && new != NULL) {
         /* connect new into the list */
@@ -33,10 +33,10 @@ void list_push(list_t *list, list_t *new)
     }
 }
 
-list_t* list_pop(list_t *list)
+struct list *list_pop(struct list *list)
 {
     //the second position of the list stores the first item
-    list_t *first = list->next;
+    struct list *first = list->next;
 
     if(list == first) {
         return NULL;

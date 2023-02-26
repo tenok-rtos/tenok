@@ -29,12 +29,11 @@ void ringbuf_put(struct ringbuf *rb, const void *data)
     size_t type_size = rb->type_size;
 
     if(ringbuf_is_full(rb) == true) {
-        /* full, overwrite and shift the start pointer
-         * to the next position */
+        /* ring buffer is full, overwrite the oldest data and shift the pointer to the next position */
         memcpy((char *)(rb->data + (rb->start * type_size)), (char *)data, type_size);
         rb->start = ringbuf_increase(rb, rb->start);
     } else {
-        /* not full, append new data */
+        /* ring buffer is not full, append new data */
         memcpy((char *)(rb->data + (rb->end * type_size)), (char *)data, type_size);
         rb->count++;
     }

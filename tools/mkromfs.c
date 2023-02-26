@@ -10,8 +10,9 @@
 #include "list.h"
 #include "kconfig.h"
 
-#define INPUT_DIR "../rom/"
-#define OUTPUT    "./romfs.bin"
+#define HOST_INPUT_DIR   "../rom/"
+#define ROMFS_OUTPUT_DIR "/rom_data/"
+#define OUTPUT_BIN       "./romfs.bin"
 
 #define S_IFREG 3 //regular file
 #define S_IFDIR 4 //directory
@@ -29,7 +30,7 @@ struct super_block {
     uint32_t s_blk_addr;  //start address of the blocks region
 };
 
-//block header will be placed to the top of every blocks of the regular file
+/* block header will be placed to the top of every blocks of the regular file */
 struct block_header {
     uint32_t b_next; //virtual address of the next block
 };
@@ -39,7 +40,7 @@ struct mount {
     struct super_block super_blk; //super block of the mounted storage device
 };
 
-//index node
+/* index node */
 struct inode {
     uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
@@ -58,7 +59,7 @@ struct inode {
     struct list i_dentry; //list head of the dentry table
 };
 
-//directory entry
+/* directory entry */
 struct dentry {
     char     d_name[FILE_NAME_LEN_MAX]; //file name
 
@@ -248,7 +249,7 @@ char *fs_split_path(char *entry, char *path)
 
 static struct inode *fs_create_file(char *pathname, uint8_t file_type)
 {
-    /* a legal path name must start with '/' */
+    /* the path name must start with '/' */
     if(pathname[0] != '/')
         return NULL;
 
@@ -312,7 +313,7 @@ void romfs_address_conversion_dir(struct inode *inode)
     uint32_t inodes_size = sizeof(inodes);
     uint32_t blocks_size = sizeof(romfs_blk);
 
-    /* adjust inode.i_data (which points to the block region) */
+    /* adjust the address stored in the inode.i_data (which is in the block region) */
     inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
 
     struct list *list_start = &inode->i_dentry;
@@ -327,18 +328,18 @@ void romfs_address_conversion_dir(struct inode *inode)
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
         if(dentry->d_list.last == &inode->i_dentry) {
-            /* inode.i_dentry is stored in the inodes region */
+            /* the address of the inode.i_dentry (list head) is in the inodes region */
             dentry->d_list.last = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
         } else {
-            /* other are stored in the block region */
+            /* besides the list head, others in the blocks region */
             dentry->d_list.last = (struct list *)((uint8_t *)dentry->d_list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
         }
 
         if(dentry->d_list.next == &inode->i_dentry) {
-            /* inode.i_dentry is stored in the inodes region */
+            /* the address of the inode.i_dentry (list head) is in the inodes region */
             dentry->d_list.next = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
         } else {
-            /* other are stored in the block region */
+            /* besides the list head, others in the blocks region */
             dentry->d_list.next = (struct list *)((uint8_t *)dentry->d_list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
         }
 
@@ -389,13 +390,13 @@ void romfs_address_conversion_file(struct inode *inode)
         if(blk_head->b_next == (uint32_t)NULL)
             break;
 
-        /* adjust block_head.b_next (which points to the block region) */
+        /* adjust block_head.b_next (the address in in the block region) */
         blk_head->b_next = blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
 
         verbose("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i+1, (uint32_t)blk_head->b_next);
     }
 
-    /* adjust inode.i_data (which points to the block region) */
+    /* adjust the address stored in the inode.i_data (which is in the block region) */
     inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
 
     verbose("[inode: #%d, block #0, next:%d]\n", inode->i_ino, inode->i_data);
@@ -403,7 +404,7 @@ void romfs_address_conversion_file(struct inode *inode)
 
 void romfs_export(void)
 {
-    FILE *file = fopen(OUTPUT, "wb");
+    FILE *file = fopen(OUTPUT_BIN, "wb");
 
     uint32_t sb_size = sizeof(romfs_sb);
     uint32_t inodes_size = sizeof(inodes);
@@ -597,7 +598,7 @@ int main(int argc, char **argv)
     }
 
     romfs_init();
-    romfs_import_dir(INPUT_DIR, "/rom_data/");
+    romfs_import_dir(HOST_INPUT_DIR, ROMFS_OUTPUT_DIR);
     romfs_export();
 
     return 0;

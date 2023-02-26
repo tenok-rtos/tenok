@@ -4,7 +4,7 @@
 #include "mutex.h"
 #include "syscall.h"
 
-extern tcb_t *running_task;
+extern struct task_ctrl_blk *running_task;
 
 int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
