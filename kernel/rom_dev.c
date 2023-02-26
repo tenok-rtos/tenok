@@ -37,5 +37,5 @@ ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    return 0;
+    return 0; //rom does not support write operation
 }
