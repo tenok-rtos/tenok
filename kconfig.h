@@ -24,7 +24,8 @@
 #define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
                                    * the file operation request will failed        */
 
-#define FILE_CNT_MAX         20
+#define FILE_CNT_MAX         100  /* maximal size of the file can be created, *
+                                   * including the directory                  */
 #define FILE_NAME_LEN_MAX    30
 
 #define PATH_LEN_MAX         128
