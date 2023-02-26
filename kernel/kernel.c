@@ -37,13 +37,13 @@ void sys_getpid(void);
 void sys_mknod(void);
 
 /* task lists */
-list_t ready_list[TASK_MAX_PRIORITY + 1];
-list_t sleep_list;
+struct list ready_list[TASK_MAX_PRIORITY + 1];
+struct list sleep_list;
 
 /* tasks */
-tcb_t tasks[TASK_CNT_MAX];
-tcb_t *running_task = NULL;
-int task_nums = 0;
+struct task_ctrl_blk tasks[TASK_CNT_MAX];
+struct task_ctrl_blk *running_task = NULL;
+int task_cnt = 0;
 
 /* memory pool */
 struct memory_pool mem_pool;
@@ -53,13 +53,13 @@ uint8_t mem_pool_buf[MEM_POOL_SIZE];
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
-/* system call table */
+/* syscall table */
 syscall_info_t syscall_table[] = {
-    /* non-posix syscalls: */
+    /* non-posix syscalls */
     DEF_SYSCALL(sched_yield, 1),
     DEF_SYSCALL(set_irq, 2),
     DEF_SYSCALL(set_program_name, 3),
-    /* posix syscalls: */
+    /* posix syscalls */
     DEF_SYSCALL(fork, 4),
     DEF_SYSCALL(sleep, 5),
     DEF_SYSCALL(mount, 6),
@@ -80,34 +80,36 @@ int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
 void task_create(task_func_t task_func, uint8_t priority)
 {
-    if(task_nums > TASK_CNT_MAX) {
+    if(task_cnt > TASK_CNT_MAX) {
         return;
     }
 
-    tasks[task_nums].pid = task_nums;
-    tasks[task_nums].status = TASK_WAIT;
-    tasks[task_nums].priority = priority;
-    tasks[task_nums].stack_size = TASK_STACK_SIZE; //TODO: variable size?
+    tasks[task_cnt].pid = task_cnt;
+    tasks[task_cnt].status = TASK_WAIT;
+    tasks[task_cnt].priority = priority;
+    tasks[task_cnt].stack_size = TASK_STACK_SIZE; //TODO: variable size?
 
-    /* stack design contains three parts:
-     * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setting exception return),
+    /*
+     * stack design contains three parts:
+     * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setup exception return),
      * _r7 (for passing system call number), and
-     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch) */
-    uint32_t *stack_top = tasks[task_nums].stack + tasks[task_nums].stack_size - 18;
+     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
+     */
+    uint32_t *stack_top = tasks[task_cnt].stack + tasks[task_cnt].stack_size - 18;
     stack_top[17] = INITIAL_XPSR;
     stack_top[16] = (uint32_t)task_func; // lr = task_entry
     stack_top[8]  = THREAD_PSP;          //_lr = 0xfffffffd
-    tasks[task_nums].stack_top = (user_stack_t *)stack_top;
+    tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
 
-    task_nums++;
+    task_cnt++;
 }
 
 /* put the task pointed by the "wait" into the "wait_list", and change the task state. */
-void prepare_to_wait(list_t *wait_list, list_t *wait, int state)
+void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
 {
     list_push(wait_list, wait);
 
-    tcb_t *task = list_entry(wait, tcb_t, list);
+    struct task_ctrl_blk *task = list_entry(wait, struct task_ctrl_blk, list);
     task->status = state;
 }
 
@@ -116,11 +118,11 @@ void prepare_to_wait(list_t *wait_list, list_t *wait, int state)
  * the task will not be executed immediately and requires
  * to wait until the scheduler select it.
  */
-void wake_up(list_t *wait_list)
+void wake_up(struct list *wait_list)
 {
     /* pop the task from the waiting list */
-    list_t *waken_task_list = list_pop(wait_list);
-    tcb_t *waken_task = list_entry(waken_task_list, tcb_t, list);
+    struct list *waken_task_list = list_pop(wait_list);
+    struct task_ctrl_blk *waken_task = list_entry(waken_task_list, struct task_ctrl_blk, list);
 
     /* put the task into the ready list */
     list_push(&ready_list[waken_task->priority], &waken_task->list);
@@ -130,10 +132,10 @@ void wake_up(list_t *wait_list)
 void schedule(void)
 {
     /* check the sleep list */
-    list_t *list_itr = sleep_list.next;
+    struct list *list_itr = sleep_list.next;
     while(list_itr != &sleep_list) {
-        list_t *next = list_itr->next;
-        tcb_t *task = list_entry(list_itr, tcb_t, list);
+        struct list *next = list_itr->next;
+        struct task_ctrl_blk *task = list_entry(list_itr, struct task_ctrl_blk, list);
 
         /* task is ready, push it into the ready list according to its priority */
         if(task->remained_ticks == 0) {
@@ -166,26 +168,24 @@ void schedule(void)
     }
 
     /* select a task from the ready list */
-    list_t *next = list_pop(&ready_list[pri]);
-    running_task = list_entry(next, tcb_t, list);
+    struct list *next = list_pop(&ready_list[pri]);
+    running_task = list_entry(next, struct task_ctrl_blk, list);
     running_task->status = TASK_RUNNING;
 }
 
 void systick_handler(void)
 {
-    list_t *curr;
+    struct list *curr;
 
-    /* freeze the current task */
+    /* freeze the current task if it is still running */
     if(running_task->status == TASK_RUNNING) {
-        /* the current task should be suspended, but it may be placed into another waiting
-         * list by semaphore, mutex, etc. if not, we should put it into the sleep list. */
         prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
     }
 
-    /* update sleep timers */
+    /* update the sleep timers */
     list_for_each(curr, &sleep_list) {
         /* get the task control block */
-        tcb_t *task = list_entry(curr, tcb_t, list);
+        struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, list);
 
         /* update remained ticks of waiting */
         if(task->remained_ticks > 0) {
@@ -228,6 +228,7 @@ void sys_set_irq(void)
 
 void sys_set_program_name(void)
 {
+    /* read syscall argument */
     char *name = (char*)running_task->stack_top->r0;
 
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
@@ -235,31 +236,32 @@ void sys_set_program_name(void)
 
 void sys_fork(void)
 {
-    if(task_nums > TASK_CNT_MAX) {
-        running_task->stack_top->r0 = -1; //set failed retval
+    if(task_cnt > TASK_CNT_MAX) {
+        running_task->stack_top->r0 = -1; //pass the return value with r0
+        return;
     }
 
     /* calculate the used space of the parent task's stack */
     uint32_t *parent_stack_end = running_task->stack + running_task->stack_size;
     uint32_t stack_used = parent_stack_end - (uint32_t *)running_task->stack_top;
 
-    tasks[task_nums].pid = task_nums;
-    tasks[task_nums].priority = running_task->priority;
-    tasks[task_nums].stack_size = running_task->stack_size;
-    tasks[task_nums].stack_top = (user_stack_t *)(tasks[task_nums].stack + tasks[task_nums].stack_size - stack_used);
+    tasks[task_cnt].pid = task_cnt;
+    tasks[task_cnt].priority = running_task->priority;
+    tasks[task_cnt].stack_size = running_task->stack_size;
+    tasks[task_cnt].stack_top = (struct task_stack *)(tasks[task_cnt].stack + tasks[task_cnt].stack_size - stack_used);
 
     /* put the forked task into the sleep list */
-    tasks[task_nums].status = TASK_WAIT;
-    list_push(&sleep_list, &tasks[task_nums].list);
+    tasks[task_cnt].status = TASK_WAIT;
+    list_push(&sleep_list, &tasks[task_cnt].list);
 
     /* copy the stack of the used part only */
-    memcpy(tasks[task_nums].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
+    memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
-    /* set retval */
-    running_task->stack_top->r0 = task_nums;            //return to child pid the parent task
-    tasks[task_nums].stack_top->r0 = running_task->pid; //return to 0 the child task
+    /* set return values */
+    running_task->stack_top->r0 = task_cnt;            //return the child pid to the parent task
+    tasks[task_cnt].stack_top->r0 = running_task->pid; //return 0 to the child task
 
-    task_nums++;
+    task_cnt++;
 }
 
 void sys_sleep(void)
@@ -271,18 +273,19 @@ void sys_sleep(void)
     running_task->status = TASK_WAIT;
     list_push(&sleep_list, &(running_task->list));
 
-    /* set retval */
+    /* pass the return value with r0 */
     running_task->stack_top->r0 = 0;
 }
 
 void sys_mount(void)
 {
+    /* read syscall arguments */
     char *source = (char *)running_task->stack_top->r0;
     char *target = (char *)running_task->stack_top->r1;
 
     int task_fd = running_task->pid;
 
-    /* if pending flag is set means the request is already sent */
+    /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
         request_mount(task_fd, source, target);
     }
@@ -290,40 +293,45 @@ void sys_mount(void)
     /* receive the mount result */
     int result;
     if(fifo_read(files[task_fd], (char *)&result, sizeof(result), 0)) {
-        //return the file descriptor
+        //return the file descriptor number with r0
         running_task->stack_top->r0 = result;
     }
 }
 
 void sys_open(void)
 {
+    /* read syscall argument */
     char *pathname = (char *)running_task->stack_top->r0;
 
     int task_fd = running_task->pid;
 
-    /* if pending flag is set means the request is already sent */
+    /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
         request_open_file(task_fd, pathname);
     }
 
-    /* inquire the file descriptor from the path server */
+    /* inquire the file descriptor from the file system task */
     int fd;
     if(fifo_read(files[task_fd], (char *)&fd, sizeof(fd), 0)) {
-        //return the file descriptor
+        //pass the file descriptor number with r0
         running_task->stack_top->r0 = fd;
     }
 }
 
 void sys_read(void)
 {
+    /* read syscall argument */
     int fd = running_task->stack_top->r0;
     char *buf = (uint8_t *)running_task->stack_top->r1;
     size_t count = running_task->stack_top->r2;
 
+    /* get the file pointer from the table */
     struct file *filp = files[fd];
+
+    /* read the file */
     ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
-    /* pass return value only if the read is complete */
+    /* pass the return value only if the read operation is complete */
     if(running_task->syscall_pending == false) {
         running_task->stack_top->r0 = retval;
     }
@@ -331,35 +339,46 @@ void sys_read(void)
 
 void sys_write(void)
 {
+    /* read syscall arguments */
     int fd = running_task->stack_top->r0;
     char *buf = (uint8_t *)running_task->stack_top->r1;
     size_t count = running_task->stack_top->r2;
 
+    /* get the file pointer from the table */
     struct file *filp = files[fd];
+
+    /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
-    running_task->stack_top->r0 = retval; //pass return value
+    running_task->stack_top->r0 = retval; //pass the return value with r0
 }
 
 void sys_lseek(void)
 {
+    /* read syscall arguments */
     int fd = running_task->stack_top->r0;
     long offset = running_task->stack_top->r1;
     int whence = running_task->stack_top->r2;
 
+    /* get the file pointer from the table */
     struct file *filp = files[fd];
+
+    /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
 
-    running_task->stack_top->r0 = retval; //pass return value
+    running_task->stack_top->r0 = retval; //pass the return value with r0
 }
 
 void sys_fstat(void)
 {
+    /* read syscall arguments */
     int fd = running_task->stack_top->r0;
     struct stat *statbuf = (struct stat *)running_task->stack_top->r1;
 
+    /* read the inode of the given file */
     struct inode *inode = files[fd]->file_inode;
 
+    /* check if the inode exists */
     if(inode != NULL) {
         statbuf->st_mode   = inode->i_mode;
         statbuf->st_ino    = inode->i_ino;
@@ -368,29 +387,30 @@ void sys_fstat(void)
         statbuf->st_blocks = inode->i_blocks;
     }
 
-    running_task->stack_top->r0 = 0; //pass return value
+    running_task->stack_top->r0 = 0; //pass the return value with r0
 }
 
 void sys_opendir(void)
 {
+    /* read syscall arguments */
     char *pathname = (char *)running_task->stack_top->r0;
     DIR *dirp = (DIR *)running_task->stack_top->r1;
 
     int task_fd = running_task->pid;
 
-    /* if pending flag is set means the request is already sent */
+    /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
         request_open_directory(task_fd, pathname);
     }
 
-    /* inquire the file descriptor from the path server */
+    /* inquire the file descriptor from the file system task */
     struct inode *inode_dir;
     if(fifo_read(files[task_fd], (char *)&inode_dir, sizeof(inode_dir), 0)) {
         //return the directory
         dirp->inode_dir = inode_dir;
         dirp->dentry_list = inode_dir->i_dentry.next;
 
-        /* pass return value */
+        /* pass the return value with r0 */
         if(dirp->inode_dir == NULL) {
             running_task->stack_top->r0 = -1;
         } else {
@@ -401,9 +421,11 @@ void sys_opendir(void)
 
 void sys_readdir(void)
 {
+    /* read syscall arguments */
     DIR *dirp = (DIR *)running_task->stack_top->r0;
     struct dirent *dirent = (struct dirent *)running_task->stack_top->r1;
 
+    /* pass the return value with r0 */
     running_task->stack_top->r0 = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
@@ -415,28 +437,29 @@ void sys_getpriority(void)
 
 void sys_setpriority(void)
 {
+    /* read syscall arguments */
     int which = running_task->stack_top->r0;
     int who = running_task->stack_top->r1;
     int priority = running_task->stack_top->r2;
 
-    /* unsupported `which' type */
+    /* unsupported type of the `which' argument */
     if(which != PRIO_PROCESS) {
-        running_task->stack_top->r0 = -1; //set retval to -1
+        running_task->stack_top->r0 = -1; //return -1 with r0
         return;
     }
 
     /* compare pid and set new priority */
     int i;
-    for(i = 0; i < task_nums; i++) {
+    for(i = 0; i < task_cnt; i++) {
         if(tasks[i].pid == who) {
             tasks[i].priority = priority;
-            running_task->stack_top->r0 = 0;  //set retval to 0
+            running_task->stack_top->r0 = 0;  //return 0 with r0
             return;
         }
     }
 
     /* process not found */
-    running_task->stack_top->r0 = -1; //set retval to -1
+    running_task->stack_top->r0 = -1; //return -1 with r0
 }
 
 void sys_getpid(void)
@@ -447,13 +470,14 @@ void sys_getpid(void)
 
 void sys_mknod(void)
 {
+    /* read syscall argument */
     char *pathname = (char *)running_task->stack_top->r0;
     //mode_t mode = (mode_t)running_task->stack_top->r1;
     dev_t dev = (dev_t)running_task->stack_top->r2;
 
     int task_fd = running_task->pid;
 
-    /* if pending flag is set means the request is already sent */
+    /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
         request_create_file(task_fd, pathname, dev);
     }
@@ -464,7 +488,7 @@ void sys_mknod(void)
         return; //not ready
     }
 
-    /* set the return value */
+    /* pass the return value with r0 */
     if(new_fd == -1) {
         running_task->stack_top->r0 = -1;
     } else {
@@ -474,8 +498,10 @@ void sys_mknod(void)
 
 uint32_t get_proc_mode(void)
 {
-    /* get the 9 bits isr number from the ipsr register,
-     * check "exception types" of the ARM CM3 for details */
+    /*
+     * get the 9 bits isr number from the ipsr register,
+     * check "exception types" of the ARM CM3 for details
+     */
     volatile unsigned int mode;
     asm volatile ("mrs  r0, ipsr \n"
                   "str  r0, [%0] \n"
@@ -499,7 +525,7 @@ void set_basepri(void)
 void preempt_disable(void)
 {
     if(get_proc_mode() == 0) {
-        /* unprivileged thread mode (assumed to be called in the user program) */
+        /* unprivileged thread mode (assumed to be called by the user task) */
         set_irq(0);
     } else {
         /* handler mode (i.e., interrupt, which is always privileged) */
@@ -511,7 +537,7 @@ void preempt_disable(void)
 void preempt_enable(void)
 {
     if(get_proc_mode() == 0) {
-        /* unprivileged thread mode (assumed to be called in the user program) */
+        /* unprivileged thread mode (assumed to be called by the user task) */
         set_irq(1);
     } else {
         /* handler mode (i.e., interrupt, which is always privileged) */
@@ -540,34 +566,34 @@ void sched_start(task_func_t first_task)
     /* initialize the memory pool */
     memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 
-    /* initialize fifo for all tasks (including path server) */
+    /* initialize fifos for all tasks */
     int i;
     for(i = 0; i < TASK_CNT_MAX; i++) {
         fifo_init(i, (struct file **)&files, NULL, &mem_pool);
     }
 
-    /* initialize task ready lists */
+    /* initialize the task ready lists */
     for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
 
-    /* initialize sleep list */
+    /* initialize the sleep list */
     list_init(&sleep_list);
 
     task_create(first_task, 0);
 
-    /* enable the systicl timer */
+    /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
-    /* launch the first task */
+    /* configure the first task to run */
     running_task = &tasks[0];
     tasks[0].status = TASK_RUNNING;
 
     while(1) {
-        /* execute the task if no pending syscall service */
+        /* execute the task if the pending flag of the syscall is not set */
         if(running_task->syscall_pending == false) {
             running_task->stack_top =
-                (user_stack_t *)jump_to_user_space((uint32_t)running_task->stack_top);
+                (struct task_stack *)jump_to_user_space((uint32_t)running_task->stack_top);
         }
 
         /* _r7 is negative if the kernel is returned from the systick irq */
@@ -588,7 +614,7 @@ void sprint_tasks(char *str, size_t size)
     int pos = snprintf(&str[0], size, "PID\tPR\tNAME\n\r");
 
     int i;
-    for(i = 0; i < task_nums; i++) {
+    for(i = 0; i < task_cnt; i++) {
         pos += snprintf(&str[pos], size, "%d\t%d\t%s\n\r", tasks[i].pid, tasks[i].priority, tasks[i].name);
     }
 }

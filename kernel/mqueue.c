@@ -9,7 +9,7 @@
 #include "kernel.h"
 #include "syscall.h"
 
-extern tcb_t *running_task;
+extern struct task_ctrl_blk *running_task;
 extern struct memory_pool mem_pool;
 
 struct msg_queue mq_table[MQUEUE_CNT_MAX];
@@ -17,8 +17,7 @@ int mq_cnt = 0;
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
-    /* the message queue must be in nonblock mode by the design    *
-     * (so the functions can be called in the kernel space safely) */
+    /* the message queue must be in nonblock mode since it may be called in the interrupt */
     if(!(attr->mq_flags & O_NONBLOCK))
         return -1;
 
@@ -38,7 +37,7 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
     return mqdes;
 }
 
-/* mq_receive() can only be called by the user task */
+/* mq_receive() can only be called by user tasks */
 ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
 {
     struct msg_queue *mq = &mq_table[mqdes];
@@ -51,7 +50,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 
     /* is the data in the ring buffer enough to server the user? */
     if(msg_len > mq->pipe->count) {
-        /* put the current task into the file waiting list */
+        /* put the current task into the waiting list */
         prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
         /* update the request size */
@@ -74,7 +73,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
     return retval;
 }
 
-/* mq_send() can be called by both the user task and interrupt handler */
+/* mq_send() can be called by user task or interrupt handler functions */
 int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio)
 {
     struct msg_queue *mq = &mq_table[mqdes];
@@ -91,11 +90,11 @@ int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_p
 
     /* resume a blocked task if the pipe has enough data to serve */
     if(!list_is_empty(task_wait_list)) {
-        tcb_t *task = list_entry(task_wait_list->next, tcb_t, list);
+        struct task_ctrl_blk *task = list_entry(task_wait_list->next, struct task_ctrl_blk, list);
 
-        /* check if read request size can be fulfilled */
+        /* check if the request size of the blocked task can be fulfilled */
         if(task->file_request.size <= mq->pipe->count) {
-            /* wake up the oldest task from the waiting list */
+            /* wake up the task from the waiting list */
             wake_up(task_wait_list);
         }
     }

@@ -19,46 +19,46 @@ void shell_path_init(void)
     shell_dir_curr = dir.inode_dir;
 }
 
-void shell_cmd_help(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_help(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char *s = "supported commands:\n\r"
               "help, clear, history, ps, echo, ls, cd, pwd, cat, file, mpool\n\r";
     shell_puts(s);
 }
 
-void shell_cmd_clear(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_clear(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     shell_cls();
 }
 
-void shell_cmd_history(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_history(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     shell_print_history(&shell);
 }
 
-void shell_cmd_ps(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_ps(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX];
     sprint_tasks(str, PRINT_SIZE_MAX);
     shell_puts(str);
 }
 
-void shell_cmd_echo(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_echo(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
-    int pos = 0; //concatenation end position
+    int pos = 0;
 
     int i;
-    for(i = 1; i < param_cnt - 1; i++) {
-        pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s ", param_list[i]);
+    for(i = 1; i < argc - 1; i++) {
+        pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s ", argv[i]);
     }
 
-    pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n\r", param_list[param_cnt-1]);
+    pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n\r", argv[argc-1]);
 
     shell_puts(str);
 }
 
-void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_ls(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -70,16 +70,16 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     char path[PATH_LEN_MAX] = {0};
     fs_get_pwd(path, shell_dir_curr);
 
-    if(param_cnt == 2) {
-        if(param_list[1][0] != '/') {
+    if(argc == 2) {
+        if(argv[1][0] != '/') {
             /* user feed a relative path */
             int pos = strlen(path);
-            snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", param_list[1]);
+            snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", argv[1]);
         } else {
             /* user feed a absolute path */
-            strncpy(path, param_list[1], PATH_LEN_MAX);
+            strncpy(path, argv[1], PATH_LEN_MAX);
         }
-    } else if(param_cnt > 2) {
+    } else if(argc > 2) {
         shell_puts("ls: too many arguments\n\r");
         return;
     }
@@ -91,7 +91,7 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     /* check if the directory is successfull opened */
     if(retval != 0) {
         snprintf(str, PRINT_SIZE_MAX,
-                 "ls: cannot access '%s': No such file or directory\n\r", param_list[1]);
+                 "ls: cannot access '%s': No such file or directory\n\r", argv[1]);
         shell_puts(str);
         return;
     }
@@ -112,13 +112,13 @@ void shell_cmd_ls(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     shell_puts(str);
 }
 
-void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_cd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
     DIR dir;
 
-    switch(param_cnt) {
+    switch(argc) {
         case 1:
             opendir("/", &dir);
             shell_dir_curr = dir.inode_dir;
@@ -126,21 +126,21 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
         case 2: {
             char path[PATH_LEN_MAX] = {0};
 
-            if(strncmp("..", param_list[1], PARAM_LEN_MAX) == 0) {
+            if(strncmp("..", argv[1], PARAM_LEN_MAX) == 0) {
                 /* handle cd .. */
                 fs_get_pwd(path, shell_dir_curr);
                 int pos = strlen(path);
                 snprintf(&path[pos], PATH_LEN_MAX, "..");
             } else {
                 /* handle regular path */
-                if(param_list[1][0] == '/') {
+                if(argv[1][0] == '/') {
                     /* handle the absolute path */
-                    strncpy(path, param_list[1], PATH_LEN_MAX);
+                    strncpy(path, argv[1], PATH_LEN_MAX);
                 } else {
                     /* handle the relative path */
                     fs_get_pwd(path, shell_dir_curr);
                     int pos = strlen(path);
-                    snprintf(&path[pos], PATH_LEN_MAX, "%s", param_list[1]);
+                    snprintf(&path[pos], PATH_LEN_MAX, "%s", argv[1]);
                 }
             }
 
@@ -149,14 +149,14 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
 
             /* directory not found */
             if(retval != 0) {
-                snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", param_list[1]);
+                snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n\r", argv[1]);
                 shell_puts(str);
                 return;
             }
 
             /* not a directory */
             if(dir.inode_dir->i_mode != S_IFDIR) {
-                snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r", param_list[1]);
+                snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r", argv[1]);
                 shell_puts(str);
                 return;
             }
@@ -170,7 +170,7 @@ void shell_cmd_cd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param
     }
 }
 
-void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_pwd(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
     char path[PATH_LEN_MAX] = {'/'};
@@ -181,8 +181,8 @@ void shell_cmd_pwd(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     shell_puts(str);
 }
 
-//print a string by the same time replace \n with \n\r
-void shell_print_lf_cr(char *str, int size)
+/* print a string by the same time replace \n with \n\r */
+static void shell_print_lf_cr(char *str, int size)
 {
     int i;
     for(i = 0; i < size; i++) {
@@ -199,19 +199,19 @@ void shell_print_lf_cr(char *str, int size)
     }
 }
 
-void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_cat(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char path[PATH_LEN_MAX] = {0};
 
-    if(param_list[1][0] != '/') {
+    if(argv[1][0] != '/') {
         /* input is a relative path */
         char pwd[PATH_LEN_MAX] = {0};
         fs_get_pwd(pwd, shell_dir_curr);
 
-        snprintf(path, PATH_LEN_MAX, "%s%s", pwd, param_list[1]);
+        snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
     } else {
         /* input is a absolute path */
-        strncpy(path, param_list[1], PATH_LEN_MAX);
+        strncpy(path, argv[1], PATH_LEN_MAX);
     }
 
     char str[PRINT_SIZE_MAX] = {0};
@@ -245,7 +245,7 @@ void shell_cmd_cat(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int para
     }
 }
 
-void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_file(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -257,21 +257,21 @@ void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
     char path[PATH_LEN_MAX] = {0};
     fs_get_pwd(path, shell_dir_curr);
 
-    if(param_cnt == 1) {
+    if(argc == 1) {
         shell_puts("Usage: file <file>\n\r");
         return;
-    } else if(param_cnt > 2) {
+    } else if(argc > 2) {
         shell_puts("file: too many arguments\n\r");
         return;
     }
 
-    if(param_list[1][0] != '/') {
+    if(argv[1][0] != '/') {
         /* user feed a relative path */
         int pos = strlen(path);
-        snprintf(&path[pos], PRINT_SIZE_MAX, "%s", param_list[1]);
+        snprintf(&path[pos], PRINT_SIZE_MAX, "%s", argv[1]);
     } else {
         /* user feed a absolute path */
-        strncpy(path, param_list[1], PATH_LEN_MAX);
+        strncpy(path, argv[1], PATH_LEN_MAX);
     }
 
     /* open the file */
@@ -318,7 +318,7 @@ void shell_cmd_file(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int par
     return;
 }
 
-void shell_cmd_mpool(char param_list[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int param_cnt)
+void shell_cmd_mpool(char argv[PARAM_LIST_SIZE_MAX][PARAM_LEN_MAX], int argc)
 {
     char str[PRINT_SIZE_MAX] = {0};
 

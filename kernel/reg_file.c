@@ -22,7 +22,7 @@ static struct file_operations reg_file_ops = {
 
 int reg_file_init(struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
 {
-    /* create new regular file */
+    /* create a new regular file */
     struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
     reg_file->pos         = 0;
     reg_file->file_inode  = file_inode;
@@ -34,15 +34,14 @@ int reg_file_init(struct file **files, struct inode *file_inode, struct memory_p
     return 0;
 }
 
-/* offset is not used by the reg_file_read() */
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset /* not used */)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-    /* get the file inode */
+    /* get the inode of the regular file */
     struct inode *inode = reg_file->file_inode;
 
-    /* get the device file */
+    /* get the driver file of the storage device */
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     uint32_t blk_head_size = sizeof(struct block_header);
@@ -52,7 +51,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
     size_t read_size = 0;
 
     while(1) {
-        /* calculate the block address of the current file position to read */
+        /* calculate the block index corresponding to the current file read position */
         int blk_i = reg_file->pos / blk_free_size;
 
         /* get the start and end address of the block */
@@ -65,7 +64,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
         /* calculate the read address */
         uint32_t read_addr = blk_start_addr + blk_head_size + blk_pos;
 
-        /* calculate the size to read of the current block */
+        /* calculate the max size to read from the current block */
         uint32_t max_read_size = blk_free_size - blk_pos;
         if(remained_size > max_read_size) {
             read_size = max_read_size;
@@ -97,14 +96,14 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    return 0; //currently handled by mkromfs program (check tools/)
+    return 0; //regular file write is currently not implemented, import the file with mkromfs instead.
 }
 
 long reg_file_llseek(struct file *filp, long offset, int whence)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-    /* get file inode */
+    /* get the inode of the regular file */
     struct inode *inode = reg_file->file_inode;
 
     char new_pos;
@@ -123,6 +122,7 @@ long reg_file_llseek(struct file *filp, long offset, int whence)
             return -1;
     }
 
+    /* check if the new position is valid or not */
     if((new_pos >= 0) && (new_pos < inode->i_size)) {
         reg_file->pos = new_pos;
 

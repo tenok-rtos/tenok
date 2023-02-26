@@ -4,7 +4,7 @@
 #include "semaphore.h"
 #include "syscall.h"
 
-extern tcb_t *running_task;
+extern struct task_ctrl_blk *running_task;
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
 {
@@ -15,14 +15,14 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
     return 0;
 }
 
-/* sem_post() can be called by both the user task and interrupt handler */
+/* sem_post() can be called by user task or interrupt handler functions */
 int sem_post(sem_t *sem)
 {
     spin_lock_irq(&sem->lock);
 
     sem->count++;
     if(sem->count >= 0 && !list_is_empty(&sem->wait_list)) {
-        /* wake up a task from the semaphore waiting list */
+        /* wake up a task from the waiting list */
         wake_up(&sem->wait_list);
     }
 
@@ -31,14 +31,14 @@ int sem_post(sem_t *sem)
     return 0;
 }
 
-/* sem_wait() can only be called by the user task */
+/* sem_wait() can only be called by user tasks */
 int sem_wait(sem_t *sem)
 {
     spin_lock_irq(&sem->lock);
 
     sem->count--;
     if(sem->count < 0) {
-        /* put the current task into the semaphore waiting list */
+        /* put the current task into the waiting list */
         prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
     }
 
