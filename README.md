@@ -1,7 +1,8 @@
 ## tenok
 An experimental real-time operating system inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
 
-The word `tenok` means `kernel` in the language of the Amis people, an indigenous group native to Taiwan.
+The Amis people are an indigenous tribe that originated in Taiwan, and
+the term "`tenok`" in their language means "`kernel`."
 
 ## Features
 
@@ -99,8 +100,8 @@ PATH=$PATH:${YOUR_PATH}/gcc-arm-none-eabi-9-2019-q4-major/bin
 Build:
 
 ```
-git clone https://github.com/shengwen-tw/neo-rtenv.git
-cd neo-rtenv
+git clone https://github.com/shengwen-tw/tenok.git
+cd tenok
 make
  ```
  
