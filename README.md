@@ -1,6 +1,7 @@
-## neo-rtenv
-
+## tenok
 An experimental real-time operating system inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
+
+The word `tenok` means `kernel` in the language of the Amis people, an indigenous group native to Taiwan.
 
 ## Features
 
