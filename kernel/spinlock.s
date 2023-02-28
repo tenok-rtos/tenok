@@ -17,7 +17,7 @@ loop:   ldrex r2, [r0]     //r2 = *lock
 
         bx    lr           //function return
 
-/* unluck is easier which requires only reseting the lock variable to zero */
+/* unlock is easier which requires only reseting the lock variable to zero */
 .type   spin_unlock, %function
 .global spin_unlock
 //arguments:
