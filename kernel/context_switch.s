@@ -6,9 +6,8 @@ SysTick_Handler:
     /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
 
     /* disable all interrupts before entering into the kernel */
-    //cpsid i
-    mov   r0,      #0x50
-    msr   basepri, r0
+    cpsid i
+    cpsid f
     
     neg   r7,  r7 //negate _r7 to indicate that the kernel is returned from the systick ISR
 
@@ -30,9 +29,8 @@ SVC_Handler:
     /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
 
     /* disable the interrupt */
-    //cpsid i
-    mov   r0,      #0x50
-    msr   basepri, r0
+    cpsid i
+    cpsid f
 
     /* save user state */
     mrs   r0, psp   //load psp into the r0
@@ -63,9 +61,8 @@ jump_to_user_space:
     msr   psp, r0   //psp = r0 (set the psp to the stack address of the task to jump)
 
     /* enable the interrupt */
-    //cpsie i
-    mov   r0,      #0
-    msr   basepri, r0
+    cpsie i
+    cpsie f
 
     bx    lr //jump to the user task
 
@@ -93,8 +90,7 @@ os_env_init:
     pop  {r7}   //resume old r7 value
 
     /* disable the interrupt before entering into the kernel */
-    //cpsid i 
-    mov  r0,      #0x50
-    msr  basepri, r0
+    cpsid i 
+    cpsid f
 
     bx lr //function return
