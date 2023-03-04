@@ -1,8 +1,8 @@
 /* ----------------------------------------------------------------------   
-* Copyright (C) 2010 ARM Limited. All rights reserved.   
+* Copyright (C) 2010-2013 ARM Limited. All rights reserved.   
 *   
-* $Date:        15. July 2011  
-* $Revision: 	V1.0.10  
+* $Date:        17. January 2013
+* $Revision: 	V1.4.1
 *   
 * Project: 	    CMSIS DSP Library   
 * Title:		arm_conv_q7.c   
@@ -11,24 +11,31 @@
 *   
 * Target Processor: Cortex-M4/Cortex-M3/Cortex-M0
 *  
-* Version 1.0.10 2011/7/15 
-*    Big Endian support added and Merged M0 and M3/M4 Source code.  
-*   
-* Version 1.0.3 2010/11/29  
-*    Re-organized the CMSIS folders and updated documentation.   
-*    
-* Version 1.0.2 2010/11/11   
-*    Documentation updated.    
-*   
-* Version 1.0.1 2010/10/05    
-*    Production release and review comments incorporated.   
-*   
-* Version 1.0.0 2010/09/20    
-*    Production release and review comments incorporated   
-*   
-* Version 0.0.7  2010/06/10    
-*    Misra-C changes done   
-*   
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions
+* are met:
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in
+*     the documentation and/or other materials provided with the 
+*     distribution.
+*   - Neither the name of ARM LIMITED nor the names of its contributors
+*     may be used to endorse or promote products derived from this
+*     software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.    
 * -------------------------------------------------------------------- */
 
 #include "arm_math.h"
@@ -60,6 +67,10 @@
  * The 2.14 intermediate results are accumulated in a 32-bit accumulator in 18.14 format.   
  * This approach provides 17 guard bits and there is no risk of overflow as long as <code>max(srcALen, srcBLen)<131072</code>.   
  * The 18.14 result is then truncated to 18.7 format by discarding the low 7 bits and then saturated to 1.7 format.   
+ *
+ * \par    
+ * Refer the function <code>arm_conv_opt_q7()</code> for a faster implementation of this function.
+ * 
  */
 
 void arm_conv_q7(
@@ -71,7 +82,7 @@ void arm_conv_q7(
 {
 
 
-#ifndef ARM_MATH_CM0
+#ifndef ARM_MATH_CM0_FAMILY
 
   /* Run the below code for Cortex-M4 and Cortex-M3 */
 
@@ -86,7 +97,6 @@ void arm_conv_q7(
   q31_t input1, input2;                          /* Temporary input variables */
   q15_t in1, in2;                                /* Temporary input variables */
   uint32_t j, k, count, blkCnt, blockSize1, blockSize2, blockSize3;     /* loop counter */
-
 
   /* The algorithm implementation is based on the lengths of the inputs. */
   /* srcB is always made to slide across srcA. */
@@ -243,7 +253,7 @@ void arm_conv_q7(
   py = pSrc2;
 
   /* count is index by which the pointer pIn1 to be incremented */
-  count = 1u;
+  count = 0u;
 
   /* -------------------   
    * Stage2 process   
@@ -423,12 +433,12 @@ void arm_conv_q7(
       *pOut++ = (q7_t) (__SSAT(acc2 >> 7u, 8));
       *pOut++ = (q7_t) (__SSAT(acc3 >> 7u, 8));
 
-      /* Update the inputA and inputB pointers for next MAC calculation */
-      px = pIn1 + (count * 4u);
-      py = pSrc2;
+      /* Increment the pointer pIn1 index, count by 4 */
+      count += 4u;
 
-      /* Increment the pointer pIn1 index, count by 1 */
-      count++;
+      /* Update the inputA and inputB pointers for next MAC calculation */
+      px = pIn1 + count;
+      py = pSrc2;
 
       /* Decrement the loop counter */
       blkCnt--;
@@ -497,12 +507,12 @@ void arm_conv_q7(
       /* Store the result in the accumulator in the destination buffer. */
       *pOut++ = (q7_t) (__SSAT(sum >> 7u, 8));
 
+      /* Increment the pointer pIn1 index, count by 1 */
+      count++;
+
       /* Update the inputA and inputB pointers for next MAC calculation */
       px = pIn1 + count;
       py = pSrc2;
-
-      /* Increment the pointer pIn1 index, count by 1 */
-      count++;
 
       /* Decrement the loop counter */
       blkCnt--;
@@ -534,12 +544,12 @@ void arm_conv_q7(
       /* Store the result in the accumulator in the destination buffer. */
       *pOut++ = (q7_t) (__SSAT(sum >> 7u, 8));
 
+      /* Increment the MAC count */
+      count++;
+
       /* Update the inputA and inputB pointers for next MAC calculation */
       px = pIn1 + count;
       py = pSrc2;
-
-      /* Increment the MAC count */
-      count++;
 
       /* Decrement the loop counter */
       blkCnt--;
@@ -671,7 +681,7 @@ void arm_conv_q7(
     pDst[i] = (q7_t) __SSAT((sum >> 7u), 8u);
   }
 
-#endif /*   #ifndef ARM_MATH_CM0        */
+#endif /*   #ifndef ARM_MATH_CM0_FAMILY        */
 
 }
 

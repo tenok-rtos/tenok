@@ -1,60 +1,71 @@
-/* ----------------------------------------------------------------------   
-* Copyright (C) 2010 ARM Limited. All rights reserved.   
-*   
-* $Date:        15. July 2011  
-* $Revision: 	V1.0.10  
-*   
-* Project: 	    CMSIS DSP Library   
-* Title:		arm_cos_q15.c   
-*   
-* Description:	Fast cosine calculation for Q15 values.  
-*   
+/* ----------------------------------------------------------------------    
+* Copyright (C) 2010-2013 ARM Limited. All rights reserved.    
+*    
+* $Date:        17. January 2013
+* $Revision: 	V1.4.1
+*    
+* Project: 	    CMSIS DSP Library    
+* Title:		arm_cos_q15.c    
+*    
+* Description:	Fast cosine calculation for Q15 values.   
+*    
 * Target Processor: Cortex-M4/Cortex-M3/Cortex-M0
 *  
-* Version 1.0.10 2011/7/15 
-*    Big Endian support added and Merged M0 and M3/M4 Source code.  
-*   
-* Version 1.0.3 2010/11/29  
-*    Re-organized the CMSIS folders and updated documentation.   
-*    
-* Version 1.0.2 2010/11/11   
-*    Documentation updated.    
-*   
-* Version 1.0.1 2010/10/05    
-*    Production release and review comments incorporated.   
-*   
-* Version 1.0.0 2010/09/20    
-*    Production release and review comments incorporated.   
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions
+* are met:
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in
+*     the documentation and/or other materials provided with the 
+*     distribution.
+*   - Neither the name of ARM LIMITED nor the names of its contributors
+*     may be used to endorse or promote products derived from this
+*     software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.   
 * -------------------------------------------------------------------- */
 
 #include "arm_math.h"
 
+/**    
+ * @ingroup groupFastMath    
+ */
+
+ /**    
+ * @addtogroup cos    
+ * @{    
+ */
+
 /**   
- * @ingroup groupFastMath   
- */
-
- /**   
- * @addtogroup cos   
- * @{   
- */
-
-/**  
-* \par   
-* Table Values are in Q15(1.15 Fixed point format) and generation is done in three steps   
-* \par   
-* First Generate cos values in floating point:   
-* tableSize = 256;    
-* <pre>for(n = -1; n < (tableSize + 1); n++)   
-* {   
-*	cosTable[n+1]= cos(2*pi*n/tableSize);   
-* }</pre>  
-* where pi value is  3.14159265358979   
-* \par   
-* Secondly Convert Floating point to Q15(Fixed point):   
-*	(cosTable[i] * pow(2, 15))   
-* \par   
-* Finally Rounding to nearest integer is done   
-* 	cosTable[i] += (cosTable[i] > 0 ? 0.5 :-0.5);   
+* \par    
+ * Table values are in Q15 (1.15 fixed-point format) and generation is done in 
+ * three steps.  First,  generate cos values in floating point:    
+ * <pre>
+ * tableSize = 256;
+ * for(n = -1; n < (tableSize + 1); n++)    
+ * {    
+ *	cosTable[n+1]= cos(2*pi*n/tableSize);    
+ * } </pre>     
+ * where pi value is  3.14159265358979    
+ * \par    
+ * Second, convert floating-point to Q15 (fixed-point):    
+ *	(cosTable[i] * pow(2, 15))    
+ * \par    
+ * Finally, round to the nearest integer value:
+ * 	cosTable[i] += (cosTable[i] > 0 ? 0.5 :-0.5);    
 */
 
 static const q15_t cosTableQ15[259] = {
@@ -94,12 +105,13 @@ static const q15_t cosTableQ15[259] = {
 };
 
 
-/**  
- * @brief Fast approximation to the trigonometric cosine function for Q15 data.  
- * @param[in] x Scaled input value in radians.  
- * @return  cos(x).  
- *  
- * The Q15 input value is in the range [0 +1) and is mapped to a radian value in the range [0 2*pi).  
+/**   
+ * @brief Fast approximation to the trigonometric cosine function for Q15 data.   
+ * @param[in] x Scaled input value in radians.   
+ * @return  cos(x).   
+ *   
+ * The Q15 input value is in the range [0 +0.9999] and is mapped to a radian
+ * value in the range [0 2*pi).
  */
 
 q15_t arm_cos_q15(
@@ -131,6 +143,16 @@ q15_t arm_cos_q15(
 
   /* fractCube = fract * fract * fract */
   fractCube = (q15_t) ((fractSquare * fract) >> 15);
+
+  /* Checking min and max index of table */
+  if(index < 0)
+  {
+    index = 0;
+  }
+  else if(index > 256)
+  {
+    index = 256;
+  }
 
   /* Initialise table pointer */
   tablePtr = (q15_t *) & cosTableQ15[index];
@@ -165,7 +187,7 @@ q15_t arm_cos_q15(
   /* Read third nearest value of output from the cos table */
   c = *tablePtr++;
 
-  /*      cosVal += c*wc */
+  /* cosVal += c*wc */
   cosVal += c * wc;
 
   /* Calculation of wd */
@@ -179,11 +201,14 @@ q15_t arm_cos_q15(
   /* cosVal += d*wd; */
   cosVal += d * wd;
 
+  /* Convert output value in 1.15(q15) format and saturate */
+  cosVal = __SSAT((cosVal >> 15), 16);
+
   /* Return the output value in 1.15(q15) format */
-  return ((q15_t) (cosVal >> 15u));
+  return ((q15_t) cosVal);
 
 }
 
-/**   
- * @} end of cos group   
+/**    
+ * @} end of cos group    
  */

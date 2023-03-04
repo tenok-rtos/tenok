@@ -1,51 +1,62 @@
-/* ----------------------------------------------------------------------   
-* Copyright (C) 2010 ARM Limited. All rights reserved.   
-*   
-* $Date:        15. July 2011  
-* $Revision: 	V1.0.10  
-*   
-* Project: 	    CMSIS DSP Library   
-* Title:		arm_sin_cos_q31.c   
-*   
-* Description:	Cosine & Sine calculation for Q31 values.  
-*   
+/* ----------------------------------------------------------------------    
+* Copyright (C) 2010-2013 ARM Limited. All rights reserved.    
+*    
+* $Date:        17. January 2013
+* $Revision: 	V1.4.1
+*    
+* Project: 	    CMSIS DSP Library    
+* Title:		arm_sin_cos_q31.c    
+*    
+* Description:	Cosine & Sine calculation for Q31 values.   
+*    
 * Target Processor: Cortex-M4/Cortex-M3/Cortex-M0
 *  
-* Version 1.0.10 2011/7/15 
-*    Big Endian support added and Merged M0 and M3/M4 Source code.  
-*   
-* Version 1.0.3 2010/11/29  
-*    Re-organized the CMSIS folders and updated documentation.   
-*    
-* Version 1.0.2 2010/11/11   
-*    Documentation updated.    
-*   
-* Version 1.0.1 2010/10/05    
-*    Production release and review comments incorporated.   
-*   
-* Version 1.0.0 2010/09/20    
-*    Production release and review comments incorporated.   
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions
+* are met:
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in
+*     the documentation and/or other materials provided with the 
+*     distribution.
+*   - Neither the name of ARM LIMITED nor the names of its contributors
+*     may be used to endorse or promote products derived from this
+*     software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.    
 * -------------------------------------------------------------------- */
 
 #include "arm_math.h"
 
-/**   
- * @ingroup groupController   
+/**    
+ * @ingroup groupController    
  */
 
- /**   
- * @addtogroup SinCos   
- * @{   
+ /**    
+ * @addtogroup SinCos    
+ * @{    
  */
 
-/**   
-* \par   
-* Sine Table is generated from following loop   
-* <pre>for(i = 0; i < 360; i++)   
-* {   
-*    sinTable[i]= sin((i-180) * PI/180.0);   
-* } </pre>  
-* Convert above coefficients to fixed point 1.31 format.   
+/**    
+* \par    
+* Sine Table is generated from following loop    
+* <pre>for(i = 0; i < 360; i++)    
+* {    
+*    sinTable[i]= sin((i-180) * PI/180.0);    
+* } </pre>   
+* Convert above coefficients to fixed point 1.31 format.    
 */
 
 static const int32_t sinTableQ31[360] = {
@@ -144,15 +155,15 @@ static const int32_t sinTableQ31[360] = {
 
 };
 
-/**   
-* \par   
-* Cosine Table is generated from following loop   
-* <pre>for(i = 0; i < 360; i++)   
-* {   
-*    cosTable[i]= cos((i-180) * PI/180.0);   
-* } </pre>  
-* \par   
-* Convert above coefficients to fixed point 1.31 format.   
+/**    
+* \par    
+* Cosine Table is generated from following loop    
+* <pre>for(i = 0; i < 360; i++)    
+* {    
+*    cosTable[i]= cos((i-180) * PI/180.0);    
+* } </pre>   
+* \par    
+* Convert above coefficients to fixed point 1.31 format.    
 */
 static const int32_t cosTableQ31[360] = {
   0x80000000, 0x8004fda0, 0x8013f61d, 0x802ce84c, 0x804fd23a, 0x807cb130,
@@ -249,15 +260,15 @@ static const int32_t cosTableQ31[360] = {
 };
 
 
-/**   
- * @brief  Q31 sin_cos function.  
- * @param[in]  theta    scaled input value in degrees   
- * @param[out] *pSinVal points to the processed sine output.   
- * @param[out] *pCosVal points to the processed cosine output.   
- * @return none.  
- *   
- * The Q31 input value is in the range [-1 +1) and is mapped to a degree value in the range [-180 180).  
- *   
+/**    
+ * @brief  Q31 sin_cos function.   
+ * @param[in]  theta    scaled input value in degrees    
+ * @param[out] *pSinVal points to the processed sine output.    
+ * @param[out] *pCosVal points to the processed cosine output.    
+ * @return none.   
+ *    
+ * The Q31 input value is in the range [-1 0.999999] and is mapped to a degree value in the range [-180 179].   
+ *    
  */
 
 
@@ -278,6 +289,12 @@ void arm_sin_cos_q31(
   /* Calculation of index */
   i = ((uint32_t) theta - firstX) / (uint32_t) xSpacing;
 
+  /* Checking min and max index of table */
+  if(i >= 359)
+  {
+    i = 358;
+  }
+
   /* Calculation of first nearest input value */
   x0 = (q31_t) firstX + ((q31_t) i * xSpacing);
 
@@ -295,17 +312,17 @@ void arm_sin_cos_q31(
     (((q31_t) (((q63_t) (theta - x0) * oneByXSpacing) >> 32)) << sign_bits);
 
   /* Calculation of y0 + (y1 - y0) * ((theta - x0)/(x1-x0)) */
-  *pSinVal = y0 + ((q31_t) (((q63_t) (y1 - y0) * out) >> 30));
+  *pSinVal = __QADD(y0, ((q31_t) (((q63_t) (y1 - y0) * out) >> 30)));
 
   /* Reading nearest cosine output values from table */
   y0 = cosTableQ31[i];
   y1 = cosTableQ31[i + 1u];
 
   /* Calculation of y0 + (y1 - y0) * ((theta - x0)/(x1-x0)) */
-  *pCosVal = y0 + ((q31_t) (((q63_t) (y1 - y0) * out) >> 30));
+  *pCosVal = __QADD(y0, ((q31_t) (((q63_t) (y1 - y0) * out) >> 30)));
 
 }
 
-/**   
- * @} end of SinCos group   
+/**    
+ * @} end of SinCos group    
  */

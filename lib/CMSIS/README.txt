@@ -1,8 +1,8 @@
 * -------------------------------------------------------------------
-* Copyright (C) 2011 ARM Limited. All rights reserved.  
+* Copyright (C) 2011-2013 ARM Limited. All rights reserved.  
 * 
-* Date:        25 July 2011  
-* Revision:    V2.10 
+* Date:        18 March 2013  
+* Revision:    V3.20 
 *  
 * Project:     Cortex Microcontroller Software Interface Standard (CMSIS)
 * Title:       Release Note for CMSIS
@@ -30,5 +30,8 @@ DSP_Lib                 - MDK project files, Examples and source files etc.. to 
 
 Include                 - CMSIS Core Support and CMSIS DSP Include Files.
 
-Lib                     - CMSIS DSP Binaries 
----
+Lib                     - CMSIS DSP Libraries.
+
+RTOS                    - CMSIS RTOS API template header file.
+
+SVD                     - CMSIS SVD Schema files and Conversion Utility.
