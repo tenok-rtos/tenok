@@ -2,9 +2,13 @@ PROJECT=neo-rtenv
 ELF=$(PROJECT).elf
 BIN=$(PROJECT).bin
 
--include config.mk
+CFLAGS=
 
-CFLAGS=-g -mlittle-endian -mthumb \
+#board selection
+#-include platform/stm32f4disc.mk
+-include platform/stm32f429disc.mk
+
+CFLAGS+=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
 	-mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 	--specs=nano.specs \
@@ -17,8 +21,6 @@ CFLAGS+=-D ARM_MATH_CM4 \
 
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
-
-CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
 ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
 
@@ -76,6 +78,8 @@ ASM=./platform/startup_stm32f4xx.s \
 	./kernel/context_switch.s \
 	./kernel/syscall.s \
 	./kernel/spinlock.s
+
+-include config.mk
 
 all:$(ELF)
 	@$(MAKE) -C ./tools -f Makefile

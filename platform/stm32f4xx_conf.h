@@ -23,11 +23,21 @@
 #ifndef __STM32F4xx_CONF_H
 #define __STM32F4xx_CONF_H
 
-#if defined  (HSE_VALUE)
-/* Redefine the HSE value; it's equal to 8 MHz on the STM32F4-DISCOVERY Kit */
-#undef HSE_VALUE
-#define HSE_VALUE    ((uint32_t)8000000)
-#endif /* HSE_VALUE */
+#ifdef USE_STM32F07
+#define HSE_VALUE ((uint32_t)8000000)
+#define PLL_M     8
+#define PLL_N     336
+#define PLL_P     2
+#define PLL_Q     7
+#endif
+
+#ifdef USE_STM32F29
+#define HSE_VALUE ((uint32_t)8000000)
+#define PLL_M     8
+#define PLL_N     360
+#define PLL_P     2
+#define PLL_Q     7
+#endif
 
 /* Includes ------------------------------------------------------------------*/
 /* Uncomment the line below to enable peripheral header file inclusion */
