@@ -3,7 +3,7 @@
 
 #include "spinlock.h"
 
-#define FILE rtenv__FILE
+#define FILE tenok__FILE
 
 #define fopen  __fopen
 #define fread  __fread
@@ -14,7 +14,7 @@
 typedef struct {
     spinlock_t lock;
     int fd;
-} rtenv__FILE;
+} tenok__FILE;
 
 int fopen(const char *pathname, const char *mode, FILE *file);
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *fstream);

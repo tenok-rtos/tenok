@@ -1,4 +1,4 @@
-PROJECT=neo-rtenv
+PROJECT=tenok
 ELF=$(PROJECT).elf
 BIN=$(PROJECT).bin
 
