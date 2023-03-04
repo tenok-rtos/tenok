@@ -17,8 +17,6 @@ SRC+=./lib/STM32F429I-Discovery/stm32f429i_discovery.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_ioe.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_sdram.c
 
-all:
-
 flash:
 	openocd -f interface/stlink.cfg \
 	-f target/stm32f4x.cfg \
@@ -32,4 +30,4 @@ flash:
 openocd:
 	openocd -s /opt/openocd/share/openocd/scripts/ -f ./gdb/openocd.cfg
 
-.PHONY: all flash openocd
+.PHONY: flash openocd

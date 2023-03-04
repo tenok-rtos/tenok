@@ -1,6 +1,9 @@
 -include config.mk
 
+.DEFAULT_GOAL=all
+
 CFLAGS=
+SRC=
 
 #board selection
 -include platform/qemu.mk
@@ -35,7 +38,7 @@ CFLAGS+=-I./mm
 CFLAGS+=-I./apps
 CFLAGS+=-I./examples
 
-SRC=./lib/CMSIS/system_stm32f4xx.c
+SRC+=./lib/CMSIS/system_stm32f4xx.c
 
 SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_rcc.c \

@@ -3,8 +3,6 @@
 CFLAGS+=-D STM32F40_41xxx
 CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
-all:
-
 flash:
 	openocd -f interface/stlink.cfg \
 	-f target/stm32f4x.cfg \
@@ -18,4 +16,4 @@ flash:
 openocd:
 	openocd -s /opt/openocd/share/openocd/scripts/ -f ./gdb/openocd.cfg
 
-.PHONY: all flash openocd
+.PHONY: flash openocd
