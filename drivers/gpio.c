@@ -31,7 +31,7 @@ void led_init(void)
 
 void led_write(int state)
 {
-#if defined STM32F40_41xxx /* STM32F4DISCOVERY */
+#if defined STM32F40_41xxx /* STM32F4DISCOVERY board */
     GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
     GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
     GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
