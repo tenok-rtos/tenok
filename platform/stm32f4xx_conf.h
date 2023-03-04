@@ -23,7 +23,7 @@
 #ifndef __STM32F4xx_CONF_H
 #define __STM32F4xx_CONF_H
 
-#ifdef USE_STM32F07
+#ifdef STM32F40_41xxx
 #define HSE_VALUE ((uint32_t)8000000)
 #define PLL_M     8
 #define PLL_N     336
@@ -31,7 +31,7 @@
 #define PLL_Q     7
 #endif
 
-#ifdef USE_STM32F29
+#ifdef STM32F429_439xx
 #define HSE_VALUE ((uint32_t)8000000)
 #define PLL_M     8
 #define PLL_N     360
@@ -51,7 +51,7 @@
 #include "stm32f4xx_dma.h"
 #include "stm32f4xx_exti.h"
 #include "stm32f4xx_flash.h"
-#include "stm32f4xx_fsmc.h"
+#include "stm32f4xx_fmc.h"
 #include "stm32f4xx_hash.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_i2c.h"

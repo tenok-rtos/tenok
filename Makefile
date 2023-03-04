@@ -5,8 +5,8 @@ BIN=$(PROJECT).bin
 CFLAGS=
 
 #board selection
-#-include platform/stm32f4disc.mk
--include platform/stm32f429disc.mk
+-include platform/stm32f4disc.mk
+#-include platform/stm32f429disc.mk
 
 CFLAGS+=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
