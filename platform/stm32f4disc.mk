@@ -3,6 +3,8 @@
 CFLAGS+=-D STM32F40_41xxx
 CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
+CFLAGS+=-D__BOARD_NAME__=\"stm32f407\"
+
 flash:
 	openocd -f interface/stlink.cfg \
 	-f target/stm32f4x.cfg \

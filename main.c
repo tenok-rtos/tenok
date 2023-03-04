@@ -86,7 +86,7 @@ void shell_task(void)
 
     while(1) {
         fs_get_pwd(shell_path, shell_dir_curr);
-        snprintf(prompt, SHELL_PROMPT_LEN_MAX, __USER_NAME__ "@stm32f407:%s$ ",  shell_path);
+        snprintf(prompt, SHELL_PROMPT_LEN_MAX, __USER_NAME__ "@%s:%s$ ",  __BOARD_NAME__, shell_path);
         shell_set_prompt(&shell, prompt);
 
         shell_listen(&shell);

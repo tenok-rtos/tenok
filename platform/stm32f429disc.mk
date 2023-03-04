@@ -3,6 +3,8 @@
 CFLAGS+=-D STM32F429_439xx
 CFLAGS+=-Wl,-T,platform/stm32f429.ld
 
+CFLAGS+=-D__BOARD_NAME__=\"stm32f429\"
+
 CFLAGS+=-I./lib/STM32F429I-Discovery
 CFLAGS+=-I./lib/STM32F429I-Discovery/Common
 
