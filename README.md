@@ -31,21 +31,21 @@ the term "`tenok`" in their language means "`kernel`."
 
 ## Shell Keys
 
-* `Backspace`, `Delete`: Delete a single word
+* `Backspace`, `Delete`: Delete a single character
 
-* `Home`, `Ctrl+A`: Move cursor to the leftmost
+* `Home`, `Ctrl+A`: Move the cursor to the leftmost
 
-* `End`, `Ctrl+E`: Move cursor to the rightmost
+* `End`, `Ctrl+E`: Move the cursor to the rightmost
 
 * `Ctrl+U`: Delete a whole line
 
-* `Left Arrow`, `Ctrl+B`: Move cursor one to left
+* `Left Arrow`, `Ctrl+B`: Move the cursor one to left
 
-* `Right Arrow`, `Ctrl+F`: Move cursor one to right
+* `Right Arrow`, `Ctrl+F`: Move the cursor one to right
 
 * `Up Arrow`, `Down Arrow`: Display previous typings
 
-* `Tab`: Command autocompletion
+* `Tab`: Command completion
 
 ## Development Tools
 
