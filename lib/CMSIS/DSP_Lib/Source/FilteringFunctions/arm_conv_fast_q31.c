@@ -1,68 +1,79 @@
-/* ----------------------------------------------------------------------   
-* Copyright (C) 2010 ARM Limited. All rights reserved.   
-*   
-* $Date:        15. July 2011  
-* $Revision: 	V1.0.10  
-*   
-* Project: 	    CMSIS DSP Library   
-* Title:		arm_conv_fast_q31.c   
-*   
-* Description:	Q31 Convolution (fast version).   
-*   
+/* ----------------------------------------------------------------------    
+* Copyright (C) 2010-2013 ARM Limited. All rights reserved.    
+*    
+* $Date:        17. January 2013
+* $Revision: 	V1.4.1
+*    
+* Project: 	    CMSIS DSP Library    
+* Title:		arm_conv_fast_q31.c    
+*    
+* Description:	Q31 Convolution (fast version).    
+*    
 * Target Processor: Cortex-M4/Cortex-M3
 *  
-* Version 1.0.10 2011/7/15 
-*    Big Endian support added and Merged M0 and M3/M4 Source code.  
-*   
-* Version 1.0.3 2010/11/29  
-*    Re-organized the CMSIS folders and updated documentation.   
-*    
-* Version 1.0.2 2010/11/11   
-*    Documentation updated.    
-*   
-* Version 1.0.1 2010/10/05    
-*    Production release and review comments incorporated.   
-*   
-* Version 1.0.0 2010/09/20    
-*    Production release and review comments incorporated.   
+* Redistribution and use in source and binary forms, with or without 
+* modification, are permitted provided that the following conditions
+* are met:
+*   - Redistributions of source code must retain the above copyright
+*     notice, this list of conditions and the following disclaimer.
+*   - Redistributions in binary form must reproduce the above copyright
+*     notice, this list of conditions and the following disclaimer in
+*     the documentation and/or other materials provided with the 
+*     distribution.
+*   - Neither the name of ARM LIMITED nor the names of its contributors
+*     may be used to endorse or promote products derived from this
+*     software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE 
+* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.  
 * -------------------------------------------------------------------- */
 
 #include "arm_math.h"
 
-/**   
- * @ingroup groupFilters   
+/**    
+ * @ingroup groupFilters    
  */
 
-/**   
- * @addtogroup Conv   
- * @{   
+/**    
+ * @addtogroup Conv    
+ * @{    
  */
 
-/**   
- * @param[in] *pSrcA points to the first input sequence.   
- * @param[in] srcALen length of the first input sequence.   
- * @param[in] *pSrcB points to the second input sequence.   
- * @param[in] srcBLen length of the second input sequence.   
- * @param[out] *pDst points to the location where the output result is written.  Length srcALen+srcBLen-1.   
- * @return none.   
- *   
- * @details   
- * <b>Scaling and Overflow Behavior:</b>   
- *   
- * \par   
- * This function is optimized for speed at the expense of fixed-point precision and overflow protection.   
- * The result of each 1.31 x 1.31 multiplication is truncated to 2.30 format.   
- * These intermediate results are accumulated in a 32-bit register in 2.30 format.   
- * Finally, the accumulator is saturated and converted to a 1.31 result.   
- *   
- * \par   
- * The fast version has the same overflow behavior as the standard version but provides less precision since it discards the low 32 bits of each multiplication result.   
- * In order to avoid overflows completely the input signals must be scaled down.   
- * Scale down the inputs by log2(min(srcALen, srcBLen)) (log2 is read as log to the base 2) times to avoid overflows,   
- * as maximum of min(srcALen, srcBLen) number of additions are carried internally.   
- *   
- * \par   
- * See <code>arm_conv_q31()</code> for a slower implementation of this function which uses 64-bit accumulation to provide higher precision.   
+/**    
+ * @param[in] *pSrcA points to the first input sequence.    
+ * @param[in] srcALen length of the first input sequence.    
+ * @param[in] *pSrcB points to the second input sequence.    
+ * @param[in] srcBLen length of the second input sequence.    
+ * @param[out] *pDst points to the location where the output result is written.  Length srcALen+srcBLen-1.    
+ * @return none.    
+ *    
+ * @details    
+ * <b>Scaling and Overflow Behavior:</b>    
+ *    
+ * \par    
+ * This function is optimized for speed at the expense of fixed-point precision and overflow protection.    
+ * The result of each 1.31 x 1.31 multiplication is truncated to 2.30 format.    
+ * These intermediate results are accumulated in a 32-bit register in 2.30 format.    
+ * Finally, the accumulator is saturated and converted to a 1.31 result.    
+ *    
+ * \par    
+ * The fast version has the same overflow behavior as the standard version but provides less precision since it discards the low 32 bits of each multiplication result.    
+ * In order to avoid overflows completely the input signals must be scaled down.    
+ * Scale down the inputs by log2(min(srcALen, srcBLen)) (log2 is read as log to the base 2) times to avoid overflows,    
+ * as maximum of min(srcALen, srcBLen) number of additions are carried internally.    
+ *    
+ * \par    
+ * See <code>arm_conv_q31()</code> for a slower implementation of this function which uses 64-bit accumulation to provide higher precision.    
  */
 
 void arm_conv_fast_q31(
@@ -81,7 +92,6 @@ void arm_conv_fast_q31(
   q31_t sum, acc0, acc1, acc2, acc3;             /* Accumulator */
   q31_t x0, x1, x2, x3, c0;                      /* Temporary variables to hold state and coefficient values */
   uint32_t j, k, count, blkCnt, blockSize1, blockSize2, blockSize3;     /* loop counter */
-
 
   /* The algorithm implementation is based on the lengths of the inputs. */
   /* srcB is always made to slide across srcA. */
@@ -109,31 +119,31 @@ void arm_conv_fast_q31(
   }
 
   /* conv(x,y) at n = x[n] * y[0] + x[n-1] * y[1] + x[n-2] * y[2] + ...+ x[n-N+1] * y[N -1] */
-  /* The function is internally   
-   * divided into three stages according to the number of multiplications that has to be   
-   * taken place between inputA samples and inputB samples. In the first stage of the   
-   * algorithm, the multiplications increase by one for every iteration.   
-   * In the second stage of the algorithm, srcBLen number of multiplications are done.   
-   * In the third stage of the algorithm, the multiplications decrease by one   
+  /* The function is internally    
+   * divided into three stages according to the number of multiplications that has to be    
+   * taken place between inputA samples and inputB samples. In the first stage of the    
+   * algorithm, the multiplications increase by one for every iteration.    
+   * In the second stage of the algorithm, srcBLen number of multiplications are done.    
+   * In the third stage of the algorithm, the multiplications decrease by one    
    * for every iteration. */
 
-  /* The algorithm is implemented in three stages.   
+  /* The algorithm is implemented in three stages.    
      The loop counters of each stage is initiated here. */
   blockSize1 = srcBLen - 1u;
   blockSize2 = srcALen - (srcBLen - 1u);
   blockSize3 = blockSize1;
 
-  /* --------------------------   
-   * Initializations of stage1   
+  /* --------------------------    
+   * Initializations of stage1    
    * -------------------------*/
 
-  /* sum = x[0] * y[0]   
-   * sum = x[0] * y[1] + x[1] * y[0]   
-   * ....   
-   * sum = x[0] * y[srcBlen - 1] + x[1] * y[srcBlen - 2] +...+ x[srcBLen - 1] * y[0]   
+  /* sum = x[0] * y[0]    
+   * sum = x[0] * y[1] + x[1] * y[0]    
+   * ....    
+   * sum = x[0] * y[srcBlen - 1] + x[1] * y[srcBlen - 2] +...+ x[srcBLen - 1] * y[0]    
    */
 
-  /* In this stage the MAC operations are increased by 1 for every iteration.   
+  /* In this stage the MAC operations are increased by 1 for every iteration.    
      The count variable holds the number of MAC operations performed */
   count = 1u;
 
@@ -144,8 +154,8 @@ void arm_conv_fast_q31(
   py = pIn2;
 
 
-  /* ------------------------   
-   * Stage1 process   
+  /* ------------------------    
+   * Stage1 process    
    * ----------------------*/
 
   /* The first stage starts here */
@@ -157,7 +167,7 @@ void arm_conv_fast_q31(
     /* Apply loop unrolling and compute 4 MACs simultaneously. */
     k = count >> 2u;
 
-    /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.   
+    /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.    
      ** a second loop below computes MACs for the remaining 1 to 3 samples. */
     while(k > 0u)
     {
@@ -181,7 +191,7 @@ void arm_conv_fast_q31(
       k--;
     }
 
-    /* If the count is not a multiple of 4, compute any remaining MACs here.   
+    /* If the count is not a multiple of 4, compute any remaining MACs here.    
      ** No loop unrolling is used. */
     k = count % 0x4u;
 
@@ -209,14 +219,14 @@ void arm_conv_fast_q31(
     blockSize1--;
   }
 
-  /* --------------------------   
-   * Initializations of stage2   
+  /* --------------------------    
+   * Initializations of stage2    
    * ------------------------*/
 
-  /* sum = x[0] * y[srcBLen-1] + x[1] * y[srcBLen-2] +...+ x[srcBLen-1] * y[0]   
-   * sum = x[1] * y[srcBLen-1] + x[2] * y[srcBLen-2] +...+ x[srcBLen] * y[0]   
-   * ....   
-   * sum = x[srcALen-srcBLen-2] * y[srcBLen-1] + x[srcALen] * y[srcBLen-2] +...+ x[srcALen-1] * y[0]   
+  /* sum = x[0] * y[srcBLen-1] + x[1] * y[srcBLen-2] +...+ x[srcBLen-1] * y[0]    
+   * sum = x[1] * y[srcBLen-1] + x[2] * y[srcBLen-2] +...+ x[srcBLen] * y[0]    
+   * ....    
+   * sum = x[srcALen-srcBLen-2] * y[srcBLen-1] + x[srcALen] * y[srcBLen-2] +...+ x[srcALen-1] * y[0]    
    */
 
   /* Working pointer of inputA */
@@ -227,14 +237,14 @@ void arm_conv_fast_q31(
   py = pSrc2;
 
   /* count is index by which the pointer pIn1 to be incremented */
-  count = 1u;
+  count = 0u;
 
-  /* -------------------   
-   * Stage2 process   
+  /* -------------------    
+   * Stage2 process    
    * ------------------*/
 
-  /* Stage2 depends on srcBLen as in this stage srcBLen number of MACS are performed.   
-   * So, to loop unroll over blockSize2,   
+  /* Stage2 depends on srcBLen as in this stage srcBLen number of MACS are performed.    
+   * So, to loop unroll over blockSize2,    
    * srcBLen should be greater than or equal to 4 */
   if(srcBLen >= 4u)
   {
@@ -257,7 +267,7 @@ void arm_conv_fast_q31(
       /* Apply loop unrolling and compute 4 MACs simultaneously. */
       k = srcBLen >> 2u;
 
-      /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.   
+      /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.    
        ** a second loop below computes MACs for the remaining 1 to 3 samples. */
       do
       {
@@ -305,11 +315,11 @@ void arm_conv_fast_q31(
         /* Perform the multiply-accumulates */
         /* acc0 +=  x[2] * y[srcBLen - 3] */
         acc0 = (q31_t) ((((q63_t) acc0 << 32) + ((q63_t) x2 * c0)) >> 32);
-        /* acc1 +=  x[3] * y[srcBLen - 2] */
+        /* acc1 +=  x[3] * y[srcBLen - 3] */
         acc1 = (q31_t) ((((q63_t) acc1 << 32) + ((q63_t) x3 * c0)) >> 32);
-        /* acc2 +=  x[4] * y[srcBLen - 2] */
+        /* acc2 +=  x[4] * y[srcBLen - 3] */
         acc2 = (q31_t) ((((q63_t) acc2 << 32) + ((q63_t) x0 * c0)) >> 32);
-        /* acc3 +=  x[5] * y[srcBLen - 2] */
+        /* acc3 +=  x[5] * y[srcBLen - 3] */
         acc3 = (q31_t) ((((q63_t) acc3 << 32) + ((q63_t) x1 * c0)) >> 32);
 
         /* Read y[srcBLen - 4] sample */
@@ -331,7 +341,7 @@ void arm_conv_fast_q31(
 
       } while(--k);
 
-      /* If the srcBLen is not a multiple of 4, compute any remaining MACs here.   
+      /* If the srcBLen is not a multiple of 4, compute any remaining MACs here.    
        ** No loop unrolling is used. */
       k = srcBLen % 0x4u;
 
@@ -368,18 +378,18 @@ void arm_conv_fast_q31(
       *pOut++ = (q31_t) (acc2 << 1);
       *pOut++ = (q31_t) (acc3 << 1);
 
-      /* Update the inputA and inputB pointers for next MAC calculation */
-      px = pIn1 + (count * 4u);
-      py = pSrc2;
+      /* Increment the pointer pIn1 index, count by 4 */
+      count += 4u;
 
-      /* Increment the pointer pIn1 index, count by 1 */
-      count++;
+      /* Update the inputA and inputB pointers for next MAC calculation */
+      px = pIn1 + count;
+      py = pSrc2;
 
       /* Decrement the loop counter */
       blkCnt--;
     }
 
-    /* If the blockSize2 is not a multiple of 4, compute any remaining output samples here.   
+    /* If the blockSize2 is not a multiple of 4, compute any remaining output samples here.    
      ** No loop unrolling is used. */
     blkCnt = blockSize2 % 0x4u;
 
@@ -391,7 +401,7 @@ void arm_conv_fast_q31(
       /* Apply loop unrolling and compute 4 MACs simultaneously. */
       k = srcBLen >> 2u;
 
-      /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.   
+      /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.    
        ** a second loop below computes MACs for the remaining 1 to 3 samples. */
       while(k > 0u)
       {
@@ -409,7 +419,7 @@ void arm_conv_fast_q31(
         k--;
       }
 
-      /* If the srcBLen is not a multiple of 4, compute any remaining MACs here.   
+      /* If the srcBLen is not a multiple of 4, compute any remaining MACs here.    
        ** No loop unrolling is used. */
       k = srcBLen % 0x4u;
 
@@ -426,12 +436,12 @@ void arm_conv_fast_q31(
       /* Store the result in the accumulator in the destination buffer. */
       *pOut++ = sum << 1;
 
+      /* Increment the MAC count */
+      count++;
+
       /* Update the inputA and inputB pointers for next MAC calculation */
       px = pIn1 + count;
       py = pSrc2;
-
-      /* Increment the MAC count */
-      count++;
 
       /* Decrement the loop counter */
       blkCnt--;
@@ -439,7 +449,7 @@ void arm_conv_fast_q31(
   }
   else
   {
-    /* If the srcBLen is not a multiple of 4,   
+    /* If the srcBLen is not a multiple of 4,    
      * the blockSize2 loop cannot be unrolled by 4 */
     blkCnt = blockSize2;
 
@@ -464,12 +474,12 @@ void arm_conv_fast_q31(
       /* Store the result in the accumulator in the destination buffer. */
       *pOut++ = sum << 1;
 
+      /* Increment the MAC count */
+      count++;
+
       /* Update the inputA and inputB pointers for next MAC calculation */
       px = pIn1 + count;
       py = pSrc2;
-
-      /* Increment the MAC count */
-      count++;
 
       /* Decrement the loop counter */
       blkCnt--;
@@ -477,18 +487,18 @@ void arm_conv_fast_q31(
   }
 
 
-  /* --------------------------   
-   * Initializations of stage3   
+  /* --------------------------    
+   * Initializations of stage3    
    * -------------------------*/
 
-  /* sum += x[srcALen-srcBLen+1] * y[srcBLen-1] + x[srcALen-srcBLen+2] * y[srcBLen-2] +...+ x[srcALen-1] * y[1]   
-   * sum += x[srcALen-srcBLen+2] * y[srcBLen-1] + x[srcALen-srcBLen+3] * y[srcBLen-2] +...+ x[srcALen-1] * y[2]   
-   * ....   
-   * sum +=  x[srcALen-2] * y[srcBLen-1] + x[srcALen-1] * y[srcBLen-2]   
-   * sum +=  x[srcALen-1] * y[srcBLen-1]   
+  /* sum += x[srcALen-srcBLen+1] * y[srcBLen-1] + x[srcALen-srcBLen+2] * y[srcBLen-2] +...+ x[srcALen-1] * y[1]    
+   * sum += x[srcALen-srcBLen+2] * y[srcBLen-1] + x[srcALen-srcBLen+3] * y[srcBLen-2] +...+ x[srcALen-1] * y[2]    
+   * ....    
+   * sum +=  x[srcALen-2] * y[srcBLen-1] + x[srcALen-1] * y[srcBLen-2]    
+   * sum +=  x[srcALen-1] * y[srcBLen-1]    
    */
 
-  /* In this stage the MAC operations are decreased by 1 for every iteration.   
+  /* In this stage the MAC operations are decreased by 1 for every iteration.    
      The blockSize3 variable holds the number of MAC operations performed */
 
   /* Working pointer of inputA */
@@ -499,8 +509,8 @@ void arm_conv_fast_q31(
   pSrc2 = pIn2 + (srcBLen - 1u);
   py = pSrc2;
 
-  /* -------------------   
-   * Stage3 process   
+  /* -------------------    
+   * Stage3 process    
    * ------------------*/
 
   while(blockSize3 > 0u)
@@ -511,7 +521,7 @@ void arm_conv_fast_q31(
     /* Apply loop unrolling and compute 4 MACs simultaneously. */
     k = blockSize3 >> 2u;
 
-    /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.   
+    /* First part of the processing with loop unrolling.  Compute 4 MACs at a time.    
      ** a second loop below computes MACs for the remaining 1 to 3 samples. */
     while(k > 0u)
     {
@@ -535,7 +545,7 @@ void arm_conv_fast_q31(
       k--;
     }
 
-    /* If the blockSize3 is not a multiple of 4, compute any remaining MACs here.   
+    /* If the blockSize3 is not a multiple of 4, compute any remaining MACs here.    
      ** No loop unrolling is used. */
     k = blockSize3 % 0x4u;
 
@@ -562,6 +572,6 @@ void arm_conv_fast_q31(
 
 }
 
-/**   
- * @} end of Conv group   
+/**    
+ * @} end of Conv group    
  */
