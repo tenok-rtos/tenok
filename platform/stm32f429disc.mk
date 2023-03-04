@@ -3,6 +3,20 @@
 CFLAGS+=-D STM32F429_439xx
 CFLAGS+=-Wl,-T,platform/stm32f429.ld
 
+CFLAGS+=-I./lib/STM32F429I-Discovery
+CFLAGS+=-I./lib/STM32F429I-Discovery/Common
+
+SRC+=$(ST_LIB)/src/stm32f4xx_fmc.c \
+	$(ST_LIB)/src/stm32f4xx_ltdc.c \
+	$(ST_LIB)/src/stm32f4xx_dma2d.c \
+	$(ST_LIB)/src/stm32f4xx_syscfg.c \
+        $(ST_LIB)/src/stm32f4xx_exti.c
+
+SRC+=./lib/STM32F429I-Discovery/stm32f429i_discovery.c \
+    ./lib/STM32F429I-Discovery/stm32f429i_discovery_lcd.c \
+    ./lib/STM32F429I-Discovery/stm32f429i_discovery_ioe.c \
+    ./lib/STM32F429I-Discovery/stm32f429i_discovery_sdram.c
+
 all:
 
 flash:
