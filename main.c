@@ -45,10 +45,7 @@ void led_task1(void)
     while(1) {
         sem_wait(&sem_led);
 
-        GPIO_WriteBit(GPIOD, GPIO_Pin_12, state);
-        GPIO_WriteBit(GPIOD, GPIO_Pin_13, state);
-        GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
-        GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
+        led_write(state);
 
         state = (state + 1) % 2;
     }
