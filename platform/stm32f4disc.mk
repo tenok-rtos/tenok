@@ -2,3 +2,20 @@
 
 CFLAGS+=-D STM32F40_41xxx
 CFLAGS+=-Wl,-T,platform/stm32f407.ld
+
+all:
+
+flash:
+	openocd -f interface/stlink.cfg \
+	-f target/stm32f4x.cfg \
+	-c "init" \
+	-c "reset init" \
+	-c "halt" \
+	-c "flash write_image erase $(ELF)" \
+	-c "verify_image $(ELF)" \
+	-c "reset run" -c shutdown
+
+openocd:
+	openocd -s /opt/openocd/share/openocd/scripts/ -f ./gdb/openocd.cfg
+
+.PHONY: all flash openocd

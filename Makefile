@@ -1,11 +1,10 @@
-PROJECT=neo-rtenv
-ELF=$(PROJECT).elf
-BIN=$(PROJECT).bin
+-include config.mk
 
 CFLAGS=
 
 #board selection
--include platform/stm32f4disc.mk
+-include platform/qemu.mk
+#-include platform/stm32f4disc.mk
 #-include platform/stm32f429disc.mk
 
 CFLAGS+=-g -mlittle-endian -mthumb \
@@ -79,8 +78,6 @@ ASM=./platform/startup_stm32f4xx.s \
 	./kernel/syscall.s \
 	./kernel/spinlock.s
 
--include config.mk
-
 all:$(ELF)
 	@$(MAKE) -C ./tools -f Makefile
 
@@ -115,28 +112,6 @@ clean:
 	rm -rf *.orig
 	@$(MAKE) -C ./tools -f Makefile clean
 
-qemu: all
-	$(QEMU) -cpu cortex-m4 \
-	-M netduinoplus2 \
-	-serial /dev/null \
-	-serial /dev/null \
-	-serial stdio \
-	-gdb tcp::3333 \
-	-kernel ./$(ELF)
-
-flash:
-	openocd -f interface/stlink.cfg \
-	-f target/stm32f4x.cfg \
-	-c "init" \
-	-c "reset init" \
-	-c "halt" \
-	-c "flash write_image erase $(ELF)" \
-	-c "verify_image $(ELF)" \
-	-c "reset run" -c shutdown
-
-openocd:
-	openocd -s /opt/openocd/share/openocd/scripts/ -f ./gdb/openocd.cfg
-
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
 
@@ -147,4 +122,4 @@ astyle:
 size:
 	$(SIZE) $(ELF)
 
-.PHONY: all check clean qemu flash openocd gdbauto astyle size
+.PHONY: all check clean gdbauto astyle size
