@@ -1,4 +1,4 @@
--include ../config.mk
+include ../config.mk
 
 ROMFS=./romfs.bin
 ROMFS_OBJ=./romfs.o
@@ -34,4 +34,4 @@ clean:
 	rm -rf $(ROMFS)
 	rm -rf $(ROMFS_OBJ)
 
-.PHONY: gdbserver gdbauto clean
+.PHONY: gdbauto clean

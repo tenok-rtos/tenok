@@ -1,4 +1,4 @@
--include config.mk
+include config.mk
 
 .DEFAULT_GOAL=all
 
@@ -6,9 +6,9 @@ CFLAGS=
 SRC=
 
 #board selection
--include platform/qemu.mk
-#-include platform/stm32f4disc.mk
-#-include platform/stm32f429disc.mk
+include platform/qemu.mk
+#include platform/stm32f4disc.mk
+#include platform/stm32f429disc.mk
 
 CFLAGS+=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
