@@ -8,7 +8,8 @@ CFLAGS+=-D__BOARD_NAME__=\"stm32f407\"
 CFLAGS+=-I./drivers/stm32f407
 
 SRC+=./drivers/stm32f407/gpio.c \
-	./drivers/stm32f407/uart.c
+	./drivers/stm32f407/uart.c \
+        ./drivers/stm32f407/bsp_drv.c
 
 qemu: all
 	$(QEMU) -cpu cortex-m4 \
