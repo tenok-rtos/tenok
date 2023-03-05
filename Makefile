@@ -32,7 +32,6 @@ CFLAGS+=-I$(ST_LIB)/inc
 
 CFLAGS+=-I./
 CFLAGS+=-I./platform
-CFLAGS+=-I./drivers
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./apps
@@ -62,8 +61,6 @@ SRC+=./kernel/fifo.c \
 	./kernel/rom_dev.c \
 	./kernel/reg_file.c \
 	./mm/mpool.c \
-	./drivers/gpio.c \
-	./drivers/uart.c \
 	./apps/shell.c \
 	./apps/shell_cmd.c \
 	./examples/fifo-ex.c \

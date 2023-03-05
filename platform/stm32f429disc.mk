@@ -8,6 +8,8 @@ CFLAGS+=-D__BOARD_NAME__=\"stm32f429\"
 CFLAGS+=-I./lib/STM32F429I-Discovery
 CFLAGS+=-I./lib/STM32F429I-Discovery/Common
 
+CFLAGS+=-I./drivers/stm32f429
+
 SRC+=$(ST_LIB)/src/stm32f4xx_fmc.c \
 	$(ST_LIB)/src/stm32f4xx_ltdc.c \
 	$(ST_LIB)/src/stm32f4xx_dma2d.c \
@@ -18,6 +20,9 @@ SRC+=./lib/STM32F429I-Discovery/stm32f429i_discovery.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_lcd.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_ioe.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_sdram.c
+
+SRC+=./drivers/stm32f429/gpio.c \
+	./drivers/stm32f429/uart.c
 
 flash:
 	openocd -f interface/stlink.cfg \
