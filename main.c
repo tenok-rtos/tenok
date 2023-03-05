@@ -12,6 +12,7 @@
 #include "fs.h"
 #include "rom_dev.h"
 #include "examples.h"
+#include "bsp_drv.h"
 
 extern struct inode *shell_dir_curr;
 
@@ -121,6 +122,7 @@ void first(void *param)
 int main(void)
 {
     led_init();
+    bsp_driver_init();
 
     /* uart3 should be initialized before starting the os
      * since the configuration of the nvic requires using
