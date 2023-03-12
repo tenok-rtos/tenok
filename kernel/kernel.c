@@ -216,7 +216,7 @@ void sys_sched_yield(void)
 
 void sys_set_irq(void)
 {
-    uint32_t state = running_task->stack_top->r0;
+    uint32_t state = *running_task->reg.r0;
     if(state) {
         //asm volatile ("cpsie i"); //enable all irq
         reset_basepri();
@@ -229,7 +229,7 @@ void sys_set_irq(void)
 void sys_set_program_name(void)
 {
     /* read syscall argument */
-    char *name = (char*)running_task->stack_top->r0;
+    char *name = (char*)*running_task->reg.r0;
 
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
 }
@@ -237,7 +237,7 @@ void sys_set_program_name(void)
 void sys_fork(void)
 {
     if(task_cnt > TASK_CNT_MAX) {
-        running_task->stack_top->r0 = -1; //pass the return value with r0
+        *running_task->reg.r0 = -1; //pass the return value with r0
         return;
     }
 
@@ -258,7 +258,7 @@ void sys_fork(void)
     memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
     /* set return values */
-    running_task->stack_top->r0 = task_cnt;            //return the child pid to the parent task
+    *running_task->reg.r0 = task_cnt;            //return the child pid to the parent task
     tasks[task_cnt].stack_top->r0 = running_task->pid; //return 0 to the child task
 
     task_cnt++;
@@ -267,21 +267,21 @@ void sys_fork(void)
 void sys_sleep(void)
 {
     /* reconfigure the timer for sleeping */
-    running_task->remained_ticks = running_task->stack_top->r0;
+    running_task->remained_ticks = *running_task->reg.r0;
 
     /* put the task into the sleep list and change the status */
     running_task->status = TASK_WAIT;
     list_push(&sleep_list, &(running_task->list));
 
     /* pass the return value with r0 */
-    running_task->stack_top->r0 = 0;
+    *running_task->reg.r0 = 0;
 }
 
 void sys_mount(void)
 {
     /* read syscall arguments */
-    char *source = (char *)running_task->stack_top->r0;
-    char *target = (char *)running_task->stack_top->r1;
+    char *source = (char *)*running_task->reg.r0;
+    char *target = (char *)*running_task->reg.r1;
 
     int task_fd = running_task->pid;
 
@@ -294,14 +294,14 @@ void sys_mount(void)
     int result;
     if(fifo_read(files[task_fd], (char *)&result, sizeof(result), 0)) {
         //return the file descriptor number with r0
-        running_task->stack_top->r0 = result;
+        *running_task->reg.r0 = result;
     }
 }
 
 void sys_open(void)
 {
     /* read syscall argument */
-    char *pathname = (char *)running_task->stack_top->r0;
+    char *pathname = (char *)*running_task->reg.r0;
 
     int task_fd = running_task->pid;
 
@@ -314,16 +314,16 @@ void sys_open(void)
     int fd;
     if(fifo_read(files[task_fd], (char *)&fd, sizeof(fd), 0)) {
         //pass the file descriptor number with r0
-        running_task->stack_top->r0 = fd;
+        *running_task->reg.r0 = fd;
     }
 }
 
 void sys_read(void)
 {
     /* read syscall argument */
-    int fd = running_task->stack_top->r0;
-    char *buf = (uint8_t *)running_task->stack_top->r1;
-    size_t count = running_task->stack_top->r2;
+    int fd = *running_task->reg.r0;
+    char *buf = (uint8_t *)*running_task->reg.r1;
+    size_t count = *running_task->reg.r2;
 
     /* get the file pointer from the table */
     struct file *filp = files[fd];
@@ -333,16 +333,16 @@ void sys_read(void)
 
     /* pass the return value only if the read operation is complete */
     if(running_task->syscall_pending == false) {
-        running_task->stack_top->r0 = retval;
+        *running_task->reg.r0 = retval;
     }
 }
 
 void sys_write(void)
 {
     /* read syscall arguments */
-    int fd = running_task->stack_top->r0;
-    char *buf = (uint8_t *)running_task->stack_top->r1;
-    size_t count = running_task->stack_top->r2;
+    int fd = *running_task->reg.r0;
+    char *buf = (uint8_t *)*running_task->reg.r1;
+    size_t count = *running_task->reg.r2;
 
     /* get the file pointer from the table */
     struct file *filp = files[fd];
@@ -350,15 +350,15 @@ void sys_write(void)
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
-    running_task->stack_top->r0 = retval; //pass the return value with r0
+    *running_task->reg.r0 = retval; //pass the return value with r0
 }
 
 void sys_lseek(void)
 {
     /* read syscall arguments */
-    int fd = running_task->stack_top->r0;
-    long offset = running_task->stack_top->r1;
-    int whence = running_task->stack_top->r2;
+    int fd = *running_task->reg.r0;
+    long offset = *running_task->reg.r1;
+    int whence = *running_task->reg.r2;
 
     /* get the file pointer from the table */
     struct file *filp = files[fd];
@@ -366,14 +366,14 @@ void sys_lseek(void)
     /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
 
-    running_task->stack_top->r0 = retval; //pass the return value with r0
+    *running_task->reg.r0 = retval; //pass the return value with r0
 }
 
 void sys_fstat(void)
 {
     /* read syscall arguments */
-    int fd = running_task->stack_top->r0;
-    struct stat *statbuf = (struct stat *)running_task->stack_top->r1;
+    int fd = *running_task->reg.r0;
+    struct stat *statbuf = (struct stat *)*running_task->reg.r1;
 
     /* read the inode of the given file */
     struct inode *inode = files[fd]->file_inode;
@@ -387,14 +387,14 @@ void sys_fstat(void)
         statbuf->st_blocks = inode->i_blocks;
     }
 
-    running_task->stack_top->r0 = 0; //pass the return value with r0
+    *running_task->reg.r0 = 0; //pass the return value with r0
 }
 
 void sys_opendir(void)
 {
     /* read syscall arguments */
-    char *pathname = (char *)running_task->stack_top->r0;
-    DIR *dirp = (DIR *)running_task->stack_top->r1;
+    char *pathname = (char *)*running_task->reg.r0;
+    DIR *dirp = (DIR *)*running_task->reg.r1;
 
     int task_fd = running_task->pid;
 
@@ -412,9 +412,9 @@ void sys_opendir(void)
 
         /* pass the return value with r0 */
         if(dirp->inode_dir == NULL) {
-            running_task->stack_top->r0 = -1;
+            *running_task->reg.r0 = -1;
         } else {
-            running_task->stack_top->r0 = 0;
+            *running_task->reg.r0 = 0;
         }
     }
 }
@@ -422,25 +422,25 @@ void sys_opendir(void)
 void sys_readdir(void)
 {
     /* read syscall arguments */
-    DIR *dirp = (DIR *)running_task->stack_top->r0;
-    struct dirent *dirent = (struct dirent *)running_task->stack_top->r1;
+    DIR *dirp = (DIR *)*running_task->reg.r0;
+    struct dirent *dirent = (struct dirent *)*running_task->reg.r1;
 
     /* pass the return value with r0 */
-    running_task->stack_top->r0 = (uint32_t)fs_read_dir(dirp, dirent);
+    *running_task->reg.r0 = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
 void sys_getpriority(void)
 {
     /* return the task priority with r0 */
-    running_task->stack_top->r0 = running_task->priority;
+    *running_task->reg.r0 = running_task->priority;
 }
 
 void sys_setpriority(void)
 {
     /* read syscall arguments */
-    int which = running_task->stack_top->r0;
-    int who = running_task->stack_top->r1;
-    int priority = running_task->stack_top->r2;
+    int which = *running_task->reg.r0;
+    int who = *running_task->reg.r1;
+    int priority = *running_task->reg.r2;
 
     /* unsupported type of the `which' argument */
     if(which != PRIO_PROCESS) {
@@ -453,7 +453,7 @@ void sys_setpriority(void)
     for(i = 0; i < task_cnt; i++) {
         if(tasks[i].pid == who) {
             tasks[i].priority = priority;
-            running_task->stack_top->r0 = 0;  //return 0 with r0
+            *running_task->reg.r0 = 0;  //return 0 with r0
             return;
         }
     }
@@ -465,15 +465,15 @@ void sys_setpriority(void)
 void sys_getpid(void)
 {
     /* return the task pid with r0 */
-    running_task->stack_top->r0 = running_task->pid;
+    *running_task->reg.r0 = running_task->pid;
 }
 
 void sys_mknod(void)
 {
     /* read syscall argument */
-    char *pathname = (char *)running_task->stack_top->r0;
-    //mode_t mode = (mode_t)running_task->stack_top->r1;
-    dev_t dev = (dev_t)running_task->stack_top->r2;
+    char *pathname = (char *)*running_task->reg.r0;
+    //mode_t mode = (mode_t)*running_task->reg.r1;
+    dev_t dev = (dev_t)*running_task->reg.r2;
 
     int task_fd = running_task->pid;
 
@@ -490,9 +490,9 @@ void sys_mknod(void)
 
     /* pass the return value with r0 */
     if(new_fd == -1) {
-        running_task->stack_top->r0 = -1;
+        *running_task->reg.r0 = -1;
     } else {
-        running_task->stack_top->r0 = 0;
+        *running_task->reg.r0 = 0;
     }
 }
 
@@ -594,6 +594,21 @@ void sched_start(task_func_t first_task)
         if(running_task->syscall_pending == false) {
             running_task->stack_top =
                 (struct task_stack *)jump_to_user_space((uint32_t)running_task->stack_top);
+
+            /* record the stack address of r0-r3 due to the distinct stack layouts by lazy context switch mechanism of the fpu */
+            if(running_task->stack_top->_lr & 0x10) { /* check lr[4] bits (0: fpu is used, 1: fpu is unused) */
+                struct task_stack *sp = (struct task_stack *)running_task->stack_top;
+                running_task->reg.r0 = &sp->r0;
+                running_task->reg.r1 = &sp->r1;
+                running_task->reg.r2 = &sp->r2;
+                running_task->reg.r3 = &sp->r3;
+            } else {
+                struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)running_task->stack_top;
+                running_task->reg.r0 = &sp_fpu->r0;
+                running_task->reg.r1 = &sp_fpu->r1;
+                running_task->reg.r2 = &sp_fpu->r2;
+                running_task->reg.r3 = &sp_fpu->r3;
+            }
         }
 
         /* _r7 is negative if the kernel is returned from the systick irq */
