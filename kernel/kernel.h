@@ -29,8 +29,9 @@ enum {
     TASK_RUNNING
 } TASK_STATUS;
 
-/* layout of the user stack */
+/* layout of the user stack when the fpu is not used */
 struct task_stack {
+    /* pushed by the os */
     uint32_t r4;
     uint32_t r5;
     uint32_t r6;
@@ -43,6 +44,7 @@ struct task_stack {
 
     uint32_t _r7; //syscall number
 
+    /* pushed by the exception entry */
     uint32_t r0;
     uint32_t r1;
     uint32_t r2;
@@ -54,7 +56,9 @@ struct task_stack {
     uint32_t stack[TASK_STACK_SIZE - 17];
 };
 
+/* layout of the user stack when fpu is used */
 struct task_stack_fpu {
+    /* pushed by the os */
     uint32_t r4;
     uint32_t r5;
     uint32_t r6;
@@ -84,6 +88,7 @@ struct task_stack_fpu {
     uint32_t s30;
     uint32_t s31;
 
+    /* pushed by the exception entry */
     uint32_t r0;
     uint32_t r1;
     uint32_t r2;
@@ -92,13 +97,12 @@ struct task_stack_fpu {
     uint32_t lr;
     uint32_t pc;
     uint32_t xpsr;
-
     //s0
     //...
     //s15
     //fpscr
 
-    uint32_t stack[TASK_STACK_SIZE - 17];
+    uint32_t stack[TASK_STACK_SIZE - 33];
 };
 
 /* task control block */
