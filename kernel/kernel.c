@@ -257,9 +257,21 @@ void sys_fork(void)
     /* copy the stack of the used part only */
     memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
-    /* set return values */
-    *running_task->reg.r0 = task_cnt;            //return the child pid to the parent task
-    tasks[task_cnt].stack_top->r0 = running_task->pid; //return 0 to the child task
+    /* return the child pid to the parent task */
+    *running_task->reg.r0 = task_cnt;
+
+    /*
+     * select the proper stack layout and return the pid number to the child task
+     * check lr[4] bits (0: fpu is used, 1: fpu is unused)
+     */
+    if(running_task->stack_top->_lr & 0x10) {
+        struct task_stack *sp = (struct task_stack *)tasks[task_cnt].stack_top;
+        sp->r0 = running_task->pid;
+    } else {
+        struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)tasks[task_cnt].stack_top;
+        sp_fpu->r0 = running_task->pid;
+
+    }
 
     task_cnt++;
 }
