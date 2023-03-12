@@ -40,7 +40,9 @@ struct task_stack {
     uint32_t r10;
     uint32_t r11;
     uint32_t _lr;
+
     uint32_t _r7; //syscall number
+
     uint32_t r0;
     uint32_t r1;
     uint32_t r2;
@@ -52,11 +54,62 @@ struct task_stack {
     uint32_t stack[TASK_STACK_SIZE - 17];
 };
 
+struct task_stack_fpu {
+    uint32_t r4;
+    uint32_t r5;
+    uint32_t r6;
+    uint32_t r7;
+    uint32_t r8;
+    uint32_t r9;
+    uint32_t r10;
+    uint32_t r11;
+    uint32_t _lr;
+
+    uint32_t _r7; //syscall number
+
+    uint32_t s16;
+    uint32_t s17;
+    uint32_t s18;
+    uint32_t s19;
+    uint32_t s20;
+    uint32_t s21;
+    uint32_t s22;
+    uint32_t s23;
+    uint32_t s24;
+    uint32_t s25;
+    uint32_t s26;
+    uint32_t s27;
+    uint32_t s28;
+    uint32_t s29;
+    uint32_t s30;
+    uint32_t s31;
+
+    uint32_t r0;
+    uint32_t r1;
+    uint32_t r2;
+    uint32_t r3;
+    uint32_t r12;
+    uint32_t lr;
+    uint32_t pc;
+    uint32_t xpsr;
+
+    //s0
+    //...
+    //s15
+    //fpscr
+
+    uint32_t stack[TASK_STACK_SIZE - 17];
+};
+
 /* task control block */
 struct task_ctrl_blk {
     struct task_stack *stack_top;    //pointer of the stack top address
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
+
+    struct {
+        uint32_t *r0, *r1, *r2, *r3;
+    } reg;
 
     uint8_t  status;
     uint32_t pid;

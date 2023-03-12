@@ -13,6 +13,11 @@ SysTick_Handler:
 
     /* save user state */
     mrs   r0,  psp  //load psp into the r0
+
+    tst r14, #0x10
+    it eq
+    vstmdbeq r0!, {s16-s31}
+
     stmdb r0!, {r7} //preserve the syscall number of the _r7
     stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve context: r4-r11 and lr
 
@@ -34,6 +39,11 @@ SVC_Handler:
 
     /* save user state */
     mrs   r0, psp   //load psp into the r0
+
+    tst r14, #0x10
+    it eq
+    vstmdbeq r0!, {s16-s31}
+
     stmdb r0!, {r7} //preserve the syscall number of the _r7
     stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve user context: r4-r11 and lr
 
@@ -58,6 +68,11 @@ jump_to_user_space:
     /* load user state */
     ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the user state from the address pointed by the r0
     ldmia r0!, {r7} //load syscall number _r7
+
+    tst r14, #0x10
+    it eq
+    vldmiaeq r0!, {s16-s31}
+
     msr   psp, r0   //psp = r0 (set the psp to the stack address of the task to jump)
 
     /* enable the interrupt */
