@@ -37,6 +37,22 @@ CFLAGS+=-I./mm
 CFLAGS+=-I./apps
 CFLAGS+=-I./examples
 
+SRC+=lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
+	lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_cos_f32.c \
+	lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_sin_f32.c \
+	lib/CMSIS/DSP_Lib/Source/StatisticsFunctions/arm_power_f32.c \
+	lib/CMSIS/DSP_Lib/Source/StatisticsFunctions/arm_max_f32.c \
+	lib/CMSIS/DSP_Lib/Source/BasicMathFunctions/arm_sub_f32.c \
+	lib/CMSIS/DSP_Lib/Source/BasicMathFunctions/arm_dot_prod_f32.c \
+	lib/CMSIS/DSP_Lib/Source/SupportFunctions/arm_copy_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_init_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_scale_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_add_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_sub_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_mult_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_trans_f32.c \
+	lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_inverse_f32.c
+
 SRC+=./lib/CMSIS/system_stm32f4xx.c
 
 SRC+=$(ST_LIB)/src/misc.c \
