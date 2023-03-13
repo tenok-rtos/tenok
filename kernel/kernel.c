@@ -537,7 +537,7 @@ void set_basepri(void)
 void preempt_disable(void)
 {
     if(get_proc_mode() == 0) {
-        /* privileged mode, disable the basepri register directly */
+        /* privileged mode, disable the irq via syscall */
         set_irq(0);
     } else {
         /* privileged mode, set the basepri register directly */
