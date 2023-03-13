@@ -2,6 +2,9 @@
 #include "stm32f429i_discovery_lcd.h"
 #include "stm32f429i_discovery_ioe.h"
 
+//example of using the sdram:
+//uint8_t sdram[10000] __attribute__((section(".sdram")));
+
 struct lcd_layer {
     LTDC_Layer_TypeDef *ltdc_layer;
     int  lcd_layer;
@@ -16,6 +19,10 @@ struct lcd_layer lcd_layers[] = {
 
 void bsp_driver_init(void)
 {
+    /* sdram initialization */
+    SDRAM_Init();
+
+    /* lcd initialization */
     LCD_Init();
     LCD_LayerInit();
     LTDC_Cmd(ENABLE);
