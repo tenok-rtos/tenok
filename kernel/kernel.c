@@ -173,7 +173,7 @@ void schedule(void)
     running_task->status = TASK_RUNNING;
 }
 
-void systick_handler(void)
+static void sched_tick_update(void)
 {
     struct list *curr;
 
@@ -537,11 +537,10 @@ void set_basepri(void)
 void preempt_disable(void)
 {
     if(get_proc_mode() == 0) {
-        /* unprivileged thread mode (assumed to be called by the user task) */
+        /* privileged mode, disable the basepri register directly */
         set_irq(0);
     } else {
-        /* handler mode (i.e., interrupt, which is always privileged) */
-        //asm volatile ("cpsid i");
+        /* privileged mode, set the basepri register directly */
         set_basepri();
     }
 }
@@ -549,11 +548,10 @@ void preempt_disable(void)
 void preempt_enable(void)
 {
     if(get_proc_mode() == 0) {
-        /* unprivileged thread mode (assumed to be called by the user task) */
+        /* unprivileged mode, enable the irq via syscall */
         set_irq(1);
     } else {
-        /* handler mode (i.e., interrupt, which is always privileged) */
-        //asm volatile ("cpsie i");
+        /* privileged mode, set the basepri register directly */
         reset_basepri();
     }
 }
@@ -563,6 +561,28 @@ void os_service_init(void)
     rootfs_init();
 
     if(!fork()) file_system_task();
+}
+
+/* save r0-r3 registers that may carry the syscall arguments via the supervisor call */
+static void save_syscall_args(void)
+{
+    /*
+     * the stack layouts are different according to the fpu is used or not due to the lazy context switch mechanism
+     * of the arm processor. when lr[4] bit is set as 0, the fpu is used otherwise it is unused.
+     */
+    if(running_task->stack_top->_lr & 0x10) {
+        struct task_stack *sp = (struct task_stack *)running_task->stack_top;
+        running_task->reg.r0 = &sp->r0;
+        running_task->reg.r1 = &sp->r1;
+        running_task->reg.r2 = &sp->r2;
+        running_task->reg.r3 = &sp->r3;
+    } else {
+        struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)running_task->stack_top;
+        running_task->reg.r0 = &sp_fpu->r0;
+        running_task->reg.r1 = &sp_fpu->r1;
+        running_task->reg.r2 = &sp_fpu->r2;
+        running_task->reg.r3 = &sp_fpu->r3;
+    }
 }
 
 void sched_start(task_func_t first_task)
@@ -602,37 +622,28 @@ void sched_start(task_func_t first_task)
     tasks[0].status = TASK_RUNNING;
 
     while(1) {
-        /* execute the task if the pending flag of the syscall is not set */
-        if(running_task->syscall_pending == false) {
-            running_task->stack_top =
-                (struct task_stack *)jump_to_user_space((uint32_t)running_task->stack_top);
-
-            /* record the stack address of r0-r3 due to the distinct stack layouts by lazy context switch mechanism of the fpu */
-            if(running_task->stack_top->_lr & 0x10) { /* check lr[4] bits (0: fpu is used, 1: fpu is unused) */
-                struct task_stack *sp = (struct task_stack *)running_task->stack_top;
-                running_task->reg.r0 = &sp->r0;
-                running_task->reg.r1 = &sp->r1;
-                running_task->reg.r2 = &sp->r2;
-                running_task->reg.r3 = &sp->r3;
-            } else {
-                struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)running_task->stack_top;
-                running_task->reg.r0 = &sp_fpu->r0;
-                running_task->reg.r1 = &sp_fpu->r1;
-                running_task->reg.r2 = &sp_fpu->r2;
-                running_task->reg.r3 = &sp_fpu->r3;
-            }
-        }
-
-        /* _r7 is negative if the kernel is returned from the systick irq */
+        /*
+         * if _r7 is negative, the kernel is returned from the systick exception,
+         * otherwise it is switched by a syscall request.
+         */
         if((int)running_task->stack_top->_r7 < 0) {
             running_task->stack_top->_r7 *= -1; //restore _r7
-            systick_handler();
+            sched_tick_update();
         } else {
-            /* _r7 is positive if the kernel is returned from the syscall */
             syscall_handler();
         }
 
+        /* select the next task */
         schedule();
+
+        /* execute the task if the pending flag of the syscall is not set */
+        if(running_task->syscall_pending == false) {
+            /* switch to the user space */
+            running_task->stack_top = (struct task_stack *)jump_to_user_space((uint32_t)running_task->stack_top);
+
+            /* record the address of syscall arguments in the stack (r0-r3 registers) */
+            save_syscall_args();
+        }
     }
 }
 
