@@ -6,8 +6,6 @@
 #include "mqueue.h"
 #include "syscall.h"
 
-#define ENABLE_UART3_DMA 0 //QEMU does not support dma emulation for stm32f4
-
 static void uart3_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
@@ -153,7 +151,6 @@ void DMA1_Stream4_IRQHandler(void)
         sem_post(&sem_uart3_tx);
     }
 }
-
 
 void uart_putc(USART_TypeDef *uart, char c)
 {
