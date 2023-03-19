@@ -9,6 +9,7 @@ extern struct task_ctrl_blk *running_task;
 int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
     mutex->owner = NULL;
+    mutex->lock = 0;
     list_init(&mutex->wait_list);
 
     return 0;
