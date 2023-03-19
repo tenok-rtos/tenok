@@ -534,7 +534,7 @@ void set_basepri(void)
 {
     asm volatile ("mov r0,      %0\n"
                   "msr basepri, r0\n"
-                  :: "i"(SYSCALL_INTR_PRI << 4));
+                  :: "i"(KERNEL_INT_PRI << 4));
 }
 
 void preempt_disable(void)
@@ -592,8 +592,8 @@ void sched_start(task_func_t first_task)
 {
     /* set interrupt priorities */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-    NVIC_SetPriority(SysTick_IRQn, SYSCALL_INTR_PRI);
-    NVIC_SetPriority(SVCall_IRQn, 0);
+    NVIC_SetPriority(SysTick_IRQn, KERNEL_INT_PRI << 4); //set PRI[7:4] = KERNEL_INT_PRI
+    NVIC_SetPriority(SVCall_IRQn, KERNEL_INT_PRI << 4);  //set PRI[7:4] = KERNEL_INT_PRI
 
     uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
     os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);

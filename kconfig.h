@@ -11,7 +11,7 @@
 
 #define MEM_POOL_SIZE        4096
 
-#define SYSCALL_INTR_PRI     5    /* isr priority higher than this value *
+#define KERNEL_INT_PRI       5    /* isr priority higher than this value *
                                    * will not be disabled                */
 
 /* message queue */

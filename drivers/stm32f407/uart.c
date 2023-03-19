@@ -89,7 +89,7 @@ void uart3_init(uint32_t baudrate)
     /* enable uart3's interrupt */
     NVIC_InitTypeDef nvic = {
         .NVIC_IRQChannel = USART3_IRQn,
-        .NVIC_IRQChannelPreemptionPriority = 10,
+        .NVIC_IRQChannelPreemptionPriority = KERNEL_INT_PRI + 1,
         .NVIC_IRQChannelSubPriority = 0,
         .NVIC_IRQChannelCmd = ENABLE
     };
