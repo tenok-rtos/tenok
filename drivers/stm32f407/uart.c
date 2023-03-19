@@ -48,7 +48,8 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
 #if (ENABLE_UART3_DMA != 0)
-    uart3_dma_puts(buf, size);
+    //uart3_dma_puts(buf, size);
+    uart_puts(USART3, buf, size);
 #else
     uart_puts(USART3, buf, size);
 #endif

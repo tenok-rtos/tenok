@@ -53,6 +53,8 @@ uint8_t mem_pool_buf[MEM_POOL_SIZE];
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
+bool irq_off = false;
+
 /* syscall table */
 syscall_info_t syscall_table[] = {
     /* non-posix syscalls */
@@ -145,6 +147,9 @@ void wake_up(struct list *wait_list)
 
 void schedule(void)
 {
+    if(irq_off == true)
+        return;
+
     /* push the current task into the sleep list */
     if(running_task->status == TASK_RUNNING) {
         prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
@@ -223,9 +228,11 @@ void sys_set_irq(void)
     if(state) {
         //asm volatile ("cpsie i"); //enable all irq
         reset_basepri();
+        irq_off = false;
     } else {
         //asm volatile ("cpsid i"); //disable all irq
         set_basepri();
+        irq_off = true;
     }
 }
 
