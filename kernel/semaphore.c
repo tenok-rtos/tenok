@@ -16,7 +16,7 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
     return 0;
 }
 
-/* sem_post() can be called by user task or interrupt handler functions */
+/* sem_post() can be called by user tasks or interrupt handler functions */
 int sem_post(sem_t *sem)
 {
     /* start of the critical section */
@@ -43,7 +43,7 @@ int sem_post(sem_t *sem)
     return 0;
 }
 
-/* sem_trywait() can be called in user space or kernel space */
+/* sem_trywait() can be called by user tasks or kernel program (e.g., chardev driver) */
 int sem_trywait(sem_t *sem)
 {
     /* start of the critical section */
