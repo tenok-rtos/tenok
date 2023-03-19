@@ -147,6 +147,8 @@ void wake_up(struct list *wait_list)
 
 void schedule(void)
 {
+    /* since certain os functions may disable the irq with syscall, the os should not reschedule
+     * the task until the irq is re-enable the task again */
     if(irq_off == true)
         return;
 
