@@ -1,4 +1,5 @@
-#include "string.h"
+#include <errno.h>
+#include <string.h>
 #include "stm32f4xx.h"
 #include "semaphore.h"
 #include "uart.h"
@@ -6,7 +7,7 @@
 #include "mqueue.h"
 #include "syscall.h"
 
-static void uart3_dma_puts(const char *data, size_t size);
+static int uart3_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -34,7 +35,7 @@ void serial0_init(void)
     mq_uart3_rx = mq_open("/serial0_mq_rx", 0, &attr);
 
     /* initialize the semaphore for transmission */
-    sem_init(&sem_uart3_tx, 0, 0);
+    sem_init(&sem_uart3_tx, 0, 1);
 
     /* enable the uart interrupt service routine */
     USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
@@ -47,9 +48,7 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    uart_puts(USART3, buf, size);
-    //uart3_dma_puts(buf, size);
-    return size;
+    return uart3_dma_puts(buf, size);
 }
 
 void uart3_init(uint32_t baudrate)
@@ -97,8 +96,11 @@ void uart3_init(uint32_t baudrate)
     NVIC_Init(&nvic);
 }
 
-static void uart3_dma_puts(const char *data, size_t size)
+static int uart3_dma_puts(const char *data, size_t size)
 {
+    if(sem_trywait(&sem_uart3_tx) == EAGAIN)
+        return EAGAIN;
+
     /* initialize the dma */
     DMA_InitTypeDef DMA_InitStructure = {
         .DMA_BufferSize = (uint32_t)size,
@@ -127,7 +129,7 @@ static void uart3_dma_puts(const char *data, size_t size)
     USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
 
     /* wait until the dma complete the transmission */
-    sem_wait(&sem_uart3_tx);
+    return size;
 }
 
 void USART3_IRQHandler(void)
@@ -160,9 +162,11 @@ char uart_getc(USART_TypeDef *uart)
     return USART_ReceiveData(uart);
 }
 
-void uart_puts(USART_TypeDef *uart, const char *data, size_t size)
+int uart_puts(USART_TypeDef *uart, const char *data, size_t size)
 {
     int i;
     for(i = 0; i < size; i++)
         uart_putc(uart, data[i]);
+
+    return size;
 }

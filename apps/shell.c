@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <string.h>
 #include "stm32f4xx.h"
 #include "uart.h"
@@ -23,14 +24,15 @@ char shell_getc(void)
     const size_t size = 1;
 
     char c;
-    while(read(serial_fd, &c, size) != size);
+    while(read(serial_fd, &c, size) == EAGAIN);
 
     return c;
 }
 
 void shell_puts(char *s)
 {
-    write(serial_fd, s, strlen(s));
+    int size = strlen(s);
+    while(write(serial_fd, s, size) == EAGAIN);
 }
 
 static void shell_ctrl_c_handler(struct shell *shell)
