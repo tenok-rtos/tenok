@@ -296,7 +296,7 @@ void sys_sleep(void)
     list_push(&sleep_list, &(running_task->list));
 
     /* pass the return value with r0 */
-    *running_task->reg.r0 = 0;
+    *(uint32_t *)running_task->reg.r0 = 0;
 }
 
 void sys_mount(void)
@@ -316,7 +316,7 @@ void sys_mount(void)
     int result;
     if(fifo_read(files[task_fd], (char *)&result, sizeof(result), 0)) {
         //return the file descriptor number with r0
-        *running_task->reg.r0 = result;
+        *(int *)running_task->reg.r0 = result;
     }
 }
 
@@ -336,7 +336,7 @@ void sys_open(void)
     int fd;
     if(fifo_read(files[task_fd], (char *)&fd, sizeof(fd), 0)) {
         //pass the file descriptor number with r0
-        *running_task->reg.r0 = fd;
+        *(int *)running_task->reg.r0 = fd;
     }
 }
 
@@ -355,7 +355,7 @@ void sys_read(void)
 
     /* pass the return value only if the read operation is complete */
     if(running_task->syscall_pending == false) {
-        *running_task->reg.r0 = retval;
+        *(int *)running_task->reg.r0 = retval;
     }
 }
 
@@ -372,7 +372,7 @@ void sys_write(void)
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
-    *running_task->reg.r0 = retval; //pass the return value with r0
+    *(int *)running_task->reg.r0 = retval; //pass the return value with r0
 }
 
 void sys_lseek(void)
@@ -388,7 +388,7 @@ void sys_lseek(void)
     /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
 
-    *running_task->reg.r0 = retval; //pass the return value with r0
+    *(long *)running_task->reg.r0 = retval; //pass the return value with r0
 }
 
 void sys_fstat(void)
@@ -409,7 +409,7 @@ void sys_fstat(void)
         statbuf->st_blocks = inode->i_blocks;
     }
 
-    *running_task->reg.r0 = 0; //pass the return value with r0
+    *(int *)running_task->reg.r0 = 0; //pass the return value with r0
 }
 
 void sys_opendir(void)
@@ -434,9 +434,9 @@ void sys_opendir(void)
 
         /* pass the return value with r0 */
         if(dirp->inode_dir == NULL) {
-            *running_task->reg.r0 = -1;
+            *(int *)running_task->reg.r0 = -1;
         } else {
-            *running_task->reg.r0 = 0;
+            *(int *)running_task->reg.r0 = 0;
         }
     }
 }
@@ -448,13 +448,13 @@ void sys_readdir(void)
     struct dirent *dirent = (struct dirent *)*running_task->reg.r1;
 
     /* pass the return value with r0 */
-    *running_task->reg.r0 = (uint32_t)fs_read_dir(dirp, dirent);
+    *(int *)running_task->reg.r0 = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
 void sys_getpriority(void)
 {
     /* return the task priority with r0 */
-    *running_task->reg.r0 = running_task->priority;
+    *(int *)running_task->reg.r0 = running_task->priority;
 }
 
 void sys_setpriority(void)
@@ -466,7 +466,7 @@ void sys_setpriority(void)
 
     /* unsupported type of the `which' argument */
     if(which != PRIO_PROCESS) {
-        running_task->stack_top->r0 = -1; //return -1 with r0
+        *(int *)running_task->reg.r0 = -1; //return -1 with r0
         return;
     }
 
@@ -475,19 +475,19 @@ void sys_setpriority(void)
     for(i = 0; i < task_cnt; i++) {
         if(tasks[i].pid == who) {
             tasks[i].priority = priority;
-            *running_task->reg.r0 = 0;  //return 0 with r0
+            *(int *)running_task->reg.r0 = 0;  //return 0 with r0
             return;
         }
     }
 
     /* process not found */
-    running_task->stack_top->r0 = -1; //return -1 with r0
+    *(int *)running_task->reg.r0 = -1; //return -1 with r0
 }
 
 void sys_getpid(void)
 {
     /* return the task pid with r0 */
-    *running_task->reg.r0 = running_task->pid;
+    *(int *)running_task->reg.r0 = running_task->pid;
 }
 
 void sys_mknod(void)
@@ -512,9 +512,9 @@ void sys_mknod(void)
 
     /* pass the return value with r0 */
     if(new_fd == -1) {
-        *running_task->reg.r0 = -1;
+        *(int *)running_task->reg.r0 = -1;
     } else {
-        *running_task->reg.r0 = 0;
+        *(int *)running_task->reg.r0 = 0;
     }
 }
 

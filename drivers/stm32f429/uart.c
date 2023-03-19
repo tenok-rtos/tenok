@@ -7,7 +7,7 @@
 #include "mqueue.h"
 #include "syscall.h"
 
-static int uart3_dma_puts(const char *data, size_t size);
+static void uart3_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -48,14 +48,14 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    if(sem_trywait(&sem_serial0_tx) == EAGAIN)
-        return EAGAIN;
+    if(sem_trywait(&sem_serial0_tx) == -EAGAIN)
+        return -EAGAIN;
 
-    int retval = uart3_dma_puts(buf, size);
+    uart3_dma_puts(buf, size);
 
     sem_post(&sem_serial0_tx);
 
-    return retval;
+    return size;
 }
 
 void uart3_init(uint32_t baudrate)
@@ -102,7 +102,7 @@ void uart3_init(uint32_t baudrate)
     USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
 }
 
-static int uart3_dma_puts(const char *data, size_t size)
+static void uart3_dma_puts(const char *data, size_t size)
 {
     /* configure the dma */
     DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
@@ -128,8 +128,6 @@ static int uart3_dma_puts(const char *data, size_t size)
     DMA_Cmd(DMA1_Stream4, ENABLE);
 
     while(DMA_GetFlagStatus(DMA1_Stream4, DMA_FLAG_TCIF4) == RESET);
-
-    return size;
 }
 
 void USART3_IRQHandler(void)
@@ -153,11 +151,9 @@ char uart_getc(USART_TypeDef *uart)
     return USART_ReceiveData(uart);
 }
 
-int uart_puts(USART_TypeDef *uart, const char *data, size_t size)
+void uart_puts(USART_TypeDef *uart, const char *data, size_t size)
 {
     int i;
     for(i = 0; i < size; i++)
         uart_putc(uart, data[i]);
-
-    return size;
 }

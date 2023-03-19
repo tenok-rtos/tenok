@@ -21,10 +21,8 @@ void shell_serial_init(void)
 
 char shell_getc(void)
 {
-    const size_t size = 1;
-
     char c;
-    while(read(serial_fd, &c, size) == EAGAIN);
+    while(read(serial_fd, &c, 1) != 1);
 
     return c;
 }
@@ -32,7 +30,7 @@ char shell_getc(void)
 void shell_puts(char *s)
 {
     int size = strlen(s);
-    while(write(serial_fd, s, size) == EAGAIN);
+    while(write(serial_fd, s, size) == -EAGAIN);
 }
 
 static void shell_ctrl_c_handler(struct shell *shell)

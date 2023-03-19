@@ -56,7 +56,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
         /* update the request size */
         running_task->file_request.size = msg_len;
 
-        retval = EAGAIN;
+        retval = -EAGAIN;
     } else {
         /* pop data from the pipe */
         int i;

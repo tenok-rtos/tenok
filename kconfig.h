@@ -4,8 +4,8 @@
 /* task and kernel */
 #define OS_TICK_FREQ         1000 /* Hz */
 
-#define TASK_STACK_SIZE      1024 /* words */
-#define TASK_CNT_MAX         10
+#define TASK_STACK_SIZE      512  /* words */
+#define TASK_CNT_MAX         12
 #define TASK_MAX_PRIORITY    5
 #define TASK_NAME_LEN_MAX    50
 

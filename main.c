@@ -116,7 +116,7 @@ void first(void *param)
     //run_mutex_example();
     //run_mqueue_example();
 
-    while(1); //idle loop when nothing to do
+    while(1); //idle loop when no task is ready
 }
 
 int main(void)

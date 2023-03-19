@@ -26,7 +26,7 @@ int sem_post(sem_t *sem)
 
     /* prevent integer overflow */
     if(sem->count >= (INT32_MAX - 1)) {
-        retval = EAGAIN; //ask the user to try again
+        retval = -EAGAIN; //ask the user to try again
     } else {
         /* increase the semaphore */
         sem->count++;
@@ -54,7 +54,7 @@ int sem_trywait(sem_t *sem)
     if(sem->count <= 0) {
         /* failed to obtain the semaphore, put the current task into the waiting list */
         prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
-        retval = EAGAIN; //ask the user to try again
+        retval = -EAGAIN; //ask the user to try again
     } else {
         /* successfully obtained the semaphore */
         sem->count--;

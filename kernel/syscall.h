@@ -22,7 +22,7 @@ long lseek(int fd, long offset, int whence);
 int fstat(int fd, struct stat *statbuf);
 int opendir(const char *name, DIR *dir);
 int readdir(DIR *dirp, struct dirent *dirent);
-uint32_t getpriority(void);
+int getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
 int mknod(const char *pathname, mode_t mode, dev_t dev);

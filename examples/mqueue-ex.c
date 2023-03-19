@@ -19,12 +19,12 @@ void message_queue_task1(void)
 
     my_message_t msg;
 
-    char *str = "hello world!\n\r";
+    char *str = "mqueue: greeting\n\r";
     strncpy(msg.data, str, sizeof(msg));
 
     while(1) {
         mq_send(mqdes_print, (char *)&msg, 1, 0);
-        sleep(200);
+        sleep(1000);
     }
 }
 
@@ -35,14 +35,12 @@ void message_queue_task2(void)
     my_message_t msg;
     int serial_fd = open("/dev/serial0", 0, 0);
 
-    int n = 1; //numbers of message to receive at once
-    int rcvd_size;
-
     while(1) {
-        while(mq_receive(mqdes_print, (char *)&msg, n, 0) != n);
-        rcvd_size = strlen(msg.data);
+        /* read message queue */
+        while(mq_receive(mqdes_print, (char *)&msg, 1, 0) != -EAGAIN);
 
-        while(write(serial_fd, msg.data, rcvd_size) == EAGAIN);
+        /* write serial */
+        while(write(serial_fd, msg.data, strlen(msg.data)) == -EAGAIN);
     }
 }
 

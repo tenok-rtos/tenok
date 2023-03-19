@@ -27,7 +27,7 @@ ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
     char *read_addr = &_section_rom_start + offset;
 
     if((uint32_t)(read_addr + size) > (uint32_t)&_section_rom_end) {
-        return EFAULT;
+        return -EFAULT;
     }
 
     memcpy(buf, read_addr, sizeof(char) * size);

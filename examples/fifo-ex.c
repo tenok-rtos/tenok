@@ -1,23 +1,23 @@
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "kernel.h"
 #include "syscall.h"
 #include "uart.h"
+
+#define TEST_STR "fifo: hello world\n\r"
+#define LEN      strlen(TEST_STR)
 
 void fifo_task1(void)
 {
     set_program_name("fifo1");
 
     int fifo_fd = open("/fifo_test", 0, 0);
-    char data[] = "hello";
-    int len = strlen(data);
+    char data[] = TEST_STR;
 
     while(1) {
-        int i;
-        for(i = 0; i < len; i++) {
-            write(fifo_fd, &data[i], 1);
-        }
-        sleep(200);
+        write(fifo_fd, TEST_STR, LEN);
+        sleep(1000);
     }
 }
 
@@ -28,13 +28,14 @@ void fifo_task2(void)
     int fifo_fd = open("/fifo_test", 0, 0);
     int serial_fd = open("/dev/serial0", 0, 0);
 
-    char data[10] = {0};
-    char str[50];
-
     while(1) {
-        read(fifo_fd, &data, 5);
-        snprintf(str, 50, "received: %s\n\r", data);
-        write(serial_fd, str, strlen(str));
+        char data[50] = {0};
+
+        /* read fifo */
+        read(fifo_fd, &data, LEN);
+
+        /* write serial */
+        while(write(serial_fd, data, LEN) == -EAGAIN);
     }
 }
 
