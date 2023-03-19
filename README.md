@@ -1,4 +1,4 @@
-## tenok
+## Tenok
 An experimental real-time operating system inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and
@@ -12,7 +12,7 @@ the term "`tenok`" in their language means "`kernel`."
 * Semaphore
 * FIFO (named pipe)
 * Message queue
-* Shell
+* Built-in shell interface
 * Simple rootfs and romfs
 
 ## Supported Platforms
