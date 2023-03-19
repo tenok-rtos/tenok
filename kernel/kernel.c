@@ -131,40 +131,36 @@ void wake_up(struct list *wait_list)
 
 void schedule(void)
 {
-    /* check the sleep list */
+    /* push the current task into the sleep list */
+    if(running_task->status == TASK_RUNNING) {
+        prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+    }
+
+    /* awake the sleep tasks if the tick is exhausted */
     struct list *list_itr = sleep_list.next;
     while(list_itr != &sleep_list) {
+        /* since the task may be removed from the list, the next task must be recorded first */
         struct list *next = list_itr->next;
+
+        /* obtain the task control block */
         struct task_ctrl_blk *task = list_entry(list_itr, struct task_ctrl_blk, list);
 
         /* task is ready, push it into the ready list according to its priority */
-        if(task->remained_ticks == 0) {
+        if(task->sleep_ticks == 0) {
             task->status = TASK_READY;
             list_remove(list_itr); //remove the task from the sleep list
             list_push(&ready_list[task->priority], list_itr);
         }
 
+        /* prepare the next task to check */
         list_itr = next;
     }
 
     /* find a ready list that contains runnable tasks */
     int pri;
     for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
-        if(list_is_empty(&ready_list[pri]) == false) {
+        if(list_is_empty(&ready_list[pri]) == false)
             break;
-        }
-    }
-
-    /* task returned to the scheduler before the time is up */
-    if(running_task->status == TASK_RUNNING) {
-        /* check if any higher priority task is woken */
-        if(pri > running_task->priority) {
-            /* yes, suspend the current task */
-            prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
-        } else {
-            /* no, keep running the current task */
-            return;
-        }
     }
 
     /* select a task from the ready list */
@@ -173,14 +169,9 @@ void schedule(void)
     running_task->status = TASK_RUNNING;
 }
 
-static void sched_tick_update(void)
+static void task_tick_update(void)
 {
     struct list *curr;
-
-    /* freeze the current task if it is still running */
-    if(running_task->status == TASK_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
-    }
 
     /* update the sleep timers */
     list_for_each(curr, &sleep_list) {
@@ -188,8 +179,8 @@ static void sched_tick_update(void)
         struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, list);
 
         /* update remained ticks of waiting */
-        if(task->remained_ticks > 0) {
-            task->remained_ticks--;
+        if(task->sleep_ticks > 0) {
+            task->sleep_ticks--;
         }
 
     }
@@ -279,7 +270,7 @@ void sys_fork(void)
 void sys_sleep(void)
 {
     /* reconfigure the timer for sleeping */
-    running_task->remained_ticks = *running_task->reg.r0;
+    running_task->sleep_ticks = *running_task->reg.r0;
 
     /* put the task into the sleep list and change the status */
     running_task->status = TASK_WAIT;
@@ -628,12 +619,12 @@ void sched_start(task_func_t first_task)
          */
         if((int)running_task->stack_top->_r7 < 0) {
             running_task->stack_top->_r7 *= -1; //restore _r7
-            sched_tick_update();
+            task_tick_update();
         } else {
             syscall_handler();
         }
 
-        /* select the next task */
+        /* select new task */
         schedule();
 
         /* execute the task if the pending flag of the syscall is not set */

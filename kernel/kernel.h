@@ -120,7 +120,7 @@ struct task_ctrl_blk {
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
 
-    uint32_t remained_ticks;
+    uint32_t sleep_ticks;
 
     bool     syscall_pending;
 
