@@ -169,11 +169,10 @@ void schedule(void)
     running_task->status = TASK_RUNNING;
 }
 
-static void task_tick_update(void)
+static void tasks_tick_update(void)
 {
-    struct list *curr;
-
     /* update the sleep timers */
+    struct list *curr;
     list_for_each(curr, &sleep_list) {
         /* get the task control block */
         struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, list);
@@ -182,7 +181,6 @@ static void task_tick_update(void)
         if(task->sleep_ticks > 0) {
             task->sleep_ticks--;
         }
-
     }
 }
 
@@ -619,7 +617,7 @@ void sched_start(task_func_t first_task)
          */
         if((int)running_task->stack_top->_r7 < 0) {
             running_task->stack_top->_r7 *= -1; //restore _r7
-            task_tick_update();
+            tasks_tick_update();
         } else {
             syscall_handler();
         }
