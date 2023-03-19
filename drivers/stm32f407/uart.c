@@ -12,7 +12,7 @@ static int uart3_dma_puts(const char *data, size_t size);
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
-sem_t sem_uart3_tx;
+sem_t sem_serial0_tx;
 mqd_t mq_uart3_rx;
 
 static struct file_operations serial0_file_ops = {
@@ -35,7 +35,7 @@ void serial0_init(void)
     mq_uart3_rx = mq_open("/serial0_mq_rx", 0, &attr);
 
     /* initialize the semaphore for transmission */
-    sem_init(&sem_uart3_tx, 0, 1);
+    sem_init(&sem_serial0_tx, 0, 1);
 
     /* enable the uart interrupt service routine */
     USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
@@ -48,11 +48,19 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
+    if(sem_trywait(&sem_serial0_tx) == EAGAIN)
+        return EAGAIN;
+
+    int retval;
 #if (ENABLE_UART3_DMA != 0)
-    return uart3_dma_puts(buf, size);
+    retval = uart3_dma_puts(buf, size);
 #else
-    return uart_puts(USART3, buf, size);
+    retval = uart_puts(USART3, buf, size);
 #endif
+
+    sem_post(&sem_serial0_tx);
+
+    return retval;
 }
 
 void uart3_init(uint32_t baudrate)
@@ -95,19 +103,14 @@ void uart3_init(uint32_t baudrate)
     };
     NVIC_Init(&nvic);
 
-#if (ENABLE_UART3_DMA != 0)
-    /* enable dma1's interrupt */
-    nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
-    NVIC_Init(&nvic);
-#endif
+    /* enable dma1 channel4 */
+    USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
 }
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    if(sem_trywait(&sem_uart3_tx) == EAGAIN)
-        return EAGAIN;
-
-    /* initialize the dma */
+    /* configure the dma */
+    DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
     DMA_InitTypeDef DMA_InitStructure = {
         .DMA_BufferSize = (uint32_t)size,
         .DMA_FIFOMode = DMA_FIFOMode_Disable,
@@ -125,16 +128,12 @@ static int uart3_dma_puts(const char *data, size_t size)
         .DMA_Memory0BaseAddr = (uint32_t)data
     };
     DMA_Init(DMA1_Stream4, &DMA_InitStructure);
-    DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
 
-    /* enable dma and its interrupt */
+    /* enable dma to copy the data */
     DMA_Cmd(DMA1_Stream4, ENABLE);
-    DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
 
-    /* trigger data sending */
-    USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
+    while(DMA_GetFlagStatus(DMA1_Stream4, DMA_FLAG_TCIF4) == RESET);
 
-    /* wait until the dma complete the transmission */
     return size;
 }
 
@@ -143,15 +142,6 @@ void USART3_IRQHandler(void)
     if(USART_GetITStatus(USART3, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART3);
         mq_send(mq_uart3_rx, (char *)&c, 1, 0);
-    }
-}
-
-void DMA1_Stream4_IRQHandler(void)
-{
-    if(DMA_GetITStatus(DMA1_Stream4, DMA_IT_TCIF4) == SET) {
-        DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF3);
-        DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
-        sem_post(&sem_uart3_tx);
     }
 }
 
