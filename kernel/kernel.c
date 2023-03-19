@@ -78,6 +78,19 @@ syscall_info_t syscall_table[] = {
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
+void task_return_handler(void)
+{
+    /*
+     * the task function is returned. the user can defined the behavior by modifying
+     * the return handler function. by default the os treats this as an error and disable
+     * the interrupts then enter into the infinite loop.
+     */
+    asm volatile ("cpsid i\n"
+                  "cpsid f\n");
+
+    while(1);
+}
+
 void task_create(task_func_t task_func, uint8_t priority)
 {
     if(task_cnt > TASK_CNT_MAX) {
@@ -97,8 +110,9 @@ void task_create(task_func_t task_func, uint8_t priority)
      */
     uint32_t *stack_top = tasks[task_cnt].stack + tasks[task_cnt].stack_size - 18;
     stack_top[17] = INITIAL_XPSR;
-    stack_top[16] = (uint32_t)task_func; // lr = task_entry
-    stack_top[8]  = THREAD_PSP;          //_lr = 0xfffffffd
+    stack_top[16] = (uint32_t)task_func;           // pc = task_entry
+    stack_top[15] = (uint32_t)task_return_handler; // lr
+    stack_top[8]  = THREAD_PSP;                    //_lr = 0xfffffffd
     tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
 
     task_cnt++;
