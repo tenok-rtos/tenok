@@ -10,7 +10,7 @@ loop:   ldrex r2, [r0]     //r2 = *lock
         cmp   r2, #1       //if(r2 == 1)
         beq   loop         //    goto loop
 
-        mov   r1, #1       //r0 = 1
+        mov   r1, #1       //r1 = 1
         strex r2, r1, [r0] //[r0] = r1, r2 = strex result (success:0, failed:1)
         cmp   r2, #1       //if(r2 == 1)
         beq   loop         //    goto loop
