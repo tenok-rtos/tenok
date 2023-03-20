@@ -152,11 +152,6 @@ void schedule(void)
     if(irq_off == true)
         return;
 
-    /* push the current task into the sleep list */
-    if(running_task->status == TASK_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
-    }
-
     /* awake the sleep tasks if the tick is exhausted */
     struct list *list_itr = sleep_list.next;
     while(list_itr != &sleep_list) {
@@ -166,7 +161,7 @@ void schedule(void)
         /* obtain the task control block */
         struct task_ctrl_blk *task = list_entry(list_itr, struct task_ctrl_blk, list);
 
-        /* task is ready, push it into the ready list according to its priority */
+        /* task is ready, push it into the ready list by its priority */
         if(task->sleep_ticks == 0) {
             task->status = TASK_READY;
             list_remove(list_itr); //remove the task from the sleep list
@@ -184,6 +179,18 @@ void schedule(void)
             break;
     }
 
+    /* task returned to the kernel before the time quantum is exhausted */
+    if(running_task->status == TASK_RUNNING) {
+        /* check if any higher priority task is woken */
+        if(pri > running_task->priority) {
+            /* yes, suspend the current task */
+            prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+        } else {
+            /* no, keep running the current task */
+            return;
+        }
+    }
+
     /* select a task from the ready list */
     struct list *next = list_pop(&ready_list[pri]);
     running_task = list_entry(next, struct task_ctrl_blk, list);
@@ -192,6 +199,11 @@ void schedule(void)
 
 static void tasks_tick_update(void)
 {
+    /* the time quantum for the task is exhausted and require re-scheduling */
+    if(running_task->status == TASK_RUNNING) {
+        prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+    }
+
     /* update the sleep timers */
     struct list *curr;
     list_for_each(curr, &sleep_list) {
