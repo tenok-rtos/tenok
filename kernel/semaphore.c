@@ -35,12 +35,14 @@ int sem_post(sem_t *sem)
         if(sem->count > 0 && !list_is_empty(&sem->wait_list)) {
             wake_up(&sem->wait_list);
         }
+
+        retval = 0; //semaphore is sent successfully
     }
 
     /* end of the critical section */
     spin_unlock_irq(&sem->lock);
 
-    return 0;
+    return retval;
 }
 
 /* sem_trywait() can be called by user tasks or kernel program (e.g., chardev driver) */
