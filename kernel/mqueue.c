@@ -48,7 +48,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
     /* start of the critical section */
     spin_lock_irq(&mq->lock);
 
-    /* is the data in the ring buffer enough to server the user? */
+    /* is the data in the ring buffer enough to serve the user? */
     if(msg_len > mq->pipe->count) {
         /* put the current task into the waiting list */
         prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
