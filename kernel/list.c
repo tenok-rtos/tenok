@@ -4,7 +4,7 @@
 void list_init(struct list *list)
 {
     if(list != NULL) {
-        list->last = list;
+        list->prev = list;
         list->next = list;
     }
 }
@@ -17,8 +17,8 @@ int list_is_empty(struct list *list)
 void list_remove(struct list *list)
 {
     if(list != NULL) {
-        list->next->last = list->last;
-        list->last->next = list->next;
+        list->next->prev = list->prev;
+        list->prev->next = list->next;
     }
 }
 
@@ -26,10 +26,10 @@ void list_push(struct list *list, struct list *new)
 {
     if(list != NULL && new != NULL) {
         /* connect new into the list */
-        new->last = list->last;
+        new->prev = list->prev;
         new->next = list;
-        list->last->next = new;
-        list->last = new;
+        list->prev->next = new;
+        list->prev = new;
     }
 }
 
@@ -43,7 +43,7 @@ struct list *list_pop(struct list *list)
     }
 
     list->next = first->next;
-    list->next->last = list;
+    list->next->prev = list;
 
     return first;
 }

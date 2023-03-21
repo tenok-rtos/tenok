@@ -217,7 +217,7 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
     /* allocate memory for the new dentry */
     uint8_t *dir_data_p;
     if(fit == true) {
-        struct list *list_end = inode_dir->i_dentry.last;
+        struct list *list_end = inode_dir->i_dentry.prev;
         struct dentry *dir = list_entry(list_end, struct dentry, d_list);
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
@@ -782,7 +782,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
             break;
 
         /* switch to the parent directory */
-        uint32_t inode_last = inode->i_ino;
+        uint32_t inode_prev = inode->i_ino;
         inode = &inodes[inode->i_parent];
 
         /* no file is under this directory */
@@ -793,7 +793,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         list_for_each(list_curr, &inode->i_dentry) {
             struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-            if(dentry->d_inode == inode_last) {
+            if(dentry->d_inode == inode_prev) {
                 strncpy(old_path, new_path, PATH_LEN_MAX);
                 snprintf(new_path, PATH_LEN_MAX, "%s/%s", dentry->d_name, old_path);
                 break;

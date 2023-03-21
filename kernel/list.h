@@ -13,7 +13,7 @@
 	for ((curr) = (list)->next; (curr) != (list); (curr) = (curr)->next)
 
 struct list {
-    struct list *last;
+    struct list *prev;
     struct list *next;
 };
 

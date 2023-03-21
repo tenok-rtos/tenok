@@ -361,7 +361,7 @@ static void shell_up_arrow_handler(struct shell *shell)
     }
 
     /* load the next history to show */
-    shell->history_curr = shell->history_curr->last;
+    shell->history_curr = shell->history_curr->prev;
 
     /* check if there is more hisotry to present */
     if(shell->history_curr == &shell->history_head) {

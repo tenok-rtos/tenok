@@ -157,7 +157,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
     /* allocate memory for the new dentry */
     uint8_t *dir_data_p;
     if(fit == true) {
-        struct list *list_end = inode_dir->i_dentry.last;
+        struct list *list_end = inode_dir->i_dentry.prev;
         struct dentry *dir = list_entry(list_end, struct dentry, d_list);
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
@@ -331,12 +331,12 @@ void romfs_address_conversion_dir(struct inode *inode)
         /* obtain the dentry */
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-        if(dentry->d_list.last == &inode->i_dentry) {
+        if(dentry->d_list.prev == &inode->i_dentry) {
             /* the address of the inode.i_dentry (list head) is in the inodes region */
-            dentry->d_list.last = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
+            dentry->d_list.prev = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
         } else {
             /* besides the list head, others in the blocks region */
-            dentry->d_list.last = (struct list *)((uint8_t *)dentry->d_list.last - (uint32_t)romfs_blk + sb_size + inodes_size);
+            dentry->d_list.prev = (struct list *)((uint8_t *)dentry->d_list.prev - (uint32_t)romfs_blk + sb_size + inodes_size);
         }
 
         if(dentry->d_list.next == &inode->i_dentry) {
@@ -348,9 +348,9 @@ void romfs_address_conversion_dir(struct inode *inode)
         }
 
         if(list_curr != list_start) {
-            verbose("[dentry:\"%s\", file_inode:%d, last:%d, next:%d]\n",
+            verbose("[dentry:\"%s\", file_inode:%d, prev:%d, next:%d]\n",
                     dentry->d_name, dentry->d_inode,
-                    (uint32_t)dentry->d_list.last, (uint32_t)dentry->d_list.next);
+                    (uint32_t)dentry->d_list.prev, (uint32_t)dentry->d_list.next);
         }
 
         list_curr = list_next;
