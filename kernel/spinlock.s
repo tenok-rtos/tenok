@@ -1,6 +1,6 @@
 .syntax unified
 
-/* lock is implemented by the test-and-set mechanism */
+/* lock is implemented by the load/store exclusive mechanism */
 .type   spin_lock, %function
 .global spin_lock
 spin_lock:
