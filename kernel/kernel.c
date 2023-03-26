@@ -587,6 +587,16 @@ void os_service_init(void)
     if(!fork()) file_system_task();
 }
 
+void set_syscall_pending(void)
+{
+    running_task->syscall_pending = true;
+}
+
+void reset_syscall_pending(void)
+{
+    running_task->syscall_pending = false;
+}
+
 /* save r0-r3 registers that may carry the syscall arguments via the supervisor call */
 static void save_syscall_args(void)
 {
