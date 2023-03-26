@@ -9,6 +9,6 @@ void uart3_init(uint32_t baudrate);
 
 void uart_putc(USART_TypeDef *uart, char c);
 char uart_getc(USART_TypeDef *uart);
-void uart_puts(USART_TypeDef *uart, const char *data, size_t size);
+int uart_puts(USART_TypeDef *uart, const char *data, size_t size);
 
 #endif

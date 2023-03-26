@@ -5,6 +5,7 @@
 #include "syscall.h"
 #include "uart.h"
 #include "mqueue.h"
+#include "shell.h"
 
 mqd_t mqdes_print;
 
@@ -40,7 +41,7 @@ void message_queue_task2(void)
         while(mq_receive(mqdes_print, (char *)&msg, 1, 0) != -EAGAIN);
 
         /* write serial */
-        while(write(serial_fd, msg.data, strlen(msg.data)) == -EAGAIN);
+        shell_puts(msg.data);
     }
 }
 

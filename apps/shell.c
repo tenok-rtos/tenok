@@ -7,15 +7,19 @@
 #include "shell.h"
 #include "syscall.h"
 #include "kconfig.h"
+#include "mutex.h"
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);
 static void shell_reset_history_scrolling(struct shell *shell);
 
+_pthread_mutex_t mutex_print;
+
 int serial_fd = 0;
 
 void shell_serial_init(void)
 {
+    pthread_mutex_init(&mutex_print, 0);
     serial_fd = open("/dev/serial0", 0, 0);
 }
 
@@ -30,7 +34,10 @@ char shell_getc(void)
 void shell_puts(char *s)
 {
     int size = strlen(s);
+
+    pthread_mutex_lock(&mutex_print);
     while(write(serial_fd, s, size) == -EAGAIN);
+    pthread_mutex_unlock(&mutex_print);
 }
 
 static void shell_ctrl_c_handler(struct shell *shell)

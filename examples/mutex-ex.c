@@ -6,7 +6,7 @@
 #include "uart.h"
 #include "mutex.h"
 
-_pthread_mutex_t mutex_print;
+extern _pthread_mutex_t mutex_print;
 
 void mutex_task1(void)
 {
@@ -42,8 +42,6 @@ void mutex_task2(void)
 
 void run_mutex_example(void)
 {
-    pthread_mutex_init(&mutex_print, 0);
-
     if(!fork()) mutex_task1();
     if(!fork()) mutex_task2();
 }
