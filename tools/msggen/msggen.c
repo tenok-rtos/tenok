@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <dirent.h>
+#include "list.h"
 
 char *support_types[] = {
     "bool",
@@ -19,6 +20,15 @@ char *support_types[] = {
     "float",
     "double",
 };
+
+struct msg_var_entry {
+    char *var_name;
+    char *c_type;
+
+    struct list list;
+};
+
+int msg_cnt = 0;
 
 int split_tokens(char token[2][1000], char *line, int size)
 {
@@ -85,24 +95,32 @@ char *get_message_name(char *file_name)
     strncpy(msg_name, file_name, len - 4);
     msg_name[len - 4] = '\0';
 
-    if(msg_name_rule_check(msg_name) == 0) {
-        printf("message name: %s\n", msg_name);
-    } else {
+    if(msg_name_rule_check(msg_name)) {
         printf("abort, bad message name.\n");
     }
 
     return msg_name;
 }
 
-int codegen(char *file_name, char *msgs, FILE *output_src, FILE *output_header)
+int codegen(char *file_name, char *msgs)
 {
     char *msg_name = get_message_name(file_name);
     if(msg_name == NULL)
         return -1;
 
+    char *output_name = calloc(sizeof(char), strlen(msg_name) + 50);
+    sprintf(output_name, "%stenok_%s_msg.h", "./", msg_name);
+
+    FILE *output_file = fopen(output_name, "wb");
+
     /* parse the message declaration*/
     char *line_start = msgs;
     char *line_end = msgs;
+
+    int var_cnt = 0;
+
+    struct list msg_var_list;
+    list_init(&msg_var_list);
 
     while(1) {
         /* search the end of the current line */
@@ -124,26 +142,73 @@ int codegen(char *file_name, char *msgs, FILE *output_src, FILE *output_header)
         /* split tokens of current line */
         char tokens[2][1000] = {0};
         split_tokens(tokens, line_start, line_end - line_start);
-        printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
+        //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
+
+        int type_len = strlen(tokens[0]) + 1;
+        int var_name_len = strlen(tokens[1]) + 1;
+
+        /* append new variable declaration to the list */
+        struct msg_var_entry *new_var = malloc(sizeof(struct msg_var_entry));
+        new_var->var_name = calloc(sizeof(char), type_len);
+        new_var->c_type = calloc(sizeof(char), var_name_len);
+        strncpy(new_var->c_type, tokens[0], type_len);
+        strncpy(new_var->var_name, tokens[1], var_name_len);
+
+        list_push(&msg_var_list, &new_var->list);
+
+        var_cnt++;
 
         line_start = line_end + 1;
     }
 
-    /* header file */
-    fprintf(output_header,
-            "#ifndef __DEBUG_MSG_H__\n#define __DEBUG_MSG_H\n\n"
-            "#include \"debug_link.h\"\n\n");
-    fprintf(output_header, "void pack_%s_tenok_debug_msg(debug_msg_t *payload);\n", msg_name);
-    fprintf(output_header, "\n#endif");
+    int i;
 
-    /* source file */
-    fprintf(output_src, "#include \"debug_msg.h\"\n\n");
-    fprintf(output_src,
-            "void pack_%s_tenok_debug_msg(debug_msg_t *payload)\n{\n"
-            "    pack_debug_debug_message_header(payload, MSG_ID_%s);\n"
-            "}", msg_name, msg_name);
+    /* generate preprocessing code */
+    fprintf(output_file,
+            "#pragma once\n\n"
+            "#define TENOK_MSG_ID_%s %d\n\n", msg_name, msg_cnt);
+
+    /* generarte message structure */
+    fprintf(output_file, "typedef struct __tenok_msg_%s_t {\n", msg_name);
+
+    struct list *curr;
+    list_for_each(curr, &msg_var_list) {
+        struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+        fprintf(output_file, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
+    }
+
+    fprintf(output_file, "} tenok_msg_%s_t;\n\n", msg_name);
+
+    /* generation message function */
+    fprintf(output_file,
+            "inline void pack_%s_tenok_msg(tenok_msg_%s_t *msg, debug_msg_t *payload)\n{\n"
+            "    pack_tenok_msg_header(payload, MSG_ID_%s);\n",
+            msg_name, msg_name, msg_name);
+
+    list_for_each(curr, &msg_var_list) {
+        struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+        fprintf(output_file, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
+                msg_var->c_type, msg_var->var_name);
+    }
+
+    fprintf(output_file, "}\n");
 
     free(msg_name);
+
+    fclose(output_file);
+
+    /* clean up */
+    while(!list_is_empty(&msg_var_list)) {
+        struct list *curr = list_pop(&msg_var_list);
+        struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+
+        free(msg_var->c_type);
+        free(msg_var->var_name);
+        free(msg_var);
+    }
+
+    printf("[msggen] generate %s\n", output_name);
+    free(output_name);
 
     return 0;
 }
@@ -189,9 +254,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    FILE *output_src = fopen("./debug_msg.c", "wb");
-    FILE *output_header = fopen("./debug_msg.h", "wb");
-
     /* enumerate all the files under the given directory path */
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
@@ -205,18 +267,17 @@ int main(int argc, char **argv)
         if((strncmp(".msg", msg_file_name + len - 4, 4) == 0)) {
             /* load the msg file and generate body-part code */
             char *msgs = load_msg_file(msg_file_name);
-            codegen(msg_file_name, msgs, output_src, output_header);
+            codegen(msg_file_name, msgs);
 
             /* clean up */
             free(msgs);
+
+            msg_cnt++;
         }
     }
 
     /* close directory */
     closedir(dir);
-
-    fclose(output_src);
-    fclose(output_header);
 
     return 0;
 }

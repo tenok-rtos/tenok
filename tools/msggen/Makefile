@@ -6,11 +6,14 @@ ROMFS_OBJ=./romfs.o
 CFLAGS=
 CFLAGS+=-g
 
-CFLAGS+=-I../ \
+CFLAGS+=-I../../ \
 	-I../../kernel
 
+SRC=../../kernel/list.c \
+	./msggen.c
+
 all:
-	gcc -o msggen msggen.c
+	gcc $(CFLAGS) -o msggen $(SRC)
 
 gdbauto:
 	cgdb --args ./msggen
