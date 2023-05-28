@@ -10,7 +10,7 @@
 #include "list.h"
 #include "kconfig.h"
 
-#define HOST_INPUT_DIR   "../rom/"
+#define HOST_INPUT_DIR   "../../rom/"
 #define ROMFS_OUTPUT_DIR "/rom_data/"
 #define OUTPUT_BIN       "./romfs.bin"
 

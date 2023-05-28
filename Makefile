@@ -85,7 +85,7 @@ SRC+=./kernel/fifo.c \
 	./main.c \
 
 OBJS=$(SRC:.c=.o)
-OBJS+=./tools/romfs.o
+OBJS+=./tools/mkromfs/romfs.o
 
 DEPEND=$(SRC:.c=.d)
 
@@ -95,7 +95,7 @@ ASM=./platform/startup_stm32f4xx.s \
 	./kernel/spinlock.s
 
 all:$(ELF)
-	@$(MAKE) -C ./tools -f Makefile
+	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
 	@echo "LD" $@
@@ -107,8 +107,8 @@ $(BIN): $(ELF)
 
 -include $(DEPEND)
 
-tools/romfs.o:
-	@$(MAKE) -C ./tools -f Makefile
+tools/mkromfs/romfs.o:
+	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 %.o: %.s 
 	@echo "CC" $@
@@ -126,7 +126,7 @@ clean:
 	rm -rf $(OBJS)
 	rm -rf $(DEPEND)
 	rm -rf *.orig
-	@$(MAKE) -C ./tools -f Makefile clean
+	@$(MAKE) -C ./tools/mkromfs -f Makefile clean
 
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb

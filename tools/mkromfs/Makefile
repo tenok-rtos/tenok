@@ -1,4 +1,4 @@
-include ../config.mk
+include ../../config.mk
 
 ROMFS=./romfs.bin
 ROMFS_OBJ=./romfs.o
@@ -8,10 +8,10 @@ CFLAGS+=-g
 CFLAGS+=-mx32 #to make the pointer be 4 bytes instead of 8 bytes
 #CFLAGS+=-Wpadded
 
-CFLAGS+=-I../ \
-	-I../kernel
+CFLAGS+=-I../../ \
+	-I../../kernel
 
-SRC=../kernel/list.c \
+SRC=../../kernel/list.c \
 	 ./mkromfs.c
 
 MKROMFS_FLAGS=-v #verbose option

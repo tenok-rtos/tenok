@@ -4,5 +4,5 @@
 *.d
 *.orig
 *.swp
-mkromfs
+*/mkromfs/mkromfs
 */msggen/msggen
