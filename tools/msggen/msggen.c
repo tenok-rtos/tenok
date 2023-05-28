@@ -102,14 +102,14 @@ char *get_message_name(char *file_name)
     return msg_name;
 }
 
-int codegen(char *file_name, char *msgs)
+int codegen(char *file_name, char *msgs, char *output_dir)
 {
     char *msg_name = get_message_name(file_name);
     if(msg_name == NULL)
         return -1;
 
-    char *output_name = calloc(sizeof(char), strlen(msg_name) + 50);
-    sprintf(output_name, "%stenok_%s_msg.h", "./", msg_name);
+    char *output_name = calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
+    sprintf(output_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
 
     FILE *output_file = fopen(output_name, "wb");
 
@@ -242,13 +242,16 @@ char *load_msg_file(char *file_name)
 int main(int argc, char **argv)
 {
     /* incorrect argument counts */
-    if(argc != 2) {
-        printf("msggen [directory path]\n");
+    if(argc != 3) {
+        printf("msggen [input directory] [output directory]\n");
         return -1;
     }
 
+    char *input_dir = argv[1];
+    char *output_dir = argv[2];
+
     /* open directory */
-    DIR *dir = opendir(argv[1]);
+    DIR *dir = opendir(input_dir);
     if(dir == NULL) {
         printf("msggen: failed to open the given directory.\n");
         return -1;
@@ -266,8 +269,10 @@ int main(int argc, char **argv)
         /* find all msg files, i.e., file names end with ".msg" */
         if((strncmp(".msg", msg_file_name + len - 4, 4) == 0)) {
             /* load the msg file and generate body-part code */
-            char *msgs = load_msg_file(msg_file_name);
-            codegen(msg_file_name, msgs);
+            char *file_path = calloc(sizeof(char), strlen(input_dir) + strlen(msg_file_name) + 50);
+            sprintf(file_path, "%s/%s", input_dir, msg_file_name);
+            char *msgs = load_msg_file(file_path);
+            codegen(msg_file_name, msgs, output_dir);
 
             /* clean up */
             free(msgs);
