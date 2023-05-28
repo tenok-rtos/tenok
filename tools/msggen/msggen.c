@@ -30,7 +30,7 @@ struct msg_var_entry {
 
 int msg_cnt = 0;
 
-int split_tokens(char token[2][1000], char *line, int size)
+int split_tokens(char *token[2], char *line, int size)
 {
     int i = 0, j = 0;
     int token_cnt = 0;
@@ -140,7 +140,9 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         *line_end = '\0';
 
         /* split tokens of current line */
-        char tokens[2][1000] = {0};
+        char *tokens[2];
+        tokens[0] = calloc(sizeof(char), line_end - line_start + 1);
+        tokens[1] = calloc(sizeof(char), line_end - line_start + 1);
         split_tokens(tokens, line_start, line_end - line_start);
         //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
 
@@ -159,9 +161,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         var_cnt++;
 
         line_start = line_end + 1;
-    }
 
-    int i;
+        /* clean up */
+        free(tokens[0]);
+        free(tokens[1]);
+    }
 
     /* generate preprocessing code */
     fprintf(output_file,
@@ -193,11 +197,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     fprintf(output_file, "}\n");
 
-    free(msg_name);
-
-    fclose(output_file);
+    printf("[msggen] generate %s\n", output_name);
 
     /* clean up */
+    fclose(output_file);
+
     while(!list_is_empty(&msg_var_list)) {
         struct list *curr = list_pop(&msg_var_list);
         struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
@@ -207,7 +211,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         free(msg_var);
     }
 
-    printf("[msggen] generate %s\n", output_name);
+    free(msg_name);
     free(output_name);
 
     return 0;
