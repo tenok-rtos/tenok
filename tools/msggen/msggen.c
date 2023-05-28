@@ -51,26 +51,26 @@ int split_tokens(char *token[2], char *line, int size)
 
     /* itterate through the whole line */
     for(i = 0; i < size; i++) {
-        /* ignore spaces before first token */
         if(line[i] == ' ') {
-            /* end of the current token */
+            /* if j is not 0 while a space is read means the token is cut */
             if(j != 0) {
-                token_cnt++;
+                /* end of the current token */
                 token[token_cnt][j] = '\0';
-
-                /* error, too many tokens */
-                if(token_cnt > 2)
-                    return -1; //grammer rule: [data type] [variable name]
+                token_cnt++;
             }
 
             j = 0; //reset token string index
+        } else {
+            /* error, too many tokens */
+            if(token_cnt >= 2) {
+                printf("msggen: too many arguments in one line\n");
+                return -1; //grammer rule: [data type] [variable name]
+            }
 
-            continue;
+            /* copy the content for current token */
+            token[token_cnt][j] = line[i];
+            j++;
         }
-
-        /* copy the content for current token */
-        token[token_cnt][j] = line[i];
-        j++;
     }
 
     return 0;
@@ -168,23 +168,30 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         char *tokens[2];
         tokens[0] = calloc(sizeof(char), line_end - line_start + 1);
         tokens[1] = calloc(sizeof(char), line_end - line_start + 1);
-        split_tokens(tokens, line_start, line_end - line_start);
+        int result = split_tokens(tokens, line_start, line_end - line_start);
         //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
 
-        int type_len = strlen(tokens[0]) + 1;
-        int var_name_len = strlen(tokens[1]) + 1;
-
-        /* check data type and variable name is proper or not */
         bool error = false;
+        int type_len = 0;
+        int var_name_len = 0;
 
-        if(type_check(tokens[0]) != 0) {
-            printf("msggen: error, unknown type \"%s\" in %s\n", tokens[0], file_name);
-            error = true;
-        }
+        if(result == 0) {
+            type_len = strlen(tokens[0]) + 1;
+            var_name_len = strlen(tokens[1]) + 1;
 
-        if(msg_name_rule_check(tokens[1]) != 0) {
-            printf("msggen: error, bad variable name \"%s\" in %s\n", tokens[1], file_name);
-            error = true;
+            /* check data type of current message data field */
+            if(type_check(tokens[0]) != 0) {
+                printf("msggen: error, unknown type \"%s\" in %s\n", tokens[0], file_name);
+                error = true;
+            }
+
+            /* check variable name of current message data field */
+            if(msg_name_rule_check(tokens[1]) != 0) {
+                printf("msggen: error, bad variable name \"%s\" in %s\n", tokens[1], file_name);
+                error = true;
+            }
+        } else {
+            error = true; //grammer error
         }
 
         if(error) {
