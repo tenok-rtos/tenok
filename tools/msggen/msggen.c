@@ -94,7 +94,7 @@ char *get_message_name(char *file_name)
     return msg_name;
 }
 
-int codegen(char *file_name, char *msgs)
+int codegen(char *file_name, char *msgs, FILE *output_src, FILE *output_header)
 {
     char *msg_name = get_message_name(file_name);
     if(msg_name == NULL)
@@ -129,13 +129,19 @@ int codegen(char *file_name, char *msgs)
         line_start = line_end + 1;
     }
 
-    /* header */
-    printf("#include \"debug_msg.h\"\n\n");
+    /* header file */
+    fprintf(output_header,
+            "#ifndef __DEBUG_MSG_H__\n#define __DEBUG_MSG_H\n\n"
+            "#include \"debug_link.h\"\n\n");
+    fprintf(output_header, "void pack_%s_tenok_debug_msg(debug_msg_t *payload);\n", msg_name);
+    fprintf(output_header, "\n#endif");
 
-    /* body */
-    printf("void pack_%s_tenok_debug_msg(debug_msg_t *payload)\n{\n", msg_name);
-    printf("    pack_debug_debug_message_header(payload, MSG_ID_%s);\n", msg_name);
-    printf("}");
+    /* source file */
+    fprintf(output_src, "#include \"debug_msg.h\"\n\n");
+    fprintf(output_src,
+            "void pack_%s_tenok_debug_msg(debug_msg_t *payload)\n{\n"
+            "    pack_debug_debug_message_header(payload, MSG_ID_%s);\n"
+            "}", msg_name, msg_name);
 
     free(msg_name);
 
@@ -183,19 +189,23 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    FILE *output_src = fopen("./debug_msg.c", "wb");
+    FILE *output_header = fopen("./debug_msg.h", "wb");
+
     /* enumerate all the files under the given directory path */
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
         if(dirent->d_type != DT_REG)
             continue;
 
-        int len = strlen(dirent->d_name);
+        char *msg_file_name = dirent->d_name;
+        int len = strlen(msg_file_name);
 
         /* find all msg files, i.e., file names end with ".msg" */
-        if((strncmp(".msg", dirent->d_name + len - 4, 4) == 0)) {
+        if((strncmp(".msg", msg_file_name + len - 4, 4) == 0)) {
             /* load the msg file and generate body-part code */
-            char *msgs = load_msg_file(dirent->d_name);
-            codegen(dirent->d_name, msgs);
+            char *msgs = load_msg_file(msg_file_name);
+            codegen(msg_file_name, msgs, output_src, output_header);
 
             /* clean up */
             free(msgs);
@@ -204,6 +214,9 @@ int main(int argc, char **argv)
 
     /* close directory */
     closedir(dir);
+
+    fclose(output_src);
+    fclose(output_header);
 
     return 0;
 }
