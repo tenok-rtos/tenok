@@ -233,37 +233,69 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         free(tokens[1]);
     }
 
-    /* generate preprocessing code */
-    fprintf(output_file,
-            "#pragma once\n\n"
-            "#define TENOK_MSG_ID_%s %d\n\n", msg_name, msg_cnt);
+    /* check if variable with duplicated name exists */
+    bool var_is_duplicated = false;
 
-    /* generarte message structure */
-    fprintf(output_file, "typedef struct __tenok_msg_%s_t {\n", msg_name);
+    struct list *cmp1;
+    list_for_each(cmp1, &msg_var_list) {
+        /* counter for recording how many time the variable name appears */
+        int cnt = 0;
 
-    struct list *curr;
-    list_for_each(curr, &msg_var_list) {
-        struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-        fprintf(output_file, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
+        /* pick the name of each variable in the list */
+        struct msg_var_entry *cmp_var1 = list_entry(cmp1, struct msg_var_entry, list);
+
+        /* compare with all variable in list */
+        struct list *cmp2;
+        list_for_each(cmp2, &msg_var_list) {
+            struct msg_var_entry *cmp_var2 = list_entry(cmp2, struct msg_var_entry, list);
+
+            if(strcmp(cmp_var1->var_name, cmp_var2->var_name) == 0)
+                cnt++;
+        }
+
+        /* duplicated, variable with same name appeared */
+        if(cnt > 1) {
+            printf("msggen: variable name \"%s\" in %s is duplicated\n",
+                   cmp_var1->var_name, file_name);
+
+            var_is_duplicated = true;
+            break;
+        }
     }
 
-    fprintf(output_file, "} tenok_msg_%s_t;\n\n", msg_name);
+    if(var_is_duplicated == false) {
+        /* generate preprocessing code */
+        fprintf(output_file,
+                "#pragma once\n\n"
+                "#define TENOK_MSG_ID_%s %d\n\n", msg_name, msg_cnt);
 
-    /* generation message function */
-    fprintf(output_file,
-            "inline void pack_%s_tenok_msg(tenok_msg_%s_t *msg, debug_msg_t *payload)\n{\n"
-            "    pack_tenok_msg_header(payload, MSG_ID_%s);\n",
-            msg_name, msg_name, msg_name);
+        /* generarte message structure */
+        fprintf(output_file, "typedef struct __tenok_msg_%s_t {\n", msg_name);
 
-    list_for_each(curr, &msg_var_list) {
-        struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-        fprintf(output_file, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
-                msg_var->c_type, msg_var->var_name);
+        struct list *curr;
+        list_for_each(curr, &msg_var_list) {
+            struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+            fprintf(output_file, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
+        }
+
+        fprintf(output_file, "} tenok_msg_%s_t;\n\n", msg_name);
+
+        /* generation message function */
+        fprintf(output_file,
+                "inline void pack_%s_tenok_msg(tenok_msg_%s_t *msg, debug_msg_t *payload)\n{\n"
+                "    pack_tenok_msg_header(payload, MSG_ID_%s);\n",
+                msg_name, msg_name, msg_name);
+
+        list_for_each(curr, &msg_var_list) {
+            struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+            fprintf(output_file, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
+                    msg_var->c_type, msg_var->var_name);
+        }
+
+        fprintf(output_file, "}\n");
+
+        printf("[msggen] generate %s\n", output_name);
     }
-
-    fprintf(output_file, "}\n");
-
-    printf("[msggen] generate %s\n", output_name);
 
     /* clean up */
     fclose(output_file);
@@ -280,7 +312,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     free(msg_name);
     free(output_name);
 
-    return 0;
+    return (var_is_duplicated == false) ? 0 : -1;
 }
 
 char *load_msg_file(char *file_name)
