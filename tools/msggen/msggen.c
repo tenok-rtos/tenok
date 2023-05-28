@@ -9,14 +9,14 @@
 char *support_types[] = {
     "bool",
     "char",
-    "uint8",
-    "int8",
-    "uint16",
-    "int16",
-    "uint32",
-    "int32",
-    "uint64",
-    "int64",
+    "uint8_t",
+    "int8_t",
+    "uint16_t",
+    "int16_t",
+    "uint32_t",
+    "int32_t",
+    "uint64_t",
+    "int64_t",
     "float",
     "double",
 };
@@ -29,6 +29,20 @@ struct msg_var_entry {
 };
 
 int msg_cnt = 0;
+
+int type_check(char *type)
+{
+    int len = strlen(type);
+    int type_list_size = sizeof(support_types) / sizeof(char *);
+
+    int i;
+    for(i = 0; i < type_list_size; i++) {
+        if(strncmp(type, support_types[i], len) == 0)
+            return 0;
+    }
+
+    return -1;
+}
 
 int split_tokens(char *token[2], char *line, int size)
 {
@@ -112,6 +126,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     sprintf(output_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
 
     FILE *output_file = fopen(output_name, "wb");
+    if(output_file == NULL) {
+        printf("msggen: error, failed to write to %s\n", output_name);
+        free(output_name);
+        return -1;
+    }
 
     /* parse the message declaration*/
     char *line_start = msgs;
@@ -148,6 +167,29 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         int type_len = strlen(tokens[0]) + 1;
         int var_name_len = strlen(tokens[1]) + 1;
+
+        if(type_check(tokens[0]) != 0) {
+            printf("msggen: error, unknown type %s from %s\n", tokens[0], file_name);
+
+            /* clean up */
+            fclose(output_file);
+
+            while(!list_is_empty(&msg_var_list)) {
+                struct list *curr = list_pop(&msg_var_list);
+                struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+
+                free(msg_var->c_type);
+                free(msg_var->var_name);
+                free(msg_var);
+            }
+
+            free(tokens[0]);
+            free(tokens[1]);
+            free(msg_name);
+            free(output_name);
+
+            return -1;
+        }
 
         /* append new variable declaration to the list */
         struct msg_var_entry *new_var = malloc(sizeof(struct msg_var_entry));
@@ -222,7 +264,7 @@ char *load_msg_file(char *file_name)
     /* open msg file */
     FILE *msg_file = fopen(file_name, "r");
     if(msg_file == NULL) {
-        printf("msggen: error: no such file\n");
+        printf("msggen: error, no such file\n");
         return NULL;
     }
 
@@ -261,6 +303,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    bool failed = false;
+
     /* enumerate all the files under the given directory path */
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
@@ -272,14 +316,22 @@ int main(int argc, char **argv)
 
         /* find all msg files, i.e., file names end with ".msg" */
         if((strncmp(".msg", msg_file_name + len - 4, 4) == 0)) {
-            /* load the msg file and generate body-part code */
+            /* load the msg file */
             char *file_path = calloc(sizeof(char), strlen(input_dir) + strlen(msg_file_name) + 50);
             sprintf(file_path, "%s/%s", input_dir, msg_file_name);
             char *msgs = load_msg_file(file_path);
-            codegen(msg_file_name, msgs, output_dir);
+
+            /* run code generation */
+            int retval = codegen(msg_file_name, msgs, output_dir);
 
             /* clean up */
             free(msgs);
+
+            /* failed for some reason */
+            if(retval != 0) {
+                failed = true;
+                break;
+            }
 
             msg_cnt++;
         }
@@ -288,5 +340,5 @@ int main(int argc, char **argv)
     /* close directory */
     closedir(dir);
 
-    return 0;
+    return failed == true ? -1 : 0;
 }
