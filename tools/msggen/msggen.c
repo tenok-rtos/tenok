@@ -58,8 +58,9 @@ int split_tokens(char *token[2], char *line, int size)
                 token_cnt++;
                 token[token_cnt][j] = '\0';
 
+                /* error, too many tokens */
                 if(token_cnt > 2)
-                    return -1; //only two tokens are allowed for declaration semantics in the msg file
+                    return -1; //grammer rule: [data type] [variable name]
             }
 
             j = 0; //reset token string index
@@ -105,12 +106,17 @@ char *get_message_name(char *file_name)
     int len = strlen(file_name);
     char *msg_name = malloc(sizeof(char) * len);
 
+    if(msg_name == NULL)
+        return NULL;
+
     /* copy and omit the ".msg" part of the file name */
     strncpy(msg_name, file_name, len - 4);
     msg_name[len - 4] = '\0';
 
-    if(msg_name_rule_check(msg_name)) {
-        printf("abort, bad message name.\n");
+    if(msg_name_rule_check(msg_name) != 0) {
+        printf("msggen: error, bad message name \"%s\"\n", msg_name);
+        free(msg_name);
+        return NULL;
     }
 
     return msg_name;
@@ -168,9 +174,20 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         int type_len = strlen(tokens[0]) + 1;
         int var_name_len = strlen(tokens[1]) + 1;
 
-        if(type_check(tokens[0]) != 0) {
-            printf("msggen: error, unknown type %s from %s\n", tokens[0], file_name);
+        /* check data type and variable name is proper or not */
+        bool error = false;
 
+        if(type_check(tokens[0]) != 0) {
+            printf("msggen: error, unknown type \"%s\" in %s\n", tokens[0], file_name);
+            error = true;
+        }
+
+        if(msg_name_rule_check(tokens[1]) != 0) {
+            printf("msggen: error, bad variable name \"%s\" in %s\n", tokens[1], file_name);
+            error = true;
+        }
+
+        if(error) {
             /* clean up */
             fclose(output_file);
 
