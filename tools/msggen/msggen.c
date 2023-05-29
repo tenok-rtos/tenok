@@ -128,13 +128,25 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     if(msg_name == NULL)
         return -1;
 
-    char *output_name = calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
-    sprintf(output_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
+    /* create c header file */
+    char *c_header_name = calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
+    sprintf(c_header_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
 
-    FILE *output_file = fopen(output_name, "wb");
-    if(output_file == NULL) {
-        printf("msggen: error, failed to write to %s\n", output_name);
-        free(output_name);
+    FILE *output_c_header = fopen(c_header_name, "wb");
+    if(output_c_header == NULL) {
+        printf("msggen: error, failed to write to %s\n", c_header_name);
+        free(c_header_name);
+        return -1;
+    }
+
+    /* create yaml file  */
+    char *yaml_name = calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
+    sprintf(yaml_name, "%s/tenok_%s_msg.yaml", output_dir, msg_name);
+
+    FILE *output_yaml = fopen(yaml_name, "wb");
+    if(output_yaml == NULL) {
+        printf("msggen: error, failed to write to %s\n", yaml_name);
+        free(yaml_name);
         return -1;
     }
 
@@ -196,7 +208,8 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         if(error) {
             /* clean up */
-            fclose(output_file);
+            fclose(output_c_header);
+            fclose(output_yaml);
 
             while(!list_is_empty(&msg_var_list)) {
                 struct list *curr = list_pop(&msg_var_list);
@@ -210,7 +223,8 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             free(tokens[0]);
             free(tokens[1]);
             free(msg_name);
-            free(output_name);
+            free(c_header_name);
+            free(yaml_name);
 
             return -1;
         }
@@ -234,7 +248,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     }
 
     /* check if variable with duplicated name exists */
-    bool var_is_duplicated = false;
+    bool var_duplicated = false;
 
     struct list *cmp1;
     list_for_each(cmp1, &msg_var_list) {
@@ -258,47 +272,64 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             printf("msggen: variable name \"%s\" in %s is duplicated\n",
                    cmp_var1->var_name, file_name);
 
-            var_is_duplicated = true;
+            var_duplicated = true;
             break;
         }
     }
 
-    if(var_is_duplicated == false) {
+    if(var_duplicated == false) {
+        /*===================*
+         * c code generation *
+         *===================*/
+
         /* generate preprocessing code */
-        fprintf(output_file,
+        fprintf(output_c_header,
                 "#pragma once\n\n"
                 "#define TENOK_MSG_ID_%s %d\n\n", msg_name, msg_cnt);
 
         /* generarte message structure */
-        fprintf(output_file, "typedef struct __tenok_msg_%s_t {\n", msg_name);
+        fprintf(output_c_header, "typedef struct __tenok_msg_%s_t {\n", msg_name);
 
         struct list *curr;
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-            fprintf(output_file, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
+            fprintf(output_c_header, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
         }
 
-        fprintf(output_file, "} tenok_msg_%s_t;\n\n", msg_name);
+        fprintf(output_c_header, "} tenok_msg_%s_t;\n\n", msg_name);
 
         /* generation message function */
-        fprintf(output_file,
+        fprintf(output_c_header,
                 "inline void pack_%s_tenok_msg(tenok_msg_%s_t *msg, debug_msg_t *payload)\n{\n"
                 "    pack_tenok_msg_header(payload, MSG_ID_%s);\n",
                 msg_name, msg_name, msg_name);
 
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-            fprintf(output_file, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
+            fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
                     msg_var->c_type, msg_var->var_name);
         }
 
-        fprintf(output_file, "}\n");
+        fprintf(output_c_header, "}\n");
 
-        printf("[msggen] generate %s\n", output_name);
+        /*======================*
+         * yaml file generation *
+         *======================*/
+        fprintf(output_yaml, "msg_id: %d\n\npayload:\n", msg_cnt);
+
+        list_for_each(curr, &msg_var_list) {
+            struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+            fprintf(output_yaml, "  -\n    c_type: %s\n    var_name: %s\n",
+                    msg_var->c_type, msg_var->var_name);
+        }
+
+
+        printf("[msggen] generate %s\n[msggen] generate %s\n", c_header_name, yaml_name);
     }
 
     /* clean up */
-    fclose(output_file);
+    fclose(output_c_header);
+    fclose(output_yaml);
 
     while(!list_is_empty(&msg_var_list)) {
         struct list *curr = list_pop(&msg_var_list);
@@ -310,9 +341,10 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     }
 
     free(msg_name);
-    free(output_name);
+    free(c_header_name);
+    free(yaml_name);
 
-    return (var_is_duplicated == false) ? 0 : -1;
+    return (var_duplicated == false) ? 0 : -1;
 }
 
 char *load_msg_file(char *file_name)

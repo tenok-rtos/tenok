@@ -131,8 +131,8 @@ clean:
 msggen:
 	@$(MAKE) -C ./tools/msggen/ -f Makefile
 	rm -rf build/
-	mkdir build/
-	./tools/msggen/msggen ./tools/msggen ./build
+	mkdir -p build/msg/
+	./tools/msggen/msggen ./tools/msggen ./build/msg
 
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
