@@ -8,7 +8,6 @@
 
 char *support_types[] = {
     "bool",
-    "char",
     "uint8_t",
     "int8_t",
     "uint16_t",
@@ -24,6 +23,8 @@ char *support_types[] = {
 struct msg_var_entry {
     char *var_name;
     char *c_type;
+    int  array_size;
+    char *description;
 
     struct list list;
 };
@@ -62,9 +63,9 @@ int split_tokens(char *token[2], char *line, int size)
             j = 0; //reset token string index
         } else {
             /* error, too many tokens */
-            if(token_cnt >= 2) {
+            if(token_cnt >= 3) {
                 printf("msggen: too many arguments in one line\n");
-                return -1; //grammer rule: [data type] [variable name]
+                return -1; //grammer rule: [fieldtype] [fieldname] [description]
             }
 
             /* copy the content for current token */
@@ -87,6 +88,35 @@ int msg_name_rule_check(char *msg_name)
         bool legal = (c >= '0' && c <= '9') ||
                      (c >= 'A' && c <= 'Z') ||
                      (c >= 'a' && c <= 'z') ||
+                     (c == '_');
+
+        /* message name should not starts with a number */
+        if(i == 0 && (c >= '0' && c <= '9'))
+            legal = false;
+
+        /* bad message name */
+        if(legal == false)
+            return -1;
+    }
+
+    return 0;
+}
+
+int parse_variable_name(char *var_name)
+{
+    //TODO: identify the array size
+    //TODO: bracket position checking
+
+    int len = strlen(var_name);
+
+    int i;
+    for(i = 0; i < len; i++) {
+        char c = var_name[i];
+
+        bool legal = (c >= '0' && c <= '9') ||
+                     (c >= 'A' && c <= 'Z') ||
+                     (c >= 'a' && c <= 'z') ||
+                     (c == '[' || c == ']') ||
                      (c == '_');
 
         /* message name should not starts with a number */
@@ -159,6 +189,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     struct list msg_var_list;
     list_init(&msg_var_list);
 
+    bool error = false;
+    int type_len = 0;
+    int var_name_len = 0;
+    int desc_len = 0;
+
     while(1) {
         /* search the end of the current line */
         char *line_end = strchr(line_start, '\n');
@@ -177,19 +212,17 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         *line_end = '\0';
 
         /* split tokens of current line */
-        char *tokens[2];
+        char *tokens[3];
         tokens[0] = calloc(sizeof(char), line_end - line_start + 1);
         tokens[1] = calloc(sizeof(char), line_end - line_start + 1);
+        tokens[2] = calloc(sizeof(char), line_end - line_start + 1);
         int result = split_tokens(tokens, line_start, line_end - line_start);
         //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
 
-        bool error = false;
-        int type_len = 0;
-        int var_name_len = 0;
-
         if(result == 0) {
-            type_len = strlen(tokens[0]) + 1;
-            var_name_len = strlen(tokens[1]) + 1;
+            type_len = strlen(tokens[0]);
+            var_name_len = strlen(tokens[1]);
+            desc_len = strlen(tokens[2]);
 
             /* check data type of current message data field */
             if(type_check(tokens[0]) != 0) {
@@ -198,7 +231,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             }
 
             /* check variable name of current message data field */
-            if(msg_name_rule_check(tokens[1]) != 0) {
+            if(parse_variable_name(tokens[1]) != 0) {
                 printf("msggen: error, bad variable name \"%s\" in %s\n", tokens[1], file_name);
                 error = true;
             }
@@ -217,11 +250,13 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
                 free(msg_var->c_type);
                 free(msg_var->var_name);
+                free(msg_var->description);
                 free(msg_var);
             }
 
             free(tokens[0]);
             free(tokens[1]);
+            free(tokens[2]);
             free(msg_name);
             free(c_header_name);
             free(yaml_name);
@@ -231,10 +266,13 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* append new variable declaration to the list */
         struct msg_var_entry *new_var = malloc(sizeof(struct msg_var_entry));
-        new_var->var_name = calloc(sizeof(char), type_len);
-        new_var->c_type = calloc(sizeof(char), var_name_len);
+        new_var->var_name = calloc(sizeof(char), type_len + 1);
+        new_var->c_type = calloc(sizeof(char), var_name_len + 1);
+        new_var->array_size = 0; //TODO
+        new_var->description = calloc(sizeof(char), desc_len + 1);
         strncpy(new_var->c_type, tokens[0], type_len);
         strncpy(new_var->var_name, tokens[1], var_name_len);
+        strncpy(new_var->description, tokens[2], desc_len);
 
         list_push(&msg_var_list, &new_var->list);
 
@@ -245,6 +283,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         /* clean up */
         free(tokens[0]);
         free(tokens[1]);
+        free(tokens[2]);
     }
 
     /* check if variable with duplicated name exists */
@@ -293,7 +332,14 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         struct list *curr;
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-            fprintf(output_c_header, "    %s %s;\n", msg_var->c_type, msg_var->var_name);
+
+            if(desc_len > 0) {
+                fprintf(output_c_header, "    %s %s; //%s\n",
+                        msg_var->c_type, msg_var->var_name, msg_var->description);
+            } else {
+                fprintf(output_c_header, "    %s %s;\n",
+                        msg_var->c_type, msg_var->var_name);
+            }
         }
 
         fprintf(output_c_header, "} tenok_msg_%s_t;\n\n", msg_name);
@@ -306,6 +352,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+
             fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
                     msg_var->c_type, msg_var->var_name);
         }
@@ -319,8 +366,13 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-            fprintf(output_yaml, "  -\n    c_type: %s\n    var_name: %s\n",
-                    msg_var->c_type, msg_var->var_name);
+            fprintf(output_yaml,
+                    "  -\n    c_type: %s\n"
+                    "    var_name: %s\n"
+                    "    array_size: %d\n"
+                    "    description: \"%s\"\n",
+                    msg_var->c_type, msg_var->var_name,
+                    msg_var->array_size, msg_var->description);
         }
 
 
@@ -337,6 +389,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         free(msg_var->c_type);
         free(msg_var->var_name);
+        free(msg_var->description);
         free(msg_var);
     }
 
