@@ -62,6 +62,10 @@ int split_tokens(char *token[3], char *line, int size, char *file_name, int line
                         /* switch to next step */
                         step++;
                     }
+                } else if(c == '"') {
+                    printf("[msggen] %s:%d:%d: error, read unexpected syntax: \"\n",
+                           file_name, line_num, i + 1);
+                    return -1;
                 } else {
                     /* copy data for current token */
                     token[token_cnt][j] = c;
@@ -85,8 +89,8 @@ int split_tokens(char *token[3], char *line, int size, char *file_name, int line
                     } else {
                         /* the first symbol of the third token should
                          * starts with the qoute symbol */
-                        printf("[msggen] %s:%d: error, the third argument must be quoted\n",
-                               file_name, line_num);
+                        printf("[msggen] %s:%d:%d: error, the third argument must be quoted\n",
+                               file_name, line_num, i + 1);
                         return -1;
                     }
                 } else if(quote_cnt == 1) {
@@ -110,7 +114,8 @@ int split_tokens(char *token[3], char *line, int size, char *file_name, int line
                 break;
             case SPLIT_OVER_LENGTH:
                 if(c != ' ') {
-                    printf("[msggen] %s:%d: error, too many arguments\n", file_name, line_num);
+                    printf("[msggen] %s:%d:%d: error, too many arguments\n",
+                           file_name, line_num, i + 1);
                     return -1;
                 }
         }
