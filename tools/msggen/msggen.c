@@ -23,7 +23,7 @@ char *support_types[] = {
 struct msg_var_entry {
     char *var_name;
     char *c_type;
-    int  array_size;
+    char *array_size;
     char *description;
 
     struct list list;
@@ -102,7 +102,7 @@ int msg_name_rule_check(char *msg_name)
     return 0;
 }
 
-int parse_variable_name(char *var_name)
+int parse_variable_name(char *input, char *var_name, char *array_size)
 {
     enum {
         PARSER_WAIT_NAME = 0,
@@ -114,16 +114,17 @@ int parse_variable_name(char *var_name)
 
     //TODO: identify the array size
 
-    int len = strlen(var_name);
+    int len = strlen(input);
 
     int var_name_len = 0;
-    int state = PARSER_WAIT_NAME;
+    int array_size_len = 0;
 
+    int state = PARSER_WAIT_NAME;
     bool bracket_not_closed = false;
 
     int i;
     for(i = 0; i < len; i++) {
-        char c = var_name[i];
+        char c = input[i];
 
         switch(state) {
             case PARSER_WAIT_NAME: {
@@ -134,6 +135,8 @@ int parse_variable_name(char *var_name)
 
                 if(legal) {
                     state = PARSER_WAIT_NAME_OR_LB;
+                    var_name[var_name_len] = c;
+                    var_name_len++;
                 } else {
                     return -1;
                 }
@@ -155,8 +158,12 @@ int parse_variable_name(char *var_name)
                                  (c >= 'A' && c <= 'Z') ||
                                  (c >= 'a' && c <= 'z') ||
                                  (c == '_');
-                    if(legal == false)
+                    if(legal == true) {
+                        var_name[var_name_len] = c;
+                        var_name_len++;
+                    } else {
                         return -1;
+                    }
                 }
 
                 break;
@@ -165,6 +172,8 @@ int parse_variable_name(char *var_name)
                 /* 3. handle for the first index number to come in */
                 if(c >= '0' && c <= '9') {
                     state = PARSER_WAIT_INDEX_OR_RB;
+                    array_size[array_size_len] = c;
+                    array_size_len++;
                 } else {
                     return -1; //only numbers are accepted
                 }
@@ -181,8 +190,12 @@ int parse_variable_name(char *var_name)
                      * happened */
                     state = PARSER_OVER_LENGTH;
                 } else {
-                    if((c >= '0' && c <= '9') == false)
+                    if((c >= '0' && c <= '9') == true) {
+                        array_size[array_size_len] = c;
+                        array_size_len++;
+                    } else {
                         return -1; //only numbers are accepted
+                    }
                 }
 
                 break;
@@ -282,11 +295,15 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* split tokens of current line */
         char *tokens[3];
-        tokens[0] = calloc(sizeof(char), line_end - line_start + 1);
-        tokens[1] = calloc(sizeof(char), line_end - line_start + 1);
-        tokens[2] = calloc(sizeof(char), line_end - line_start + 1);
+        tokens[0] = calloc(sizeof(char), line_end - line_start + 1); //fieldtype
+        tokens[1] = calloc(sizeof(char), line_end - line_start + 1); //fieldname
+        tokens[2] = calloc(sizeof(char), line_end - line_start + 1); //description
         int result = split_tokens(tokens, line_start, line_end - line_start);
         //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
+
+        /* token[1] can be further decomposed into variable name and index number */
+        char *var_name = calloc(sizeof(char), line_end - line_start + 1);
+        char *array_size = calloc(sizeof(char), line_end - line_start + 1);
 
         if(result == 0) {
             type_len = strlen(tokens[0]);
@@ -300,8 +317,8 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             }
 
             /* check variable name of current message data field */
-            if(parse_variable_name(tokens[1]) != 0) {
-                printf("msggen: error, bad variable name \"%s\" in %s\n", tokens[1], file_name);
+            if(parse_variable_name(tokens[1], var_name, array_size) != 0) {
+                printf("msggen: error, illegal variable declaration: \"%s\" in %s\n", tokens[1], file_name);
                 error = true;
             }
         } else {
@@ -335,12 +352,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* append new variable declaration to the list */
         struct msg_var_entry *new_var = malloc(sizeof(struct msg_var_entry));
-        new_var->var_name = calloc(sizeof(char), type_len + 1);
+        new_var->var_name = var_name;
         new_var->c_type = calloc(sizeof(char), var_name_len + 1);
-        new_var->array_size = 0; //TODO
-        new_var->description = calloc(sizeof(char), desc_len + 1);
         strncpy(new_var->c_type, tokens[0], type_len);
-        strncpy(new_var->var_name, tokens[1], var_name_len);
+        new_var->array_size = array_size;
+        new_var->description = calloc(sizeof(char), desc_len + 1);
         strncpy(new_var->description, tokens[2], desc_len);
 
         list_push(&msg_var_list, &new_var->list);
@@ -402,12 +418,21 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
-            if(desc_len > 0) {
-                fprintf(output_c_header, "    %s %s; //%s\n",
-                        msg_var->c_type, msg_var->var_name, msg_var->description);
+            /* data type and variable name */
+            fprintf(output_c_header, "    %s %s", msg_var->c_type, msg_var->var_name);
+
+            /* array size */
+            if(strlen(msg_var->array_size) > 0) {
+                fprintf(output_c_header, "[%s];", msg_var->array_size);
             } else {
-                fprintf(output_c_header, "    %s %s;\n",
-                        msg_var->c_type, msg_var->var_name);
+                fprintf(output_c_header, ";");
+            }
+
+            /* description */
+            if(desc_len > 0) {
+                fprintf(output_c_header, " //%s\n", msg_var->description);
+            } else {
+                fprintf(output_c_header, "\n");
             }
         }
 
@@ -422,8 +447,14 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
-            fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload);\n",
-                    msg_var->c_type, msg_var->var_name);
+            /* generate function calls to pack data fields */
+            if(strlen(msg_var->array_size) > 0) {
+                fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload, %s);\n",
+                        msg_var->c_type, msg_var->var_name, msg_var->array_size);
+            } else {
+                fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload, 1);\n",
+                        msg_var->c_type, msg_var->var_name);
+            }
         }
 
         fprintf(output_c_header, "}\n");
@@ -435,15 +466,26 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
-            fprintf(output_yaml,
-                    "  -\n    c_type: %s\n"
-                    "    var_name: %s\n"
-                    "    array_size: %d\n"
-                    "    description: \"%s\"\n",
-                    msg_var->c_type, msg_var->var_name,
-                    msg_var->array_size, msg_var->description);
-        }
 
+            if(strlen(msg_var->array_size) > 0) {
+                fprintf(output_yaml,
+                        "  -\n    c_type: %s\n"
+                        "    var_name: %s\n"
+                        "    array_size: %s\n"
+                        "    description: \"%s\"\n",
+                        msg_var->c_type, msg_var->var_name,
+                        msg_var->array_size, msg_var->description);
+            } else {
+                fprintf(output_yaml,
+                        "  -\n    c_type: %s\n"
+                        "    var_name: %s\n"
+                        "    array_size: 0\n"
+                        "    description: \"%s\"\n",
+                        msg_var->c_type, msg_var->var_name,
+                        msg_var->description);
+
+            }
+        }
 
         printf("[msggen] generate %s\n[msggen] generate %s\n", c_header_name, yaml_name);
     }
@@ -458,6 +500,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         free(msg_var->c_type);
         free(msg_var->var_name);
+        free(msg_var->array_size);
         free(msg_var->description);
         free(msg_var);
     }
