@@ -124,7 +124,7 @@ int split_tokens(char *token[3], char *line, int size)
         return -1;
     }
 
-    return 0;
+    return token_cnt;
 }
 
 int type_check(char *type)
@@ -336,7 +336,11 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     int var_name_len = 0;
     int desc_len = 0;
 
+    int line_num = 0;
+
     while(1) {
+        line_num++;
+
         /* search the end of the current line */
         char *line_end = strchr(line_start, '\n');
 
@@ -348,24 +352,39 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* EOF detection */
         if(line_end == NULL) {
-            break; //leave from the loop
+            break; //leave the loop
         }
 
         *line_end = '\0';
 
-        /* split tokens of current line */
+        /* allocate memory space for storing tokens */
         char *tokens[3];
         tokens[0] = calloc(sizeof(char), line_end - line_start + 1); //fieldtype
         tokens[1] = calloc(sizeof(char), line_end - line_start + 1); //fieldname
         tokens[2] = calloc(sizeof(char), line_end - line_start + 1); //description
-        int result = split_tokens(tokens, line_start, line_end - line_start);
-        //printf("type:%s, name:%s\n\r", tokens[0], tokens[1]);
+
+        /* split tokens of current line */
+        int token_cnt = split_tokens(tokens, line_start, line_end - line_start);
 
         /* token[1] can be further decomposed into variable name and index number */
         char *var_name = calloc(sizeof(char), line_end - line_start + 1);
         char *array_size = calloc(sizeof(char), line_end - line_start + 1);
 
-        if(result == 0) {
+        if(token_cnt == -1) {
+            /* grammer error */
+            error = true;
+        } else if(token_cnt == 0) {
+            /* read nothing, skip current line */
+            free(tokens[0]);
+            free(tokens[1]);
+            free(tokens[2]);
+            free(var_name);
+            free(array_size);
+
+            /* read next line */
+            line_start = line_end + 1;
+            continue;
+        } else if(token_cnt >= 2) {
             type_len = strlen(tokens[0]);
             var_name_len = strlen(tokens[1]);
             desc_len = strlen(tokens[2]);
@@ -381,12 +400,10 @@ int codegen(char *file_name, char *msgs, char *output_dir)
                 printf("msggen: error, illegal variable declaration: \"%s\" in %s\n", tokens[1], file_name);
                 error = true;
             }
-        } else {
-            error = true; //grammer error
         }
 
+        /* clean up then abort */
         if(error) {
-            /* clean up */
             fclose(output_c_header);
             fclose(output_yaml);
 
@@ -403,6 +420,8 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             free(tokens[0]);
             free(tokens[1]);
             free(tokens[2]);
+            free(var_name);
+            free(array_size);
             free(msg_name);
             free(c_header_name);
             free(yaml_name);
