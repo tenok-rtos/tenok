@@ -104,28 +104,97 @@ int msg_name_rule_check(char *msg_name)
 
 int parse_variable_name(char *var_name)
 {
+    enum {
+        PARSER_WAIT_NAME = 0,
+        PARSER_WAIT_NAME_OR_LB = 1,
+        PARSER_WAIT_INDEX = 2,
+        PARSER_WAIT_INDEX_OR_RB = 3,
+        PARSER_OVER_LENGTH = 4
+    } VarNameParserStates;
+
     //TODO: identify the array size
-    //TODO: bracket position checking
 
     int len = strlen(var_name);
+
+    int var_name_len = 0;
+    int state = PARSER_WAIT_NAME;
+
+    bool bracket_not_closed = false;
 
     int i;
     for(i = 0; i < len; i++) {
         char c = var_name[i];
 
-        bool legal = (c >= '0' && c <= '9') ||
-                     (c >= 'A' && c <= 'Z') ||
-                     (c >= 'a' && c <= 'z') ||
-                     (c == '[' || c == ']') ||
-                     (c == '_');
+        switch(state) {
+            case PARSER_WAIT_NAME: {
+                /* 1. handle the first character of the variable name to come in */
+                bool legal = (c >= 'A' && c <= 'Z') ||
+                             (c >= 'a' && c <= 'z') ||
+                             (c == '_'); //variable name should not starts with numbers
 
-        /* message name should not starts with a number */
-        if(i == 0 && (c >= '0' && c <= '9'))
-            legal = false;
+                if(legal) {
+                    state = PARSER_WAIT_NAME_OR_LB;
+                } else {
+                    return -1;
+                }
 
-        /* bad message name */
-        if(legal == false)
-            return -1;
+                break;
+            }
+            case PARSER_WAIT_NAME_OR_LB: {
+                /* 2. handle for more characters of variable name or a left
+                 * bracket to come in */
+                if(c == '[') {
+                    state = PARSER_WAIT_INDEX; //left bracket detected!
+
+                    /* as long as the left bracket is read, it is known that this
+                     * is a array declaration, so we need to track the income
+                     * character until the right bracket is read */
+                    bracket_not_closed = true;
+                } else {
+                    bool legal = (c >= '0' && c <= '9') ||
+                                 (c >= 'A' && c <= 'Z') ||
+                                 (c >= 'a' && c <= 'z') ||
+                                 (c == '_');
+                    if(legal == false)
+                        return -1;
+                }
+
+                break;
+            }
+            case PARSER_WAIT_INDEX: {
+                /* 3. handle for the first index number to come in */
+                if(c >= '0' && c <= '9') {
+                    state = PARSER_WAIT_INDEX_OR_RB;
+                } else {
+                    return -1; //only numbers are accepted
+                }
+
+                break;
+            }
+            case PARSER_WAIT_INDEX_OR_RB: {
+                /* 4. handle for more index numbers or a right bracket to come in */
+                if(c == ']') {
+                    /* ready to be done */
+                    bracket_not_closed = false;
+
+                    /* if everything is fine, this assigned new state should not be
+                     * happened */
+                    state = PARSER_OVER_LENGTH;
+                } else {
+                    if((c >= '0' && c <= '9') == false)
+                        return -1; //only numbers are accepted
+                }
+
+                break;
+            }
+            case PARSER_OVER_LENGTH: {
+                return -1; //bracket is closed, no more characters are accepted!
+            }
+        }
+    }
+
+    if(bracket_not_closed) {
+        return -1;
     }
 
     return 0;
