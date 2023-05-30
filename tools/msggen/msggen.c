@@ -31,7 +31,7 @@ struct msg_var_entry {
 
 int msg_cnt = 0;
 
-int split_tokens(char *token[3], char *line, int size)
+int split_tokens(char *token[3], char *line, int size, char *file_name, int line_num)
 {
     enum {
         SPLIT_TYPE = 0,
@@ -85,6 +85,8 @@ int split_tokens(char *token[3], char *line, int size)
                     } else {
                         /* the first symbol of the third token should
                          * starts with the qoute symbol */
+                        printf("[msggen] %s:%d: error, the third argument must be quoted\n",
+                               file_name, line_num);
                         return -1;
                     }
                 } else if(quote_cnt == 1) {
@@ -108,19 +110,19 @@ int split_tokens(char *token[3], char *line, int size)
                 break;
             case SPLIT_OVER_LENGTH:
                 if(c != ' ') {
-                    printf("msggen: too many arguments\n");
+                    printf("[msggen] %s:%d: error, too many arguments\n", file_name, line_num);
                     return -1;
                 }
         }
     }
 
     if(token_cnt == 1) {
-        printf("msggen: error, variable name is missing\n");
+        printf("[msggen] %s:%d: error, variable name is missing\n", file_name, line_num);
         return -1;
     }
 
     if((step == SPLIT_DESCRIPTION) && (quote_cnt == 1)) {
-        printf("msggen: error, missing one \" symbol\n");
+        printf("msggen: %s:%d: error, missing one \" symbol\n", file_name, line_num);
         return -1;
     }
 
@@ -286,7 +288,7 @@ char *get_message_name(char *file_name)
     msg_name[len - 4] = '\0';
 
     if(msg_name_rule_check(msg_name) != 0) {
-        printf("msggen: error, bad message name \"%s\"\n", msg_name);
+        printf("[msggen] error, bad message name \"%s\"\n", msg_name);
         free(msg_name);
         return NULL;
     }
@@ -306,7 +308,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     FILE *output_c_header = fopen(c_header_name, "wb");
     if(output_c_header == NULL) {
-        printf("msggen: error, failed to write to %s\n", c_header_name);
+        printf("[msggen] error, failed to write to %s\n", c_header_name);
         free(c_header_name);
         return -1;
     }
@@ -317,7 +319,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     FILE *output_yaml = fopen(yaml_name, "wb");
     if(output_yaml == NULL) {
-        printf("msggen: error, failed to write to %s\n", yaml_name);
+        printf("[msggen] error, failed to write to %s\n", yaml_name);
         free(yaml_name);
         return -1;
     }
@@ -364,7 +366,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         tokens[2] = calloc(sizeof(char), line_end - line_start + 1); //description
 
         /* split tokens of current line */
-        int token_cnt = split_tokens(tokens, line_start, line_end - line_start);
+        int token_cnt = split_tokens(tokens, line_start, line_end - line_start, file_name, line_num);
 
         /* token[1] can be further decomposed into variable name and index number */
         char *var_name = calloc(sizeof(char), line_end - line_start + 1);
@@ -391,13 +393,15 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
             /* check data type of current message data field */
             if(type_check(tokens[0]) != 0) {
-                printf("msggen: error, unknown type \"%s\" in %s\n", tokens[0], file_name);
+                printf("[msggen] %s:%d: error, unknown type \"%s\"\n",
+                       file_name, line_num, tokens[0]);
                 error = true;
             }
 
             /* check variable name of current message data field */
             if(parse_variable_name(tokens[1], var_name, array_size) != 0) {
-                printf("msggen: error, illegal variable declaration: \"%s\" in %s\n", tokens[1], file_name);
+                printf("[msggen] %s:%d: error, illegal variable name: \"%s\"\n",
+                       file_name, line_num, tokens[1]);
                 error = true;
             }
         }
@@ -472,8 +476,8 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* duplicated, variable with same name appeared */
         if(cnt > 1) {
-            printf("msggen: variable name \"%s\" in %s is duplicated\n",
-                   cmp_var1->var_name, file_name);
+            printf("[msggen] %s:%d: error, variable name \"%s\" is duplicated\n",
+                   file_name, line_num, cmp_var1->var_name);
 
             var_duplicated = true;
             break;
