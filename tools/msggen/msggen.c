@@ -52,7 +52,7 @@ int split_tokens(char *token[2], char *line, int size)
 
     /* itterate through the whole line */
     for(i = 0; i < size; i++) {
-        if(line[i] == ' ') {
+        if((line[i] == ' ')) {
             /* if j is not 0 while a space is read means the token is cut */
             if(j != 0) {
                 /* end of the current token */
@@ -64,14 +64,24 @@ int split_tokens(char *token[2], char *line, int size)
         } else {
             /* error, too many tokens */
             if(token_cnt >= 3) {
-                printf("msggen: too many arguments in one line\n");
+                printf("msggen: too many arguments\n");
                 return -1; //grammer rule: [fieldtype] [fieldname] [description]
             }
 
             /* copy the content for current token */
             token[token_cnt][j] = line[i];
             j++;
+
+            /* is this the last character? */
+            if(i == (size - 1)) {
+                token_cnt++;
+            }
         }
+    }
+
+    if(token_cnt == 1) {
+        printf("msggen: error, variable name is missing\n");
+        return -1;
     }
 
     return 0;
@@ -112,10 +122,6 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
         PARSER_OVER_LENGTH = 4
     } VarNameParserStates;
 
-    //TODO: identify the array size
-
-    int len = strlen(input);
-
     int var_name_len = 0;
     int array_size_len = 0;
 
@@ -123,7 +129,7 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
     bool bracket_not_closed = false;
 
     int i;
-    for(i = 0; i < len; i++) {
+    for(i = 0; i < strlen(input); i++) {
         char c = input[i];
 
         switch(state) {
