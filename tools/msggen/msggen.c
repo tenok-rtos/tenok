@@ -31,6 +31,102 @@ struct msg_var_entry {
 
 int msg_cnt = 0;
 
+int split_tokens(char *token[3], char *line, int size)
+{
+    enum {
+        SPLIT_TYPE = 0,
+        SPLIT_VAR_NAME = 1,
+        SPLIT_DESCRIPTION = 2,
+        SPLIT_OVER_LENGTH = 3
+    } SplitSteps;
+
+    int step = SPLIT_TYPE;
+    int token_cnt = 0;
+    int quote_cnt = 0; //for handling the third token
+
+    int i = 0, j = 0;
+    for(i = 0; i < size; i++) {
+        char c = line[i];
+
+        switch(step) {
+            case SPLIT_TYPE:
+            case SPLIT_VAR_NAME:
+                /* skip spaces before the start of the token */
+                if(c == ' ') {
+                    if(j != 0) {
+                        /* end of the current token */
+                        token[token_cnt][j] = '\0';
+                        token_cnt++;
+                        j = 0;
+
+                        /* switch to next step */
+                        step++;
+                    }
+                } else {
+                    /* copy data for current token */
+                    token[token_cnt][j] = c;
+                    j++;
+
+                    /* is this the last character? */
+                    if(i == (size - 1)) {
+                        token_cnt++;
+                    }
+                }
+
+                break;
+            case SPLIT_DESCRIPTION:
+                if(quote_cnt == 0) {
+                    if(c == ' ') {
+                        /* skip spaces before the quote symbol */
+                        continue;
+                    } else if(c == '"') {
+                        /* first quote symbol is caught */
+                        quote_cnt++;
+                    } else {
+                        /* the first symbol of the third token should
+                         * starts with the qoute symbol */
+                        return -1;
+                    }
+                } else if(quote_cnt == 1) {
+                    if(c == '"') {
+                        /* the second quote symbol is caught */
+                        quote_cnt++;
+
+                        /* end of the current token */
+                        token[token_cnt][j] = '\0';
+                        token_cnt++;
+                        j = 0;
+
+                        step = SPLIT_OVER_LENGTH;
+                    } else {
+                        /* copy data for current token */
+                        token[token_cnt][j] = c;
+                        j++;
+                    }
+                }
+
+                break;
+            case SPLIT_OVER_LENGTH:
+                if(c != ' ') {
+                    printf("msggen: too many arguments\n");
+                    return -1;
+                }
+        }
+    }
+
+    if(token_cnt == 1) {
+        printf("msggen: error, variable name is missing\n");
+        return -1;
+    }
+
+    if((step == SPLIT_DESCRIPTION) && (quote_cnt == 1)) {
+        printf("msggen: error, missing one \" symbol\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int type_check(char *type)
 {
     int len = strlen(type);
@@ -43,73 +139,6 @@ int type_check(char *type)
     }
 
     return -1;
-}
-
-int split_tokens(char *token[2], char *line, int size)
-{
-    int i = 0, j = 0;
-    int token_cnt = 0;
-
-    /* itterate through the whole line */
-    for(i = 0; i < size; i++) {
-        if((line[i] == ' ')) {
-            /* if j is not 0 while a space is read means the token is cut */
-            if(j != 0) {
-                /* end of the current token */
-                token[token_cnt][j] = '\0';
-                token_cnt++;
-            }
-
-            j = 0; //reset token string index
-        } else {
-            /* error, too many tokens */
-            if(token_cnt >= 3) {
-                printf("msggen: too many arguments\n");
-                return -1; //grammer rule: [fieldtype] [fieldname] [description]
-            }
-
-            /* copy the content for current token */
-            token[token_cnt][j] = line[i];
-            j++;
-
-            /* is this the last character? */
-            if(i == (size - 1)) {
-                token_cnt++;
-            }
-        }
-    }
-
-    if(token_cnt == 1) {
-        printf("msggen: error, variable name is missing\n");
-        return -1;
-    }
-
-    return 0;
-}
-
-int msg_name_rule_check(char *msg_name)
-{
-    int len = strlen(msg_name);
-
-    int i;
-    for(i = 0; i < len; i++) {
-        char c = msg_name[i];
-
-        bool legal = (c >= '0' && c <= '9') ||
-                     (c >= 'A' && c <= 'Z') ||
-                     (c >= 'a' && c <= 'z') ||
-                     (c == '_');
-
-        /* message name should not starts with a number */
-        if(i == 0 && (c >= '0' && c <= '9'))
-            legal = false;
-
-        /* bad message name */
-        if(legal == false)
-            return -1;
-    }
-
-    return 0;
 }
 
 int parse_variable_name(char *input, char *var_name, char *array_size)
@@ -214,6 +243,31 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
 
     if(bracket_not_closed) {
         return -1;
+    }
+
+    return 0;
+}
+
+int msg_name_rule_check(char *msg_name)
+{
+    int len = strlen(msg_name);
+
+    int i;
+    for(i = 0; i < len; i++) {
+        char c = msg_name[i];
+
+        bool legal = (c >= '0' && c <= '9') ||
+                     (c >= 'A' && c <= 'Z') ||
+                     (c >= 'a' && c <= 'z') ||
+                     (c == '_');
+
+        /* message name should not starts with a number */
+        if(i == 0 && (c >= '0' && c <= '9'))
+            legal = false;
+
+        /* bad message name */
+        if(legal == false)
+            return -1;
     }
 
     return 0;
