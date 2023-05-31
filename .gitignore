@@ -6,3 +6,6 @@
 *.swp
 */mkromfs/mkromfs
 */msggen/msggen
+*/rtplot/build/
+*/rtplot/src/rtplot.egg-info/
+build/
