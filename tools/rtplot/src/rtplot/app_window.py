@@ -142,8 +142,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
 
-        self.matplot_canvas.figure.tight_layout()
-
     def start_window(serial_ports, msg_list):
         # Check whether there is already a running QApplication (e.g., if running
         # from an IDE).

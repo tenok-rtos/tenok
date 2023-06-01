@@ -5,7 +5,6 @@ import glob
 
 import serial
 
-
 def serial_ports():
     ports = glob.glob('/dev/tty[A-Za-z]*')
 
@@ -18,7 +17,6 @@ def serial_ports():
         except (OSError, serial.SerialException):
             pass
     return result
-
 
 def main(msg_dir_path):
     # list yaml files under the input path
