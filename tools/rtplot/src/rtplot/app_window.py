@@ -11,8 +11,11 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QComboBox, QHBoxLayout, QStyle)
 
 
-class ApplicationWindow(QtWidgets.QMainWindow):
-    def __init__(self):
+class RTPlotWindow(QtWidgets.QMainWindow):
+    def __init__(self, ports, msg_list):
+        self.serial_ports = ports
+        self.msg_list = msg_list
+
         super().__init__()
 
         self._main = QtWidgets.QWidget()
@@ -27,7 +30,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         hbox_topbar = QHBoxLayout()
 
         combo_ports = QComboBox(self._main)
-        combo_ports.addItems(['/dev/ttyUSB0', '/dev/ttyUSB1'])
+        combo_ports.addItems(self.serial_ports)
         combo_ports.setFixedSize(combo_ports.sizeHint())
         hbox_topbar.addWidget(combo_ports)
 
@@ -42,7 +45,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         hbox_topbar.addWidget(checkbox_csv)
 
         combo_msgs = QComboBox(self._main)
-        combo_msgs.addItems(['---message---'])
+        combo_msgs.addItems(['---message---'] + self.msg_list)
         combo_msgs.setFixedSize(combo_msgs.sizeHint())
         hbox_topbar.addWidget(combo_msgs)
 
@@ -90,16 +93,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self._line.set_data(t, np.sin(t + time.time()))
         self._line.figure.canvas.draw()
 
+    def start_window(serial_ports, msg_list):
+        # Check whether there is already a running QApplication (e.g., if running
+        # from an IDE).
+        qapp = QtWidgets.QApplication.instance()
+        if not qapp:
+            qapp = QtWidgets.QApplication(sys.argv)
 
-if __name__ == "__main__":
-    # Check whether there is already a running QApplication (e.g., if running
-    # from an IDE).
-    qapp = QtWidgets.QApplication.instance()
-    if not qapp:
-        qapp = QtWidgets.QApplication(sys.argv)
-
-    app = ApplicationWindow()
-    app.show()
-    app.activateWindow()
-    app.raise_()
-    qapp.exec()
+        app = RTPlotWindow(serial_ports, msg_list)
+        app.show()
+        app.activateWindow()
+        app.raise_()
+        qapp.exec()

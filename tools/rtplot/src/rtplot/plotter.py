@@ -251,4 +251,5 @@ def plotter_start():
     serial_plotter = serial_plotter_class()
     serial_plotter.run()
 
+
 plotter_start()
