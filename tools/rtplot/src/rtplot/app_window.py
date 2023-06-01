@@ -7,8 +7,9 @@ from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QComboBox, QHBoxLayout, QStyle)
+    QApplication, QWidget, QComboBox, QHBoxLayout, QStyle, QLabel, QStatusBar)
 
 
 class RTPlotWindow(QtWidgets.QMainWindow):
@@ -16,6 +17,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.serial_ports = ports
         self.msg_list = msg_list
 
+        self.serial_state = "disconnected"
+        self.plot_pause = False
+
+        self.ui_init()
+
+    def ui_init(self):
         super().__init__()
 
         self._main = QtWidgets.QWidget()
@@ -34,64 +41,94 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         combo_ports.setFixedSize(combo_ports.sizeHint())
         hbox_topbar.addWidget(combo_ports)
 
-        btn_connect = QtWidgets.QPushButton(self._main)
-        btn_connect.setText('Connect')
-        btn_connect.setFixedSize(btn_connect.sizeHint())
-        hbox_topbar.addWidget(btn_connect)
+        self.btn_connect = QtWidgets.QPushButton(self._main)
+        self.btn_connect.setText('Connect')
+        self.btn_connect.setFixedSize(self.btn_connect.sizeHint())
+        self.btn_connect.clicked.connect(self.btn_connect_clicked)
+        hbox_topbar.addWidget(self.btn_connect)
 
-        checkbox_csv = QtWidgets.QCheckBox(self._main)
-        checkbox_csv.setText('Save CSV')
+        self.checkbox_csv = QtWidgets.QCheckBox(self._main)
+        self.checkbox_csv.setText('Save CSV')
         # checkbox_csv.setFixedSize(checkbox_csv.sizeHint())
-        hbox_topbar.addWidget(checkbox_csv)
+        hbox_topbar.addWidget(self.checkbox_csv)
 
         combo_msgs = QComboBox(self._main)
         combo_msgs.addItems(['---message---'] + self.msg_list)
         combo_msgs.setFixedSize(combo_msgs.sizeHint())
         hbox_topbar.addWidget(combo_msgs)
 
-        btn_pause = QtWidgets.QPushButton(self._main)
-        btn_pause.setFixedSize(btn_pause.sizeHint())
+        self.btn_pause = QtWidgets.QPushButton(self._main)
+        self.btn_pause.setFixedSize(self.btn_pause.sizeHint())
         pixmapi = getattr(QStyle, 'SP_MediaPause')
         icon = self.style().standardIcon(pixmapi)
-        btn_pause.setIcon(icon)
-        hbox_topbar.addWidget(btn_pause)
+        self.btn_pause.setIcon(icon)
+        self.btn_pause.setEnabled(False)
+        self.btn_pause.clicked.connect(self.btn_pause_clicked)
+        hbox_topbar.addWidget(self.btn_pause)
 
         layout.addLayout(hbox_topbar)
 
         #======#
         # Plot #
         #======#
-        static_canvas = FigureCanvas(Figure(figsize=(5, 3)))
-        layout.addWidget(static_canvas)
-        layout.addWidget(NavigationToolbar(static_canvas, self))
-
-        dynamic_canvas = FigureCanvas(Figure(figsize=(5, 3)))
-        layout.addWidget(dynamic_canvas)
-        layout.addWidget(NavigationToolbar(dynamic_canvas, self))
-
-        self._static_ax = static_canvas.figure.subplots()
-        self._static_ax.grid(color="lightGray")
-        # static_canvas.figure.set_facecolor("lightGray")
+        matplot_canvas = FigureCanvas(Figure(figsize=(5, 4)))
+        matplot_canvas.figure.set_facecolor("lightGray")
         #
-        t = np.linspace(0, 10, 501)
-        self._static_ax.plot(t, np.tan(t), ".")
+        layout.addWidget(NavigationToolbar(matplot_canvas, self))
+        layout.addWidget(matplot_canvas)
 
-        self._dynamic_ax = dynamic_canvas.figure.subplots()
-        # dynamic_canvas.figure.set_facecolor("lightGray")
-        self._dynamic_ax.grid(color="lightGray")
-        #
         t = np.linspace(0, 10, 101)
-        # Set up a Line2D.
-        self._line, = self._dynamic_ax.plot(t, np.sin(t + time.time()))
-        self._timer = dynamic_canvas.new_timer(50)
-        self._timer.add_callback(self._update_canvas)
+        #
+        self._dynamic_ax = matplot_canvas.figure.subplots(2, 1)
+        #
+        self._dynamic_ax[0].grid(color="lightGray")
+        self._dynamic_ax[0].set_xlim([0, 10])
+        self.signal1, = self._dynamic_ax[0].plot(t, np.sin(t + time.time()))
+        #
+        self._dynamic_ax[1].grid(color="lightGray")
+        self._dynamic_ax[1].set_xlim([0, 10])
+        self.signal2, = self._dynamic_ax[1].plot(t, np.sin(t + time.time()))
+
+        self._timer = matplot_canvas.new_timer(50)
+        self._timer.add_callback(self.update_plots)
         self._timer.start()
 
-    def _update_canvas(self):
+    def update_plots(self):
+        if self.plot_pause == True:
+            return
+
         t = np.linspace(0, 10, 101)
         # Shift the sinusoid as a function of time.
-        self._line.set_data(t, np.sin(t + time.time()))
-        self._line.figure.canvas.draw()
+        self.signal1.set_data(t, np.sin(t + time.time()))
+        self.signal2.set_data(t, np.sin(2 * t + time.time()))
+        self.signal1.figure.canvas.draw()
+        self.signal2.figure.canvas.draw()
+
+    def btn_connect_clicked(self):
+        if self.serial_state == "disconnected":
+            self.serial_state = "connected"
+            self.btn_connect.setText('Disconnect')
+            self.checkbox_csv.setEnabled(False)
+            self.btn_pause.setEnabled(True)
+        elif self.serial_state == "connected":
+            self.serial_state = "disconnected"
+            self.btn_connect.setText('Connect')
+            self.checkbox_csv.setEnabled(True)
+            self.btn_pause.setEnabled(False)
+
+    def btn_pause_clicked(self):
+        if self.plot_pause == False:
+            self.plot_pause = True
+            pixmapi = getattr(QStyle, 'SP_MediaPlay')
+            icon = self.style().standardIcon(pixmapi)
+            self.btn_pause.setIcon(icon)
+        elif self.plot_pause == True:
+            self.plot_pause = False
+            pixmapi = getattr(QStyle, 'SP_MediaPause')
+            icon = self.style().standardIcon(pixmapi)
+            self.btn_pause.setIcon(icon)
+
+        return
 
     def start_window(serial_ports, msg_list):
         # Check whether there is already a running QApplication (e.g., if running
