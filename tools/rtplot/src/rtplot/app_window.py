@@ -81,54 +81,16 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         self.layout_main.addLayout(hbox_topbar)
 
-        #======#
-        # Plot #
-        #======#
-        self.tabs = QTabWidget()
-        self.tab_widgets = [QWidget()]
-        self.tabs.addTab(self.tab_widgets[0], "%d" % (1))
-
-        self.matplot_canvas = FigureCanvas(Figure(figsize=(5, 4)))
-        self.matplot_canvas.figure.set_facecolor("lightGray")
-        self.matplot_canvas.figure.tight_layout()
-
-        self.matplot_layout = QtWidgets.QVBoxLayout(self._main)
-        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
-        self.matplot_layout.addWidget(self.matplot_nav_bar)
-        self.matplot_layout.addWidget(self.matplot_canvas)
-        self.tab_widgets[0].setLayout(self.matplot_layout)
-
-        t = np.linspace(0, 10, 101)
-        #
-        self._dynamic_ax = self.matplot_canvas.figure.subplots(2, 1)
-        #
-        self._dynamic_ax[0].grid(color="lightGray")
-        self._dynamic_ax[0].set_xlim([0, 10])
-        self.signal1, = self._dynamic_ax[0].plot(t, np.sin(t + time.time()))
-        #
-        self._dynamic_ax[1].grid(color="lightGray")
-        self._dynamic_ax[1].set_xlim([0, 10])
-        self.signal2, = self._dynamic_ax[1].plot(t, np.sin(t + time.time()))
-
-        self._timer = self.matplot_canvas.new_timer(50)
-        self._timer.add_callback(self.update_plots)
-        self._timer.start()
-
-        self.layout_main.addWidget(self.tabs)
-
-        self.display_off = False
-
-        # test code for removing plots
-        if False:
-            self.matplot_layout.removeWidget(self.matplot_nav_bar)
-            self.matplot_layout.removeWidget(self.matplot_canvas)
-            self.layout_main.removeWidget(self.tabs)
-            sip.delete(self.matplot_nav_bar)
-            sip.delete(self.matplot_canvas)
-            sip.delete(self.tabs)
-            del self.signal1
-            del self.signal2
-            self.display_off = True
+    def delete_plots(self):
+        self.matplot_layout.removeWidget(self.matplot_nav_bar)
+        self.matplot_layout.removeWidget(self.matplot_canvas)
+        self.layout_main.removeWidget(self.tabs)
+        sip.delete(self.matplot_nav_bar)
+        sip.delete(self.matplot_canvas)
+        sip.delete(self.tabs)
+        del self._timer
+        del self.signal
+        self.display_off = True
 
     def update_plots(self):
         if self.plot_pause == True:
@@ -136,10 +98,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         if self.display_off == False:
             t = np.linspace(0, 10, 101)
-            self.signal1.set_data(t, np.sin(t + time.time()))
-            self.signal2.set_data(t, np.sin(2 * t + time.time()))
-            self.signal1.figure.canvas.draw()
-            self.signal2.figure.canvas.draw()
+            for i in range(0, len(self.signal)):
+                self.signal[i].set_data(t, np.sin((i + 1) * t + time.time()))
+                self.signal[i].figure.canvas.draw()
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
@@ -157,9 +118,50 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.combo_msgs.currentText() == "---message---":
             return  # ignore
 
+        # load message information
         selected_msg = self.combo_msgs.currentText()
         self.curr_msg_info = self.msg_manager.find(selected_msg)
-        print(self.curr_msg_info)
+
+        subplot_cnt = len(self.curr_msg_info.fields)
+
+        # delete old plots
+        if self.display_off == False:
+            self.delete_plots()
+
+        # display plot figures
+        self.tabs = QTabWidget()
+        self.tab_widgets = [QWidget()]
+        self.tabs.addTab(self.tab_widgets[0], "%d" % (1))
+
+        self.matplot_canvas = FigureCanvas(Figure(figsize=(5, 4)))
+        self.matplot_canvas.figure.set_facecolor("lightGray")
+
+        self.matplot_layout = QtWidgets.QVBoxLayout(self._main)
+        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
+        self.matplot_layout.addWidget(self.matplot_nav_bar)
+        self.matplot_layout.addWidget(self.matplot_canvas)
+        self.tab_widgets[0].setLayout(self.matplot_layout)
+
+        t = np.linspace(0, 10, 101)
+        self.signal = []
+        self._dynamic_ax = self.matplot_canvas.figure.subplots(subplot_cnt, 1)
+        for i in range(0, subplot_cnt):
+            self._dynamic_ax[i].grid(color="lightGray")
+            self._dynamic_ax[i].set_xlim([0, 10])
+            new_signal, = self._dynamic_ax[i].plot(t, np.sin(t + time.time()))
+            self.signal.append(new_signal)
+
+        # create timer for displaying test data
+        self._timer = self.matplot_canvas.new_timer(1)
+        self._timer.add_callback(self.update_plots)
+        self._timer.start()
+
+        self.layout_main.addWidget(self.tabs)
+
+        self.resize(750, 750)
+        self.matplot_canvas.figure.tight_layout()
+
+        self.display_off = False
 
     def btn_pause_clicked(self):
         if self.plot_pause == False:
