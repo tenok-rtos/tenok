@@ -12,19 +12,20 @@ class TenokMsgField:
 
 @dataclass
 class TenokMsg:
+    name: str
     msg_id: int
     fields: list
 
 
-class TenokMsgLoader:
+class TenokMsgManager:
     def __init__(self):
         self.msg_list = []
 
-    def load(self, msg_file_path):
+    def load(self, msg_file_path, msg_name):
         with open(msg_file_path, "r") as stream:
             data = yaml.load(stream, Loader=yaml.FullLoader)
 
-        msg = TenokMsg(data['msg_id'], [])
+        msg = TenokMsg(msg_name, data['msg_id'], [])
 
         for i in range(0, len(data['payload'])):
             m = TenokMsgField(data['payload'][i]['c_type'],
@@ -34,3 +35,8 @@ class TenokMsgLoader:
             msg.fields.append(m)
 
         self.msg_list.append(msg)
+
+    def find(self, msg_name):
+        for i in range(0, len(self.msg_list)):
+            if self.msg_list[i].name == msg_name:
+                return self.msg_list[i]

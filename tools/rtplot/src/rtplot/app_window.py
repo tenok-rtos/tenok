@@ -11,14 +11,16 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QComboBox, QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget)
 
-from .yaml_loader import TenokMsgLoader
+from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
 
 
 class RTPlotWindow(QtWidgets.QMainWindow):
-    def __init__(self, ports, msg_list):
+    def __init__(self, ports, msg_list, msg_manager):
         self.serial_ports = ports
         self.msg_list = msg_list
+        self.msg_manager = msg_manager
+        self.curr_msg_info = None
 
         self.serial_state = "disconnected"
         self.plot_pause = False
@@ -59,10 +61,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # checkbox_csv.setFixedSize(checkbox_csv.sizeHint())
         hbox_topbar.addWidget(self.checkbox_csv)
 
-        combo_msgs = QComboBox(self._main)
-        combo_msgs.addItems(['---message---'] + self.msg_list)
-        combo_msgs.setFixedSize(combo_msgs.sizeHint())
-        hbox_topbar.addWidget(combo_msgs)
+        self.combo_msgs = QComboBox(self._main)
+        self.combo_msgs.addItems(['---message---'] + self.msg_list)
+        self.combo_msgs.setFixedSize(self.combo_msgs.sizeHint())
+        self.combo_msgs.activated.connect(self.combo_msgs_activated)
+        hbox_topbar.addWidget(self.combo_msgs)
 
         self.btn_pause = QtWidgets.QPushButton(self._main)
         self.btn_pause.setFixedSize(self.btn_pause.sizeHint())
@@ -133,6 +136,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.checkbox_csv.setEnabled(True)
             self.btn_pause.setEnabled(False)
 
+    def combo_msgs_activated(self):
+        if self.combo_msgs.currentText() == "---message---":
+            return  # ignore
+
+        selected_msg = self.combo_msgs.currentText()
+        self.curr_msg_info = self.msg_manager.find(selected_msg)
+        print(self.curr_msg_info)
+
     def btn_pause_clicked(self):
         if self.plot_pause == False:
             self.plot_pause = True
@@ -145,14 +156,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
 
-    def start_window(serial_ports, msg_list, msg_info: TenokMsg):
+    def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):
         # Check whether there is already a running QApplication (e.g., if running
         # from an IDE).
         qapp = QtWidgets.QApplication.instance()
         if not qapp:
             qapp = QtWidgets.QApplication(sys.argv)
 
-        app = RTPlotWindow(serial_ports, msg_list)
+        app = RTPlotWindow(serial_ports, msg_list, msg_manager)
         app.show()
         app.activateWindow()
         app.raise_()
