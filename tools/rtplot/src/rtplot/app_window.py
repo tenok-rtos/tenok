@@ -1,5 +1,6 @@
 import sys
 import time
+import sip
 
 import numpy as np
 
@@ -21,7 +22,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.msg_list = msg_list
         self.msg_manager = msg_manager
         self.curr_msg_info = None
-
+        self.display_off = True
         self.serial_state = "disconnected"
         self.plot_pause = False
 
@@ -29,7 +30,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
     def resizeEvent(self, event):
         QtWidgets.QMainWindow.resizeEvent(self, event)
-        self.matplot_canvas.figure.tight_layout()
+
+        if self.display_off == False:
+            self.matplot_canvas.figure.tight_layout()
 
     def ui_init(self):
         super().__init__()
@@ -38,7 +41,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self._main)
         self.setWindowTitle('rtplot')
 
-        layout = QtWidgets.QVBoxLayout(self._main)
+        self.layout_main = QtWidgets.QVBoxLayout(self._main)
 
         #=========#
         # top bar #
@@ -76,7 +79,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.btn_pause.clicked.connect(self.btn_pause_clicked)
         hbox_topbar.addWidget(self.btn_pause)
 
-        layout.addLayout(hbox_topbar)
+        self.layout_main.addLayout(hbox_topbar)
 
         #======#
         # Plot #
@@ -90,8 +93,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.matplot_canvas.figure.tight_layout()
 
         self.matplot_layout = QtWidgets.QVBoxLayout(self._main)
-        self.matplot_layout.addWidget(
-            NavigationToolbar(self.matplot_canvas, self))
+        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
+        self.matplot_layout.addWidget(self.matplot_nav_bar)
         self.matplot_layout.addWidget(self.matplot_canvas)
         self.tab_widgets[0].setLayout(self.matplot_layout)
 
@@ -111,18 +114,32 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self._timer.add_callback(self.update_plots)
         self._timer.start()
 
-        layout.addWidget(self.tabs)
+        self.layout_main.addWidget(self.tabs)
+
+        self.display_off = False
+
+        # test code for removing plots
+        if False:
+            self.matplot_layout.removeWidget(self.matplot_nav_bar)
+            self.matplot_layout.removeWidget(self.matplot_canvas)
+            self.layout_main.removeWidget(self.tabs)
+            sip.delete(self.matplot_nav_bar)
+            sip.delete(self.matplot_canvas)
+            sip.delete(self.tabs)
+            del self.signal1
+            del self.signal2
+            self.display_off = True
 
     def update_plots(self):
         if self.plot_pause == True:
             return
 
-        t = np.linspace(0, 10, 101)
-        # Shift the sinusoid as a function of time.
-        self.signal1.set_data(t, np.sin(t + time.time()))
-        self.signal2.set_data(t, np.sin(2 * t + time.time()))
-        self.signal1.figure.canvas.draw()
-        self.signal2.figure.canvas.draw()
+        if self.display_off == False:
+            t = np.linspace(0, 10, 101)
+            self.signal1.set_data(t, np.sin(t + time.time()))
+            self.signal2.set_data(t, np.sin(2 * t + time.time()))
+            self.signal1.figure.canvas.draw()
+            self.signal2.figure.canvas.draw()
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
