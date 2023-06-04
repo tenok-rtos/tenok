@@ -11,6 +11,9 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QComboBox, QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget)
 
+from .yaml_loader import TenokMsgLoader
+from .yaml_loader import TenokMsg
+
 
 class RTPlotWindow(QtWidgets.QMainWindow):
     def __init__(self, ports, msg_list):
@@ -142,7 +145,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
 
-    def start_window(serial_ports, msg_list):
+    def start_window(serial_ports, msg_list, msg_info: TenokMsg):
         # Check whether there is already a running QApplication (e.g., if running
         # from an IDE).
         qapp = QtWidgets.QApplication.instance()
