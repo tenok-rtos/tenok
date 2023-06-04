@@ -252,4 +252,4 @@ def plotter_start():
     serial_plotter.run()
 
 
-plotter_start()
+# plotter_start()

@@ -1,6 +1,7 @@
 import sys
 import time
 import sip
+import math
 
 import numpy as np
 import matplotlib.animation as animation
@@ -10,11 +11,12 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QComboBox, QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget)
+from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
+                             QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget)
 
 from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
+from .serial import serial_data_class
 
 
 class RTPlotWindow(QtWidgets.QMainWindow):
@@ -26,6 +28,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_off = True
         self.serial_state = "disconnected"
         self.plot_pause = False
+
+        # plot data
+        self.data_list = []
+        self.data_size = 1000
 
         self.ui_init()
 
@@ -91,21 +97,25 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         sip.delete(self.matplot_nav_bar)
         sip.delete(self.matplot_canvas)
         sip.delete(self.tabs)
-        #del self._timer
+        del self._timer
         del self.signal
         del self.matplot_ani
         self.display_off = True
 
     def update(self, j):
-        t = np.linspace(0, 10, 101)
         for i in range(0, len(self.signal)):
-            self.signal[i].set_data(t, np.sin((i + 1) * t + time.time()))
+            self.signal[i].set_ydata(self.data_list[i].data)
 
         return self.signal
 
     def update_plots(self):
         if self.plot_pause == True:
             return
+
+        speed_factor = 10
+        for i in range(0, len(self.signal)):
+            self.data_list[i].add(
+                math.sin(speed_factor * (i + 1) * time.time()))
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
@@ -129,6 +139,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         subplot_cnt = len(self.curr_msg_info.fields)
 
+        # create plot data list
+        self.data_list = [serial_data_class(self.data_size + 1)
+                          for i in range(0, subplot_cnt)]
+
         # delete old plots
         if self.display_off == False:
             self.delete_plots()
@@ -147,23 +161,27 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.matplot_layout.addWidget(self.matplot_canvas)
         self.tab_widgets[0].setLayout(self.matplot_layout)
 
-        t = np.linspace(0, 10, 101)
+        x_arr = np.linspace(0, self.data_size, self.data_size + 1)
+        y_arr = np.zeros(self.data_size + 1)
         self.signal = []
         fig = self.matplot_canvas.figure
         self._dynamic_ax = fig.subplots(subplot_cnt, 1)
         for i in range(0, subplot_cnt):
             self._dynamic_ax[i].grid(color="lightGray")
-            self._dynamic_ax[i].set_xlim([0, 10])
-            new_signal, = self._dynamic_ax[i].plot(t, np.sin(t + time.time()))
+            self._dynamic_ax[i].set_xlim([0, self.data_size])
+            self._dynamic_ax[i].set_ylim([-1.5, 1.5])
+            new_signal, = self._dynamic_ax[i].plot(x_arr, y_arr)
             self.signal.append(new_signal)
 
-        self.matplot_ani = animation.FuncAnimation(fig, self.update, np.arange(0, 10),
+        self.matplot_ani = animation.FuncAnimation(fig, self.update,
+                                                   np.arange(
+                                                       0, self.data_size),
                                                    interval=20, blit=True)
 
         # create timer for displaying test data
-        #self._timer = self.matplot_canvas.new_timer(1)
-        # self._timer.add_callback(self.update_plots)
-        # self._timer.start()
+        self._timer = self.matplot_canvas.new_timer(1)
+        self._timer.add_callback(self.update_plots)
+        self._timer.start()
 
         self.layout_main.addWidget(self.tabs)
 
