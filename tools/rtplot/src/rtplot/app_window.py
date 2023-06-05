@@ -185,6 +185,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self._dynamic_ax[i].grid(color="lightGray")
             self._dynamic_ax[i].set_xlim([0, self.data_size])
             self._dynamic_ax[i].set_ylim([-1.5, 1.5])
+            self._dynamic_ax[i].set_ylabel(
+                self.curr_msg_info.fields[i].description)
             new_signal, = self._dynamic_ax[i].plot(x_arr, y_arr)
             self.signal.append(new_signal)
 
