@@ -12,11 +12,19 @@ from matplotlib.backends.backend_qtagg import (
 from matplotlib.figure import Figure
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
-                             QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget)
+                             QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget, QScrollArea)
 
 from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
 from .serial import serial_data_class
+
+
+class MyCanvas(FigureCanvas):
+    def __init__(self, width, height):
+        # reference: https://stackoverflow.com/questions/71898494/weird-behaviour-with-qscrollarea-in-pyqt5-not-scrolling
+        self.fig = Figure(figsize=(5, 4), tight_layout=True)
+        FigureCanvas.__init__(self, self.fig)
+        FigureCanvas.setMinimumSize(self, QtCore.QSize(width, height))
 
 
 class RTPlotWindow(QtWidgets.QMainWindow):
@@ -35,18 +43,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         self.ui_init()
 
-    def resizeEvent(self, event):
-        QtWidgets.QMainWindow.resizeEvent(self, event)
-
-        if self.display_off == False:
-            self.matplot_canvas.figure.tight_layout()
-
     def ui_init(self):
         super().__init__()
 
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
         self.setWindowTitle('rtplot')
+        self.setMinimumSize(600, 50)
+        self.resize(600, 50)
 
         self.layout_main = QtWidgets.QVBoxLayout(self._main)
 
@@ -91,15 +95,16 @@ class RTPlotWindow(QtWidgets.QMainWindow):
     def delete_plots(self):
         self.matplot_ani.event_source.stop()
 
-        self.matplot_layout.removeWidget(self.matplot_nav_bar)
-        self.matplot_layout.removeWidget(self.matplot_canvas)
-        self.layout_main.removeWidget(self.tabs)
+        self.layout_main.removeWidget(self.matplot_nav_bar)
+        self.layout_main.removeWidget(self.matplot_scroll)
+
+        sip.delete(self.matplot_scroll)
         sip.delete(self.matplot_nav_bar)
-        sip.delete(self.matplot_canvas)
-        sip.delete(self.tabs)
-        del self._timer
+
+        del self.timer
         del self.signal
         del self.matplot_ani
+
         self.display_off = True
 
     def update(self, j):
@@ -112,10 +117,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.plot_pause == True:
             return
 
-        speed_factor = 10
+        speed_factor = 5
         for i in range(0, len(self.signal)):
-            self.data_list[i].add(
-                math.sin(speed_factor * (i + 1) * time.time()))
+            val = math.sin(speed_factor * (i + 1) * time.time())
+            self.data_list[i].add(val)
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
@@ -147,25 +152,35 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.display_off == False:
             self.delete_plots()
 
-        # display plot figures
-        self.tabs = QTabWidget()
-        self.tab_widgets = [QWidget()]
-        self.tabs.addTab(self.tab_widgets[0], "%d" % (1))
+        # resize window
+        self.resize(600, 600)
 
-        self.matplot_canvas = FigureCanvas(Figure(figsize=(5, 4)))
+        # display plot figures
+        min_width = 500
+        min_height = subplot_cnt * 150
+        self.matplot_canvas = MyCanvas(min_width, min_height)
         self.matplot_canvas.figure.set_facecolor("lightGray")
 
-        self.matplot_layout = QtWidgets.QVBoxLayout(self._main)
-        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
-        self.matplot_layout.addWidget(self.matplot_nav_bar)
-        self.matplot_layout.addWidget(self.matplot_canvas)
-        self.tab_widgets[0].setLayout(self.matplot_layout)
+        # add matplot canvas into the scroll area component
+        self.matplot_scroll = QScrollArea()
+        self.matplot_scroll.setWidgetResizable(True)
+        self.matplot_scroll.setWidget(self.matplot_canvas)
 
+        # add matplot navigation bar into the main layout before the canvas
+        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
+        self.layout_main.addWidget(self.matplot_nav_bar)
+
+        # add scroll area of matplot canvas into the main layout
+        self.layout_main.addWidget(self.matplot_scroll)
+
+        # set up subplots
+        self.signal = []
         x_arr = np.linspace(0, self.data_size, self.data_size + 1)
         y_arr = np.zeros(self.data_size + 1)
-        self.signal = []
+
         fig = self.matplot_canvas.figure
         self._dynamic_ax = fig.subplots(subplot_cnt, 1)
+
         for i in range(0, subplot_cnt):
             self._dynamic_ax[i].grid(color="lightGray")
             self._dynamic_ax[i].set_xlim([0, self.data_size])
@@ -178,15 +193,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                                                        0, self.data_size),
                                                    interval=20, blit=True)
 
-        # create timer for displaying test data
-        self._timer = self.matplot_canvas.new_timer(1)
-        self._timer.add_callback(self.update_plots)
-        self._timer.start()
-
-        self.layout_main.addWidget(self.tabs)
-
-        self.resize(750, 750)
-        self.matplot_canvas.figure.tight_layout()
+        # setup timer for displaying test data
+        self.timer = self.matplot_canvas.new_timer(1)
+        self.timer.add_callback(self.update_plots)
+        self.timer.start()
 
         self.display_off = False
 
@@ -203,8 +213,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.btn_pause.setIcon(icon)
 
     def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):
-        # Check whether there is already a running QApplication (e.g., if running
-        # from an IDE).
         qapp = QtWidgets.QApplication.instance()
         if not qapp:
             qapp = QtWidgets.QApplication(sys.argv)
