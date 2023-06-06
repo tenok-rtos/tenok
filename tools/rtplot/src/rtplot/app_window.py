@@ -40,6 +40,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # plot data
         self.data_list = []
         self.data_size = 1000
+        self.curve_cnt = 0
 
         self.ui_init()
 
@@ -108,7 +109,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_off = True
 
     def update(self, j):
-        for i in range(0, len(self.signal)):
+        for i in range(0, self.curve_cnt):
             self.signal[i].set_ydata(self.data_list[i].data)
 
         return self.signal
@@ -144,10 +145,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         subplot_cnt = len(self.curr_msg_info.fields)
 
-        # create plot data list
-        self.data_list = [serial_data_class(self.data_size + 1)
-                          for i in range(0, subplot_cnt)]
-
         # delete old plots
         if self.display_off == False:
             self.delete_plots()
@@ -181,19 +178,35 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         fig = self.matplot_canvas.figure
         self._dynamic_ax = fig.subplots(subplot_cnt, 1)
 
+        self.curve_cnt = 0
+
         for i in range(0, subplot_cnt):
             y_label = self.curr_msg_info.fields[i].description
             var_name = self.curr_msg_info.fields[i].var_name
+            array_size = self.curr_msg_info.fields[i].array_size
 
-            new_signal, = self._dynamic_ax[i].plot(
-                x_arr, y_arr, label=var_name)
-            self.signal.append(new_signal)
+            if array_size == 0:
+                new_signal, = self._dynamic_ax[i].plot(
+                    x_arr, y_arr, label=var_name)
+                self.signal.append(new_signal)
+                self.curve_cnt = self.curve_cnt + 1
+            elif array_size > 0:
+                for j in range(0, array_size):
+                    label_text = "%s[%d]" % (var_name, j)
+                    new_signal, = self._dynamic_ax[i].plot(
+                        x_arr, y_arr, label=label_text)
+                    self.signal.append(new_signal)
+                    self.curve_cnt = self.curve_cnt + 1
 
             self._dynamic_ax[i].grid(color="lightGray")
             self._dynamic_ax[i].set_xlim([0, self.data_size])
             self._dynamic_ax[i].set_ylim([-1.5, 1.5])
             self._dynamic_ax[i].set_ylabel(y_label)
             self._dynamic_ax[i].legend(loc='upper right', shadow=True)
+
+        # create plot data list
+        self.data_list = [serial_data_class(self.data_size + 1)
+                          for i in range(0, self.curve_cnt)]
 
         self.matplot_ani = animation.FuncAnimation(fig, self.update,
                                                    np.arange(
