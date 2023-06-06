@@ -40,6 +40,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # plot data
         self.data_list = []
         self.data_size = 1000
+        self.subplot_cnt = 0
         self.curve_cnt = 0
 
         self.ui_init()
@@ -112,6 +113,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         for i in range(0, self.curve_cnt):
             self.signal[i].set_ydata(self.data_list[i].data)
 
+        # for i in range(0, self.subplot_cnt):
+        #    self._dynamic_ax[i].relim()
+        #    self._dynamic_ax[i].autoscale_view()
+
         return self.signal
 
     def update_plots(self):
@@ -143,7 +148,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         selected_msg = self.combo_msgs.currentText()
         self.curr_msg_info = self.msg_manager.find(selected_msg)
 
-        subplot_cnt = len(self.curr_msg_info.fields)
+        self.subplot_cnt = len(self.curr_msg_info.fields)
 
         # delete old plots
         if self.display_off == False:
@@ -154,7 +159,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         # display plot figures
         min_width = 500
-        min_height = subplot_cnt * 150
+        min_height = self.subplot_cnt * 150
         self.matplot_canvas = MyCanvas(min_width, min_height)
         self.matplot_canvas.figure.set_facecolor("lightGray")
 
@@ -176,11 +181,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         y_arr = np.zeros(self.data_size + 1)
 
         fig = self.matplot_canvas.figure
-        self._dynamic_ax = fig.subplots(subplot_cnt, 1)
+        self._dynamic_ax = fig.subplots(self.subplot_cnt, 1)
 
         self.curve_cnt = 0
 
-        for i in range(0, subplot_cnt):
+        for i in range(0, self.subplot_cnt):
             y_label = self.curr_msg_info.fields[i].description
             var_name = self.curr_msg_info.fields[i].var_name
             array_size = self.curr_msg_info.fields[i].array_size
@@ -200,7 +205,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
             self._dynamic_ax[i].grid(color="lightGray")
             self._dynamic_ax[i].set_xlim([0, self.data_size])
-            self._dynamic_ax[i].set_ylim([-1.5, 1.5])
+            #self._dynamic_ax[i].set_ylim([-1.5, 1.5])
             self._dynamic_ax[i].set_ylabel(y_label)
             self._dynamic_ax[i].legend(loc='upper right', shadow=True)
 
