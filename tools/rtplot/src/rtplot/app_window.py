@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
 
 from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
-from .serial import serial_data_class
+from .serial import DataQueue
 
 
 class MyCanvas(FigureCanvas):
@@ -251,9 +251,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self._dynamic_ax[i].legend(loc='upper left', shadow=True)
 
         # create plot data list
-        self.data_list = [serial_data_class(self.data_size + 1)
+        self.data_list = [DataQueue(self.data_size + 1)
                           for i in range(0, self.curve_cnt)]
-        self.time_list = [serial_data_class(self.data_size + 1)
+        self.time_list = [DataQueue(self.data_size + 1)
                           for i in range(0, self.curve_cnt)]
 
         self.matplot_ani = animation.FuncAnimation(self.fig, self.update,

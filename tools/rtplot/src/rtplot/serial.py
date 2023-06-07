@@ -18,7 +18,7 @@ save_csv = False
 csv_file = 'serial_log.csv'
 
 
-class serial_data_class:
+class DataQueue:
     def __init__(self, max_count):
         self.max_count = max_count
         self.data = deque([0.0] * max_count)
@@ -28,7 +28,7 @@ class serial_data_class:
             self.data.append(val)
         else:
             self.data.pop()
-        self.data.appendleft(value)
+            self.data.appendleft(value)
 
 
 class serial_plotter_class:
@@ -231,7 +231,7 @@ class serial_plotter_class:
 
         if self.plot_begin == False:
             self.curve_number = payload_count // 4
-            self.serial_data = [serial_data_class(200)
+            self.serial_data = [DataQueue(200)
                                 for i in range(0, self.curve_number)]
             self.curve_indexs = [i for i in range(0, self.curve_number)]
             self.set_figure(message_id)
