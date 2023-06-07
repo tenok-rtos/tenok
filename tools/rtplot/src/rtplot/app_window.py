@@ -36,14 +36,23 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_off = True
         self.serial_state = "disconnected"
         self.plot_pause = False
+        self.redraw_time = 0
 
         # plot data
-        self.data_list = []
-        self.data_size = 1000
+        self.data_list = []  # sensor measurement values
+        self.time_list = []  # received time sequence of the rtplot
+        self.data_size = 10000
         self.subplot_cnt = 0
         self.curve_cnt = 0
 
+        # display time range
+        self.x_axis_len = 20
+        self.x_axis_min = 0
+        self.x_axis_max = self.x_axis_min + self.x_axis_len
+
         self.ui_init()
+
+        self.app_start_time = time.time()
 
     def ui_init(self):
         super().__init__()
@@ -76,6 +85,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.checkbox_csv.setText('Save CSV')
         # checkbox_csv.setFixedSize(checkbox_csv.sizeHint())
         hbox_topbar.addWidget(self.checkbox_csv)
+
+        #self.checkbox_autoscroll = QtWidgets.QCheckBox(self._main)
+        # self.checkbox_autoscroll.setText('Autoscroll')
+        # hbox_topbar.addWidget(self.checkbox_autoscroll)
 
         self.combo_msgs = QComboBox(self._main)
         self.combo_msgs.addItems(['---message---'] + self.msg_list)
@@ -111,11 +124,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
     def update(self, j):
         for i in range(0, self.curve_cnt):
+            self.signal[i].set_xdata(self.time_list[i].data)
             self.signal[i].set_ydata(self.data_list[i].data)
-
-        # for i in range(0, self.subplot_cnt):
-        #    self._dynamic_ax[i].relim()
-        #    self._dynamic_ax[i].autoscale_view()
 
         return self.signal
 
@@ -123,10 +133,41 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.plot_pause == True:
             return
 
-        speed_factor = 5
+        # generate fake signal
+        speed = 0.1
         for i in range(0, len(self.signal)):
-            val = math.sin(speed_factor * (i + 1) * time.time())
+            t = time.time() - self.app_start_time
+
+            val = math.sin(speed * (i + 1) * t)
             self.data_list[i].add(val)
+            self.time_list[i].add(t)
+
+        # force redraw every 30Hz period
+        redraw_freq = 30
+        redraw_period = 1.0 / redraw_freq
+        curr_time = time.time()
+
+        # check redraw timer
+        if (curr_time - self.redraw_time) > redraw_period:
+            # scroll the time axis
+            if (curr_time - self.app_start_time) > self.x_axis_len:
+                self.x_axis_min = self.x_axis_min + redraw_period
+                self.x_axis_max = self.x_axis_min + self.x_axis_len
+
+                new_x_lim = [self.x_axis_min, self.x_axis_max]
+                for i in range(0, self.subplot_cnt):
+                    self._dynamic_ax[i].set_xlim(new_x_lim)
+
+            # asjust y range limits
+            for i in range(0, self.subplot_cnt):
+                self._dynamic_ax[i].relim()
+                self._dynamic_ax[i].autoscale_view()
+
+            # redraw
+            self.matplot_canvas.draw()
+
+            # update redraw time
+            self.redraw_time = curr_time
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
@@ -180,8 +221,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         x_arr = np.linspace(0, self.data_size, self.data_size + 1)
         y_arr = np.zeros(self.data_size + 1)
 
-        fig = self.matplot_canvas.figure
-        self._dynamic_ax = fig.subplots(self.subplot_cnt, 1)
+        self.fig = self.matplot_canvas.figure
+        self._dynamic_ax = self.fig.subplots(self.subplot_cnt, 1)
 
         self.curve_cnt = 0
 
@@ -204,23 +245,26 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                     self.curve_cnt = self.curve_cnt + 1
 
             self._dynamic_ax[i].grid(color="lightGray")
-            self._dynamic_ax[i].set_xlim([0, self.data_size])
-            #self._dynamic_ax[i].set_ylim([-1.5, 1.5])
+            self._dynamic_ax[i].set_xlim([0, self.x_axis_max])
+            #self._dynamic_ax[i].set_ylim([-0.5, 0.5])
             self._dynamic_ax[i].set_ylabel(y_label)
-            self._dynamic_ax[i].legend(loc='upper right', shadow=True)
+            self._dynamic_ax[i].legend(loc='upper left', shadow=True)
 
         # create plot data list
         self.data_list = [serial_data_class(self.data_size + 1)
                           for i in range(0, self.curve_cnt)]
+        self.time_list = [serial_data_class(self.data_size + 1)
+                          for i in range(0, self.curve_cnt)]
 
-        self.matplot_ani = animation.FuncAnimation(fig, self.update,
+        self.matplot_ani = animation.FuncAnimation(self.fig, self.update,
                                                    np.arange(
                                                        0, self.data_size),
-                                                   interval=20, blit=True)
+                                                   interval=0, blit=True)
 
         # setup timer for displaying test data
-        self.timer = self.matplot_canvas.new_timer(1)
-        self.timer.add_callback(self.update_plots)
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(1)
+        self.timer.timeout.connect(self.update_plots)
         self.timer.start()
 
         self.display_off = False
