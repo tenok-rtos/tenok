@@ -23,9 +23,14 @@ from .serial import DataQueue
 class MyCanvas(FigureCanvas):
     def __init__(self, width, height):
         # reference: https://stackoverflow.com/questions/71898494/weird-behaviour-with-qscrollarea-in-pyqt5-not-scrolling
-        self.fig = Figure(figsize=(5, 4), tight_layout=True)
+        self.fig = Figure(figsize=(5, 4))
+        self.fig.tight_layout()
         FigureCanvas.__init__(self, self.fig)
         FigureCanvas.setMinimumSize(self, QtCore.QSize(width, height))
+
+    def resizeEvent(self, event):
+        FigureCanvas.resizeEvent(self, event)
+        self.fig.tight_layout()
 
 
 class RTPlotWindow(QtWidgets.QMainWindow):
@@ -37,7 +42,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_off = True
         self.serial_state = "disconnected"
         self.plot_pause = False
-        self.redraw_time = 0
         self.old_selected_msg = ""
 
         # plot data
@@ -149,33 +153,19 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.data_list[i].add(val)
             self.time_list[i].add(t)
 
-        # force redraw every 30Hz period
-        redraw_freq = 30
-        redraw_period = 1.0 / redraw_freq
-        curr_time = time.time()
+        # scroll the x axis (time)
+        if (time.time() - self.app_start_time) > self.x_axis_len:
+            self.x_axis_min = t - self.x_axis_len
+            self.x_axis_max = t
 
-        # check redraw timer
-        if (curr_time - self.redraw_time) > redraw_period:
-            # scroll the time axis
-            if (curr_time - self.app_start_time) > self.x_axis_len:
-                self.x_axis_min = t - self.x_axis_len
-                self.x_axis_max = t
-
-                new_x_lim = [self.x_axis_min, self.x_axis_max]
-                for i in range(0, self.subplot_cnt):
-                    self.subplot[i].set_xlim(new_x_lim)
-
-            # asjust y range limits
+            new_x_lim = [self.x_axis_min, self.x_axis_max]
             for i in range(0, self.subplot_cnt):
-                self.subplot[i].relim()
-                self.subplot[i].autoscale_view()
+                self.subplot[i].set_xlim(new_x_lim)
 
-            # redraw
-            canvas_index = self.tab.currentIndex()
-            self.matplot_canvas[canvas_index].draw()
-
-            # update redraw time
-            self.redraw_time = curr_time
+        # autoscale of the y axis
+        for i in range(0, self.subplot_cnt):
+            self.subplot[i].relim()
+            self.subplot[i].autoscale_view()
 
     def btn_connect_clicked(self):
         if self.serial_state == "disconnected":
@@ -288,7 +278,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         data_x_range = np.arange(0, self.data_size)
         for i in range(0, self.subplot_cnt):
             animator = animation.FuncAnimation(self.fig[i], partial(
-                self.update, who=i), data_x_range, interval=0, blit=True)
+                self.update, who=i), data_x_range, interval=10, blit=False)
             self.matplot_ani.append(animator)
             self.matplot_ani[i].event_source.stop()  # disable animation first
 
