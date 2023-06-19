@@ -6,13 +6,14 @@ import math
 import numpy as np
 import matplotlib.animation as animation
 
+from functools import partial
 from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
-                             QHBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget, QScrollArea)
+                             QHBoxLayout, QVBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget, QScrollArea)
 
 from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
@@ -37,6 +38,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.serial_state = "disconnected"
         self.plot_pause = False
         self.redraw_time = 0
+        self.old_selected_msg = ""
 
         # plot data
         self.data_list = []  # sensor measurement values
@@ -60,10 +62,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
         self.setWindowTitle('rtplot')
-        self.setMinimumSize(600, 50)
-        self.resize(600, 50)
+        self.setMinimumSize(700, 50)
+        self.resize(700, 50)
 
-        self.layout_main = QtWidgets.QVBoxLayout(self._main)
+        self.layout_main = QVBoxLayout(self._main)
 
         #=========#
         # top bar #
@@ -86,10 +88,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # checkbox_csv.setFixedSize(checkbox_csv.sizeHint())
         hbox_topbar.addWidget(self.checkbox_csv)
 
-        #self.checkbox_autoscroll = QtWidgets.QCheckBox(self._main)
-        # self.checkbox_autoscroll.setText('Autoscroll')
-        # hbox_topbar.addWidget(self.checkbox_autoscroll)
-
         self.combo_msgs = QComboBox(self._main)
         self.combo_msgs.addItems(['---message---'] + self.msg_list)
         self.combo_msgs.setFixedSize(self.combo_msgs.sizeHint())
@@ -108,26 +106,35 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.layout_main.addLayout(hbox_topbar)
 
     def delete_plots(self):
-        self.matplot_ani.event_source.stop()
+        # stop feeding test data
+        self.timer.stop()
 
-        self.layout_main.removeWidget(self.matplot_nav_bar)
-        self.layout_main.removeWidget(self.matplot_scroll)
+        # stop animation before cleaning
+        for i in range(0, self.subplot_cnt):
+            self.matplot_ani[i].event_source.stop()
 
-        sip.delete(self.matplot_scroll)
-        sip.delete(self.matplot_nav_bar)
+        # delete of pyqt objects requires only the toppest object
+        sip.delete(self.tab)  # this cleans the nav bar, canvas, etc.
+        sip.delete(self.timer)
 
-        del self.timer
         del self.signal
         del self.matplot_ani
 
         self.display_off = True
 
-    def update(self, j):
-        for i in range(0, self.curve_cnt):
+    def update(self, art, *, who):
+        start_index = self.subplot_info[who][0]
+        array_size = self.subplot_info[who][1]
+
+        curve_cnt = 1 if array_size == 0 else array_size
+
+        ret_signal = []
+        for i in range(start_index, start_index + curve_cnt):
             self.signal[i].set_xdata(self.time_list[i].data)
             self.signal[i].set_ydata(self.data_list[i].data)
+            ret_signal.append(self.signal[i])
 
-        return self.signal
+        return ret_signal
 
     def update_plots(self):
         if self.plot_pause == True:
@@ -151,20 +158,21 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if (curr_time - self.redraw_time) > redraw_period:
             # scroll the time axis
             if (curr_time - self.app_start_time) > self.x_axis_len:
-                self.x_axis_min = self.x_axis_min + redraw_period
-                self.x_axis_max = self.x_axis_min + self.x_axis_len
+                self.x_axis_min = t - self.x_axis_len
+                self.x_axis_max = t
 
                 new_x_lim = [self.x_axis_min, self.x_axis_max]
                 for i in range(0, self.subplot_cnt):
-                    self._dynamic_ax[i].set_xlim(new_x_lim)
+                    self.subplot[i].set_xlim(new_x_lim)
 
             # asjust y range limits
             for i in range(0, self.subplot_cnt):
-                self._dynamic_ax[i].relim()
-                self._dynamic_ax[i].autoscale_view()
+                self.subplot[i].relim()
+                self.subplot[i].autoscale_view()
 
             # redraw
-            self.matplot_canvas.draw()
+            canvas_index = self.tab.currentIndex()
+            self.matplot_canvas[canvas_index].draw()
 
             # update redraw time
             self.redraw_time = curr_time
@@ -182,8 +190,16 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.btn_pause.setEnabled(False)
 
     def combo_msgs_activated(self):
-        if self.combo_msgs.currentText() == "---message---":
+        curr_selected_msg = self.combo_msgs.currentText()
+
+        if curr_selected_msg == "---message---" or curr_selected_msg == self.old_selected_msg:
             return  # ignore
+
+        self.old_selected_msg = curr_selected_msg
+
+        # delete old plots
+        if self.display_off == False:
+            self.delete_plots()
 
         # load message information
         selected_msg = self.combo_msgs.currentText()
@@ -191,75 +207,90 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         self.subplot_cnt = len(self.curr_msg_info.fields)
 
-        # delete old plots
-        if self.display_off == False:
-            self.delete_plots()
-
         # resize window
-        self.resize(600, 600)
+        self.resize(700, 600)
 
-        # display plot figures
+        self.tab = QTabWidget()
+        self.plot_container = [QWidget() for i in range(0, self.subplot_cnt)]
+        self.plot_layouts = [QVBoxLayout() for i in range(0, self.subplot_cnt)]
+
         min_width = 500
-        min_height = self.subplot_cnt * 150
-        self.matplot_canvas = MyCanvas(min_width, min_height)
-        self.matplot_canvas.figure.set_facecolor("lightGray")
-
-        # add matplot canvas into the scroll area component
-        self.matplot_scroll = QScrollArea()
-        self.matplot_scroll.setWidgetResizable(True)
-        self.matplot_scroll.setWidget(self.matplot_canvas)
-
-        # add matplot navigation bar into the main layout before the canvas
-        self.matplot_nav_bar = NavigationToolbar(self.matplot_canvas, self)
-        self.layout_main.addWidget(self.matplot_nav_bar)
-
-        # add scroll area of matplot canvas into the main layout
-        self.layout_main.addWidget(self.matplot_scroll)
+        min_height = 150
+        self.matplot_canvas = []
+        self.matplot_nav_bar = []
+        self.fig = []
+        self.subplot = []
+        self.subplot_info = []
+        self.matplot_ani = []
 
         # set up subplots
         self.signal = []
         x_arr = np.linspace(0, self.data_size, self.data_size + 1)
         y_arr = np.zeros(self.data_size + 1)
-
-        self.fig = self.matplot_canvas.figure
-        self._dynamic_ax = self.fig.subplots(self.subplot_cnt, 1)
-
         self.curve_cnt = 0
 
+        # initialize the tab widget
         for i in range(0, self.subplot_cnt):
+            # create plot canvas for each tab
+            self.matplot_canvas.append(MyCanvas(min_width, min_height))
+            self.matplot_canvas[i].figure.set_facecolor("lightGray")
+            self.fig.append(self.matplot_canvas[i].figure)
+
+            # create new subplot
+            self.subplot.append(self.fig[i].subplots(1, 1))
+
+            # retrieve message declaration
             y_label = self.curr_msg_info.fields[i].description
             var_name = self.curr_msg_info.fields[i].var_name
             array_size = self.curr_msg_info.fields[i].array_size
 
+            # record curve start index and curve count
+            self.subplot_info.append((self.curve_cnt, array_size))
+
+            # check the data to plot is a variable or an array
             if array_size == 0:
-                new_signal, = self._dynamic_ax[i].plot(
+                new_signal, = self.subplot[i].plot(
                     x_arr, y_arr, label=var_name)
                 self.signal.append(new_signal)
                 self.curve_cnt = self.curve_cnt + 1
             elif array_size > 0:
                 for j in range(0, array_size):
                     label_text = "%s[%d]" % (var_name, j)
-                    new_signal, = self._dynamic_ax[i].plot(
+                    new_signal, = self.subplot[i].plot(
                         x_arr, y_arr, label=label_text)
                     self.signal.append(new_signal)
                     self.curve_cnt = self.curve_cnt + 1
 
-            self._dynamic_ax[i].grid(color="lightGray")
-            self._dynamic_ax[i].set_xlim([0, self.x_axis_max])
-            #self._dynamic_ax[i].set_ylim([-0.5, 0.5])
-            self._dynamic_ax[i].set_ylabel(y_label)
-            self._dynamic_ax[i].legend(loc='upper left', shadow=True)
+            # configure the new subplot
+            self.subplot[i].grid(color="lightGray")
+            self.subplot[i].set_xlim([0, self.x_axis_max])
+            self.subplot[i].set_ylabel(y_label)
+            self.subplot[i].legend(loc='upper left', shadow=True)
 
-        # create plot data list
-        self.data_list = [DataQueue(self.data_size + 1)
-                          for i in range(0, self.curve_cnt)]
-        self.time_list = [DataQueue(self.data_size + 1)
-                          for i in range(0, self.curve_cnt)]
+            # create navigation bar for each tab
+            self.matplot_nav_bar.append(
+                NavigationToolbar(self.matplot_canvas[i], self))
 
-        self.matplot_ani = animation.FuncAnimation(self.fig, self.update,
-                                                   np.arange(
-                                                       0, self.data_size),
-                                                   interval=0, blit=True)
+            # add each canvas into a new tab
+            self.tab.addTab(self.plot_container[i], str(i))
+            self.plot_layouts[i].addWidget(self.matplot_nav_bar[i])
+            self.plot_layouts[i].addWidget(self.matplot_canvas[i])
+            self.plot_container[i].setLayout(self.plot_layouts[i])
+
+        # initialize plot data list
+        self.data_list = []
+        self.time_list = []
+        for i in range(0, self.curve_cnt):
+            self.data_list.append(DataQueue(self.data_size + 1))
+            self.time_list.append(DataQueue(self.data_size + 1))
+
+        data_x_range = np.arange(0, self.data_size)
+        for i in range(0, self.subplot_cnt):
+            animator = animation.FuncAnimation(self.fig[i], partial(
+                self.update, who=i), data_x_range, interval=0, blit=True)
+            self.matplot_ani.append(animator)
+
+        self.layout_main.addWidget(self.tab)
 
         # setup timer for displaying test data
         self.timer = QtCore.QTimer()
