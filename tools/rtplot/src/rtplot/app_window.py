@@ -211,6 +211,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.resize(700, 600)
 
         self.tab = QTabWidget()
+        self.tab.currentChanged.connect(self.tab_on_change)
         self.plot_container = [QWidget() for i in range(0, self.subplot_cnt)]
         self.plot_layouts = [QVBoxLayout() for i in range(0, self.subplot_cnt)]
 
@@ -289,6 +290,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             animator = animation.FuncAnimation(self.fig[i], partial(
                 self.update, who=i), data_x_range, interval=0, blit=True)
             self.matplot_ani.append(animator)
+            self.matplot_ani[i].event_source.stop()  # disable animation first
+
+        # enable the animation of canvas on current tab only
+        canvas_index = self.tab.currentIndex()
+        self.matplot_ani[canvas_index].event_source.start()
 
         self.layout_main.addWidget(self.tab)
 
@@ -299,6 +305,20 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.timer.start()
 
         self.display_off = False
+
+    def tab_on_change(self):
+        # ignore the event if the canvas is not yet ready
+        if self.display_off == True:
+            return
+
+        # disable animation of canvas on every tab
+        for i in range(0, self.subplot_cnt):
+            self.matplot_ani[i].event_source.stop()
+
+        # enable the animation of canvas on current tab only
+        canvas_index = self.tab.currentIndex()
+        self.matplot_ani[canvas_index].event_source.start()
+        self.matplot_canvas[canvas_index].draw()
 
     def btn_pause_clicked(self):
         if self.plot_pause == False:
