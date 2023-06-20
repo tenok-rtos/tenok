@@ -31,7 +31,7 @@ class QSerialThread(QtCore.QThread):
     def run(self):
         self.running = True
         while self.running == True:
-            self.serial_manager.serial_receive()
+            self.serial_manager.receive_msg()
 
     def stop(self):
         self.running = False
@@ -210,7 +210,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
             port_name = self.combo_ports.currentText()
             baudrate = int(self.combo_baudrates.currentText())
-            self.ser_thread = QSerialThread(port_name, baudrate, self.msg_manager)
+            self.ser_thread = QSerialThread(
+                port_name, baudrate, self.msg_manager)
             self.ser_thread.start()
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"

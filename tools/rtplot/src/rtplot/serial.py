@@ -68,19 +68,19 @@ class SerialManager:
     def parse_field_bool(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         bool_data = struct.unpack("?", binary_data)
-        #print("payload #%d: %d" % (i, bool_data))
+        # print("payload #%d: %d" % (i, bool_data))
         return bool_data[0]
 
     def parse_field_uint8(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         uint8_data = struct.unpack("H", binary_data)
-        #print("payload #%d: %d" % (i, uint8_data))
+        # print("payload #%d: %d" % (i, uint8_data))
         return uint8_data[0]
 
     def parse_field_int8(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         int8_data = struct.unpack("h", binary_data)
-        #print("payload #%d: %d" % (i, int8_data))
+        # print("payload #%d: %d" % (i, int8_data))
         return int8_data[0]
 
     def parse_field_uint16(self, buffer, i):
@@ -88,7 +88,7 @@ class SerialManager:
         data2 = struct.pack("B", buffer[i*4+1])
         binary_data = data1 + data2
         uint16_data = struct.unpack("H", binary_data)
-        #print("payload #%d: %d" % (i, uint16_data))
+        # print("payload #%d: %d" % (i, uint16_data))
         return uint16_data[0]
 
     def parse_field_int32(self, buffer, i):
@@ -96,7 +96,7 @@ class SerialManager:
         data2 = struct.pack("B", buffer[i*4+1])
         binary_data = data1 + data2
         int16_data = struct.unpack("h", binary_data)
-        #print("payload #%d: %d" % (i, int16_data))
+        # print("payload #%d: %d" % (i, int16_data))
         return int16_data[0]
 
     def parse_field_uint32(self, buffer, i):
@@ -106,7 +106,7 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         uint32_data = struct.unpack("I", binary_data)
-        #print("payload #%d: %d" % (i, uint32_data))
+        # print("payload #%d: %d" % (i, uint32_data))
         return uint32_data[0]
 
     def parse_field_int32(self, buffer, i):
@@ -116,7 +116,7 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         int32_data = struct.unpack("i", binary_data)
-        #print("payload #%d: %d" % (i, int32_data))
+        # print("payload #%d: %d" % (i, int32_data))
         return int32_data[0]
 
     def parse_field_float(self, buffer, i):
@@ -126,7 +126,7 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         float_data = struct.unpack("f", binary_data)
-        #print("payload #%d: %f" % (i, float_data))
+        # print("payload #%d: %f" % (i, float_data))
         return float_data[0]
 
     def parse_field_double(self, buffer, i):
@@ -140,7 +140,7 @@ class SerialManager:
         data8 = struct.pack("B", buffer[i*4+7])
         binary_data = data1 + data2 + data3 + data4 + data5 + data6 + data7 + data8
         double_data = struct.unpack("f", binary_data)
-        #print("payload #%d: %f" % (i, double_data))
+        # print("payload #%d: %f" % (i, double_data))
         return double_data[0]
 
     def decode_field(self, buffer, c_type, i):
@@ -167,34 +167,62 @@ class SerialManager:
         elif c_type == 'double':
             return self.parse_field_double(buffer, i)
 
+    def prompt(self, msg_name, msg_id):
+        print_str = ''
+
+        plot_time_now = time.time()
+        update_rate = 1.0 / (plot_time_now - self.plot_time_last)
+        self.plot_time_last = plot_time_now
+
+        # if the frequency change is too rapidly, then it means the communication is unstable
+        if abs(update_rate - self.update_rate_last) > 50:
+            print_str = '[{}] received \'{}\' (message, id={})\n'.format(
+                datetime.now().strftime('%H:%M:%S'), msg_name, msg_id)
+            print_str = print_str + "telemetry speed is too slow, the update rate is unknown!\n"
+        else:
+            print_str = '[{}] received \'{}\' message (id={}, rate={:.1f}Hz)\n'.format(
+                datetime.now().strftime('%H:%M:%S'), msg_name, msg_id, update_rate)
+
+        self.update_rate_last = update_rate
+
+        return print_str
+
     def decode_msg(self, buffer, msg_id):
         msg_info = self.msg_manager.find_id(msg_id)
+        msg_name = msg_info.name
         var_cnt = len(msg_info.fields)
+        print_str = self.prompt(msg_name, msg_id)
         recept_cnt = 0
 
         for i in range(0, var_cnt):
             var_name = msg_info.fields[i].var_name
             array_size = msg_info.fields[i].array_size
             c_type = msg_info.fields[i].c_type
-            print_str = ''
 
+            # the field is a variable if the array_size is set zero
             is_array = True
             if array_size == 0:
                 is_array = False
                 array_size = 1
 
+            # decode array elements of each fields
             for j in range(0, array_size):
                 decoded_data = self.decode_field(buffer, c_type, recept_cnt)
                 recept_cnt = recept_cnt + 1
 
                 if is_array == True:
-                    print_str = print_str + '- {}[{}]: {}\n'.format(var_name, j, decoded_data)
+                    # print array
+                    print_str = print_str + \
+                        '- {}[{}]: {}\n'.format(var_name, j, decoded_data)
                 else:
-                    print_str = print_str + '- {}: {}\n'.format(var_name, decoded_data)
+                    # print variable
+                    print_str = print_str + \
+                        '- {}: {}\n'.format(var_name, decoded_data)
 
-            print(print_str, end='')
+        # print prompt message
+        print(print_str, end='')
 
-    def serial_receive(self):
+    def receive_msg(self):
         buffer = []
         checksum = 0
 
@@ -207,23 +235,24 @@ class SerialManager:
         # print("c:")
         # print(c)
 
-        # wait for start byte
+        # wait for the start byte
         if c == '@':
             pass
         else:
             return 'fail'
 
-        # receive package size
+        # receive payload size
         payload_count, =  struct.unpack("B", self.ser.read(1))
         # print('payload size: %d' %(payload_count))
 
         # receive message id
-        _message_id, =  struct.unpack("c", self.ser.read(1))
-        message_id = ord(_message_id)
+        _msg_id, =  struct.unpack("c", self.ser.read(1))
+        msg_id = ord(_msg_id)
 
+        # receive payloads + checksum
         buf = self.ser.read(payload_count + 1)
 
-        # receive payload and calculate checksum
+        # verify the checksum
         for i in range(0, payload_count):
             buffer.append(buf[i])
             buffer_checksum = buffer[i]
@@ -232,33 +261,13 @@ class SerialManager:
         received_checksum = buf[payload_count]
 
         if received_checksum != checksum:
-            # print("error: checksum mismatch")
+            print("error: checksum mismatched")
             return 'fail'
-        else:
-            # print("checksum is correct (%d)" %(checksum))
-            pass
 
-        plot_time_now = time.time()
-        update_rate = 1.0 / (plot_time_now - self.plot_time_last)
-        self.plot_time_last = plot_time_now
-
-        if abs(update_rate - self.update_rate_last) > 50:
-            print('[%s]received message #%d'
-                  % (datetime.now().strftime('%H:%M:%S'),
-                     message_id))
-            print("telemetry speed is too slow, the update rate is unknown!")
-        else:
-            print('[%s]received message #%d (%.1fHz)'
-                  % (datetime.now().strftime('%H:%M:%S'),
-                     message_id, update_rate))
-
-        self.update_rate_last = update_rate
-
-        self.decode_msg(buffer, message_id)
+        # decode message fields
+        self.decode_msg(buffer, msg_id)
 
         if save_csv == True:
             self.save_csv(self.recvd_datas)
-
-        # print("-----------------------------");
 
         return 'success'
