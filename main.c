@@ -59,6 +59,7 @@ void led_task2(void)
 
     while(1) {
         sem_post(&sem_led);
+        uart_puts(USART1, "hello\n\r", 7);
         sleep(1000);
     }
 }
@@ -78,7 +79,7 @@ void shell_task(void)
     shell_serial_init();
 
     /* clean screen */
-    shell_cls();
+    //shell_cls();
 
     /* greeting */
     char s[100] = {0};
@@ -123,6 +124,8 @@ int main(void)
 {
     led_init();
     bsp_driver_init();
+
+    uart1_init(115200);
 
     /* uart3 should be initialized before starting the os
      * since the configuration of the nvic requires using

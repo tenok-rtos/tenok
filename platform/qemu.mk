@@ -15,7 +15,7 @@ SRC+=./drivers/stm32f407/gpio.c \
 qemu: all
 	$(QEMU) -cpu cortex-m4 \
 	-M netduinoplus2 \
-	-serial /dev/null \
+	-serial pty \
 	-serial /dev/null \
 	-serial stdio \
 	-gdb tcp::3333 \

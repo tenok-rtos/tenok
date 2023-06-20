@@ -5,6 +5,7 @@
 
 void serial0_init(void);
 
+void uart1_init(uint32_t baudrate);
 void uart3_init(uint32_t baudrate);
 
 void uart_putc(USART_TypeDef *uart, char c);
