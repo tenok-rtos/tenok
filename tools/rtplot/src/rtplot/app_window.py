@@ -203,6 +203,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.serial_state == "disconnected":
             self.serial_state = "connected"
             self.btn_connect.setText('Disconnect')
+            self.combo_ports.setEnabled(False)
+            self.combo_baudrates.setEnabled(False)
             self.checkbox_csv.setEnabled(False)
             self.btn_pause.setEnabled(True)
 
@@ -213,6 +215,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"
             self.btn_connect.setText('Connect')
+            self.combo_ports.setEnabled(True)
+            self.combo_baudrates.setEnabled(True)
             self.checkbox_csv.setEnabled(True)
             self.btn_pause.setEnabled(False)
 

@@ -61,16 +61,39 @@ class SerialManager:
 
             self.csv_token.flush()
 
-    def parse_field_float(self, buffer, i):
+    def parse_field_uint8(self, buffer, i):
+        binary_data = struct.pack("B", buffer[i*4])
+        bool_data = np.asarray(struct.unpack("?", binary_data))
+        print("payload #%d: %d" % (i, bool_data))
+        return bool_data
+
+    def parse_field_uint8(self, buffer, i):
+        binary_data = struct.pack("B", buffer[i*4])
+        uint8_data = np.asarray(struct.unpack("H", binary_data))
+        print("payload #%d: %d" % (i, uint8_data))
+        return uint8_data
+
+    def parse_field_int8(self, buffer, i):
+        binary_data = struct.pack("B", buffer[i*4])
+        int8_data = np.asarray(struct.unpack("h", binary_data))
+        print("payload #%d: %d" % (i, int8_data))
+        return int8_data
+
+    def parse_field_uint16(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
-        data3 = struct.pack("B", buffer[i*4+2])
-        data4 = struct.pack("B", buffer[i*4+3])
-        binary_data = data1 + data2 + data3 + data4
-        float_data = np.asarray(struct.unpack("f", binary_data))
-        # self.serial_data[i].add(float_data)
-        print("payload #%d: %f" % (i, float_data))
-        return float_data
+        binary_data = data1 + data2
+        uint16_data = np.asarray(struct.unpack("H", binary_data))
+        print("payload #%d: %d" % (i, uint16_data))
+        return uint16_data
+
+    def parse_field_int32(self, buffer, i):
+        data1 = struct.pack("B", buffer[i*4])
+        data2 = struct.pack("B", buffer[i*4+1])
+        binary_data = data1 + data2
+        int16_data = np.asarray(struct.unpack("h", binary_data))
+        print("payload #%d: %d" % (i, int16_data))
+        return int16_data
 
     def parse_field_uint32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
@@ -78,11 +101,9 @@ class SerialManager:
         data3 = struct.pack("B", buffer[i*4+2])
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
-        int32_data = np.asarray(struct.unpack("I", binary_data))
-        # self.serial_data[i].add(int32_data)
-        # self.recvd_datas.append(int32_data)
-        print("payload #%d: %d" % (i, int32_data))
-        return int32_data
+        uint32_data = np.asarray(struct.unpack("I", binary_data))
+        print("payload #%d: %d" % (i, uint32_data))
+        return uint32_data
 
     def parse_field_int32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
@@ -91,10 +112,32 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         int32_data = np.asarray(struct.unpack("i", binary_data))
-        # self.serial_data[i].add(int32_data)
-        # self.recvd_datas.append(int32_data)
         print("payload #%d: %d" % (i, int32_data))
         return int32_data
+
+    def parse_field_float(self, buffer, i):
+        data1 = struct.pack("B", buffer[i*4])
+        data2 = struct.pack("B", buffer[i*4+1])
+        data3 = struct.pack("B", buffer[i*4+2])
+        data4 = struct.pack("B", buffer[i*4+3])
+        binary_data = data1 + data2 + data3 + data4
+        float_data = np.asarray(struct.unpack("f", binary_data))
+        print("payload #%d: %f" % (i, float_data))
+        return float_data
+
+    def parse_field_double(self, buffer, i):
+        data1 = struct.pack("B", buffer[i*4])
+        data2 = struct.pack("B", buffer[i*4+1])
+        data3 = struct.pack("B", buffer[i*4+2])
+        data4 = struct.pack("B", buffer[i*4+3])
+        data5 = struct.pack("B", buffer[i*4+4])
+        data6 = struct.pack("B", buffer[i*4+5])
+        data7 = struct.pack("B", buffer[i*4+6])
+        data8 = struct.pack("B", buffer[i*4+7])
+        binary_data = data1 + data2 + data3 + data4 + data5 + data6 + data7 + data8
+        double_data = np.asarray(struct.unpack("f", binary_data))
+        print("payload #%d: %f" % (i, double_data))
+        return double_data
 
     def parse_test_message(self, buffer):
         self.parse_field_uint32(buffer, 0)
