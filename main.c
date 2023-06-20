@@ -14,6 +14,8 @@
 #include "examples.h"
 #include "bsp_drv.h"
 
+#include "tenok_first_msg.h"
+
 extern struct inode *shell_dir_curr;
 
 sem_t sem_led;
@@ -57,9 +59,20 @@ void led_task2(void)
     set_program_name("led2");
     setpriority(0, getpid(), 3);
 
+    uint8_t buf[100];
+
+    tenok_msg_first_t test_msg = {
+        .time = 15,
+        .accel = {1.0f, 2.0f, 3.0f},
+        .q = {1.0f, 0.0f, 0.0f, 0.0f}
+    };
+
     while(1) {
         sem_post(&sem_led);
-        uart_puts(USART1, "hello\n\r", 7);
+
+        size_t size = pack_tenok_first_msg(&test_msg, buf);
+        uart_puts(USART1, buf, size);
+
         sleep(1000);
     }
 }

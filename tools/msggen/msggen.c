@@ -497,6 +497,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         /* generate preprocessing code */
         fprintf(output_c_header,
                 "#pragma once\n\n"
+                "#include \"tenok_link.h\"\n\n"
                 "#define TENOK_MSG_ID_%s %d\n\n", msg_name, msg_cnt);
 
         /* generarte message structure */
@@ -528,8 +529,9 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* generation message function */
         fprintf(output_c_header,
-                "inline void pack_%s_tenok_msg(tenok_msg_%s_t *msg, debug_msg_t *payload)\n{\n"
-                "    pack_tenok_msg_header(payload, MSG_ID_%s);\n",
+                "static inline size_t pack_tenok_%s_msg(tenok_msg_%s_t *msg, uint8_t *data)\n{\n"
+                "    tenok_payload_t payload = {.data = data};\n"
+                "    pack_tenok_msg_header(&payload, TENOK_MSG_ID_%s);\n",
                 msg_name, msg_name, msg_name);
 
         list_for_each(curr, &msg_var_list) {
@@ -537,15 +539,18 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
             /* generate function calls to pack data fields */
             if(strlen(msg_var->array_size) > 0) {
-                fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload, %s);\n",
+                fprintf(output_c_header, "    pack_tenok_msg_field_%s(msg->%s, &payload, %s);\n",
                         msg_var->c_type, msg_var->var_name, msg_var->array_size);
             } else {
-                fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, payload, 1);\n",
+                fprintf(output_c_header, "    pack_tenok_msg_field_%s(&msg->%s, &payload, 1);\n",
                         msg_var->c_type, msg_var->var_name);
             }
         }
 
-        fprintf(output_c_header, "}\n");
+        fprintf(output_c_header,
+                "    generate_tenok_msg_checksum(&payload);\n");
+
+        fprintf(output_c_header, "return payload.size;\n}\n");
 
         /*======================*
          * yaml file generation *

@@ -36,6 +36,7 @@ CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./apps
 CFLAGS+=-I./examples
+CFLAGS+=-I./build/msg
 
 SRC+=lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
 	lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_cos_f32.c \
@@ -76,6 +77,7 @@ SRC+=./kernel/fifo.c \
 	./kernel/mutex.c \
 	./kernel/rom_dev.c \
 	./kernel/reg_file.c \
+	./kernel/tenok_link.c \
 	./mm/mpool.c \
 	./apps/shell.c \
 	./apps/shell_cmd.c \
@@ -94,7 +96,7 @@ ASM=./platform/startup_stm32f4xx.s \
 	./kernel/syscall.s \
 	./kernel/spinlock.s
 
-all:$(ELF)
+all: msggen $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
@@ -144,4 +146,4 @@ astyle:
 size:
 	$(SIZE) $(ELF)
 
-.PHONY: all check clean gdbauto astyle size
+.PHONY: all check clean gdbauto astyle size msggen
