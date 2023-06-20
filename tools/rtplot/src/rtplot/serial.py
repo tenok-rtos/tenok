@@ -73,7 +73,6 @@ class SerialManager:
         return float_data
 
     def parse_field_uint32(self, buffer, i):
-        print(i)
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         data3 = struct.pack("B", buffer[i*4+2])
@@ -107,10 +106,6 @@ class SerialManager:
         self.parse_field_float(buffer, 6)
         self.parse_field_float(buffer, 7)
 
-    def new_receive(self):
-        c = self.ser.read(1)
-        print(c, end='')
-
     def serial_receive(self):
         buffer = []
         checksum = 0
@@ -132,7 +127,7 @@ class SerialManager:
 
         # receive package size
         payload_count, =  struct.unpack("B", self.ser.read(1))
-        #print('payload size: %d' %(payload_count))
+        # print('payload size: %d' %(payload_count))
 
         # receive message id
         _message_id, =  struct.unpack("c", self.ser.read(1))
@@ -171,7 +166,6 @@ class SerialManager:
 
         self.update_rate_last = update_rate
 
-        print(len(buffer))
         self.parse_test_message(buffer)
 
         if save_csv == True:
