@@ -22,6 +22,6 @@ void pack_tenok_msg_field_uint64_t(uint64_t *data, tenok_payload_t *payload, siz
 void pack_tenok_msg_field_int64_t(int64_t *data, tenok_payload_t *payload, size_t n);
 void pack_tenok_msg_field_float(float *data, tenok_payload_t *payload, size_t n);
 void pack_tenok_msg_field_double(double *data, tenok_payload_t *payload, size_t n);
-uint8_t generate_tenok_msg_checksum(tenok_payload_t *payload);
+void generate_tenok_msg_checksum(tenok_payload_t *payload);
 
 #endif
