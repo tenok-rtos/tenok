@@ -1,9 +1,4 @@
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
-import argparse
-import threading
 import serial
 import struct
 import time
@@ -12,8 +7,6 @@ from collections import deque
 from datetime import datetime
 
 # options
-serial_port = '/dev/ttyUSB0'
-serial_baudrate = 115200
 save_csv = False
 csv_file = 'serial_log.csv'
 
@@ -31,12 +24,12 @@ class DataQueue:
             self.data.appendleft(value)
 
 
-class serial_plotter_class:
-    def __init__(self):
+class SerialManager:
+    def __init__(self, port_name, baudrate):
         # open the serial port
         self.ser = serial.Serial(
-            serial_port,
-            serial_baudrate,
+            port_name,
+            baudrate,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
@@ -48,55 +41,9 @@ class serial_plotter_class:
         if save_csv == True:
             self.csv_token = open(csv_file, "w")
 
-        # assign color cycle list
-        matplotlib.rcParams['axes.prop_cycle'] = \
-            matplotlib.cycler(color=["red", "blue", "green",
-                                     "orange", "purple", "brown",
-                                     "pink", "gray", "cyan"])
-
-        self.figure = plt.figure(figsize=(14, 8))
-        self.curve = []
-        self.current_curve_count = 0
-        self.plot_begin = False
         self.plot_time_last = time.time()
         self.update_rate_last = 0
         self.recvd_datas = []
-
-    def new_curve(self, label_name):
-        plot_list = plt.plot(self.serial_data[self.current_curve_count].data,
-                             label=label_name, animated=True)
-
-        for i in range(0, len(self.curve_indexs)):
-            if self.curve_indexs[i] == self.current_curve_count:
-                self.curve.append(plot_list[0])
-
-        self.current_curve_count += 1
-
-    def set_subplot(self):
-        plt.grid()
-        plt.legend(loc='upper center', ncol=3, fancybox=True, shadow=True,
-                   bbox_to_anchor=(0.5, 1.05),)
-        plt.gca().set_prop_cycle(None)  # reset color cycle
-
-    def update(self, i):
-        # wait until initialization is finished
-        while self.plot_begin == False:
-            self.serial_receive()
-
-        # receive new data and and parse messages
-        self.serial_receive()
-
-        # update new data income from serial receiver to plotter
-        for index in range(0, len(self.curve_indexs)):
-            new_data = self.serial_data[self.curve_indexs[index]].data
-            self.curve[index].set_ydata(new_data)
-
-        return self.curve
-
-    def run(self):
-        ani = animation.FuncAnimation(self.figure, self.update, np.arange(0, 200),
-                                      interval=0, blit=True)
-        plt.show()
 
     def save_csv(self, datas):
         for i in range(0, len(datas)):
@@ -110,30 +57,6 @@ class serial_plotter_class:
                 self.csv_token.write(',')
 
             self.csv_token.flush()
-
-    def set_figure(self, message_id):
-        plt.subplot(311)
-        plt.ylabel('time [ms]')
-        plt.ylim([0.0, 500000.0])
-        self.new_curve('time')
-        self.set_subplot()
-
-        plt.subplot(312)
-        plt.ylabel('accel [m/s^2]')
-        plt.ylim([-10, 10])
-        self.new_curve('a[0]')
-        self.new_curve('a[1]')
-        self.new_curve('a[2]')
-        self.set_subplot()
-
-        plt.subplot(312)
-        plt.ylabel('quaternion')
-        plt.ylim([-0.1, 1.1])
-        self.new_curve('q[0]')
-        self.new_curve('q[1]')
-        self.new_curve('q[2]')
-        self.new_curve('q[3]')
-        self.set_subplot()
 
     def parse_field_float(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
@@ -167,6 +90,11 @@ class serial_plotter_class:
         self.parse_field_float(buffer, 5)
         self.parse_field_float(buffer, 6)
         self.parse_field_float(buffer, 7)
+
+    def new_receive(self):
+        c = self.ser.read(1)
+        c = c.decode("ascii")
+        print("%c" % (c), end='')
 
     def serial_receive(self):
         buffer = []
@@ -229,14 +157,6 @@ class serial_plotter_class:
 
         self.update_rate_last = update_rate
 
-        if self.plot_begin == False:
-            self.curve_number = payload_count // 4
-            self.serial_data = [DataQueue(200)
-                                for i in range(0, self.curve_number)]
-            self.curve_indexs = [i for i in range(0, self.curve_number)]
-            self.set_figure(message_id)
-            self.plot_begin = True
-
         parse_test_message(buffer)
 
         if save_csv == True:
@@ -245,11 +165,3 @@ class serial_plotter_class:
         # print("-----------------------------");
 
         return 'success'
-
-
-def plotter_start():
-    serial_plotter = serial_plotter_class()
-    serial_plotter.run()
-
-
-# plotter_start()

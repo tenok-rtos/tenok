@@ -18,6 +18,24 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
 from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
 from .serial import DataQueue
+from .serial import SerialManager
+
+
+class QSerialThread(QtCore.QThread):
+    def __init__(self, port_name, baudrate):
+        QtCore.QThread.__init__(self)
+        self.portname = port_name
+        self.baudrate = baudrate
+        self.serial_manager = SerialManager(port_name, baudrate)
+
+    def run(self):
+        self.running = True
+        while self.running == True:
+            self.serial_manager.new_receive()
+
+    def stop(self):
+        self.running = False
+        self.wait()
 
 
 class MyCanvas(FigureCanvas):
@@ -58,7 +76,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         self.ui_init()
 
+        # serial thread
+        self.ser_thread = None
+
         self.app_start_time = time.time()
+
+    def closeEvent(self, event):
+        if self.ser_thread != None:
+            self.ser_thread.stop()
 
     def ui_init(self):
         super().__init__()
@@ -76,10 +101,16 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         #=========#
         hbox_topbar = QHBoxLayout()
 
-        combo_ports = QComboBox(self._main)
-        combo_ports.addItems(self.serial_ports)
-        combo_ports.setFixedSize(combo_ports.sizeHint())
-        hbox_topbar.addWidget(combo_ports)
+        self.combo_ports = QComboBox(self._main)
+        self.combo_ports.addItems(self.serial_ports)
+        self.combo_ports.setFixedSize(self.combo_ports.sizeHint())
+        hbox_topbar.addWidget(self.combo_ports)
+
+        self.combo_baudrates = QComboBox(self._main)
+        self.combo_baudrates.addItems(
+            ['9600', '19200', '38400', '57600', '115200'])
+        self.combo_baudrates.setFixedSize(self.combo_baudrates.sizeHint())
+        hbox_topbar.addWidget(self.combo_baudrates)
 
         self.btn_connect = QtWidgets.QPushButton(self._main)
         self.btn_connect.setText('Connect')
@@ -173,11 +204,20 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.btn_connect.setText('Disconnect')
             self.checkbox_csv.setEnabled(False)
             self.btn_pause.setEnabled(True)
+
+            port_name = self.combo_ports.currentText()
+            baudrate = int(self.combo_baudrates.currentText())
+            self.ser_thread = QSerialThread(port_name, baudrate)
+            self.ser_thread.start()
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"
             self.btn_connect.setText('Connect')
             self.checkbox_csv.setEnabled(True)
             self.btn_pause.setEnabled(False)
+
+            self.ser_thread.stop()
+            del self.ser_thread
+            self.ser_thread = None
 
     def combo_msgs_activated(self):
         curr_selected_msg = self.combo_msgs.currentText()

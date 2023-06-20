@@ -5,20 +5,16 @@ import re
 import glob
 
 import serial
+import serial.tools.list_ports
 
 
 def serial_ports():
-    ports = glob.glob('/dev/tty[A-Za-z]*')
+    port_list = serial.tools.list_ports.comports()
 
-    result = []
-    for port in ports:
-        try:
-            s = serial.Serial(port)
-            s.close()
-            result.append(port)
-        except (OSError, serial.SerialException):
-            pass
-    return result
+    ports = ['/dev/' + port.name for port in port_list]
+    ports = ports + glob.glob('/dev/pts/[0-9]*')
+
+    return ports
 
 
 def main(msg_dir_path):
