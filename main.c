@@ -54,18 +54,23 @@ void led_task1(void)
     }
 }
 
+
+#define INC 1
+#define DEC 0
 void led_task2(void)
 {
     set_program_name("led2");
     setpriority(0, getpid(), 3);
 
-    uint8_t buf[100];
+    int dir = INC;
 
     tenok_msg_first_t test_msg = {
-        .time = 15,
+        .time = 0,
         .accel = {1.0f, 2.0f, 3.0f},
         .q = {1.0f, 0.0f, 0.0f, 0.0f}
     };
+
+    uint8_t buf[100];
 
     while(1) {
         sem_post(&sem_led);
@@ -73,7 +78,19 @@ void led_task2(void)
         size_t size = pack_tenok_first_msg(&test_msg, buf);
         uart_puts(USART1, buf, size);
 
-        sleep(1000);
+        if(dir == INC) {
+            test_msg.time += 10;
+            if(test_msg.time == 1000) {
+                dir = DEC;
+            }
+        } else {
+            test_msg.time -= 10;
+            if(test_msg.time == 0) {
+                dir = INC;
+            }
+        }
+
+        sleep(10);
     }
 }
 
