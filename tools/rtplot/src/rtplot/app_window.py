@@ -31,11 +31,12 @@ class QSerialThread(QtCore.QThread):
     def run(self):
         self.running = True
         while self.running == True:
-            self.serial_manager.new_receive()
+            self.serial_manager.serial_receive()
 
     def stop(self):
         self.running = False
         self.wait()
+        self.serial_manager.close()
 
 
 class MyCanvas(FigureCanvas):

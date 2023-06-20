@@ -45,6 +45,9 @@ class SerialManager:
         self.update_rate_last = 0
         self.recvd_datas = []
 
+    def close(self):
+        self.ser.close()
+
     def save_csv(self, datas):
         for i in range(0, len(datas)):
             data_str = "{:.7f}".format(float(datas[i]))
@@ -65,9 +68,22 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         float_data = np.asarray(struct.unpack("f", binary_data))
-        self.serial_data[i].add(float_data)
+        # self.serial_data[i].add(float_data)
         print("payload #%d: %f" % (i, float_data))
         return float_data
+
+    def parse_field_uint32(self, buffer, i):
+        print(i)
+        data1 = struct.pack("B", buffer[i*4])
+        data2 = struct.pack("B", buffer[i*4+1])
+        data3 = struct.pack("B", buffer[i*4+2])
+        data4 = struct.pack("B", buffer[i*4+3])
+        binary_data = data1 + data2 + data3 + data4
+        int32_data = np.asarray(struct.unpack("I", binary_data))
+        # self.serial_data[i].add(int32_data)
+        # self.recvd_datas.append(int32_data)
+        print("payload #%d: %d" % (i, int32_data))
+        return int32_data
 
     def parse_field_int32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
@@ -76,13 +92,13 @@ class SerialManager:
         data4 = struct.pack("B", buffer[i*4+3])
         binary_data = data1 + data2 + data3 + data4
         int32_data = np.asarray(struct.unpack("i", binary_data))
-        self.serial_data[i].add(int32_data)
-        self.recvd_datas.append(int32_data)
+        # self.serial_data[i].add(int32_data)
+        # self.recvd_datas.append(int32_data)
         print("payload #%d: %d" % (i, int32_data))
         return int32_data
 
     def parse_test_message(self, buffer):
-        self.parse_field_int32(buffer, 0)
+        self.parse_field_uint32(buffer, 0)
         self.parse_field_float(buffer, 1)
         self.parse_field_float(buffer, 2)
         self.parse_field_float(buffer, 3)
@@ -93,8 +109,7 @@ class SerialManager:
 
     def new_receive(self):
         c = self.ser.read(1)
-        c = c.decode("ascii")
-        print("%c" % (c), end='')
+        print(c, end='')
 
     def serial_receive(self):
         buffer = []
@@ -117,7 +132,7 @@ class SerialManager:
 
         # receive package size
         payload_count, =  struct.unpack("B", self.ser.read(1))
-        # print('payload size: %d' %(payload_count))
+        #print('payload size: %d' %(payload_count))
 
         # receive message id
         _message_id, =  struct.unpack("c", self.ser.read(1))
@@ -131,11 +146,10 @@ class SerialManager:
             buffer_checksum = buffer[i]
             checksum ^= buffer_checksum
 
-        # received_checksum ,= struct.unpack("B", buf[payload_count])
         received_checksum = buf[payload_count]
 
         if received_checksum != checksum:
-            print("error: checksum mismatch")
+            # print("error: checksum mismatch")
             return 'fail'
         else:
             # print("checksum is correct (%d)" %(checksum))
@@ -157,7 +171,8 @@ class SerialManager:
 
         self.update_rate_last = update_rate
 
-        parse_test_message(buffer)
+        print(len(buffer))
+        self.parse_test_message(buffer)
 
         if save_csv == True:
             self.save_csv(self.recvd_datas)
