@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class TenokMsgField:
-    c_type: bool
+    c_type: str 
     var_name: str
     array_size: int
     description: str
@@ -36,7 +36,13 @@ class TenokMsgManager:
 
         self.msg_list.append(msg)
 
-    def find(self, msg_name):
+    def find_name(self, msg_name):
         for i in range(0, len(self.msg_list)):
             if self.msg_list[i].name == msg_name:
                 return self.msg_list[i]
+
+    def find_id(self, msg_id):
+        for i in range(0, len(self.msg_list)):
+            if self.msg_list[i].msg_id == msg_id:
+                return self.msg_list[i]
+

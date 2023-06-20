@@ -22,11 +22,11 @@ from .serial import SerialManager
 
 
 class QSerialThread(QtCore.QThread):
-    def __init__(self, port_name, baudrate):
+    def __init__(self, port_name, baudrate, msg_manager):
         QtCore.QThread.__init__(self)
         self.portname = port_name
         self.baudrate = baudrate
-        self.serial_manager = SerialManager(port_name, baudrate)
+        self.serial_manager = SerialManager(port_name, baudrate, msg_manager)
 
     def run(self):
         self.running = True
@@ -210,7 +210,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
             port_name = self.combo_ports.currentText()
             baudrate = int(self.combo_baudrates.currentText())
-            self.ser_thread = QSerialThread(port_name, baudrate)
+            self.ser_thread = QSerialThread(port_name, baudrate, self.msg_manager)
             self.ser_thread.start()
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"
@@ -238,7 +238,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         # load message information
         selected_msg = self.combo_msgs.currentText()
-        self.curr_msg_info = self.msg_manager.find(selected_msg)
+        self.curr_msg_info = self.msg_manager.find_name(selected_msg)
 
         self.subplot_cnt = len(self.curr_msg_info.fields)
 
