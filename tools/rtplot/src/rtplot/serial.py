@@ -65,25 +65,25 @@ class SerialManager:
 
             self.csv_token.flush()
 
-    def parse_field_bool(self, buffer, i):
+    def parse_bool(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         bool_data = struct.unpack("?", binary_data)
         # print("payload #%d: %d" % (i, bool_data))
         return bool_data[0]
 
-    def parse_field_uint8(self, buffer, i):
+    def parse_uint8(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         uint8_data = struct.unpack("H", binary_data)
         # print("payload #%d: %d" % (i, uint8_data))
         return uint8_data[0]
 
-    def parse_field_int8(self, buffer, i):
+    def parse_int8(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
         int8_data = struct.unpack("h", binary_data)
         # print("payload #%d: %d" % (i, int8_data))
         return int8_data[0]
 
-    def parse_field_uint16(self, buffer, i):
+    def parse_uint16(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         binary_data = data1 + data2
@@ -91,7 +91,7 @@ class SerialManager:
         # print("payload #%d: %d" % (i, uint16_data))
         return uint16_data[0]
 
-    def parse_field_int32(self, buffer, i):
+    def parse_int32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         binary_data = data1 + data2
@@ -99,7 +99,7 @@ class SerialManager:
         # print("payload #%d: %d" % (i, int16_data))
         return int16_data[0]
 
-    def parse_field_uint32(self, buffer, i):
+    def parse_uint32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         data3 = struct.pack("B", buffer[i*4+2])
@@ -109,7 +109,7 @@ class SerialManager:
         # print("payload #%d: %d" % (i, uint32_data))
         return uint32_data[0]
 
-    def parse_field_int32(self, buffer, i):
+    def parse_int32(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         data3 = struct.pack("B", buffer[i*4+2])
@@ -119,7 +119,7 @@ class SerialManager:
         # print("payload #%d: %d" % (i, int32_data))
         return int32_data[0]
 
-    def parse_field_float(self, buffer, i):
+    def parse_float(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         data3 = struct.pack("B", buffer[i*4+2])
@@ -129,7 +129,7 @@ class SerialManager:
         # print("payload #%d: %f" % (i, float_data))
         return float_data[0]
 
-    def parse_field_double(self, buffer, i):
+    def parse_double(self, buffer, i):
         data1 = struct.pack("B", buffer[i*4])
         data2 = struct.pack("B", buffer[i*4+1])
         data3 = struct.pack("B", buffer[i*4+2])
@@ -145,27 +145,27 @@ class SerialManager:
 
     def decode_field(self, buffer, c_type, i):
         if c_type == 'bool':
-            return self.parse_field_bool(buffer, i)
+            return self.parse_bool(buffer, i)
         elif c_type == 'uint8_t':
-            return self.parse_field_uint8(buffer, i)
+            return self.parse_uint8(buffer, i)
         elif c_type == 'int8_t':
-            return self.parse_field_int8(buffer, i)
+            return self.parse_int8(buffer, i)
         elif c_type == 'uint16_t':
-            return self.parse_field_uint16(buffer, i)
+            return self.parse_uint16(buffer, i)
         elif c_type == 'int16_t':
-            return self.parse_field_int16(buffer, i)
+            return self.parse_int16(buffer, i)
         elif c_type == 'uint32_t':
-            return self.parse_field_uint32(buffer, i)
+            return self.parse_uint32(buffer, i)
         elif c_type == 'int32_t':
-            return self.parse_field_int32(buffer, i)
+            return self.parse_int32(buffer, i)
         elif c_type == 'uint64_t':
-            return self.parse_field_uint64(buffer, i)
+            return self.parse_uint64(buffer, i)
         elif c_type == 'int64_t':
-            return self.parse_field_int64(buffer, i)
+            return self.parse_int64(buffer, i)
         elif c_type == 'float':
-            return self.parse_field_float(buffer, i)
+            return self.parse_float(buffer, i)
         elif c_type == 'double':
-            return self.parse_field_double(buffer, i)
+            return self.parse_double(buffer, i)
 
     def prompt(self, msg_name, msg_id):
         print_str = ''
@@ -191,7 +191,10 @@ class SerialManager:
         msg_info = self.msg_manager.find_id(msg_id)
         msg_name = msg_info.name
         var_cnt = len(msg_info.fields)
+
         print_str = self.prompt(msg_name, msg_id)
+
+        data_list = []
         recept_cnt = 0
 
         for i in range(0, var_cnt):
@@ -208,6 +211,7 @@ class SerialManager:
             # decode array elements of each fields
             for j in range(0, array_size):
                 decoded_data = self.decode_field(buffer, c_type, recept_cnt)
+                data_list.append(decoded_data)
                 recept_cnt = recept_cnt + 1
 
                 if is_array == True:
@@ -222,6 +226,8 @@ class SerialManager:
         # print prompt message
         print(print_str, end='')
 
+        return msg_id, msg_name, data_list
+
     def receive_msg(self):
         buffer = []
         checksum = 0
@@ -230,7 +236,7 @@ class SerialManager:
         try:
             c = c.decode("ascii")
         except:
-            return 'fail'
+            return 'failed'
 
         # print("c:")
         # print(c)
@@ -239,7 +245,7 @@ class SerialManager:
         if c == '@':
             pass
         else:
-            return 'fail'
+            return 'failed'
 
         # receive payload size
         payload_count, =  struct.unpack("B", self.ser.read(1))
@@ -262,12 +268,12 @@ class SerialManager:
 
         if received_checksum != checksum:
             print("error: checksum mismatched")
-            return 'fail'
+            return 'failed'
 
         # decode message fields
-        self.decode_msg(buffer, msg_id)
+        msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
 
         if save_csv == True:
             self.save_csv(self.recvd_datas)
 
-        return 'success'
+        return msg_id, msg_name, data

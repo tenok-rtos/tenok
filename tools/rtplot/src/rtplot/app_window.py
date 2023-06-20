@@ -31,7 +31,7 @@ class QSerialThread(QtCore.QThread):
     def run(self):
         self.running = True
         while self.running == True:
-            self.serial_manager.receive_msg()
+            msg_id, msg_name, data = self.serial_manager.receive_msg()
 
     def stop(self):
         self.running = False
