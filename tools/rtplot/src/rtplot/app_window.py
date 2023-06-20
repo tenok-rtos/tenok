@@ -12,6 +12,7 @@ from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 from PyQt5 import QtCore
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QWidget, QComboBox,
                              QHBoxLayout, QVBoxLayout, QStyle, QLabel, QStatusBar, QTabWidget, QScrollArea)
 
@@ -22,6 +23,8 @@ from .serial import SerialManager
 
 
 class QSerialThread(QtCore.QThread):
+    data_ready_signal = pyqtSignal(int, str, list)
+
     def __init__(self, port_name, baudrate, msg_manager):
         QtCore.QThread.__init__(self)
         self.portname = port_name
@@ -31,7 +34,12 @@ class QSerialThread(QtCore.QThread):
     def run(self):
         self.running = True
         while self.running == True:
-            msg_id, msg_name, data = self.serial_manager.receive_msg()
+            # message reception
+            result, msg_id, msg_name, data = self.serial_manager.receive_msg()
+
+            # send the data to the app window
+            if result == 'success':
+                self.data_ready_signal.emit(msg_id, msg_name, data)
 
     def stop(self):
         self.running = False
@@ -80,11 +88,25 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # serial thread
         self.ser_thread = None
 
-        self.app_start_time = time.time()
+        self.x_start_time = time.time()
+        self.x_last_time = self.x_start_time
 
     def closeEvent(self, event):
         if self.ser_thread != None:
             self.ser_thread.stop()
+
+    def serial_ready_event(self, msg_id, msg_name, serial_data_list):
+        curr_selected_msg = self.combo_msgs.currentText()
+        if curr_selected_msg != msg_name or self.display_off == True:
+            return
+
+        for i in range(0, len(self.signal)):
+            curr_time = time.time()
+            self.x_last_time = curr_time
+            t = curr_time - self.x_start_time
+
+            self.data_list[i].add(serial_data_list[i])
+            self.time_list[i].add(t)
 
     def ui_init(self):
         super().__init__()
@@ -176,17 +198,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.plot_pause == True:
             return
 
-        # generate fake signal
-        speed = 0.1
-        for i in range(0, len(self.signal)):
-            t = time.time() - self.app_start_time
-
-            val = math.sin(speed * (i + 1) * t)
-            self.data_list[i].add(val)
-            self.time_list[i].add(t)
-
         # scroll the x axis (time)
-        if (time.time() - self.app_start_time) > self.x_axis_len:
+        if (self.x_last_time - self.x_start_time) > self.x_axis_len:
+            t = self.x_last_time - self.x_start_time
             self.x_axis_min = t - self.x_axis_len
             self.x_axis_max = t
 
@@ -208,10 +222,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.checkbox_csv.setEnabled(False)
             self.btn_pause.setEnabled(True)
 
+            # launch the serial thread
             port_name = self.combo_ports.currentText()
             baudrate = int(self.combo_baudrates.currentText())
             self.ser_thread = QSerialThread(
                 port_name, baudrate, self.msg_manager)
+            self.ser_thread.data_ready_signal.connect(self.serial_ready_event)
             self.ser_thread.start()
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"
@@ -236,6 +252,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         # delete old plots
         if self.display_off == False:
             self.delete_plots()
+
+        # reset time
+        self.x_start_time = time.time()
 
         # load message information
         selected_msg = self.combo_msgs.currentText()

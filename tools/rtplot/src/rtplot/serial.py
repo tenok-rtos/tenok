@@ -236,7 +236,7 @@ class SerialManager:
         try:
             c = c.decode("ascii")
         except:
-            return 'failed'
+            return 'failed', None, None, None
 
         # print("c:")
         # print(c)
@@ -245,7 +245,7 @@ class SerialManager:
         if c == '@':
             pass
         else:
-            return 'failed'
+            return 'failed', None, None, None
 
         # receive payload size
         payload_count, =  struct.unpack("B", self.ser.read(1))
@@ -268,7 +268,7 @@ class SerialManager:
 
         if received_checksum != checksum:
             print("error: checksum mismatched")
-            return 'failed'
+            return 'failed', None, None, None
 
         # decode message fields
         msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
@@ -276,4 +276,4 @@ class SerialManager:
         if save_csv == True:
             self.save_csv(self.recvd_datas)
 
-        return msg_id, msg_name, data
+        return 'success', msg_id, msg_name, data
