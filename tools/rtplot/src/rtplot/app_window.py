@@ -308,11 +308,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if curr_selected_msg == "---message---" or curr_selected_msg == self.old_selected_msg:
             return  # ignore
 
-        self.old_selected_msg = curr_selected_msg
-
         # remove the combo hint (i.e., "---message---") once the user selected a message
         if self.old_selected_msg == '':
             self.combo_msgs.removeItem(0)
+
+        self.old_selected_msg = curr_selected_msg
 
         self.display_plots()
 
