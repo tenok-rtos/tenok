@@ -254,6 +254,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.btn_pause.setEnabled(True)
             self.btn_clean.setEnabled(True)
 
+            # reset the plot canvas
+            self.btn_clean_clicked()
+
             # launch the serial thread
             port_name = self.combo_ports.currentText()
             baudrate = int(self.combo_baudrates.currentText())
