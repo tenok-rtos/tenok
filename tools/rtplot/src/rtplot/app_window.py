@@ -178,6 +178,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         del self.signal
         del self.matplot_ani
 
+        del self.data_list
+        del self.time_list
+
         self.display_off = True
 
     def update(self, art, *, who):
