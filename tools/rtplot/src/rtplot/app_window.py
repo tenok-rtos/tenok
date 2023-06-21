@@ -178,6 +178,15 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.btn_pause.clicked.connect(self.btn_pause_clicked)
         hbox_topbar.addWidget(self.btn_pause)
 
+        self.btn_clean = QtWidgets.QPushButton(self._main)
+        self.btn_clean.setFixedSize(self.btn_clean.sizeHint())
+        pixmapi = getattr(QStyle, 'SP_DialogResetButton')
+        icon = self.style().standardIcon(pixmapi)
+        self.btn_clean.setIcon(icon)
+        self.btn_clean.setEnabled(False)
+        self.btn_clean.clicked.connect(self.btn_clean_clicked)
+        hbox_topbar.addWidget(self.btn_clean)
+
         self.layout_main.addLayout(hbox_topbar)
 
     def delete_plots(self):
@@ -243,6 +252,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.combo_baudrates.setEnabled(False)
             self.checkbox_csv.setEnabled(False)
             self.btn_pause.setEnabled(True)
+            self.btn_clean.setEnabled(True)
 
             # launch the serial thread
             port_name = self.combo_ports.currentText()
@@ -274,6 +284,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.combo_baudrates.setEnabled(True)
             self.checkbox_csv.setEnabled(True)
             self.btn_pause.setEnabled(False)
+            self.btn_clean.setEnabled(False)
 
             self.ser_thread.stop()
             del self.ser_thread
@@ -296,6 +307,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         if curr_selected_msg == "---message---" or curr_selected_msg == self.old_selected_msg:
             return  # ignore
+
+        # remove the select hit ("---message---") once user selected a message
+        if self.old_selected_msg == '':
+            self.combo_msgs.removeItem(0)
 
         self.old_selected_msg = curr_selected_msg
 
@@ -447,6 +462,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             # enable the animation of the current matplot canvas
             canvas_index = self.tab.currentIndex()
             self.matplot_ani[canvas_index].event_source.start()
+
+    def btn_clean_clicked(self):
+        pass
 
     def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):
         qapp = QtWidgets.QApplication.instance()
