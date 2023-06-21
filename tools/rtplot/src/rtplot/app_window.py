@@ -94,7 +94,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.x_last_time = self.x_start_time
 
         # csv saver
-        self.csv_saver = None
+        self.csv_saver = []
 
     def closeEvent(self, event):
         if self.ser_thread != None:
@@ -102,14 +102,15 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
     def serial_ready_event(self, msg_id, msg_name, serial_data_list):
         # select csv saver
-        csv_saver = None
+        _csv_saver = None
         for i in range(0, len(self.csv_saver)):
             if self.csv_saver[i].msg_id == msg_id:
-                csv_saver = self.csv_saver[i]
+                _csv_saver = self.csv_saver[i]
                 break
 
         # save csv
-        csv_saver.save(serial_data_list)
+        if _csv_saver != None:
+            _csv_saver.save(serial_data_list)
 
         curr_selected_msg = self.combo_msgs.currentText()
         if curr_selected_msg != msg_name or self.display_off == True:
