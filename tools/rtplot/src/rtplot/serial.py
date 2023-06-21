@@ -41,6 +41,9 @@ class CSVSaver:
 
             self.fd.flush()
 
+    def close(self):
+        self.fd.close()
+
 
 class SerialManager:
     def __init__(self, port_name, baudrate, msg_manager):

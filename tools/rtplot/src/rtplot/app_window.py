@@ -277,6 +277,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.ser_thread = None
 
             # close the csv saver
+            if self.checkbox_csv.isChecked() == True:
+                msg_cnt = len(self.msg_manager.msg_list)
+                for i in range(0, msg_cnt):
+                    self.csv_saver[i].close()
+                del self.csv_saver
+                self.csv_saver = []
 
     def combo_msgs_activated(self):
         curr_selected_msg = self.combo_msgs.currentText()
