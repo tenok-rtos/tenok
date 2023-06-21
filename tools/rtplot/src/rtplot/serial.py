@@ -43,7 +43,8 @@ class SerialManager:
         if save_csv == True:
             self.csv_token = open(csv_file, "w")
 
-        self.plot_time_last = time.time()
+        self.recvd_time_last = [time.time()
+                                for i in range(0, len(msg_manager.msg_list))]
         self.update_rate_last = 0
         self.recvd_datas = []
 
@@ -170,9 +171,9 @@ class SerialManager:
     def prompt(self, msg_name, msg_id):
         print_str = ''
 
-        plot_time_now = time.time()
-        update_rate = 1.0 / (plot_time_now - self.plot_time_last)
-        self.plot_time_last = plot_time_now
+        curr_time = time.time()
+        update_rate = 1.0 / (curr_time - self.recvd_time_last[msg_id])
+        self.recvd_time_last[msg_id] = curr_time
 
         # if the frequency change is too rapidly, then it means the communication is unstable
         if abs(update_rate - self.update_rate_last) > 50:
