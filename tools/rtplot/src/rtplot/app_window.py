@@ -308,12 +308,15 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if curr_selected_msg == "---message---" or curr_selected_msg == self.old_selected_msg:
             return  # ignore
 
-        # remove the select hit ("---message---") once user selected a message
+        self.old_selected_msg = curr_selected_msg
+
+        # remove the combo hint (i.e., "---message---") once the user selected a message
         if self.old_selected_msg == '':
             self.combo_msgs.removeItem(0)
 
-        self.old_selected_msg = curr_selected_msg
+        self.display_plots()
 
+    def display_plots(self):
         # delete old plots
         if self.display_off == False:
             self.delete_plots()
@@ -464,7 +467,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.matplot_ani[canvas_index].event_source.start()
 
     def btn_clean_clicked(self):
-        pass
+        if self.combo_msgs.currentText() == "---message---":
+            return  # ignore
+
+        # clean everything then redraw
+        self.display_plots()
 
     def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):
         qapp = QtWidgets.QApplication.instance()
