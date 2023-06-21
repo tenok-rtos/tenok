@@ -377,6 +377,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.matplot_canvas[canvas_index].draw()
 
     def btn_pause_clicked(self):
+        # ignore the event if the canvas is not yet ready
+        if self.display_off == True:
+            return
+
         if self.plot_pause == False:
             self.plot_pause = True
             pixmapi = getattr(QStyle, 'SP_MediaPlay')
