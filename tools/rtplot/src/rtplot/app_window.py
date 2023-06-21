@@ -166,7 +166,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
     def delete_plots(self):
         # stop animation before deleting canvas
         for i in range(0, self.subplot_cnt):
-            self.matplot_ani[i].event_source.stop()
+            # call the private function to force the garbage collection
+            # recyle the matplot animation object
+            self.matplot_ani[i]._stop()
 
         # delete of pyqt objects requires only the toppest object
         sip.delete(self.tab)  # this cleans the nav bar, canvas, etc.
@@ -348,6 +350,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                 self.update, who=i), data_x_range, interval=10, blit=False)
             self.matplot_ani.append(animator)
             self.matplot_ani[i].event_source.stop()  # disable animation first
+
+            # to sprress the warning of the animation never start when closing the window
+            setattr(self.matplot_ani[i], '_draw_was_started', True)
 
         # enable the animation of canvas on current tab only
         canvas_index = self.tab.currentIndex()
