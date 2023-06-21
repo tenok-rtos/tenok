@@ -164,16 +164,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.layout_main.addLayout(hbox_topbar)
 
     def delete_plots(self):
-        # stop feeding test data
-        self.timer.stop()
-
-        # stop animation before cleaning
+        # stop animation before deleting canvas
         for i in range(0, self.subplot_cnt):
             self.matplot_ani[i].event_source.stop()
 
         # delete of pyqt objects requires only the toppest object
         sip.delete(self.tab)  # this cleans the nav bar, canvas, etc.
-        sip.delete(self.timer)
 
         del self.signal
         del self.matplot_ani
@@ -195,9 +191,11 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.signal[i].set_ydata(self.data_list[i].data)
             ret_signal.append(self.signal[i])
 
+        self.adjust_xy_axis()
+
         return ret_signal
 
-    def update_plots(self):
+    def adjust_xy_axis(self):
         if self.plot_pause == True:
             return
 
@@ -355,12 +353,6 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.matplot_ani[canvas_index].event_source.start()
 
         self.layout_main.addWidget(self.tab)
-
-        # setup timer for displaying test data
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(1)
-        self.timer.timeout.connect(self.update_plots)
-        self.timer.start()
 
         self.display_off = False
 
