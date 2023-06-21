@@ -8,10 +8,6 @@ from datetime import datetime
 
 from .yaml_loader import TenokMsgManager
 
-# options
-save_csv = False
-csv_file = 'serial_log.csv'
-
 
 class DataQueue:
     def __init__(self, max_count):
@@ -24,6 +20,26 @@ class DataQueue:
         else:
             self.data.pop()
             self.data.appendleft(value)
+
+
+class CSVSaver:
+    def __init__(self, file_name, msg_id):
+        self.file_name = file_name
+        self.msg_id = msg_id
+        self.fd = open(file_name, "w")
+
+    def save(self, data_list):
+        for i in range(0, len(data_list)):
+            data_str = "{:.7f}".format(float(data_list[i]))
+
+            if i == (len(data_list) - 1):
+                self.fd.write(data_str)
+                self.fd.write('\n')
+            else:
+                self.fd.write(data_str)
+                self.fd.write(',')
+
+            self.fd.flush()
 
 
 class SerialManager:
@@ -39,32 +55,13 @@ class SerialManager:
 
         print("connected to: " + self.ser.portstr)
 
-        # open the csv file
-        if save_csv == True:
-            self.csv_token = open(csv_file, "w")
-
         self.recvd_time_last = [time.time()
                                 for i in range(0, len(msg_manager.msg_list))]
         self.update_rate_last = 0
-        self.recvd_datas = []
-
         self.msg_manager = msg_manager
 
     def close(self):
         self.ser.close()
-
-    def save_csv(self, datas):
-        for i in range(0, len(datas)):
-            data_str = "{:.7f}".format(float(datas[i]))
-
-            if i == (self.curve_number - 1):
-                self.csv_token.write(data_str)
-                self.csv_token.write('\n')
-            else:
-                self.csv_token.write(data_str)
-                self.csv_token.write(',')
-
-            self.csv_token.flush()
 
     def parse_bool(self, buffer, i):
         binary_data = struct.pack("B", buffer[i*4])
@@ -273,8 +270,5 @@ class SerialManager:
 
         # decode message fields
         msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
-
-        if save_csv == True:
-            self.save_csv(self.recvd_datas)
 
         return 'success', msg_id, msg_name, data

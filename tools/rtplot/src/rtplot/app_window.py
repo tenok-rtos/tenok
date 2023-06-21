@@ -20,6 +20,7 @@ from .yaml_loader import TenokMsgManager
 from .yaml_loader import TenokMsg
 from .serial import DataQueue
 from .serial import SerialManager
+from .serial import CSVSaver
 
 
 class QSerialThread(QtCore.QThread):
@@ -91,11 +92,24 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.x_start_time = time.time()
         self.x_last_time = self.x_start_time
 
+        # csv saver
+        self.csv_saver = None
+
     def closeEvent(self, event):
         if self.ser_thread != None:
             self.ser_thread.stop()
 
     def serial_ready_event(self, msg_id, msg_name, serial_data_list):
+        # select csv saver
+        csv_saver = None
+        for i in range(0, len(self.csv_saver)):
+            if self.csv_saver[i].msg_id == msg_id:
+                csv_saver = self.csv_saver[i]
+                break
+
+        # save csv
+        csv_saver.save(serial_data_list)
+
         curr_selected_msg = self.combo_msgs.currentText()
         if curr_selected_msg != msg_name or self.display_off == True:
             return
@@ -232,6 +246,18 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                 port_name, baudrate, self.msg_manager)
             self.ser_thread.data_ready_signal.connect(self.serial_ready_event)
             self.ser_thread.start()
+
+            # start the csv saver
+            if self.checkbox_csv.isChecked() == True:
+                self.csv_saver = []
+                msg_cnt = len(self.msg_manager.msg_list)
+
+                for i in range(0, msg_cnt):
+                    file_name = '{}.log'.format(
+                        self.msg_manager.msg_list[i].name)
+                    msg_id = self.msg_manager.msg_list[i].msg_id
+                    self.csv_saver.append(CSVSaver(file_name, msg_id))
+
         elif self.serial_state == "connected":
             self.serial_state = "disconnected"
             self.btn_connect.setText('Connect')
@@ -243,6 +269,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.ser_thread.stop()
             del self.ser_thread
             self.ser_thread = None
+
+            # close the csv saver
 
     def combo_msgs_activated(self):
         curr_selected_msg = self.combo_msgs.currentText()
