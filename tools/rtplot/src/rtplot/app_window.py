@@ -321,6 +321,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             # configure the new subplot
             self.subplot[i].grid(color="lightGray")
             self.subplot[i].set_xlim([0, self.x_axis_max])
+            self.subplot[i].set_xlabel("time [s]")
             self.subplot[i].set_ylabel(y_label)
             self.subplot[i].legend(loc='upper left', shadow=True)
 
