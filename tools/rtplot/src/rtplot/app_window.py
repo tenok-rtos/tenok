@@ -376,11 +376,20 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             pixmapi = getattr(QStyle, 'SP_MediaPlay')
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
+
+            # disable the animation of the current matplot canvas
+            curr_canvas = self.tab.currentIndex()
+            self.matplot_ani[curr_canvas].event_source.stop()
+
         elif self.plot_pause == True:
             self.plot_pause = False
             pixmapi = getattr(QStyle, 'SP_MediaPause')
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
+
+            # enable the animation of the current matplot canvas
+            canvas_index = self.tab.currentIndex()
+            self.matplot_ani[canvas_index].event_source.start()
 
     def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):
         qapp = QtWidgets.QApplication.instance()
