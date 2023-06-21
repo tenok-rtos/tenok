@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import sip
@@ -252,8 +253,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                 self.csv_saver = []
                 msg_cnt = len(self.msg_manager.msg_list)
 
+                # create log directory if it does not exist
+                if not os.path.isdir('./logs'):
+                    os.mkdir('./logs')
+
                 for i in range(0, msg_cnt):
-                    file_name = '{}.log'.format(
+                    file_name = './logs/{}.log'.format(
                         self.msg_manager.msg_list[i].name)
                     msg_id = self.msg_manager.msg_list[i].msg_id
                     self.csv_saver.append(CSVSaver(file_name, msg_id))
