@@ -8,12 +8,14 @@
 #include "syscall.h"
 #include "kconfig.h"
 #include "mutex.h"
+#include "fs.h"
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);
 static void shell_reset_history_scrolling(struct shell *shell);
 
 _pthread_mutex_t mutex_print;
+struct inode *shell_dir_curr = NULL;
 
 int serial_fd = 0;
 
@@ -21,6 +23,13 @@ void shell_serial_init(void)
 {
     pthread_mutex_init(&mutex_print, 0);
     serial_fd = open("/dev/serial0", 0, 0);
+}
+
+void shell_path_init(void)
+{
+    DIR dir;
+    opendir("/", &dir);
+    shell_dir_curr = dir.inode_dir;
 }
 
 char shell_getc(void)
