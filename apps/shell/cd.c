@@ -63,3 +63,5 @@ void shell_cmd_cd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
             return;
     }
 }
+
+HOOK_SHELL_CMD(cd);

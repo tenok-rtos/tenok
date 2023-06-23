@@ -8,36 +8,22 @@
 #include "syscall.h"
 #include "semaphore.h"
 #include "shell.h"
-#include "shell_cmd.h"
 #include "fs.h"
 #include "rom_dev.h"
 #include "examples.h"
 #include "bsp_drv.h"
 
-#include "tenok_first_msg.h"
+#include "tenok_imu_ahrs_msg.h"
 
+extern char _shell_cmds_start;
+extern char _shell_cmds_end;
 extern struct inode *shell_dir_curr;
 
 sem_t sem_led;
 
-/* shell */
-struct shell_cmd shell_cmds[] = {
-    DEF_SHELL_CMD(help),
-    DEF_SHELL_CMD(clear),
-    DEF_SHELL_CMD(history),
-    DEF_SHELL_CMD(ps),
-    DEF_SHELL_CMD(echo),
-    DEF_SHELL_CMD(ls),
-    DEF_SHELL_CMD(cd),
-    DEF_SHELL_CMD(pwd),
-    DEF_SHELL_CMD(cat),
-    DEF_SHELL_CMD(file),
-    DEF_SHELL_CMD(mpool)
-};
-
 struct shell shell;
 struct shell_history history[SHELL_HISTORY_MAX];
-struct shell_autocompl autocompl[SHELL_CMDS_CNT(shell_cmds)];
+struct shell_autocompl autocompl[100]; //XXX: handle with mpool
 
 void led_task1(void)
 {
@@ -54,7 +40,6 @@ void led_task1(void)
     }
 }
 
-
 #define INC 1
 #define DEC 0
 void led_task2(void)
@@ -64,7 +49,7 @@ void led_task2(void)
 
     int dir = INC;
 
-    tenok_msg_first_t test_msg = {
+    tenok_msg_imu_ahrs_t test_msg = {
         .time = 0,
         .accel = {1.0f, 2.0f, 3.0f},
         .q = {1.0f, 0.0f, 0.0f, 0.0f}
@@ -75,7 +60,7 @@ void led_task2(void)
     while(1) {
         sem_post(&sem_led);
 
-        size_t size = pack_tenok_first_msg(&test_msg, buf);
+        size_t size = pack_tenok_imu_ahrs_msg(&test_msg, buf);
         uart_puts(USART1, buf, size);
 
         if(dir == INC) {
@@ -101,7 +86,9 @@ void shell_task(void)
 
     char shell_path[PATH_LEN_MAX] = {0};
     char prompt[SHELL_PROMPT_LEN_MAX] = {0};
-    int  shell_cmd_cnt = SHELL_CMDS_CNT(shell_cmds);
+
+    struct shell_cmd *shell_cmds = (struct shell_cmd *)&_shell_cmds_start;
+    int  shell_cmd_cnt = SHELL_CMDS_CNT(_shell_cmds_start, _shell_cmds_end);
 
     /* shell initialization */
     shell_init(&shell, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX, autocompl);

@@ -12,3 +12,5 @@ void shell_cmd_mpool(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
              mem_pool.size, mem_pool.offset);
     shell_puts(str);
 }
+
+HOOK_SHELL_CMD(mpool);

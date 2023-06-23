@@ -69,3 +69,5 @@ void shell_cmd_cat(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
         shell_print_lf_cr(str, recvd);
     }
 }
+
+HOOK_SHELL_CMD(cat);

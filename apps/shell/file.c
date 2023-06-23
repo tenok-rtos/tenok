@@ -78,3 +78,5 @@ void shell_cmd_file(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
     shell_puts(str);
     return;
 }
+
+HOOK_SHELL_CMD(file);

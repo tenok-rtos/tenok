@@ -6,10 +6,18 @@
 #include "kconfig.h"
 
 #define SHELL_ARG_CNT 10
-#define SHELL_ARG_LEN       10
+#define SHELL_ARG_LEN 10
 
-#define SHELL_CMDS_CNT(list) (sizeof(list) / sizeof(struct shell_cmd))
-#define DEF_SHELL_CMD(cmd_name) {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
+#define SHELL_CMDS_SIZE(sect_start, sect_end) \
+    ((uint8_t *)&sect_end - (uint8_t *)&sect_start)
+
+#define SHELL_CMDS_CNT(sect_start, sect_end) \
+    (SHELL_CMDS_SIZE(sect_start, sect_end) / sizeof(struct shell_cmd))
+
+#define HOOK_SHELL_CMD(cmd_name) \
+    static struct shell_cmd _ ## shell_cmd_ ## cmd_name \
+        __attribute__((section(".shell_cmds"), used)) = \
+        {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
 
 enum {
     NULL_CH = 0,       /* null character */
@@ -107,6 +115,7 @@ void shell_init(struct shell *shell,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
                 struct shell_history *history, int history_max_cnt,
                 struct shell_autocompl *autocompl);
+void shell_path_init(void);
 void shell_set_prompt(struct shell *shell, char *new_prompt);
 void shell_listen(struct shell *_shell);
 void shell_execute(struct shell *shell);

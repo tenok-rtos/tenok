@@ -14,3 +14,5 @@ void shell_cmd_pwd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
     snprintf(str, PATH_LEN_MAX, "%s\n\r", path);
     shell_puts(str);
 }
+
+HOOK_SHELL_CMD(pwd);

@@ -87,6 +87,11 @@ SECTIONS
     *(.glue_7)         /* glue arm to thumb code */
     *(.glue_7t)        /* glue thumb to arm code */
     *(.eh_frame)
+
+    _shell_cmds_start = .;
+    KEEP (*(.shell_cmds))
+    _shell_cmds_end = .;
+
     _section_rom_start = .;
     *(.rom*)
     _section_rom_end = .;
