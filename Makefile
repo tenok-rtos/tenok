@@ -10,6 +10,9 @@ include platform/qemu.mk
 #include platform/stm32f4disc.mk
 #include platform/stm32f429disc.mk
 
+MSG_DIR=./msg
+MSG_BUILD=./build/msg
+
 CFLAGS+=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
 	-mfpu=fpv4-sp-d16 -mfloat-abi=hard \
@@ -35,8 +38,6 @@ CFLAGS+=-I./platform
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./user
-CFLAGS+=-I./user/shell
-CFLAGS+=-I./user/tasks
 CFLAGS+=-I./examples
 CFLAGS+=-I./build/msg
 
@@ -81,25 +82,13 @@ SRC+=./kernel/fifo.c \
 	./kernel/reg_file.c \
 	./kernel/tenok_link.c \
 	./mm/mpool.c \
-	./user/shell/shell.c \
-	./user/shell/cat.c \
-	./user/shell/clear.c \
-	./user/shell/file.c \
-	./user/shell/history.c \
-	./user/shell/mpool.c \
-	./user/shell/pwd.c \
-	./user/shell/cd.c \
-	./user/shell/echo.c \
-	./user/shell/help.c \
-	./user/shell/ls.c \
-	./user/shell/ps.c \
-	./user/tasks/led_task.c \
-	./user/tasks/shell_task.c \
-	./user/tasks/debug_link_task.c \
 	./examples/fifo-ex.c \
 	./examples/mutex-ex.c \
 	./examples/mqueue-ex.c \
 	./main.c \
+
+-include ./user/shell/shell.mk
+-include ./user/tasks/tasks.mk
 
 OBJS=$(SRC:.c=.o)
 OBJS+=./tools/mkromfs/romfs.o
@@ -147,9 +136,10 @@ clean:
 
 msggen:
 	@$(MAKE) -C ./tools/msggen/ -f Makefile
-	rm -rf build/
-	mkdir -p build/msg/
-	./tools/msggen/msggen ./msg ./build/msg
+	rm -rf $(MSG_BUILD)
+	mkdir -p $(MSG_BUILD)
+	@echo "msggen" $(MSG_DIR) $(MSG_BUILD)
+	@./tools/msggen/msggen $(MSG_DIR) $(MSG_BUILD)
 
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
