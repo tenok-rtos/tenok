@@ -132,7 +132,7 @@ struct task_ctrl_blk {
 };
 
 void os_service_init(void);
-void sched_start(task_func_t first_task);
+void sched_start(void);
 
 void os_env_init(uint32_t stack);
 uint32_t *jump_to_user_space(uint32_t stack);
