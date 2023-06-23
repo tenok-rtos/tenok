@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include "task.h"
 #include "uart.h"
 #include "syscall.h"
 #include "tenok_test_msg.h"
@@ -40,3 +41,5 @@ void debug_link_task(void)
         sleep(10); //100Hz
     }
 }
+
+HOOK_USER_TASK(debug_link_task);

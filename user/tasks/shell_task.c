@@ -1,3 +1,4 @@
+#include "task.h"
 #include "shell.h"
 #include "syscall.h"
 #include "fs.h"
@@ -43,3 +44,5 @@ void shell_task(void)
         shell_execute(&shell);
     }
 }
+
+HOOK_USER_TASK(shell_task);

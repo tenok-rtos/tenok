@@ -74,8 +74,12 @@ SECTIONS
     KEEP (*(.shell_cmds))
     _shell_cmds_end = .;
 
+    _tasks_start = .;
+    KEEP (*(.tasks))
+    _tasks_end = .;
+
     _section_rom_start = .;
-    *(.rom*)
+    KEEP (*(.rom*))
     _section_rom_end = .;
 
     KEEP (*(.init))

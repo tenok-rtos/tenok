@@ -1,3 +1,4 @@
+#include "task.h"
 #include "gpio.h"
 #include "syscall.h"
 #include "semaphore.h"
@@ -29,3 +30,6 @@ void led_task2(void)
         sleep(1000);
     }
 }
+
+HOOK_USER_TASK(led_task1);
+HOOK_USER_TASK(led_task2);
