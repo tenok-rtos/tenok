@@ -6,8 +6,8 @@
 #include "syscall.h"
 #include "uart.h"
 
-extern char _section_rom_start;
-extern char _section_rom_end;
+extern char _rom_start;
+extern char _rom_end;
 
 ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -24,9 +24,9 @@ int rom_dev_init(void)
 
 ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-    char *read_addr = &_section_rom_start + offset;
+    char *read_addr = &_rom_start + offset;
 
-    if((uint32_t)(read_addr + size) > (uint32_t)&_section_rom_end) {
+    if((uint32_t)(read_addr + size) > (uint32_t)&_rom_end) {
         return -EFAULT;
     }
 

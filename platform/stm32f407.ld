@@ -78,9 +78,9 @@ SECTIONS
     KEEP (*(.tasks))
     _tasks_end = .;
 
-    _section_rom_start = .;
+    _rom_start = .;
     KEEP (*(.rom*))
-    _section_rom_end = .;
+    _rom_end = .;
 
     KEEP (*(.init))
     KEEP (*(.fini))

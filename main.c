@@ -20,7 +20,6 @@ void first(void)
      * forking any new tasks */
     os_service_init();
 
-    sem_init(&sem_led, 0, 0);
     rom_dev_init();
     mount("/dev/rom", "/");
     serial0_init();
@@ -59,6 +58,8 @@ int main(void)
      * since the configuration of the nvic requires using
      * privilege mode */
     uart3_init(115200);
+
+    sem_init(&sem_led, 0, 0);
 
     sched_start(first);
 
