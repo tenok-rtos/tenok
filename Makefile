@@ -36,6 +36,7 @@ CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./user
 CFLAGS+=-I./user/shell
+CFLAGS+=-I./user/tasks
 CFLAGS+=-I./examples
 CFLAGS+=-I./build/msg
 
@@ -92,6 +93,8 @@ SRC+=./kernel/fifo.c \
 	./user/shell/help.c \
 	./user/shell/ls.c \
 	./user/shell/ps.c \
+	./user/tasks/led_task.c \
+	./user/tasks/shell_task.c \
 	./examples/fifo-ex.c \
 	./examples/mutex-ex.c \
 	./examples/mqueue-ex.c \
