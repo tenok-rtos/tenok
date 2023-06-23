@@ -343,6 +343,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         min_width = 500
         min_height = 150
+        self.x_axis_min = 0  # reset x axis
         self.matplot_canvas = []
         self.matplot_nav_bar = []
         self.fig = []
@@ -390,7 +391,8 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
             # configure the new subplot
             self.subplot[i].grid(color="lightGray")
-            self.subplot[i].set_xlim([0, self.x_axis_max])
+            self.subplot[i].set_xlim(
+                [self.x_axis_min, self.x_axis_min + self.x_axis_len])
             self.subplot[i].set_xlabel("time [s]")
             self.subplot[i].set_ylabel(y_label)
             self.subplot[i].legend(loc='upper left', shadow=True)
