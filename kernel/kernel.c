@@ -580,13 +580,6 @@ void preempt_enable(void)
     }
 }
 
-void os_service_init(void)
-{
-    rootfs_init();
-
-    if(!fork()) file_system_task();
-}
-
 void set_syscall_pending(void)
 {
     running_task->syscall_pending = true;
@@ -623,9 +616,10 @@ void first(void)
 {
     set_program_name("first");
 
-    /* the service should be initialized before
-     * forking any new tasks */
-    os_service_init();
+    /*=============================*
+     * launch the file system task *
+     *=============================*/
+    if(!fork()) file_system_task();
 
     /*================================*
      * initialized all hooked drivers *
@@ -696,6 +690,9 @@ void sched_start(void)
     for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
+
+    /* initialize the root file system */
+    rootfs_init();
 
     /* initialize the sleep list */
     list_init(&sleep_list);
