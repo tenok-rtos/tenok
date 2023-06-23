@@ -1,6 +1,6 @@
 PROJ_ROOT := $(dir $(lastword $(MAKEFILE_LIST)))/../..
 
-CFLAGS+=-I./user/shell
+CFLAGS+=-I$(PROJ_ROOT)/user/shell
 
 # by deleting the source file you can disable
 # the unwanted features
