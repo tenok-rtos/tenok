@@ -10,6 +10,7 @@
 #include "uart.h"
 
 static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
+static int fs_create_file(char *pathname, uint8_t file_type);
 
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
@@ -35,8 +36,7 @@ int register_chrdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
 
     /* create new character device file */
-    mknod(dev_path, 0, S_IFCHR);
-    int fd = open(dev_path, 0, 0);
+    int fd = fs_create_file(dev_path, S_IFCHR);
 
     /* link the file operations */
     files[fd]->f_op = fops;
@@ -48,8 +48,7 @@ int register_blkdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
 
     /* create new block device file */
-    mknod(dev_path, 0, S_IFBLK);
-    int fd = open(dev_path, 0, 0);
+    int fd = fs_create_file(dev_path, S_IFBLK);
 
     /* link the file operations */
     files[fd]->f_op = fops;

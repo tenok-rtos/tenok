@@ -621,9 +621,38 @@ void first(void)
      *=============================*/
     if(!fork()) file_system_task();
 
+    /*=======================*
+     * mount the file system *
+     *=======================*/
+    mount("/dev/rom", "/");
+
     /*================================*
-     * initialized all hooked drivers *
+     * launched all hooked user tasks *
      *================================*/
+    extern char _tasks_start;
+    extern char _tasks_end;
+
+    int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
+    int task_cnt = func_list_size / sizeof(task_func_t);
+
+    /* point to the first task function of the list */
+    task_func_t *task_func = (task_func_t *)&_tasks_start;
+
+    int i;
+    for(i = 0; i < task_cnt; i++) {
+        if(!fork()) {
+            (*(task_func + i))();
+        } else {
+            /* yield the cpu so the child task can be created */
+            sched_yield(); //FIXME
+        }
+    }
+
+    while(1); //idle loop when no other task is ready
+}
+
+void hook_drivers_init(void)
+{
     extern char _drvs_start;
     extern char _drvs_end;
 
@@ -637,34 +666,6 @@ void first(void)
     for(i = 0; i < drv_cnt; i++) {
         (*(drv_init_func + i))();
     }
-
-    /*=======================*
-     * mount the file system *
-     *=======================*/
-    mount("/dev/rom", "/");
-
-    /*================================*
-     * launched all hooked user tasks *
-     *================================*/
-    extern char _tasks_start;
-    extern char _tasks_end;
-
-    func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
-    int task_cnt = func_list_size / sizeof(task_func_t);
-
-    /* point to the first task function of the list */
-    task_func_t *task_func = (task_func_t *)&_tasks_start;
-
-    for(i = 0; i < task_cnt; i++) {
-        if(!fork()) {
-            (*(task_func + i))();
-        } else {
-            /* yield the cpu so the child task can be created */
-            sched_yield(); //FIXME
-        }
-    }
-
-    while(1); //idle loop when no task is ready
 }
 
 void sched_start(void)
@@ -693,6 +694,9 @@ void sched_start(void)
 
     /* initialize the root file system */
     rootfs_init();
+
+    /* initialized all hooked drivers */
+    hook_drivers_init();
 
     /* initialize the sleep list */
     list_init(&sleep_list);

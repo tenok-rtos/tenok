@@ -45,8 +45,7 @@ void serial0_init(void)
     /* initialize the semaphore for transmission */
     sem_init(&sem_uart3_tx, 0, 0);
 
-    /* enable the uart interrupt service routine */
-    USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
+    uart3_init(115200);
 }
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
@@ -120,7 +119,7 @@ void uart3_init(uint32_t baudrate)
     USART_Cmd(USART3, ENABLE);
     USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
     USART_ClearFlag(USART3, USART_FLAG_TC);
-    USART_ITConfig(USART3, USART_IT_RXNE, DISABLE);
+    USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
     /* initialize interrupt of the uart3*/
     NVIC_InitTypeDef nvic = {
