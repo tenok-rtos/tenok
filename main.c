@@ -28,6 +28,7 @@ void first(void *param)
     if(!fork()) led_task1();
     if(!fork()) led_task2();
     if(!fork()) shell_task();
+    if(!fork()) debug_link_task();
 
     //run_fifo_example();
     //run_mutex_example();

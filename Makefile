@@ -95,6 +95,7 @@ SRC+=./kernel/fifo.c \
 	./user/shell/ps.c \
 	./user/tasks/led_task.c \
 	./user/tasks/shell_task.c \
+	./user/tasks/debug_link_task.c \
 	./examples/fifo-ex.c \
 	./examples/mutex-ex.c \
 	./examples/mqueue-ex.c \
@@ -148,7 +149,7 @@ msggen:
 	@$(MAKE) -C ./tools/msggen/ -f Makefile
 	rm -rf build/
 	mkdir -p build/msg/
-	./tools/msggen/msggen ./tools/msggen ./build/msg
+	./tools/msggen/msggen ./msg ./build/msg
 
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
