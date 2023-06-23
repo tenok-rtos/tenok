@@ -1,5 +1,5 @@
-#ifndef __TASK_H__
-#define __TASK_H__
+#ifndef __KERNEL_H__
+#define __KERNEL_H__
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -21,7 +21,7 @@ typedef struct {
     uint32_t num;
 } syscall_info_t;
 
-typedef void (*task_func_t)(void *);
+typedef void (*task_func_t)(void);
 
 enum {
     TASK_WAIT,

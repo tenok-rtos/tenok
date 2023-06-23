@@ -12,7 +12,7 @@
 
 extern sem_t sem_led;
 
-void first(void *param)
+void first(void)
 {
     set_program_name("first");
 
@@ -25,14 +25,25 @@ void first(void *param)
     mount("/dev/rom", "/");
     serial0_init();
 
-    if(!fork()) led_task1();
-    if(!fork()) led_task2();
-    if(!fork()) shell_task();
-    if(!fork()) debug_link_task();
+    /* launched all hooked user tasks */
+    extern char _tasks_start;
+    extern char _tasks_end;
 
-    //run_fifo_example();
-    //run_mutex_example();
-    //run_mqueue_example();
+    int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
+    int task_cnt = func_list_size / sizeof(task_func_t);
+
+    /* point to the first task function in the list */
+    task_func_t *task_func = (task_func_t *)&_tasks_start;
+
+    int i = 0;
+    for(i = 0; i < task_cnt; i++) {
+        if(!fork()) {
+            (*(task_func + i))();
+        } else {
+            /* yield the cpu so the child task can be created */
+            sched_yield(); //FIXME
+        }
+    }
 
     while(1); //idle loop when no task is ready
 }
