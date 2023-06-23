@@ -20,21 +20,40 @@ void first(void)
      * forking any new tasks */
     os_service_init();
 
-    rom_dev_init();
-    mount("/dev/rom", "/");
-    serial0_init();
+    /*================================*
+     * initialized all hooked drivers *
+     *================================*/
+    extern char _drvs_start;
+    extern char _drvs_end;
 
-    /* launched all hooked user tasks */
+    int func_list_size = ((uint8_t *)&_drvs_end - (uint8_t *)&_drvs_start);
+    int drv_cnt = func_list_size / sizeof(drv_init_func_t);
+
+    /* point to the first driver initialization function of the list */
+    drv_init_func_t *drv_init_func = (drv_init_func_t *)&_drvs_start;
+
+    int i;
+    for(i = 0; i < drv_cnt; i++) {
+        (*(drv_init_func + i))();
+    }
+
+    /*=======================*
+     * mount the file system *
+     *=======================*/
+    mount("/dev/rom", "/");
+
+    /*================================*
+     * launched all hooked user tasks *
+     *================================*/
     extern char _tasks_start;
     extern char _tasks_end;
 
-    int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
+    func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
     int task_cnt = func_list_size / sizeof(task_func_t);
 
-    /* point to the first task function in the list */
+    /* point to the first task function of the list */
     task_func_t *task_func = (task_func_t *)&_tasks_start;
 
-    int i = 0;
     for(i = 0; i < task_cnt; i++) {
         if(!fork()) {
             (*(task_func + i))();

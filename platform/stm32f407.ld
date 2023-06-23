@@ -78,6 +78,10 @@ SECTIONS
     KEEP (*(.tasks))
     _tasks_end = .;
 
+    _drvs_start = .;
+    KEEP (*(.drivers))
+    _drvs_end = .;
+
     _rom_start = .;
     KEEP (*(.rom*))
     _rom_end = .;

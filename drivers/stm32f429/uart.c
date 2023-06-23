@@ -216,3 +216,5 @@ int uart_puts(USART_TypeDef *uart, const char *data, size_t size)
 
     return size;
 }
+
+HOOK_DRIVER(serial0_init);

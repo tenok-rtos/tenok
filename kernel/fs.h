@@ -19,6 +19,12 @@
 #define O_NONBLOCK  00004000
 #endif
 
+typedef void (*drv_init_func_t)(void);
+
+#define HOOK_DRIVER(drv_init_func) \
+    static drv_init_func_t _ ## drv_init_func \
+        __attribute__((section(".drivers"), used)) = drv_init_func
+
 typedef int  ssize_t;
 typedef long loff_t;
 

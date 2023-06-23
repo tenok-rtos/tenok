@@ -17,7 +17,7 @@ static struct file_operations rom_dev_ops = {
     .write = rom_dev_write
 };
 
-int rom_dev_init(void)
+void rom_dev_init(void)
 {
     register_blkdev("rom", &rom_dev_ops);
 }
@@ -39,3 +39,5 @@ ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t of
 {
     return 0; //rom does not support write operation
 }
+
+HOOK_DRIVER(rom_dev_init);
