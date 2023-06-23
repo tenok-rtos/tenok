@@ -2,13 +2,8 @@
 #include "gpio.h"
 #include "uart.h"
 #include "kernel.h"
-#include "syscall.h"
 #include "semaphore.h"
-#include "fs.h"
-#include "rom_dev.h"
-#include "examples.h"
 #include "bsp_drv.h"
-#include "tasks.h"
 
 extern sem_t sem_led;
 
