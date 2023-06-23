@@ -34,8 +34,8 @@ CFLAGS+=-I./
 CFLAGS+=-I./platform
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
-CFLAGS+=-I./apps
-CFLAGS+=-I./apps/shell
+CFLAGS+=-I./user
+CFLAGS+=-I./user/shell
 CFLAGS+=-I./examples
 CFLAGS+=-I./build/msg
 
@@ -80,18 +80,18 @@ SRC+=./kernel/fifo.c \
 	./kernel/reg_file.c \
 	./kernel/tenok_link.c \
 	./mm/mpool.c \
-	./apps/shell/shell.c \
-	./apps/shell/cat.c \
-	./apps/shell/clear.c \
-	./apps/shell/file.c \
-	./apps/shell/history.c \
-	./apps/shell/mpool.c \
-	./apps/shell/pwd.c \
-	./apps/shell/cd.c \
-	./apps/shell/echo.c \
-	./apps/shell/help.c \
-	./apps/shell/ls.c \
-	./apps/shell/ps.c \
+	./user/shell/shell.c \
+	./user/shell/cat.c \
+	./user/shell/clear.c \
+	./user/shell/file.c \
+	./user/shell/history.c \
+	./user/shell/mpool.c \
+	./user/shell/pwd.c \
+	./user/shell/cd.c \
+	./user/shell/echo.c \
+	./user/shell/help.c \
+	./user/shell/ls.c \
+	./user/shell/ps.c \
 	./examples/fifo-ex.c \
 	./examples/mutex-ex.c \
 	./examples/mqueue-ex.c \
