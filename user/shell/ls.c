@@ -6,7 +6,7 @@
 
 extern struct inode *shell_dir_curr;
 
-void shell_cmd_ls(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_ls(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 

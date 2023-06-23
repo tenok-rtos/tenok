@@ -6,7 +6,7 @@
 
 extern struct inode *shell_dir_curr;
 
-void shell_cmd_cd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_cd(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -20,7 +20,7 @@ void shell_cmd_cd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
         case 2: {
             char path[PATH_LEN_MAX] = {0};
 
-            if(strncmp("..", argv[1], SHELL_ARG_LEN) == 0) {
+            if(strncmp("..", argv[1], SHELL_CMD_LEN_MAX) == 0) {
                 /* handle cd .. */
                 fs_get_pwd(path, shell_dir_curr);
                 int pos = strlen(path);
@@ -59,7 +59,7 @@ void shell_cmd_cd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
             return;
         }
         default:
-            shell_puts("cd: too many  arguments\n\r");
+            shell_puts("cd: too many arguments\n\r");
             return;
     }
 }

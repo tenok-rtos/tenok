@@ -59,7 +59,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
     shell_reset_line(shell);
 }
 
-static void shell_unknown_cmd_handler(char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int argc)
+static void shell_unknown_cmd_handler(char *argv[], int argc)
 {
     char s[50 + SHELL_CMD_LEN_MAX];
     snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
@@ -603,56 +603,53 @@ void shell_listen(struct shell *shell)
     }
 }
 
-static void shell_split_cmd_token(char *cmd, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN], int *argc)
+static int shell_split_cmd_token(char *cmd, char *argv[])
 {
-    bool no_param_after_space = false;
-    int argv_index = 0;
-    int i = 0, j = 0;
-
-    int cmd_s_len = strlen(cmd);
+    int i = 0;
+    int len = strlen(cmd);
 
     /* skip spaces before first parameter */
-    while(i < cmd_s_len && cmd[i] == ' ') {
+    while(i < len && cmd[i] == ' ') {
         i++;
     }
 
-    for(; i < cmd_s_len; i++) {
+    /* nothing to read */
+    if(i == (len - 1))
+        return 0;
+
+    /* get the first argument */
+    argv[0] = &cmd[i];
+    int argc = 1;
+
+    for(; i < len; i++) {
         if(cmd[i] == ' ') {
-            no_param_after_space = true;
+            /* split the token by inserting a null character */
+            cmd[i] = '\0';
+            i++;
 
-            argv[argv_index][j] = '\0';
-            argv_index++;
-            j = 0;
-
-            /* exceed maximum parameter count */
-            if(argv_index == SHELL_ARG_CNT) {
-                *argc = argv_index;
-                return;
-            }
-
-            /* skip spaces */
-            while(cmd[i + 1] == ' ' && i < cmd_s_len) {
+            /* skip repeated spaces */
+            while(cmd[i] == ' ')
                 i++;
+
+            /* no more characters to read */
+            if(i == len)
+                break;
+
+            /* check the count of the argument */
+            if(argc <= (SHELL_ARG_CNT - 1)) {
+                argv[argc] = &cmd[i]; //record the start address for the token
+                argc++;
             }
-        } else {
-            no_param_after_space = false;
-            argv[argv_index][j] = cmd[i];
-            j++;
         }
     }
 
-    if(no_param_after_space == true) {
-        argv_index--;
-    }
-
-    *argc = argv_index + 1;
+    return argc;
 }
 
 void shell_execute(struct shell *shell)
 {
-    char argv[SHELL_ARG_CNT][SHELL_ARG_LEN] = {0};
-    int argc;
-    shell_split_cmd_token(shell->buf, argv, &argc);
+    char *argv[SHELL_ARG_CNT] = {0};
+    int argc = shell_split_cmd_token(shell->buf, argv);
 
     int i;
     for(i = 0; i < shell->cmd_cnt; i++) {

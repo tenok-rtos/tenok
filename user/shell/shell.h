@@ -6,7 +6,6 @@
 #include "kconfig.h"
 
 #define SHELL_ARG_CNT 10
-#define SHELL_ARG_LEN 10
 
 #define SHELL_CMDS_SIZE(sect_start, sect_end) \
     ((uint8_t *)&sect_end - (uint8_t *)&sect_start)
@@ -101,7 +100,7 @@ struct shell {
 };
 
 struct shell_cmd {
-    void (*handler)(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN]);
+    void (*handler)(int argc, char *argv[SHELL_ARG_CNT]);
     char name[SHELL_PROMPT_LEN_MAX];
 };
 

@@ -24,7 +24,7 @@ static void shell_print_lf_cr(char *str, int size)
     }
 }
 
-void shell_cmd_cat(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_cat(int argc, char *argv[])
 {
     char path[PATH_LEN_MAX] = {0};
 

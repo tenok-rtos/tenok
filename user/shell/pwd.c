@@ -4,7 +4,7 @@
 
 extern struct inode *shell_dir_curr;
 
-void shell_cmd_pwd(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_pwd(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
     char path[PATH_LEN_MAX] = {'/'};

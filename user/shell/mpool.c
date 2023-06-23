@@ -4,7 +4,7 @@
 
 extern struct memory_pool mem_pool;
 
-void shell_cmd_mpool(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_mpool(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 

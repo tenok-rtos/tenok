@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "shell.h"
 
-void shell_cmd_echo(int argc, char argv[SHELL_ARG_CNT][SHELL_ARG_LEN])
+void shell_cmd_echo(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
     int pos = 0;
