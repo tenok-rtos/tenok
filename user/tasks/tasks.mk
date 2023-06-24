@@ -6,4 +6,5 @@ CFLAGS+=-I$(PROJ_ROOT)/user/tasks
 # the unwanted features
 SRC+=$(PROJ_ROOT)/user/tasks/led_task.c \
 	$(PROJ_ROOT)/user/tasks/shell_task.c \
-	$(PROJ_ROOT)/user/tasks/debug_link_task.c
+	$(PROJ_ROOT)/user/tasks/debug_link_task.c \
+	$(PROJ_ROOT)/user/tasks/mavlink_task.c

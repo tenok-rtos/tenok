@@ -23,6 +23,7 @@ CFLAGS+=-D STM32F4xx
 CFLAGS+=-D ARM_MATH_CM4 \
 	-D __FPU_PRESENT=1 \
 	-D __FPU_USED=1
+CFLAGS+=-Wno-address-of-packed-member
 
 USER=$(shell whoami)
 CFLAGS+=-D__USER_NAME__=\"$(USER)\"
@@ -32,6 +33,9 @@ ST_LIB=./lib/STM32F4xx_StdPeriph_Driver
 CFLAGS+=-I./lib/CMSIS/ST/STM32F4xx/Include
 CFLAGS+=-I./lib/CMSIS/Include
 CFLAGS+=-I$(ST_LIB)/inc
+
+CFLAGS+=-I./lib/mavlink
+CFLAGS+=-I./lib/mavlink/common
 
 CFLAGS+=-I./
 CFLAGS+=-I./platform
