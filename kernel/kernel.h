@@ -10,6 +10,8 @@
 #define	PRIO_PGRP    1
 #define	PRIO_USER    2
 
+#define TASK_PRIORITY_MIN 1
+
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
 

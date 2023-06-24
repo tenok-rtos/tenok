@@ -274,8 +274,10 @@ void sys_fork(void)
     uint32_t *parent_stack_end = running_task->stack + running_task->stack_size;
     uint32_t stack_used = parent_stack_end - (uint32_t *)running_task->stack_top;
 
+    /* set priority, the priority must be higher than the idle task! */
+    tasks[task_cnt].priority = (running_task->priority == 0) ? TASK_PRIORITY_MIN : running_task->priority;
+
     tasks[task_cnt].pid = task_cnt;
-    tasks[task_cnt].priority = running_task->priority;
     tasks[task_cnt].stack_size = running_task->stack_size;
     tasks[task_cnt].stack_top = (struct task_stack *)(tasks[task_cnt].stack + tasks[task_cnt].stack_size - stack_used);
 
@@ -619,7 +621,13 @@ static void save_syscall_args(void)
 
 void first(void)
 {
-    set_program_name("first");
+    /*
+     * after the first task finished initiating other tasks,
+     * it becomes the idle task and having the lowest priority
+     * among all tasks. (i.e., no other tasks should have same
+     * or lower priority as the idle task!)
+     */
+    set_program_name("idle");
 
     /*=============================*
      * launch the file system task *
@@ -647,9 +655,6 @@ void first(void)
     for(curr_hook_task = 0; curr_hook_task < hook_task_cnt; curr_hook_task++) {
         if(!fork()) {
             (*(hook_task_func + curr_hook_task))();
-        } else {
-            /* yield the cpu so the child task can be created */
-            sched_yield(); //FIXME
         }
     }
 
