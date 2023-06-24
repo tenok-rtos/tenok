@@ -55,6 +55,11 @@ int file_cnt = 0;
 
 bool irq_off = false;
 
+//XXX
+int hook_task_cnt = 0;
+int curr_hook_task = 0;
+task_func_t *hook_task_func = NULL;
+
 /* syscall table */
 syscall_info_t syscall_table[] = {
     /* non-posix syscalls */
@@ -633,15 +638,15 @@ void first(void)
     extern char _tasks_end;
 
     int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
-    int task_cnt = func_list_size / sizeof(task_func_t);
+    hook_task_cnt = func_list_size / sizeof(task_func_t);
 
     /* point to the first task function of the list */
-    task_func_t *task_func = (task_func_t *)&_tasks_start;
+    hook_task_func = (task_func_t *)&_tasks_start;
 
     int i;
-    for(i = 0; i < task_cnt; i++) {
+    for(curr_hook_task = 0; curr_hook_task < hook_task_cnt; curr_hook_task++) {
         if(!fork()) {
-            (*(task_func + i))();
+            (*(hook_task_func + curr_hook_task))();
         } else {
             /* yield the cpu so the child task can be created */
             sched_yield(); //FIXME
