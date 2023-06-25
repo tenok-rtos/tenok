@@ -6,9 +6,9 @@ CFLAGS=
 SRC=
 
 #board selection
-#include platform/qemu.mk
+include platform/qemu.mk
 #include platform/stm32f4disc.mk
-include platform/stm32f429disc.mk
+#include platform/stm32f429disc.mk
 
 MSG_DIR=./msg
 MSG_BUILD=./build/msg
