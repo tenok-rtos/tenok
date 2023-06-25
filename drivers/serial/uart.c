@@ -54,6 +54,7 @@ void serial0_init(void)
     /* initialize the semaphore for transmission */
     sem_init(&sem_uart3_tx, 0, 0);
 
+    /* initialize uart3 */
     uart3_init(115200);
 }
 
@@ -64,7 +65,11 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
+#if (ENABLE_UART3_DMA != 0)
     return uart3_dma_puts(buf, size);
+#else
+    return uart_puts(USART3, buf, size);
+#endif
 }
 
 void serial1_init(void)
@@ -191,7 +196,9 @@ void uart3_init(uint32_t baudrate)
     };
     USART_Init(USART3, &uart3);
     USART_Cmd(USART3, ENABLE);
+#if (ENABLE_UART3_DMA != 0)
     USART_DMACmd(USART3, USART_DMAReq_Tx, ENABLE);
+#endif
     USART_ClearFlag(USART3, USART_FLAG_TC);
     USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 
@@ -204,10 +211,12 @@ void uart3_init(uint32_t baudrate)
     };
     NVIC_Init(&nvic);
 
+#if (ENABLE_UART3_DMA != 0)
     /* initialize interrupt of the dma1 channel4 */
     nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
     NVIC_Init(&nvic);
     DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
+#endif
 }
 
 static int uart3_dma_puts(const char *data, size_t size)

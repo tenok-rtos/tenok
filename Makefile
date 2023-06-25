@@ -6,9 +6,9 @@ CFLAGS=
 SRC=
 
 #board selection
-include platform/qemu.mk
+#include platform/qemu.mk
 #include platform/stm32f4disc.mk
-#include platform/stm32f429disc.mk
+include platform/stm32f429disc.mk
 
 MSG_DIR=./msg
 MSG_BUILD=./build/msg
@@ -87,6 +87,7 @@ SRC+=./kernel/fifo.c \
 	./mm/mpool.c \
 	./main.c \
 
+-include ./drivers/drivers.mk
 -include ./user/shell/shell.mk
 -include ./user/tasks/tasks.mk
 -include ./user/mavlink/mavlink.mk

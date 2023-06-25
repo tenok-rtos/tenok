@@ -22,7 +22,6 @@ SRC+=./lib/STM32F429I-Discovery/stm32f429i_discovery.c \
     ./lib/STM32F429I-Discovery/stm32f429i_discovery_sdram.c
 
 SRC+=./drivers/stm32f429/gpio.c \
-	./drivers/stm32f429/uart.c \
 	./drivers/stm32f429/bsp_drv.c
 
 flash:
