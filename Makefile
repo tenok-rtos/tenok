@@ -42,7 +42,6 @@ CFLAGS+=-I./platform
 CFLAGS+=-I./kernel
 CFLAGS+=-I./mm
 CFLAGS+=-I./user
-CFLAGS+=-I./examples
 CFLAGS+=-I./build/msg
 
 SRC+=lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
@@ -86,9 +85,6 @@ SRC+=./kernel/fifo.c \
 	./kernel/reg_file.c \
 	./kernel/tenok_link.c \
 	./mm/mpool.c \
-	./examples/fifo-ex.c \
-	./examples/mutex-ex.c \
-	./examples/mqueue-ex.c \
 	./main.c \
 
 -include ./user/shell/shell.mk

@@ -6,6 +6,7 @@
 #include "uart.h"
 #include "mqueue.h"
 #include "shell.h"
+#include "task.h"
 
 mqd_t mqdes_print;
 
@@ -14,8 +15,21 @@ typedef struct {
     char data[20];
 } my_message_t;
 
+void my_mqueue_init(void)
+{
+    struct mq_attr attr = {
+        .mq_flags = O_NONBLOCK,
+        .mq_maxmsg = 100,
+        .mq_msgsize = sizeof(my_message_t),
+        .mq_curmsgs = 0
+    };
+    mqdes_print = mq_open("/my_message", 0, &attr);
+}
+
 void message_queue_task1(void)
 {
+    my_mqueue_init();
+
     set_program_name("queue1");
 
     my_message_t msg;
@@ -45,16 +59,5 @@ void message_queue_task2(void)
     }
 }
 
-void run_mqueue_example(void)
-{
-    struct mq_attr attr = {
-        .mq_flags = O_NONBLOCK,
-        .mq_maxmsg = 100,
-        .mq_msgsize = sizeof(my_message_t),
-        .mq_curmsgs = 0
-    };
-    mqdes_print = mq_open("/my_message", 0, &attr);
-
-    if(!fork()) message_queue_task1();
-    if(!fork()) message_queue_task2();
-}
+HOOK_USER_TASK(message_queue_task1);
+HOOK_USER_TASK(message_queue_task2);

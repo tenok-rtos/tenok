@@ -5,12 +5,20 @@
 #include "syscall.h"
 #include "uart.h"
 #include "shell.h"
+#include "task.h"
 
 #define TEST_STR "fifo: hello world\n\r"
 #define LEN      strlen(TEST_STR)
 
+void my_fifo_init(void)
+{
+    mknod("/fifo_test", 0, S_IFIFO);
+}
+
 void fifo_task1(void)
 {
+    my_fifo_init();
+
     set_program_name("fifo1");
 
     int fifo_fd = open("/fifo_test", 0, 0);
@@ -40,10 +48,5 @@ void fifo_task2(void)
     }
 }
 
-void run_fifo_example(void)
-{
-    mknod("/fifo_test", 0, S_IFIFO);
-
-    if(!fork()) fifo_task1();
-    if(!fork()) fifo_task2();
-}
+HOOK_USER_TASK(fifo_task1);
+HOOK_USER_TASK(fifo_task2);

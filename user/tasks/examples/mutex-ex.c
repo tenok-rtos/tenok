@@ -5,6 +5,7 @@
 #include "syscall.h"
 #include "uart.h"
 #include "mutex.h"
+#include "task.h"
 
 extern _pthread_mutex_t mutex_print;
 
@@ -40,8 +41,5 @@ void mutex_task2(void)
     }
 }
 
-void run_mutex_example(void)
-{
-    if(!fork()) mutex_task1();
-    if(!fork()) mutex_task2();
-}
+HOOK_USER_TASK(mutex_task1);
+HOOK_USER_TASK(mutex_task2);
