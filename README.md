@@ -1,19 +1,23 @@
 ## Tenok
-An experimental real-time operating system inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
+An experimental real-time operating system for Robotics and Internet of things (IoT) inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and
 the term "`tenok`" in their language means "`kernel`."
 
 ## Features
 
-* POSIX style
-* Spinlock
-* Mutex
-* Semaphore
-* FIFO (named pipe)
-* Message queue
-* Built-in shell interface
-* Simple rootfs and romfs
+* POSIX-style interface
+* Synchronization: Spinlock, Mutex, and Semaphore
+* Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
+* Floating-point Unit (FPU) support
+* A built-in shell interface
+* A simple rootfs and romfs
+* Customizable debug messaging with metalanguage for real-time plotting
+
+## Tools
+
+* **msggen**: convert user-defined metalanguage messages into C codes and YAML files
+* **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
 
 ## Supported Platforms
 
