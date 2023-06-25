@@ -7,10 +7,9 @@ CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
 CFLAGS+=-D__BOARD_NAME__=\"stm32f407\"
 
-CFLAGS+=-I./drivers/stm32f407
+CFLAGS+=-I./drivers/boards
 
-SRC+=./drivers/stm32f407/gpio.c \
-	./drivers/stm32f407/bsp_drv.c
+SRC+=./drivers/boards/stm32f4disc.c
 
 flash:
 	openocd -f interface/stlink.cfg \

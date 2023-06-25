@@ -22,3 +22,7 @@ void led_write(int state)
     GPIO_WriteBit(GPIOD, GPIO_Pin_14, state);
     GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 }
+
+void bsp_driver_init(void)
+{
+}
