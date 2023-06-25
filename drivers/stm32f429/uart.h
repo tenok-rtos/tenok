@@ -3,9 +3,8 @@
 
 #include "stm32f4xx.h"
 
-void serial0_init(void);
-
 void uart1_init(uint32_t baudrate);
+void uart2_init(uint32_t baudrate);
 void uart3_init(uint32_t baudrate);
 
 void uart_putc(USART_TypeDef *uart, char c);

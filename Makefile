@@ -93,6 +93,7 @@ SRC+=./kernel/fifo.c \
 
 -include ./user/shell/shell.mk
 -include ./user/tasks/tasks.mk
+-include ./user/mavlink/mavlink.mk
 
 OBJS=$(SRC:.c=.o)
 OBJS+=./tools/mkromfs/romfs.o
