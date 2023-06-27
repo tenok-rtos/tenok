@@ -40,7 +40,7 @@ CFLAGS+=-I./lib/mavlink/common
 CFLAGS+=-I./
 CFLAGS+=-I./platform
 CFLAGS+=-I./kernel
-CFLAGS+=-I./mm
+CFLAGS+=-I./kernel/mm
 CFLAGS+=-I./user
 CFLAGS+=-I./build/msg
 
@@ -84,7 +84,7 @@ SRC+=./kernel/fifo.c \
 	./kernel/rom_dev.c \
 	./kernel/reg_file.c \
 	./kernel/tenok_link.c \
-	./mm/mpool.c \
+	./kernel/mm/mpool.c \
 	./main.c \
 
 -include ./drivers/drivers.mk
