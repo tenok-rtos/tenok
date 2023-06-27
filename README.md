@@ -1,5 +1,5 @@
 ## Tenok
-An experimental real-time operating system for Robotics and Internet of things (IoT) inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
+An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and
 the term "`tenok`" in their language means "`kernel`."
@@ -111,6 +111,8 @@ Build:
 ```
 git clone https://github.com/shengwen-tw/tenok.git
 cd tenok
+git submodule update --init --recursive
+git submodule update --recursive --remote
 make
  ```
  
