@@ -5,7 +5,7 @@ ROMFS_OBJ=./romfs.o
 
 CFLAGS=
 CFLAGS+=-g
-CFLAGS+=-mx32 #to make the pointer be 4 bytes instead of 8 bytes
+CFLAGS+=-m32 #to make the pointer be 4 bytes instead of 8 bytes
 #CFLAGS+=-Wpadded
 
 CFLAGS+=-I../../ \
