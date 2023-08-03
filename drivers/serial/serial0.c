@@ -82,7 +82,7 @@ void serial0_init(void)
 
     /* initialize the message queue for reception */
     struct mq_attr attr = {
-        .mq_flags = O_NONBLOCK,
+        .mq_flags = 0,
         .mq_maxmsg = 100,
         .mq_msgsize = sizeof(uint8_t),
         .mq_curmsgs = 0

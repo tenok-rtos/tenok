@@ -10,7 +10,8 @@ typedef int mqd_t;
 struct msg_queue {
     spinlock_t lock;
 
-    char   name[FILE_NAME_LEN_MAX];
+    char name[FILE_NAME_LEN_MAX];
+    int   mq_flags;
 
     struct ringbuf *pipe;
 };

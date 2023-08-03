@@ -17,10 +17,6 @@ int mq_cnt = 0;
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
-    /* the message queue must be in nonblock mode since it may be called in the interrupt */
-    if(!(attr->mq_flags & O_NONBLOCK))
-        return -1;
-
     /* initialize the ring buffer */
     struct ringbuf *pipe = memory_pool_alloc(&mem_pool, sizeof(struct ringbuf));
     uint8_t *pipe_mem = memory_pool_alloc(&mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
@@ -30,6 +26,7 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
     int mqdes = mq_cnt;
     mq_table[mqdes].pipe = pipe;
     mq_table[mqdes].lock = 0;
+    mq_table[mqdes].mq_flags = attr->mq_flags;
     strncpy(mq_table[mqdes].name, name, FILE_NAME_LEN_MAX);
     mq_cnt++;
 
@@ -50,13 +47,15 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 
     /* is the data in the ring buffer enough to serve the user? */
     if(msg_len > mq->pipe->count) {
-        /* put the current task into the waiting list */
-        prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
+        if(mq->mq_flags & O_NONBLOCK) {
+            retval = -EAGAIN; //ask the user to try again
+        } else {
+            /* put the current task into the waiting list */
+            prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
-        /* update the request size */
-        running_task->file_request.size = msg_len;
-
-        retval = -EAGAIN; //ask the user to try again
+            /* update the request size */
+            running_task->file_request.size = msg_len;
+        }
     } else {
         /* pop data from the pipe */
         int i;
