@@ -25,8 +25,7 @@ void mavlink_task_init(void)
 char mavlink_getc(void)
 {
     char c;
-    while(read(mavlink_fd, &c, 1) != 1);
-
+    read(mavlink_fd, &c, 1);
     return c;
 }
 
