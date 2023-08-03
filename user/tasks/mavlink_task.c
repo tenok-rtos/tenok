@@ -43,9 +43,9 @@ void mavlink_out_task(void)
         mavlink_send_heartbeat();
 
         /* trigger the command parser if received new message from the queue */
-        if(mq_receive(mqdes_recvd_msg, (char *)&recvd_msg, 1, 0) == 1) {
-            parse_mavlink_msg(&recvd_msg);
-        }
+        //if(mq_receive(mqdes_recvd_msg, (char *)&recvd_msg, 1, 0) == 1) {
+        //    parse_mavlink_msg(&recvd_msg);
+        //}
 
         sleep(1000);
     }
@@ -72,5 +72,5 @@ void mavlink_in_task(void)
     }
 }
 
-//HOOK_USER_TASK(mavlink_out_task);
-//HOOK_USER_TASK(mavlink_in_task);
+HOOK_USER_TASK(mavlink_out_task);
+HOOK_USER_TASK(mavlink_in_task);

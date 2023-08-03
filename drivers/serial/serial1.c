@@ -26,7 +26,7 @@ void uart2_init(uint32_t baudrate)
     GPIO_PinAFConfig(GPIOD, GPIO_PinSource6, GPIO_AF_USART2);
 
     GPIO_InitTypeDef GPIO_InitStruct = {
-        .GPIO_Pin = GPIO_Pin_6,
+        .GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6,
         .GPIO_Mode = GPIO_Mode_AF,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_OType = GPIO_OType_PP,
@@ -36,7 +36,7 @@ void uart2_init(uint32_t baudrate)
 
     USART_InitTypeDef USART_InitStruct = {
         .USART_BaudRate = baudrate,
-        .USART_Mode = USART_Mode_Rx,
+        .USART_Mode = USART_Mode_Tx | USART_Mode_Rx,
         .USART_WordLength = USART_WordLength_8b,
         .USART_StopBits = USART_StopBits_2,
         .USART_Parity = USART_Parity_Even,
@@ -80,7 +80,7 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, loff_t offset)
 
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
-    return uart_puts(USART2, buf, size);;
+    return uart_puts(USART2, buf, size);
 }
 
 void USART2_IRQHandler(void)
