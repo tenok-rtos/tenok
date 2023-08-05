@@ -40,6 +40,7 @@ void mavlink_out_task(void)
 
     while(1) {
         mavlink_send_heartbeat();
+        mavlink_send_hil_actuator_controls();
 
         /* trigger the command parser if received new message from the queue */
         if(mq_receive(mqdes_recvd_msg, (char *)&recvd_msg, 1, 0) == 1) {

@@ -5,5 +5,6 @@
 
 void mavlink_send_msg(mavlink_message_t *msg);
 void mavlink_send_heartbeat(void);
+void mavlink_send_hil_actuator_controls(void);
 
 #endif
