@@ -1,32 +1,65 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
 #include "serial.h"
 
 #define IP_ADDR     "127.0.0.1"
 #define PORT        4560
 #define SERIAL_PORT "/dev/pts/4"
 
+pthread_t thread1, thread2;
+int serial_fd, socket_fd;
+bool terminate = false;
+
+void *thread_gazebo_to_hil(void *arg)
+{
+    /* sil / hil to gazebo forwarding */
+    char c;
+    while(1) {
+        c = serial_getc(serial_fd);
+        write(socket_fd, &c, 1);
+    }
+}
+
+void *thread_hil_to_gazebo(void *arg)
+{
+    /* gazebo to sil / hil forwarding */
+    char c;
+    while(1) {
+        read(socket_fd, &c, 1);
+        serial_puts(serial_fd, &c, 1);
+    }
+}
+
+void sig_handler(int signum)
+{
+    pthread_cancel(thread1);
+    pthread_cancel(thread2);
+
+    close(serial_fd);
+    close(socket_fd);
+
+    terminate = true;
+}
+
 int main(void)
 {
-    int serial_fd = serial_init(SERIAL_PORT);
+    serial_fd = serial_init(SERIAL_PORT);
     if(serial_fd == -1) {
-        printf("failed to connect to the serial.\n");
-        exit(0);
-    } else {
-        printf("established connection to the SIL / HIL.\n");
+        printf("Failed to connect to the serial.\n");
+        exit(1);
     }
 
-    int sockfd, connfd;
-    struct sockaddr_in cli;
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
-        printf("failed to create socket.\n");
-        exit(0);
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_fd == -1) {
+        printf("Failed to create socket.\n");
+        exit(1);
     }
 
     struct sockaddr_in servaddr = {
@@ -35,25 +68,21 @@ int main(void)
         .sin_port = htons(PORT)
     };
 
-    if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0) {
-        printf("failed to connect to the gazeobo.\n");
-        exit(0);
-    } else {
-        printf("established connection to the gazebo.\n");
+    if(connect(socket_fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) {
+        printf("Failed to connect to the Gazeobo.\n");
+        exit(1);
     }
 
-    /* sil/hil to gazebo forwarding */
-    char c;
-    while(1) {
-        c = serial_getc(serial_fd);
-        write(sockfd, &c, 1);
-    }
+    printf("Established connection between SIL/HIL and Gazebo.\n");
 
-    /* gazebo to sil/hil forwarding */
-    while(1) {
-        read(sockfd, &c, 1);
-        serial_puts(serial_fd, &c, 1);
-    }
+    pthread_create(&thread1, NULL, thread_gazebo_to_hil, NULL);
+    pthread_create(&thread2, NULL, thread_hil_to_gazebo, NULL);
 
-    close(sockfd);
+    signal(SIGINT, sig_handler);
+    signal(SIGABRT, sig_handler);
+    signal(SIGTERM, sig_handler);
+
+    while(!terminate);
+
+    return 0;
 }
