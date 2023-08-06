@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <signal.h>
+#include <semaphore.h>
 #include "serial.h"
 
 #define IP_ADDR     "127.0.0.1"
@@ -14,8 +15,9 @@
 #define SERIAL_PORT "/dev/pts/4"
 
 pthread_t thread1, thread2;
+sem_t sem_terminate;
+
 int serial_fd, socket_fd;
-bool terminate = false;
 
 void *thread_gazebo_to_hil(void *arg)
 {
@@ -45,7 +47,7 @@ void sig_handler(int signum)
     close(serial_fd);
     close(socket_fd);
 
-    terminate = true;
+    sem_post(&sem_terminate);
 }
 
 int main(void)
@@ -82,7 +84,9 @@ int main(void)
     signal(SIGABRT, sig_handler);
     signal(SIGTERM, sig_handler);
 
-    while(!terminate);
+    /* wait until the program is terminated */
+    sem_init(&sem_terminate, 0, 0);
+    sem_wait(&sem_terminate);
 
     return 0;
 }
