@@ -11,6 +11,7 @@
 #include "fs.h"
 #include "fifo.h"
 #include "mqueue.h"
+#include "time.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -204,6 +205,8 @@ void schedule(void)
 
 static void tasks_tick_update(void)
 {
+    sys_time_update_handler();
+
     /* the time quantum for the task is exhausted and require re-scheduling */
     if(running_task->status == TASK_RUNNING) {
         prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
