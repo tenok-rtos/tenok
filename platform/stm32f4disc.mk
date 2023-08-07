@@ -1,6 +1,7 @@
 #STM32F4DISCOVERY board (https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
 
 CFLAGS+=-D STM32F40_41xxx \
+	-D ENABLE_UART1_DMA=1 \
 	-D ENABLE_UART3_DMA=1
 
 CFLAGS+=-Wl,-T,platform/stm32f407.ld

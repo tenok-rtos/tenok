@@ -1,6 +1,8 @@
 #32F429IDISCOVERY board (https://www.st.com/en/evaluation-tools/32f429idiscovery.html)
 
-CFLAGS+=-D STM32F429_439xx
+CFLAGS+=-D STM32F429_439xx \
+	-D ENABLE_UART1_DMA=1 \
+	-D ENABLE_UART3_DMA=1
 CFLAGS+=-Wl,-T,platform/stm32f429.ld
 
 CFLAGS+=-D__BOARD_NAME__=\"stm32f429\"

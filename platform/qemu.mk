@@ -1,6 +1,7 @@
 -include ../config.mk
 
 CFLAGS+=-D STM32F40_41xxx \
+	-D ENABLE_UART1_DMA=0 \
 	-D ENABLE_UART3_DMA=0
 CFLAGS+=-Wl,-T,platform/stm32f407.ld
 
