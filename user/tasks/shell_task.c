@@ -50,7 +50,9 @@ void shell_task(void)
     shell_serial_init();
 
     /* clean screen */
-    //shell_cls();
+#ifndef BUILD_QEMU
+    shell_cls();
+#endif
 
     boot_message();
 
