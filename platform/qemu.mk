@@ -14,9 +14,9 @@ SRC+=./drivers/boards/stm32f4disc.c
 qemu: all
 	$(QEMU) -cpu cortex-m4 \
 	-M netduinoplus2 \
-	-serial pty \
-	-serial pty \
 	-serial stdio \
+	-serial pty \
+	-serial pty \
 	-gdb tcp::3333 \
 	-kernel ./$(ELF)
 
