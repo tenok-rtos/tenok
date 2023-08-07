@@ -12,12 +12,15 @@ the term "`tenok`" in their language means "`kernel`."
 * Floating-point Unit (FPU) support
 * A built-in shell interface
 * A simple rootfs and romfs
-* Customizable debug messaging with metalanguage for real-time plotting
+* Real-time plotting and customizable debug messaging using metalanguage
+* MAVLink communication support
+* Software-in-the-loop (SIL) simulation with Gazebo simulator
 
 ## Tools
 
 * **msggen**: convert user-defined metalanguage messages into C codes and YAML files
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
+* **gazebo_bridge**: Message forwarding between `tenok` (serial) and Gazebo simulator (TCP/IP)
 
 ## Supported Platforms
 
@@ -137,7 +140,7 @@ make gdbauto
 
 ## License
 
-Tenok is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
+`Tenok` is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
 
 ## Additional Materials
 
