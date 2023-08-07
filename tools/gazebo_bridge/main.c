@@ -156,7 +156,7 @@ int main(int argc, char **argv)
            gazebo_ip, atoi(port_number), serial_name, atoi(baudrate));
 
     /* serial port initialization */
-    serial_fd = serial_init(serial_name);
+    serial_fd = serial_init(serial_name, atoi(baudrate));
     if(serial_fd == -1) {
         printf("Failed to connect to the serial.\n");
         exit(1);
