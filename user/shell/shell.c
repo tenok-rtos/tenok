@@ -35,7 +35,7 @@ void shell_path_init(void)
 char shell_getc(void)
 {
     char c;
-    read(serial_fd, &c, 1);
+    while(read(serial_fd, &c, 1) != 1);
     return c;
 }
 

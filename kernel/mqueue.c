@@ -47,15 +47,13 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
 
     /* is the data in the ring buffer enough to serve the user? */
     if(msg_len > mq->pipe->count) {
-        if(mq->mq_flags & O_NONBLOCK) {
-            retval = -EAGAIN; //ask the user to try again
-        } else {
-            /* put the current task into the waiting list */
-            prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
+        /* put the current task into the waiting list */
+        prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
 
-            /* update the request size */
-            running_task->file_request.size = msg_len;
-        }
+        /* update the request size */
+        running_task->file_request.size = msg_len;
+
+        retval = -EAGAIN; //ask the user to try again
     } else {
         /* pop data from the pipe */
         int i;
