@@ -12,7 +12,6 @@ int main(void)
     /* user-level driver initialization */
     led_init();
     bsp_driver_init();
-    uart1_init(115200);
 
     /*
      * depends on your needs, you can initialize

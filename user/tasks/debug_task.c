@@ -12,6 +12,8 @@ void debug_link_task(void)
     set_program_name("debug link");
     setpriority(0, getpid(), 3);
 
+    int debug_link_fd = open("/dev/serial2", 0, 0);
+
     int dir = INC;
 
     tenok_msg_test_t msg = {
@@ -24,7 +26,7 @@ void debug_link_task(void)
 
     while(1) {
         size_t size = pack_tenok_test_msg(&msg, buf);
-        uart_puts(USART1, buf, size);
+        write(debug_link_fd, buf, size);
 
         if(dir == INC) {
             msg.time += 10;
