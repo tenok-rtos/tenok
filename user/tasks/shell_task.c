@@ -11,6 +11,28 @@ struct shell shell;
 struct shell_history history[SHELL_HISTORY_MAX];
 struct shell_autocompl autocompl[100]; //XXX: handle with mpool
 
+void boot_message(void)
+{
+    //TODO: implement dev_info() like linux kernel
+
+    char s[100] = {0};
+
+    snprintf(s, 100, "[0.000000] firmware build time: %s %s\n\r", __TIME__, __DATE__);
+    shell_puts(s);
+
+    snprintf(s, 100, "[0.000000] chardev [serial0] for console\n\r");
+    shell_puts(s);
+
+    snprintf(s, 100, "[0.000000] chardev [serial1] for mavlink\n\r");
+    shell_puts(s);
+
+    snprintf(s, 100, "[0.000000] chardev [serial2] for debug-link\n\r");
+    shell_puts(s);
+
+    snprintf(s, 100, "type `help' for help\n\r");
+    shell_puts(s);
+}
+
 void shell_task(void)
 {
     set_program_name("shell");
@@ -30,10 +52,7 @@ void shell_task(void)
     /* clean screen */
     //shell_cls();
 
-    /* greeting */
-    char s[100] = {0};
-    snprintf(s, 100, "firmware build time: %s %s\n\rtype `help' for help\n\r\n\r", __TIME__, __DATE__);
-    shell_puts(s);
+    boot_message();
 
     while(1) {
         fs_get_pwd(shell_path, shell_dir_curr);

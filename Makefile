@@ -17,7 +17,8 @@ CFLAGS+=-g -mlittle-endian -mthumb \
 	-mcpu=cortex-m4 \
 	-mfpu=fpv4-sp-d16 -mfloat-abi=hard \
 	--specs=nano.specs \
-	--specs=nosys.specs
+	--specs=nosys.specs \
+	-u _printf_float
 CFLAGS+=-D USE_STDPERIPH_DRIVER
 CFLAGS+=-D STM32F4xx
 CFLAGS+=-D ARM_MATH_CM4 \
