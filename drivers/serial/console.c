@@ -30,16 +30,19 @@ void uart1_init(uint32_t baudrate)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
 
     GPIO_InitTypeDef GPIO_InitStruct = {
-        .GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10,
+        .GPIO_Pin = GPIO_Pin_9,
         .GPIO_Mode = GPIO_Mode_AF,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_OType = GPIO_OType_PP,
         .GPIO_PuPd = GPIO_PuPd_UP
     };
     GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     USART_InitTypeDef USART_InitStruct = {
         .USART_BaudRate = baudrate,
