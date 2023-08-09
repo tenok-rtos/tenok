@@ -7,7 +7,7 @@ extern int mavlink_fd;
 
 void mavlink_send_msg(mavlink_message_t *msg)
 {
-    uint8_t buf[MAVLINK_MAX_PAYLOAD_LEN];
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
 
     while(write(mavlink_fd, buf, len) == -EAGAIN);
