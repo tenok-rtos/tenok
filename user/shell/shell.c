@@ -58,7 +58,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
     shell_reset_line(shell);
 }
 
-static void shell_unknown_cmd_handler(char *argv[], int argc)
+static void shell_unknown_cmd_handler(int argc, char *argv[])
 {
     char s[50 + SHELL_CMD_LEN_MAX];
     snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
@@ -98,9 +98,31 @@ void shell_init(struct shell *shell,
     }
 }
 
+/* minimal configurattion that does not support command parsing,
+ * history saving, and command completion */
+void shell_init_minimal(struct shell *shell)
+{
+    shell->prompt[0] = '\0';
+    shell->prompt_len = 0;
+    shell->cursor_pos = 0;
+    shell->buf[0] = '\0';
+    shell->char_cnt = 0;
+    shell->shell_cmds = NULL;
+    shell->cmd_cnt = 0;
+    shell->history = NULL;
+    shell->history_cnt = 0;
+    shell->history_max_cnt = 0;
+    shell->show_history = false;
+    shell->show_autocompl = false;
+    shell->autocompl = NULL;
+    shell->autocompl_curr = 0;
+    shell->autocompl_cnt = 0;
+    list_init(&shell->history_head);
+}
+
 void shell_set_prompt(struct shell *shell, char *new_prompt)
 {
-    strncpy(shell->prompt, new_prompt, SHELL_PROMPT_LEN_MAX);
+    strncpy(shell->prompt, new_prompt, SHELL_PROMPT_LEN_MAX - 1);
     shell->prompt_len = strlen(shell->prompt);
 }
 
@@ -175,6 +197,10 @@ static void shell_reset_history_scrolling(struct shell *shell)
 
 static void shell_push_new_history(struct shell *shell, char *cmd)
 {
+    if(shell->history == NULL) {
+        return;
+    }
+
     struct list *history_list;
     struct shell_history *history_new;
 
@@ -262,6 +288,10 @@ static void shell_generate_suggest_words(struct shell *shell, int argv0_start, i
 
 static void shell_autocomplete(struct shell *shell)
 {
+    if(shell->autocompl == NULL) {
+        return;
+    }
+
     /* find the start position of the first argument */
     int argv0_start = 0;
     while((shell->buf[argv0_start] == ' ') && (argv0_start < shell->char_cnt))
@@ -324,6 +354,10 @@ static void shell_autocomplete(struct shell *shell)
 
 void shell_print_history(struct shell *shell)
 {
+    if(shell->history == NULL) {
+        return;
+    }
+
     char s[SHELL_CMD_LEN_MAX * 3];
 
     struct list *list_curr;
@@ -363,6 +397,10 @@ static void shell_ctrl_u_handler(struct shell *shell)
 
 static void shell_up_arrow_handler(struct shell *shell)
 {
+    if(shell->history == NULL) {
+        return;
+    }
+
     /* ignore the key pressing if the hisotry list is empty */
     if(list_is_empty(&shell->history_head) == true)
         return;
@@ -397,6 +435,10 @@ static void shell_up_arrow_handler(struct shell *shell)
 
 static void shell_down_arrow_handler(struct shell *shell)
 {
+    if(shell->history == NULL) {
+        return;
+    }
+
     /* user did not trigger the history reading */
     if(shell->show_history == false)
         return;
@@ -647,6 +689,10 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
 
 void shell_execute(struct shell *shell)
 {
+    if(shell->shell_cmds == NULL) {
+        return;
+    }
+
     char *argv[SHELL_ARG_CNT] = {0};
     int argc = shell_split_cmd_token(shell->buf, argv);
 
@@ -660,7 +706,7 @@ void shell_execute(struct shell *shell)
         }
     }
 
-    shell_unknown_cmd_handler(argv, argc);
+    shell_unknown_cmd_handler(argc, argv);
     shell->buf[0] = '\0';
     shell_reset_line(shell);
 }

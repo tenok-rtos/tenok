@@ -114,6 +114,7 @@ void shell_init(struct shell *shell,
                 struct shell_cmd *shell_cmds, int cmd_cnt,
                 struct shell_history *history, int history_max_cnt,
                 struct shell_autocompl *autocompl);
+void shell_init_minimal(struct shell *shell);
 void shell_path_init(void);
 void shell_set_prompt(struct shell *shell, char *new_prompt);
 void shell_listen(struct shell *_shell);
