@@ -564,7 +564,9 @@ char romfs_import_dir(const char *host_path, const char *romfs_path)
     struct dirent* dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
         /* ignore "." and ".." */
-        if(!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, ".."))
+        if(!strcmp(dirent->d_name, ".") ||
+           !strcmp(dirent->d_name, "..") ||
+           !strcmp(dirent->d_name, ".gitkeep"))
             continue;
 
         char romfs_child_path[PATH_BUF_SIZE] = {0};
