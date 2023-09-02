@@ -16,3 +16,4 @@ SRC+=$(PROJ_ROOT)/user/shell/echo.c
 SRC+=$(PROJ_ROOT)/user/shell/help.c
 SRC+=$(PROJ_ROOT)/user/shell/ls.c
 SRC+=$(PROJ_ROOT)/user/shell/ps.c
+SRC+=$(PROJ_ROOT)/user/shell/xxd.c

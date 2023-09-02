@@ -106,6 +106,7 @@ struct shell_cmd {
 
 /* serial input/output */
 void shell_serial_init(void);
+char shell_getc(void);
 void shell_puts(char *s);
 void shell_cls(void);
 
