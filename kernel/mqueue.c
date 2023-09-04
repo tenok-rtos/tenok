@@ -9,7 +9,8 @@
 #include "kernel.h"
 #include "syscall.h"
 
-#define MSG_LEN(mq) (mq->attr.mq_msgsize)
+#define MSG_LEN(mq)   (mq->attr.mq_msgsize)
+#define MSG_FLAGS(mq) (mq->attr.mq_flags)
 
 extern struct task_ctrl_blk *running_task;
 extern struct memory_pool mem_pool;
@@ -46,31 +47,47 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
     struct msg_queue *mq = &mq_table[mqdes];
     struct list *task_wait_list = &mq->pipe->task_wait_list;
 
-    ssize_t retval;
+    ssize_t retval = 0;
+    bool sleep = false;
 
     /* buffer size (msg_len) must be equal or larger than the message size */
     if(msg_len < MSG_LEN(mq)) {
         return -EMSGSIZE;
     }
 
-    /* start of the critical section */
-    spin_lock_irq(&mq->lock);
+    bool _sleep;
 
-    /* does the ring buffer contain any message?  */
-    if(mq->pipe->count <= 0) {
-        /* no, put the current task into the waiting list */
-        prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
+    do {
+        /* start of the critical section */
+        spin_lock_irq(&mq->lock);
 
-        retval = -EAGAIN; //ask the user to try again
-    } else {
-        /* yes, pop a message from the ring buffer */
-        ringbuf_get(mq->pipe, msg_ptr);
+        /* does the ring buffer contain any message?  */
+        if(mq->pipe->count <= 0) {
+            if(MSG_FLAGS(mq) & O_NONBLOCK) {
+                retval = -EAGAIN; //ask the user to try again
+                _sleep = false;
+            } else {
+                /* put the current task into the waiting list */
+                prepare_to_wait(task_wait_list, &running_task->list, TASK_WAIT);
+                _sleep = true;
+            }
+        } else {
+            /* yes, pop a message from the ring buffer */
+            ringbuf_get(mq->pipe, msg_ptr);
 
-        retval = MSG_LEN(mq); //numbers of the received bytes
-    }
+            /* message is acquired and ready to leave */
+            retval = MSG_LEN(mq); //numbers of the received bytes
+            _sleep = false;
+        }
 
-    /* end of the critical section */
-    spin_unlock_irq(&mq->lock);
+        /* end of the critical section */
+        spin_unlock_irq(&mq->lock);
+
+        /* no message is obtained under the blocked mode, go sleep */
+        if(_sleep && (get_proc_mode() == 0)) {
+            sched_yield();
+        }
+    } while(_sleep);
 
     return retval;
 }

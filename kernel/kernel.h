@@ -145,6 +145,8 @@ void wake_up(struct list *wait_list);
 void preempt_disable(void);
 void preempt_enable(void);
 
+uint32_t get_proc_mode(void);
+
 void reset_basepri(void);
 void set_basepri(void);
 
