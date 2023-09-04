@@ -85,7 +85,7 @@ void serial0_init(void)
     struct mq_attr attr = {
         .mq_flags = 0,
         .mq_maxmsg = 100,
-        .mq_msgsize = sizeof(uint8_t),
+        .mq_msgsize = sizeof(char),
         .mq_curmsgs = 0
     };
     mq_uart1_rx = mq_open("/serial0_mq_rx", 0, &attr);
@@ -99,7 +99,8 @@ void serial0_init(void)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-    return mq_receive(mq_uart1_rx, (char *)buf, size, 0);
+    mq_receive(mq_uart1_rx, (char *)buf, sizeof(char), 0);
+    return 1;
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
@@ -156,7 +157,7 @@ void USART1_IRQHandler(void)
 {
     if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART1);
-        mq_send(mq_uart1_rx, (char *)&c, 1, 0);
+        mq_send(mq_uart1_rx, (char *)&c, sizeof(char), 0);
     }
 }
 

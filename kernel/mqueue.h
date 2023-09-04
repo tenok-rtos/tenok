@@ -7,20 +7,20 @@
 
 typedef int mqd_t;
 
-struct msg_queue {
-    spinlock_t lock;
-
-    char name[FILE_NAME_LEN_MAX];
-    int   mq_flags;
-
-    struct ringbuf *pipe;
-};
-
 struct mq_attr {
     int mq_flags;   //flags: 0 or O_NONBLOCK
     int mq_maxmsg;  //max number of the messages in the queue
     int mq_msgsize; //byte size of the message
     int mq_curmsgs; //number of the messages currently in the queue
+};
+
+struct msg_queue {
+    spinlock_t lock;
+
+    char name[FILE_NAME_LEN_MAX];
+    struct mq_attr attr;
+
+    struct ringbuf *pipe;
 };
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr);

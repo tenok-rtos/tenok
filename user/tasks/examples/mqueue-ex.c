@@ -18,7 +18,7 @@ typedef struct {
 void my_mqueue_init(void)
 {
     struct mq_attr attr = {
-        .mq_flags = O_NONBLOCK,
+        .mq_flags = 0,
         .mq_maxmsg = 100,
         .mq_msgsize = sizeof(my_message_t),
         .mq_curmsgs = 0
@@ -38,7 +38,7 @@ void message_queue_task1(void)
     strncpy(msg.data, str, sizeof(msg));
 
     while(1) {
-        mq_send(mqdes_print, (char *)&msg, 1, 0);
+        mq_send(mqdes_print, (char *)&msg, sizeof(msg), 0);
         sleep(1000);
     }
 }
@@ -48,11 +48,10 @@ void message_queue_task2(void)
     set_program_name("queue2");
 
     my_message_t msg;
-    int serial_fd = open("/dev/serial0", 0, 0);
 
     while(1) {
         /* read message queue */
-        while(mq_receive(mqdes_print, (char *)&msg, 1, 0) != -EAGAIN);
+        while(mq_receive(mqdes_print, (char *)&msg, sizeof(msg), 0) != sizeof(msg));
 
         /* write serial */
         shell_puts(msg.data);

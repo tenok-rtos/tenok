@@ -43,7 +43,7 @@ void mavlink_out_task(void)
         mavlink_send_hil_actuator_controls();
 
         /* trigger the command parser if received new message from the queue */
-        if(mq_receive(mqdes_recvd_msg, (char *)&recvd_msg, 1, 0) == 1) {
+        if(mq_receive(mqdes_recvd_msg, (char *)&recvd_msg, sizeof(recvd_msg), 0) == sizeof(recvd_msg)) {
             parse_mavlink_msg(&recvd_msg);
         }
 
@@ -67,7 +67,7 @@ void mavlink_in_task(void)
         /* attempt to parse the message */
         if(mavlink_parse_char(MAVLINK_COMM_1, c, &recvd_msg, &status) == 1) {
             //received, put the received message into the queue
-            mq_send(mqdes_recvd_msg, (char *)&recvd_msg, 1, 0);
+            mq_send(mqdes_recvd_msg, (char *)&recvd_msg, sizeof(recvd_msg), 0);
         }
     }
 }
