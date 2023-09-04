@@ -6,7 +6,7 @@ CFLAGS+=-I$(PROJ_ROOT)/user/tasks
 # the unwanted features
 SRC+=$(PROJ_ROOT)/user/tasks/led_task.c
 SRC+=$(PROJ_ROOT)/user/tasks/shell_task.c
-SRC+=$(PROJ_ROOT)/user/tasks/debug_task.c
+#SRC+=$(PROJ_ROOT)/user/tasks/debug_task.c # run `scripts/download-examples.sh` first
 SRC+=$(PROJ_ROOT)/user/tasks/mavlink_task.c
 
 #SRC+=$(PROJ_ROOT)/user/tasks/examples/fifo-ex.c
