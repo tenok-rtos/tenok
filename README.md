@@ -119,7 +119,7 @@ git clone https://github.com/shengwen-tw/tenok.git
 cd tenok
 git submodule update --init --recursive
 git submodule update --recursive --remote
-./scripts/download-rom.sh
+./scripts/download-examples.sh
 make
  ```
  
