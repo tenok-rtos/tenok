@@ -17,7 +17,7 @@ function OK
     printf " [ ${PASS_COLOR} OK ${NO_COLOR} ]\n"
 }
 
-function download_rom_files
+function download_examples
 {
     rm -rf /tmp/tenok
     pushd /tmp/
@@ -25,6 +25,7 @@ function download_rom_files
     popd
     mkdir -p rom/
     cp -r /tmp/tenok/rom/* rom/
+    cp -r /tmp/tenok/msg/* msg/
 }
 
-download_rom_files && OK
+download_examples && OK
