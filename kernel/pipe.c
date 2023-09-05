@@ -35,7 +35,6 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size, loff_t offset)
     }
 
     return size;
-
 }
 
 ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size, loff_t offset)

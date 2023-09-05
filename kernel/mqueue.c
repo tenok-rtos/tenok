@@ -46,7 +46,6 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
     struct list *task_wait_list = &mq->pipe->task_wait_list;
 
     ssize_t retval = 0;
-    bool sleep = false;
 
     /* buffer size (msg_len) must be equal or larger than the message size */
     if(msg_len < MSG_LEN(mq)) {
@@ -82,7 +81,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
         spin_unlock_irq(&mq->lock);
 
         /* no message is obtained under the blocked mode, go sleep */
-        if(_sleep && (get_proc_mode() == 0)) {
+        if(_sleep) {
             sched_yield();
         }
     } while(_sleep);
