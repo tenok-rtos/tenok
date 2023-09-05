@@ -85,7 +85,6 @@ SRC += ./kernel/ipc.c \
        ./kernel/semaphore.c \
        ./kernel/mutex.c \
        ./kernel/time.c \
-       ./kernel/rom_dev.c \
        ./kernel/reg_file.c \
        ./kernel/mm/mpool.c \
        ./main.c
