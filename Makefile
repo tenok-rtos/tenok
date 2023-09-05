@@ -87,9 +87,10 @@ SRC += ./kernel/ipc.c \
        ./kernel/time.c \
        ./kernel/rom_dev.c \
        ./kernel/reg_file.c \
-       ./kernel/tenok_link.c \
        ./kernel/mm/mpool.c \
        ./main.c
+
+SRC += ./user/debug-link/tenok_link.c 
 
 -include ./drivers/drivers.mk
 -include ./user/shell/shell.mk
