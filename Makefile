@@ -75,7 +75,6 @@ SRC+=$(ST_LIB)/src/misc.c \
 
 SRC+=./kernel/pipe.c \
 	./kernel/fifo.c \
-	./kernel/mqueue.c \
 	./kernel/ringbuf.c \
 	./kernel/list.c \
 	./kernel/kernel.c \
@@ -88,7 +87,7 @@ SRC+=./kernel/pipe.c \
 	./kernel/reg_file.c \
 	./kernel/tenok_link.c \
 	./kernel/mm/mpool.c \
-	./main.c \
+	./main.c
 
 -include ./drivers/drivers.mk
 -include ./user/shell/shell.mk

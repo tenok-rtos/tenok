@@ -9,6 +9,7 @@
 #include "list.h"
 #include "mpool.h"
 #include "fs.h"
+#include "pipe.h"
 #include "fifo.h"
 #include "mqueue.h"
 #include "time.h"
@@ -37,6 +38,9 @@ void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mknod(void);
 void sys_mkfifo(void);
+void sys_mq_open(void);
+void sys_mq_receive(void);
+void sys_mq_send(void);
 
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
@@ -54,6 +58,10 @@ uint8_t mem_pool_buf[MEM_POOL_SIZE];
 /* file table */
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
+
+/* posix message queue */
+struct msg_queue mq_table[MQUEUE_CNT_MAX];
+int mq_cnt = 0;
 
 bool irq_off = false;
 
@@ -83,7 +91,10 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(setpriority, 15),
     DEF_SYSCALL(getpid, 16),
     DEF_SYSCALL(mknod, 17),
-    DEF_SYSCALL(mkfifo, 18)
+    DEF_SYSCALL(mkfifo, 18),
+    DEF_SYSCALL(mq_open, 19),
+    DEF_SYSCALL(mq_receive, 20),
+    DEF_SYSCALL(mq_send, 21)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -528,7 +539,7 @@ void sys_getpid(void)
 
 void sys_mknod(void)
 {
-    /* read syscall argument */
+    /* read syscall arguments */
     char *pathname = (char *)*running_task->reg.r0;
     //mode_t mode = (mode_t)*running_task->reg.r1;
     dev_t dev = (dev_t)*running_task->reg.r2;
@@ -556,7 +567,7 @@ void sys_mknod(void)
 
 void sys_mkfifo(void)
 {
-    /* read syscall argument */
+    /* read syscall arguments */
     char *pathname = (char *)*running_task->reg.r0;
     //mode_t mode = (mode_t)*running_task->reg.r1;
     dev_t dev = (dev_t)*running_task->reg.r2;
@@ -579,6 +590,72 @@ void sys_mkfifo(void)
         *(int *)running_task->reg.r0 = -1;
     } else {
         *(int *)running_task->reg.r0 = 0;
+    }
+}
+
+void sys_mq_open(void)
+{
+    /* read syscall arguments */
+    char *name = (char *)*running_task->reg.r0;
+    int oflag = (int)*running_task->reg.r1;
+    struct mq_attr *attr = (struct mq_attr *)*running_task->reg.r2;
+
+    if(mq_cnt >= MQUEUE_CNT_MAX) {
+        *(mqd_t *)running_task->reg.r0 = -1;
+        return;
+    }
+
+    /* initialize the ring buffer */
+    struct ringbuf *pipe = ringbuf_create(attr->mq_msgsize, attr->mq_maxmsg);
+
+    /* register a new message queue */
+    int mqdes = mq_cnt;
+    mq_table[mqdes].pipe = pipe;
+    mq_table[mqdes].lock = 0;
+    mq_table[mqdes].attr = *attr;
+    mq_table[mqdes].pipe->flags = attr->mq_flags;
+    strncpy(mq_table[mqdes].name, name, FILE_NAME_LEN_MAX);
+    mq_cnt++;
+
+    /* return the message queue descriptor */
+    *(mqd_t *)running_task->reg.r0 = mqdes;
+}
+
+void sys_mq_receive(void)
+{
+    /* read syscall arguments */
+    mqd_t mqdes = (mqd_t)*running_task->reg.r0;
+    char *msg_ptr = (char *)*running_task->reg.r1;
+    size_t msg_len = (size_t)*running_task->reg.r2;
+    unsigned int *msg_prio = (unsigned int *)*running_task->reg.r3;
+
+    /* obtain message queue */
+    struct msg_queue *mq = &mq_table[mqdes];
+    pipe_t *pipe = mq->pipe;
+
+    /* read message */
+    ssize_t retval = generic_pipe_read(pipe, msg_ptr, 1, 0);
+    if(running_task->syscall_pending == false) {
+        *(ssize_t *)running_task->reg.r0 = retval;
+    }
+}
+
+void sys_mq_send(void)
+{
+    /* read syscall arguments */
+    mqd_t mqdes = (mqd_t)*running_task->reg.r0;
+    char *msg_ptr = (char *)*running_task->reg.r1;
+    size_t msg_len = (size_t)*running_task->reg.r2;
+    unsigned int msg_prio = (unsigned int)*running_task->reg.r3;
+
+    /* obtain message queue */
+    struct msg_queue *mq = &mq_table[mqdes];
+    pipe_t *pipe = mq->pipe;
+
+    /* send message */
+    ssize_t retval = generic_pipe_write(pipe, msg_ptr, 1, 0);
+    if(running_task->syscall_pending == false) {
+        *(ssize_t *)running_task->reg.r0 = retval;
     }
 }
 
@@ -662,7 +739,7 @@ static void save_syscall_args(void)
     }
 }
 
-void first(void)
+void first(void)/* obtain message queue */
 {
     /*
      * after the first task finished initiating other tasks,

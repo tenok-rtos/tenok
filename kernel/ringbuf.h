@@ -5,8 +5,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "fs.h"
-
-#define RINGBUF_WAIT_LIST(rb) &(rb)->task_wait_list
+#include "spinlock.h"
 
 struct ringbuf {
     int     start;
@@ -15,6 +14,10 @@ struct ringbuf {
     void    *data;
     size_t  ring_size;
     size_t  type_size;
+
+    int     flags;
+
+    spinlock_t lock;
 
     struct file file;
     struct list task_wait_list;

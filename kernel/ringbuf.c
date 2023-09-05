@@ -13,6 +13,7 @@ void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_
     rb->data = data;
     rb->type_size = type_size;
     rb->ring_size = ring_size;
+    rb->lock = 0;
     list_init(&rb->task_wait_list);
 }
 

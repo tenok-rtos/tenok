@@ -98,3 +98,18 @@ mknod:
 .global mkfifo
 mkfifo:
 	syscall #18
+
+.type   mq_open, %function
+.global mq_open
+mq_open:
+        syscall #19
+
+.type   mq_receive, %function
+.global mq_receive
+mq_receive:
+        syscall #20
+
+.type   mq_send, %function
+.global mq_send
+mq_send:
+        syscall #21
