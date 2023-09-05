@@ -80,12 +80,12 @@ SRC += ./kernel/ipc.c \
        ./kernel/ringbuf.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
-       ./kernel/fs.c \
-       ./kernel/file.c \
        ./kernel/semaphore.c \
        ./kernel/mutex.c \
        ./kernel/time.c \
-       ./kernel/reg_file.c \
+       ./kernel/fs/fs.c \
+       ./kernel/fs/file.c \
+       ./kernel/fs/reg_file.c \
        ./kernel/mm/mpool.c \
        ./main.c
 
