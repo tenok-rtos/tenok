@@ -133,6 +133,10 @@ struct task_ctrl_blk {
         size_t size;
     } file_request;
 
+    /* file descriptor table */
+    struct fdtable *fdtable;
+    int fd_cnt;
+
     struct list list;
 };
 

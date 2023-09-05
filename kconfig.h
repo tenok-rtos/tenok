@@ -28,6 +28,9 @@
                                    * including the directory                  */
 #define FILE_NAME_LEN_MAX    30
 
+#define FILE_DESC_CNT_MAX    20   /* numbers of file descriptors that one *
+                                   * task can have                        */
+
 #define PATH_LEN_MAX         128
 
 #define MOUNT_CNT_MAX        5

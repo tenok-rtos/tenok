@@ -117,6 +117,11 @@ struct file_operations {
     ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
 };
 
+struct fdtable {
+    int flags;
+    struct file *file;
+};
+
 void rootfs_init(void);
 
 int register_chrdev(char *name, struct file_operations *fops);
