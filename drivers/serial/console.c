@@ -4,9 +4,11 @@
 #include "semaphore.h"
 #include "uart.h"
 #include "fs.h"
-#include "mqueue.h"
 #include "syscall.h"
 #include "kernel.h"
+#include "pipe.h"
+
+#define UART1_RX_BUF_SIZE 100
 
 static int uart1_dma_puts(const char *data, size_t size);
 
@@ -14,7 +16,7 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
 sem_t sem_uart1_tx;
-mqd_t mq_uart1_rx;
+pipe_t *uart1_rx_pipe;
 
 int uart1_state = UART_TX_IDLE;
 
@@ -81,14 +83,8 @@ void serial0_init(void)
     /* initialize serial0 as character device */
     register_chrdev("serial0", &serial0_file_ops);
 
-    /* initialize the message queue for reception */
-    struct mq_attr attr = {
-        .mq_flags = 0,
-        .mq_maxmsg = 100,
-        .mq_msgsize = sizeof(char),
-        .mq_curmsgs = 0
-    };
-    mq_uart1_rx = mq_open("/serial0_mq_rx", 0, &attr);
+    /* create pipe for reception */
+    uart1_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
     /* initialize the semaphore for transmission */
     sem_init(&sem_uart1_tx, 0, 0);
@@ -99,8 +95,8 @@ void serial0_init(void)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-    mq_receive(mq_uart1_rx, (char *)buf, sizeof(char), 0);
-    return 1;
+    generic_pipe_read(uart1_rx_pipe, (char *)buf, size, offset);
+    return size;
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset)
@@ -157,7 +153,7 @@ void USART1_IRQHandler(void)
 {
     if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART1);
-        mq_send(mq_uart1_rx, (char *)&c, sizeof(char), 0);
+        generic_pipe_write(uart1_rx_pipe, (char *)&c, sizeof(char), 0);
     }
 }
 

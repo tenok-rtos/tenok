@@ -25,9 +25,7 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
     }
 
     /* initialize the ring buffer */
-    struct ringbuf *pipe = memory_pool_alloc(&mem_pool, sizeof(struct ringbuf));
-    uint8_t *pipe_mem = memory_pool_alloc(&mem_pool, attr->mq_msgsize * attr->mq_maxmsg);
-    ringbuf_init(pipe, pipe_mem, attr->mq_msgsize, attr->mq_maxmsg);
+    struct ringbuf *pipe = ringbuf_create(attr->mq_msgsize, attr->mq_maxmsg);
 
     /* register a new message queue */
     int mqdes = mq_cnt;

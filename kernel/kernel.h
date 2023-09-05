@@ -18,6 +18,8 @@
 #define DEF_IRQ_ENTRY(func, _num) \
         {.syscall_handler = func, .num = _num}
 
+#define CURRENT_TASK_INFO(var) struct task_ctrl_blk *var = current_task_info()
+
 typedef struct {
     void (* syscall_handler)(void);
     uint32_t num;
@@ -132,6 +134,10 @@ struct task_ctrl_blk {
 
     struct list list;
 };
+
+void *kmalloc(size_t size);
+
+struct task_ctrl_blk *current_task_info(void);
 
 void os_service_init(void);
 void sched_start(void);

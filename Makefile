@@ -73,7 +73,8 @@ SRC+=$(ST_LIB)/src/misc.c \
 	$(ST_LIB)/src/stm32f4xx_spi.c \
 	$(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC+=./kernel/fifo.c \
+SRC+=./kernel/pipe.c \
+	./kernel/fifo.c \
 	./kernel/mqueue.c \
 	./kernel/ringbuf.c \
 	./kernel/list.c \

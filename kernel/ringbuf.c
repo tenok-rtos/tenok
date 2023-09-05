@@ -1,8 +1,9 @@
-#include "stddef.h"
-#include "stdint.h"
-#include "string.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
+#include "kernel.h"
 #include "ringbuf.h"
-#include "stdbool.h"
 
 void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_size)
 {
@@ -13,6 +14,15 @@ void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_
     rb->type_size = type_size;
     rb->ring_size = ring_size;
     list_init(&rb->task_wait_list);
+}
+
+struct ringbuf *ringbuf_create(size_t nmem, size_t size)
+{
+    struct ringbuf *rb = kmalloc(sizeof(struct ringbuf));
+    uint8_t *rb_data = kmalloc(nmem * size);
+    ringbuf_init(rb, rb_data, nmem, size);
+
+    return rb;
 }
 
 static int ringbuf_increase(struct ringbuf *rb, int ptr)

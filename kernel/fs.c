@@ -266,7 +266,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     switch(file_type) {
         case S_IFIFO:
             /* create new named pipe */
-            result = fifo_init(fd, (struct file **)&files, new_inode, &mem_pool);
+            result = fifo_init(fd, (struct file **)&files, new_inode);
 
             new_inode->i_mode   = S_IFIFO;
             new_inode->i_size   = 0;

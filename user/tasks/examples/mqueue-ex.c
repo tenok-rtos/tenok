@@ -51,7 +51,7 @@ void message_queue_task2(void)
 
     while(1) {
         /* read message queue */
-        while(mq_receive(mqdes_print, (char *)&msg, sizeof(msg), 0) != sizeof(msg));
+        mq_receive(mqdes_print, (char *)&msg, sizeof(msg), 0);
 
         /* write serial */
         shell_puts(msg.data);

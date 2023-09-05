@@ -86,6 +86,16 @@ syscall_info_t syscall_table[] = {
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
 
+void *kmalloc(size_t size)
+{
+    return memory_pool_alloc(&mem_pool, size);
+}
+
+struct task_ctrl_blk *current_task_info(void)
+{
+    return running_task;
+}
+
 void task_return_handler(void)
 {
     /*
@@ -697,7 +707,7 @@ void sched_start(void)
     /* initialize fifos for all tasks */
     int i;
     for(i = 0; i < TASK_CNT_MAX; i++) {
-        fifo_init(i, (struct file **)&files, NULL, &mem_pool);
+        fifo_init(i, (struct file **)&files, NULL);
     }
 
     /* initialize the task ready lists */

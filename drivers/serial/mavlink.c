@@ -7,11 +7,14 @@
 #include "mqueue.h"
 #include "syscall.h"
 #include "kernel.h"
+#include "pipe.h"
+
+#define UART2_RX_BUF_SIZE 100
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
-mqd_t mq_uart2_rx;
+pipe_t *uart2_rx_pipe;
 
 static struct file_operations serial1_file_ops = {
     .read = serial1_read,
@@ -60,14 +63,8 @@ void serial1_init(void)
     /* initialize serial0 as character device */
     register_chrdev("serial1", &serial1_file_ops);
 
-    /* initialize the message queue for reception */
-    struct mq_attr attr = {
-        .mq_flags = 0,
-        .mq_maxmsg = 100,
-        .mq_msgsize = sizeof(char),
-        .mq_curmsgs = 0
-    };
-    mq_uart2_rx = mq_open("/serial1_mq_rx", 0, &attr);
+    /* create pipe for reception */
+    uart2_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* initialize uart3 */
     uart2_init(115200);
@@ -75,8 +72,8 @@ void serial1_init(void)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-    mq_receive(mq_uart2_rx, (char *)buf, sizeof(char), 0);
-    return 1;
+    generic_pipe_read(uart2_rx_pipe, (char *)buf, size, offset);
+    return size;
 }
 
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, loff_t offset)
@@ -88,7 +85,7 @@ void USART2_IRQHandler(void)
 {
     if(USART_GetITStatus(USART2, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART2);
-        mq_send(mq_uart2_rx, (char *)&c, sizeof(char), 0);
+        generic_pipe_write(uart2_rx_pipe, (char *)&c, sizeof(char), 0);
     }
 }
 
