@@ -14,7 +14,8 @@ void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_
     rb->type_size = type_size;
     rb->ring_size = ring_size;
     rb->lock = 0;
-    list_init(&rb->task_wait_list);
+    list_init(&rb->r_wait_list);
+    list_init(&rb->w_wait_list);
 }
 
 struct ringbuf *ringbuf_create(size_t nmem, size_t size)
@@ -61,6 +62,21 @@ void ringbuf_get(struct ringbuf *rb, void *data)
         rb->start = ringbuf_increase(rb, rb->start);
         rb->count--;
     }
+}
+
+size_t ringbuf_get_free_space(struct ringbuf *rb)
+{
+    return rb->ring_size - rb->count;
+}
+
+size_t ringbuf_get_cnt(struct ringbuf *rb)
+{
+    return rb->count;
+}
+
+size_t ringbuf_get_type_size(struct ringbuf *rb)
+{
+    return rb->type_size;
 }
 
 bool ringbuf_is_empty(struct ringbuf *rb)

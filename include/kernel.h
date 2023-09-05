@@ -19,6 +19,7 @@
         {.syscall_handler = func, .num = _num}
 
 #define CURRENT_TASK_INFO(var) struct task_ctrl_blk *var = current_task_info()
+#define TASK_ENTRY(task_list) container_of(task_list, struct task_ctrl_blk, list);
 
 typedef struct {
     void (* syscall_handler)(void);
