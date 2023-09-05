@@ -95,7 +95,7 @@ void serial2_init(void)
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
-    generic_pipe_read(uart3_rx_pipe, (char *)buf, size, offset);
+    generic_pipe_read(uart3_rx_pipe, (char *)buf, size);
     return size;
 }
 
@@ -153,7 +153,7 @@ void USART3_IRQHandler(void)
 {
     if(USART_GetITStatus(USART3, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART3);
-        generic_pipe_write(uart3_rx_pipe, (char *)&c, sizeof(char), 0);
+        generic_pipe_write_isr(uart3_rx_pipe, (char *)&c, sizeof(char));
     }
 }
 

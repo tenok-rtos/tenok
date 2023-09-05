@@ -634,7 +634,7 @@ void sys_mq_receive(void)
     pipe_t *pipe = mq->pipe;
 
     /* read message */
-    ssize_t retval = generic_pipe_read(pipe, msg_ptr, 1, 0);
+    ssize_t retval = generic_pipe_read(pipe, msg_ptr, 1);
     if(running_task->syscall_pending == false) {
         *(ssize_t *)running_task->reg.r0 = retval;
     }
@@ -653,7 +653,7 @@ void sys_mq_send(void)
     pipe_t *pipe = mq->pipe;
 
     /* send message */
-    ssize_t retval = generic_pipe_write(pipe, msg_ptr, 1, 0);
+    ssize_t retval = generic_pipe_write(pipe, msg_ptr, 1);
     if(running_task->syscall_pending == false) {
         *(ssize_t *)running_task->reg.r0 = retval;
     }
