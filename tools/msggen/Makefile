@@ -1,16 +1,16 @@
 include ../../config.mk
 
-ROMFS=./romfs.bin
-ROMFS_OBJ=./romfs.o
+ROMFS := ./romfs.bin
+ROMFS_OBJ := ./romfs.o
 
-CFLAGS=
-CFLAGS+=-g
+CFLAGS :=
+CFLAGS +=-g
 
-CFLAGS+=-I../../ \
-	-I../../kernel
+CFLAGS += -I ../../ \
+	  -I ../../include
 
-SRC=../../kernel/list.c \
-	./msggen.c
+SRC := ../../kernel/list.c \
+       ./msggen.c
 
 all:
 	gcc $(CFLAGS) -o msggen $(SRC)

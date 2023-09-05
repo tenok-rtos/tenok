@@ -1,20 +1,20 @@
 include ../../config.mk
 
-ROMFS=./romfs.bin
-ROMFS_OBJ=./romfs.o
+ROMFS := ./romfs.bin
+ROMFS_OBJ := ./romfs.o
 
-CFLAGS=
-CFLAGS+=-g
-CFLAGS+=-m32 #to make the pointer be 4 bytes instead of 8 bytes
-#CFLAGS+=-Wpadded
+CFLAGS :=
+CFLAGS += -g
+CFLAGS += -m32 #to make the pointer be 4 bytes instead of 8 bytes
+#CFLAGS += -Wpadded
 
-CFLAGS+=-I../../ \
-	-I../../kernel
+CFLAGS += -I ../../ \
+          -I ../../include
 
-SRC=../../kernel/list.c \
-	 ./mkromfs.c
+SRC := ../../kernel/list.c \
+       ./mkromfs.c
 
-MKROMFS_FLAGS=-v #verbose option
+MKROMFS_FLAGS := -v #verbose option
 
 all: $(ROMFS_OBJ)
 

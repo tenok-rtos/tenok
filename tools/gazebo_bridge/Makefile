@@ -1,8 +1,8 @@
-LDFLAGS=-lpthread
+LDFLAGS := -lpthread
 
-CFLAGS=-I./
+CFLAGS := -I ./
 
-SRC=main.c \
+SRC := main.c \
 	serial.c
 
 all: $(SRC)
