@@ -27,13 +27,15 @@ ssize_t generic_pipe_read_isr(pipe_t *pipe, char *buf, size_t size)
         /* failed to read */
         retval = -EAGAIN;
     } else {
+        size_t type_size = ringbuf_get_type_size(pipe);
+
         /* pop data from the pipe */
         for(int i = 0; i < size; i++) {
-            ringbuf_get(pipe, &buf[i]);
+            ringbuf_get(pipe, buf + (type_size * i));
         }
 
         /* calculate total read bytes */
-        retval = ringbuf_get_type_size(pipe) * size;
+        retval = type_size * size;
     }
 
     /* resume a blocked writting task if the ring buffer has enough space to write */
@@ -68,13 +70,15 @@ ssize_t generic_pipe_write_isr(pipe_t *pipe, const char *buf, size_t size)
         /* failed to write */
         retval = -EAGAIN;
     } else {
+        size_t type_size = ringbuf_get_type_size(pipe);
+
         /* push data into the pipe */
         for(int i = 0; i < size; i++) {
-            ringbuf_put(pipe, &buf[i]);
+            ringbuf_put(pipe, buf + (type_size * i));
         }
 
         /* calculate total written bytes */
-        retval = ringbuf_get_type_size(pipe) * size;
+        retval = type_size * size;
     }
 
     /* resume a blocked reading task if the ring buffer has enough data to serve */
@@ -120,13 +124,15 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
             curr_task->syscall_pending = true;
         }
     } else {
+        size_t type_size = ringbuf_get_type_size(pipe);
+
         /* pop data from the pipe */
         for(int i = 0; i < size; i++) {
-            ringbuf_get(pipe, &buf[i]);
+            ringbuf_get(pipe, buf + (type_size * i));
         }
 
         /* calculate total read bytes */
-        retval = ringbuf_get_type_size(pipe) * size;
+        retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
         curr_task->syscall_pending = false;
@@ -175,13 +181,15 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
             curr_task->syscall_pending = true;
         }
     } else {
+        size_t type_size = ringbuf_get_type_size(pipe);
+
         /* push data into the pipe */
         for(int i = 0; i < size; i++) {
-            ringbuf_put(pipe, &buf[i]);
+            ringbuf_put(pipe, buf + (type_size * i));
         }
 
         /* calculate total written bytes */
-        retval = ringbuf_get_type_size(pipe) * size;
+        retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
         curr_task->syscall_pending = false;
