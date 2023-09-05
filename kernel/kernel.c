@@ -36,6 +36,7 @@ void sys_getpriority(void);
 void sys_setpriority(void);
 void sys_getpid(void);
 void sys_mknod(void);
+void sys_mkfifo(void);
 
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
@@ -82,6 +83,7 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(setpriority, 15),
     DEF_SYSCALL(getpid, 16),
     DEF_SYSCALL(mknod, 17),
+    DEF_SYSCALL(mkfifo, 18)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -536,6 +538,34 @@ void sys_mknod(void)
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
         request_create_file(task_fd, pathname, dev);
+    }
+
+    /* wait until the file system complete the request */
+    int new_fd;
+    if(fifo_read(files[task_fd], (char *)&new_fd, sizeof(new_fd), 0) == 0) {
+        return; //not ready
+    }
+
+    /* pass the return value with r0 */
+    if(new_fd == -1) {
+        *(int *)running_task->reg.r0 = -1;
+    } else {
+        *(int *)running_task->reg.r0 = 0;
+    }
+}
+
+void sys_mkfifo(void)
+{
+    /* read syscall argument */
+    char *pathname = (char *)*running_task->reg.r0;
+    //mode_t mode = (mode_t)*running_task->reg.r1;
+    dev_t dev = (dev_t)*running_task->reg.r2;
+
+    int task_fd = running_task->pid;
+
+    /* if the pending flag is set that means the request is already sent */
+    if(running_task->syscall_pending == false) {
+        request_create_file(task_fd, pathname, S_IFIFO);
     }
 
     /* wait until the file system complete the request */

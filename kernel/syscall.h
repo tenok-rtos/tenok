@@ -26,5 +26,6 @@ int getpriority(void);
 int setpriority(int which, int who, int prio);
 int getpid(void);
 int mknod(const char *pathname, mode_t mode, dev_t dev);
+int mkfifo(const char *pathname, mode_t mode);
 
 #endif

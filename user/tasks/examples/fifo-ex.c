@@ -12,7 +12,7 @@
 
 void my_fifo_init(void)
 {
-    mknod("/fifo_test", 0, S_IFIFO);
+    mkfifo("/fifo_test", 0);
 }
 
 void fifo_task1(void)

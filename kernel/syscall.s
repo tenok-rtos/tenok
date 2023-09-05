@@ -93,3 +93,8 @@ getpid:
 .global mknod
 mknod:
 	syscall #17
+
+.type   mkfifo, %function
+.global mkfifo
+mkfifo:
+	syscall #18
