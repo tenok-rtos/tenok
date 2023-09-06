@@ -8,14 +8,10 @@
 #include "kconfig.h"
 #include "file.h"
 
-extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
+#define MAX_READ_SIZE  100
+#define MAX_WRITE_SIZE 100
 
-/*
- * when accessing regular files, the user should consider using fread/fwrite
- * instead of read/write since the latter are executed in the kernel space,
- * which has the potential of affecting the real-time performance, whereas
- * the former is implemented to run in the user space, which is safer to use.
- */
+extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 
 int __fopen(const char *pathname, const char *mode, FILE *fstream)
 {
@@ -45,13 +41,27 @@ size_t __fread(void *ptr, size_t size, size_t nmemb, FILE *fstream)
     /* start of the critical section */
     spin_lock(&fstream->lock);
 
-    struct file *filp = files[fstream->fd];
-    int retval = reg_file_read(filp, ptr, size * nmemb, 0);
+    size_t nbytes = size * nmemb;
+    int times = (nbytes - 1) / MAX_READ_SIZE + 1;
+    int total = 0;
+
+    int retval;
+    for(int i = 0; i < times; i++) {
+        int rsize = (nbytes >= MAX_READ_SIZE) ? MAX_READ_SIZE : nbytes;
+
+        /* read file */
+        if(read(fstream->fd, (char *)((uintptr_t)ptr + total), rsize) != rsize) {
+            break; //read error
+        }
+
+        total += rsize;
+        nbytes -= rsize;
+    }
 
     /* end of the critical section */
     spin_unlock(&fstream->lock);
 
-    return retval;
+    return total;
 }
 
 size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream)
@@ -59,13 +69,27 @@ size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream)
     /* start of the critical section */
     spin_lock(&fstream->lock);
 
-    struct file *filp = files[fstream->fd];
-    int retval = reg_file_write(filp, ptr, size * nmemb, 0);
+    size_t nbytes = size * nmemb;
+    int times = (nbytes - 1) / MAX_WRITE_SIZE + 1;
+    int total = 0;
+
+    int retval;
+    for(int i = 0; i < times; i++) {
+        int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
+
+        /* write file */
+        if(write(fstream->fd, (char *)((uintptr_t)ptr + total), wsize) != wsize) {
+            break; //write error
+        }
+
+        total += wsize;
+        nbytes -= wsize;
+    }
 
     /* end of the critical section */
     spin_unlock(&fstream->lock);
 
-    return retval;
+    return total;
 }
 
 int __fseek(FILE *stream, long offset, int whence)

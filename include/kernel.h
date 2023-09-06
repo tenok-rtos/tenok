@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "kconfig.h"
 #include "list.h"
+#include "fs.h"
 
 #define	PRIO_PROCESS 0
 #define	PRIO_PGRP    1
@@ -134,7 +135,7 @@ struct task_ctrl_blk {
     } file_request;
 
     /* file descriptor table */
-    struct fdtable *fdtable;
+    struct fdtable fdtable[FILE_DESC_CNT_MAX];
     int fd_cnt;
 
     struct list list;

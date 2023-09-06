@@ -5,6 +5,8 @@ include config.mk
 CFLAGS :=
 SRC :=
 
+ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
+
 #board selection
 include platform/qemu.mk
 #include platform/stm32f4disc.mk
@@ -28,8 +30,6 @@ CFLAGS += -Wno-address-of-packed-member
 
 USER = $(shell whoami)
 CFLAGS += -D__USER_NAME__=\"$(USER)\"
-
-ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
 
 CFLAGS += -I ./lib/CMSIS/ST/STM32F4xx/Include
 CFLAGS += -I ./lib/CMSIS/Include

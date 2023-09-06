@@ -5,15 +5,15 @@
 
 extern int mavlink_fd;
 
-void mavlink_send_msg(mavlink_message_t *msg)
+void mavlink_send_msg(mavlink_message_t *msg, int fd)
 {
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len = mavlink_msg_to_send_buffer(buf, msg);
 
-    while(write(mavlink_fd, buf, len) == -EAGAIN);
+    while(write(fd, buf, len) == -EAGAIN);
 }
 
-void mavlink_send_heartbeat(void)
+void mavlink_send_heartbeat(int fd)
 {
     uint8_t sys_id = 1;
     uint8_t type = MAV_TYPE_QUADROTOR;
@@ -25,10 +25,10 @@ void mavlink_send_heartbeat(void)
     mavlink_message_t msg;
     mavlink_msg_heartbeat_pack(sys_id, 1, &msg, type, autopilot, base_mode, custom_mode, sys_status);
 
-    mavlink_send_msg(&msg);
+    mavlink_send_msg(&msg, fd);
 }
 
-void mavlink_send_hil_actuator_controls(void)
+void mavlink_send_hil_actuator_controls(int fd)
 {
     uint8_t sys_id = 1;
     float ctrls[16] = {0.1, 0.1, 0.1, 0.1};
@@ -44,5 +44,5 @@ void mavlink_send_hil_actuator_controls(void)
     mavlink_message_t msg;
     mavlink_msg_hil_actuator_controls_pack(sys_id, 1, &msg, time_usec, ctrls, mode, 0);
 
-    mavlink_send_msg(&msg);
+    mavlink_send_msg(&msg, fd);
 }

@@ -4,7 +4,6 @@
 #include "kernel.h"
 #include "syscall.h"
 #include "uart.h"
-#include "shell.h"
 #include "task.h"
 
 #define TEST_STR "fifo: hello world\n\r"
@@ -44,7 +43,7 @@ void fifo_task2(void)
         read(fifo_fd, &data, LEN);
 
         /* write serial */
-        shell_puts(data);
+        write(serial_fd, data, LEN);
     }
 }
 

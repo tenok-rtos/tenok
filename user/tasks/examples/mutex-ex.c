@@ -18,7 +18,7 @@ void mutex_task1(void)
 
     while(1) {
         pthread_mutex_lock(&mutex_print);
-        while(write(serial_fd, str, strlen(str)) == -EAGAIN); //write serial
+        write(serial_fd, str, strlen(str));
         pthread_mutex_unlock(&mutex_print);
 
         sleep(1000);
@@ -34,7 +34,7 @@ void mutex_task2(void)
 
     while(1) {
         pthread_mutex_lock(&mutex_print);
-        while(write(serial_fd, str, strlen(str)) == -EAGAIN); //write serial
+        write(serial_fd, str, strlen(str));
         pthread_mutex_unlock(&mutex_print);
 
         sleep(1000);

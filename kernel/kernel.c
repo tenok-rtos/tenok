@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "stm32f4xx.h"
 #include "kernel.h"
 #include "syscall.h"
@@ -132,6 +133,7 @@ void task_create(task_func_t task_func, uint8_t priority)
     tasks[task_cnt].status = TASK_WAIT;
     tasks[task_cnt].priority = priority;
     tasks[task_cnt].stack_size = TASK_STACK_SIZE; //TODO: variable size?
+    tasks[task_cnt].fd_cnt = 0;
 
     /*
      * stack design contains three parts:
@@ -352,16 +354,16 @@ void sys_mount(void)
     char *source = (char *)*running_task->reg.r0;
     char *target = (char *)*running_task->reg.r1;
 
-    int task_fd = running_task->pid;
+    int pid = running_task->pid;
 
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
-        request_mount(task_fd, source, target);
+        request_mount(pid, source, target);
     }
 
     /* receive the mount result */
     int result;
-    if(fifo_read(files[task_fd], (char *)&result, sizeof(result), 0)) {
+    if(fifo_read(files[pid], (char *)&result, sizeof(result), 0) == sizeof(result)) {
         //return the file descriptor number with r0
         *(int *)running_task->reg.r0 = result;
     }
@@ -371,18 +373,35 @@ void sys_open(void)
 {
     /* read syscall argument */
     char *pathname = (char *)*running_task->reg.r0;
+    int flags = (int)*running_task->reg.r1;
 
-    int task_fd = running_task->pid;
+    int pid = running_task->pid;
 
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
-        request_open_file(task_fd, pathname);
+        request_open_file(pid, pathname);
     }
 
     /* inquire the file descriptor from the file system task */
-    int fd;
-    if(fifo_read(files[task_fd], (char *)&fd, sizeof(fd), 0)) {
-        //pass the file descriptor number with r0
+    int file_idx;
+    if(fifo_read(files[pid], (char *)&file_idx, sizeof(file_idx), 0) == sizeof(file_idx)) {
+        if(file_idx == -1 || running_task->fd_cnt >= FILE_DESC_CNT_MAX) {
+            *(int *)running_task->reg.r0 = -1;
+            return;
+        }
+
+        int fdesc_idx = running_task->fd_cnt;
+
+        /* register new file descriptor to the task */
+        struct fdtable *fdesc = &running_task->fdtable[fdesc_idx];
+        fdesc->file = files[file_idx];
+        fdesc->flags = flags;
+
+        /* increase file descriptor count of the task */
+        running_task->fd_cnt++;
+
+        /* return the file descriptor */
+        int fd = fdesc_idx + TASK_CNT_MAX;
         *(int *)running_task->reg.r0 = fd;
     }
 }
@@ -394,8 +413,15 @@ void sys_read(void)
     char *buf = (uint8_t *)*running_task->reg.r1;
     size_t count = *running_task->reg.r2;
 
-    /* get the file pointer from the table */
-    struct file *filp = files[fd];
+    /* get the file pointer */
+    struct file *filp;
+    if(fd < TASK_CNT_MAX) {
+        /* anonymous pipe hold by each tasks */
+        filp = files[fd];
+    } else {
+        int fdesc_idx = fd - TASK_CNT_MAX;
+        filp = running_task->fdtable[fdesc_idx].file;
+    }
 
     /* read the file */
     ssize_t retval = filp->f_op->read(filp, buf, count, 0);
@@ -413,8 +439,15 @@ void sys_write(void)
     char *buf = (uint8_t *)*running_task->reg.r1;
     size_t count = *running_task->reg.r2;
 
-    /* get the file pointer from the table */
-    struct file *filp = files[fd];
+    /* get the file pointer */
+    struct file *filp;
+    if(fd < TASK_CNT_MAX) {
+        /* anonymous pipe hold by each tasks */
+        filp = files[fd];
+    } else {
+        int fdesc_idx = fd - TASK_CNT_MAX;
+        filp = running_task->fdtable[fdesc_idx].file;
+    }
 
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
@@ -429,8 +462,14 @@ void sys_lseek(void)
     long offset = *running_task->reg.r1;
     int whence = *running_task->reg.r2;
 
+    if(fd < TASK_CNT_MAX) {
+        *(long *)running_task->reg.r0 = EBADF;
+        return;
+    }
+
     /* get the file pointer from the table */
-    struct file *filp = files[fd];
+    int fdesc_idx = fd - TASK_CNT_MAX;
+    struct file *filp = running_task->fdtable[fdesc_idx].file;
 
     /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
@@ -444,8 +483,14 @@ void sys_fstat(void)
     int fd = *running_task->reg.r0;
     struct stat *statbuf = (struct stat *)*running_task->reg.r1;
 
+    if(fd < TASK_CNT_MAX) {
+        *(long *)running_task->reg.r0 = EBADF;
+        return;
+    }
+
     /* read the inode of the given file */
-    struct inode *inode = files[fd]->file_inode;
+    int fdesc_idx = fd - TASK_CNT_MAX;
+    struct inode *inode = running_task->fdtable[fdesc_idx].file->file_inode;
 
     /* check if the inode exists */
     if(inode != NULL) {
@@ -465,16 +510,16 @@ void sys_opendir(void)
     char *pathname = (char *)*running_task->reg.r0;
     DIR *dirp = (DIR *)*running_task->reg.r1;
 
-    int task_fd = running_task->pid;
+    int pid = running_task->pid;
 
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
-        request_open_directory(task_fd, pathname);
+        request_open_directory(pid, pathname);
     }
 
     /* inquire the file descriptor from the file system task */
     struct inode *inode_dir;
-    if(fifo_read(files[task_fd], (char *)&inode_dir, sizeof(inode_dir), 0)) {
+    if(fifo_read(files[pid], (char *)&inode_dir, sizeof(inode_dir), 0) == sizeof(inode_dir)) {
         //return the directory
         dirp->inode_dir = inode_dir;
         dirp->dentry_list = inode_dir->i_dentry.next;
@@ -544,21 +589,22 @@ void sys_mknod(void)
     //mode_t mode = (mode_t)*running_task->reg.r1;
     dev_t dev = (dev_t)*running_task->reg.r2;
 
-    int task_fd = running_task->pid;
+    int pid = running_task->pid;
 
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
-        request_create_file(task_fd, pathname, dev);
+        request_create_file(pid, pathname, dev);
     }
 
     /* wait until the file system complete the request */
-    int new_fd;
-    if(fifo_read(files[task_fd], (char *)&new_fd, sizeof(new_fd), 0) == 0) {
+    int file_idx;
+    int retval = fifo_read(files[pid], (char *)&file_idx, sizeof(file_idx), 0);
+    if(retval != sizeof(file_idx)) {
         return; //not ready
     }
 
     /* pass the return value with r0 */
-    if(new_fd == -1) {
+    if(file_idx == -1) {
         *(int *)running_task->reg.r0 = -1;
     } else {
         *(int *)running_task->reg.r0 = 0;
@@ -570,23 +616,23 @@ void sys_mkfifo(void)
     /* read syscall arguments */
     char *pathname = (char *)*running_task->reg.r0;
     //mode_t mode = (mode_t)*running_task->reg.r1;
-    dev_t dev = (dev_t)*running_task->reg.r2;
 
-    int task_fd = running_task->pid;
+    int pid = running_task->pid;
 
     /* if the pending flag is set that means the request is already sent */
     if(running_task->syscall_pending == false) {
-        request_create_file(task_fd, pathname, S_IFIFO);
+        request_create_file(pid, pathname, S_IFIFO);
     }
 
     /* wait until the file system complete the request */
-    int new_fd;
-    if(fifo_read(files[task_fd], (char *)&new_fd, sizeof(new_fd), 0) == 0) {
+    int file_idx;
+    int retval = fifo_read(files[pid], (char *)&pid, sizeof(file_idx), 0);
+    if(retval != sizeof(file_idx)) {
         return; //not ready
     }
 
     /* pass the return value with r0 */
-    if(new_fd == -1) {
+    if(file_idx == -1) {
         *(int *)running_task->reg.r0 = -1;
     } else {
         *(int *)running_task->reg.r0 = 0;
