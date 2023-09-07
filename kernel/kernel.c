@@ -421,6 +421,7 @@ void sys_read(void)
     } else {
         int fdesc_idx = fd - TASK_CNT_MAX;
         filp = running_task->fdtable[fdesc_idx].file;
+        filp->f_flags = running_task->fdtable[fdesc_idx].flags;
     }
 
     /* read the file */
@@ -447,6 +448,7 @@ void sys_write(void)
     } else {
         int fdesc_idx = fd - TASK_CNT_MAX;
         filp = running_task->fdtable[fdesc_idx].file;
+        filp->f_flags = running_task->fdtable[fdesc_idx].flags;
     }
 
     /* write the file */

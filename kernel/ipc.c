@@ -237,11 +237,13 @@ int fifo_init(int fd, struct file **files, struct inode *file_inode)
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset)
 {
     pipe_t *pipe = container_of(filp, struct ringbuf, file);
+    pipe->flags = filp->f_flags;
     return generic_pipe_read(pipe, buf, size);
 }
 
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offset)
 {
     pipe_t *pipe = container_of(filp, struct ringbuf, file);
+    pipe->flags = filp->f_flags;
     return generic_pipe_write(pipe, buf, size);
 }
