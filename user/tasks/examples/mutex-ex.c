@@ -7,11 +7,13 @@
 #include "mutex.h"
 #include "task.h"
 
-extern _pthread_mutex_t mutex_print;
+_pthread_mutex_t mutex_print;
 
 void mutex_task1(void)
 {
     set_program_name("mutex1");
+
+    pthread_mutex_init(&mutex_print, NULL);
 
     int serial_fd = open("/dev/serial0", 0, 0);
     char *str = "mutex task 1 is running\n\r";

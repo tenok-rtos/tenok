@@ -13,6 +13,7 @@
 #include "pipe.h"
 #include "fifo.h"
 #include "mqueue.h"
+#include "mutex.h"
 #include "time.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
@@ -43,6 +44,9 @@ void sys_mkfifo(void);
 void sys_mq_open(void);
 void sys_mq_receive(void);
 void sys_mq_send(void);
+void sys_pthread_mutex_init(void);
+void sys_pthread_mutex_unlock(void);
+void sys_pthread_mutex_lock(void);
 
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
@@ -97,7 +101,10 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(mkfifo, 19),
     DEF_SYSCALL(mq_open, 20),
     DEF_SYSCALL(mq_receive, 21),
-    DEF_SYSCALL(mq_send, 22)
+    DEF_SYSCALL(mq_send, 22),
+    DEF_SYSCALL(pthread_mutex_init, 23),
+    DEF_SYSCALL(pthread_mutex_unlock, 24),
+    DEF_SYSCALL(pthread_mutex_lock, 25)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -751,6 +758,67 @@ void sys_mq_send(void)
     ssize_t retval = generic_pipe_write(pipe, msg_ptr, 1);
     if(running_task->syscall_pending == false) {
         *(ssize_t *)running_task->reg.r0 = retval;
+    }
+}
+
+void sys_pthread_mutex_init(void)
+{
+    /* read syscall arguments */
+    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_attr_t *attr = (pthread_mutex_attr_t *)*running_task->reg.r1;
+
+    mutex->owner = NULL;
+    mutex->lock = 0;
+    list_init(&mutex->wait_list);
+
+    *(int *)running_task->reg.r0 = 0;
+}
+
+void sys_pthread_mutex_unlock(void)
+{
+    /* read syscall arguments */
+    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+
+    /* only the owner task can unlock the mutex */
+    if(mutex->owner != running_task) {
+        *(int *)running_task->reg.r0 = EPERM;
+        return;
+    }
+
+    /* release the mutex */
+    mutex->owner = NULL;
+
+    /* check the mutex waiting list */
+    if(!list_is_empty(&mutex->wait_list)) {
+        /* wake up a task from the mutex waiting list */
+        wake_up(&mutex->wait_list);
+    }
+
+    /* return on success */
+    *(int *)running_task->reg.r0 = 0;
+}
+
+void sys_pthread_mutex_lock(void)
+{
+    /* read syscall arguments */
+    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+
+    /* check if mutex is already occupied */
+    if(mutex->owner != NULL) {
+        /* put the current task into the mutex waiting list */
+        prepare_to_wait(&mutex->wait_list, &running_task->list, TASK_WAIT);
+
+        /* turn on the syscall pending flag */
+        running_task->syscall_pending = true;
+    } else {
+        /* occupy the mutex by setting the owner */
+        mutex->owner = running_task;
+
+        /* turn off the syscall pending flag */
+        running_task->syscall_pending = false;
+
+        /* return on success */
+        *(int *)running_task->reg.r0 = 0;
     }
 }
 

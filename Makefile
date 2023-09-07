@@ -81,7 +81,6 @@ SRC += ./kernel/ipc.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
        ./kernel/semaphore.c \
-       ./kernel/mutex.c \
        ./kernel/time.c \
        ./kernel/fs/fs.c \
        ./kernel/fs/file.c \

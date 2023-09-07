@@ -118,3 +118,18 @@ mq_receive:
 .global mq_send
 mq_send:
         syscall #22
+
+.type   pthread_mutex_init, %function
+.global pthread_mutex_init
+pthread_mutex_init:
+        syscall #23
+
+.type   pthread_mutex_unlock, %function
+.global pthread_mutex_unlock
+pthread_mutex_unlock:
+        syscall #24
+
+.type   pthread_mutex_lock, %function
+.global pthread_mutex_lock
+pthread_mutex_lock:
+        syscall #25
