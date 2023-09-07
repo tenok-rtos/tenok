@@ -155,6 +155,8 @@ void shell_cmd_xxd(int argc, char *argv[])
             }
         }
     }
+
+    fclose(&file);
 }
 
 HOOK_SHELL_CMD(xxd);

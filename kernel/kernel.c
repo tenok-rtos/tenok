@@ -28,6 +28,7 @@ void sys_fork(void);
 void sys_sleep(void);
 void sys_mount(void);
 void sys_open(void);
+void sys_close(void);
 void sys_read(void);
 void sys_write(void);
 void sys_lseek(void);
@@ -82,20 +83,21 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(sleep, 5),
     DEF_SYSCALL(mount, 6),
     DEF_SYSCALL(open, 7),
-    DEF_SYSCALL(read, 8),
-    DEF_SYSCALL(write, 9),
-    DEF_SYSCALL(lseek, 10),
-    DEF_SYSCALL(fstat, 11),
-    DEF_SYSCALL(opendir, 12),
-    DEF_SYSCALL(readdir, 13),
-    DEF_SYSCALL(getpriority, 14),
-    DEF_SYSCALL(setpriority, 15),
-    DEF_SYSCALL(getpid, 16),
-    DEF_SYSCALL(mknod, 17),
-    DEF_SYSCALL(mkfifo, 18),
-    DEF_SYSCALL(mq_open, 19),
-    DEF_SYSCALL(mq_receive, 20),
-    DEF_SYSCALL(mq_send, 21)
+    DEF_SYSCALL(close, 8),
+    DEF_SYSCALL(read, 9),
+    DEF_SYSCALL(write, 10),
+    DEF_SYSCALL(lseek, 11),
+    DEF_SYSCALL(fstat, 12),
+    DEF_SYSCALL(opendir, 13),
+    DEF_SYSCALL(readdir, 14),
+    DEF_SYSCALL(getpriority, 15),
+    DEF_SYSCALL(setpriority, 16),
+    DEF_SYSCALL(getpid, 17),
+    DEF_SYSCALL(mknod, 18),
+    DEF_SYSCALL(mkfifo, 19),
+    DEF_SYSCALL(mq_open, 20),
+    DEF_SYSCALL(mq_receive, 21),
+    DEF_SYSCALL(mq_send, 22)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -134,6 +136,9 @@ void task_create(task_func_t task_func, uint8_t priority)
     tasks[task_cnt].priority = priority;
     tasks[task_cnt].stack_size = TASK_STACK_SIZE; //TODO: variable size?
     tasks[task_cnt].fd_cnt = 0;
+    for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
+        tasks[task_cnt].fdtable[i].used = false;
+    }
 
     /*
      * stack design contains three parts:
@@ -390,12 +395,26 @@ void sys_open(void)
             return;
         }
 
-        int fdesc_idx = running_task->fd_cnt;
+        /* find a free file descriptor entry on the table */
+        int fdesc_idx = -1;
+        for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
+            if(running_task->fdtable[i].used == false) {
+                fdesc_idx = i;
+                break;
+            }
+        }
+
+        /* unexpeceted error */
+        if(fdesc_idx == -1) {
+            *(int *)running_task->reg.r0 = -1;
+            return;
+        }
 
         /* register new file descriptor to the task */
         struct fdtable *fdesc = &running_task->fdtable[fdesc_idx];
         fdesc->file = files[file_idx];
         fdesc->flags = flags;
+        fdesc->used = true;
 
         /* increase file descriptor count of the task */
         running_task->fd_cnt++;
@@ -404,6 +423,34 @@ void sys_open(void)
         int fd = fdesc_idx + TASK_CNT_MAX;
         *(int *)running_task->reg.r0 = fd;
     }
+}
+
+void sys_close(void)
+{
+    /* read syscall argument */
+    int fd = *running_task->reg.r0;
+
+    /* a valid file descriptor number should starts from TASK_CNT_MAX */
+    if(fd < TASK_CNT_MAX) {
+        *(long *)running_task->reg.r0 = EBADF;
+        return;
+    }
+
+    /* calculate the index number of the file descriptor on the table */
+    int fdesc_idx = fd - TASK_CNT_MAX;
+
+    /* check if the file descriptor is indeed marked as used */
+    if((running_task->fdtable[fdesc_idx].used != true)) {
+        *(long *)running_task->reg.r0 = EBADF;
+        return;
+    }
+
+    /* free the file descriptor */
+    running_task->fdtable[fdesc_idx].used = false;
+    running_task->fd_cnt--;
+
+    /* pass the return value with r0 */
+    *(int *)running_task->reg.r0 = 0; //success
 }
 
 void sys_read(void)

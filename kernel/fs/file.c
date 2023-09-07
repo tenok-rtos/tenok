@@ -13,7 +13,7 @@
 
 extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 
-int __fopen(const char *pathname, const char *mode, FILE *fstream)
+int __fopen(const char *pathname, const char *mode, FILE *stream)
 {
     /* open the file with the system call */
     int fd = open(pathname, 0, 0);
@@ -30,16 +30,21 @@ int __fopen(const char *pathname, const char *mode, FILE *fstream)
     if(stat.st_mode != S_IFREG)
         return -1;
 
-    fstream->lock = 0;
-    fstream->fd = fd;
+    stream->lock = 0;
+    stream->fd = fd;
 
     return 0;
 }
 
-size_t __fread(void *ptr, size_t size, size_t nmemb, FILE *fstream)
+int __fclose(FILE *stream)
+{
+    close(stream->fd);
+}
+
+size_t __fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     /* start of the critical section */
-    spin_lock(&fstream->lock);
+    spin_lock(&stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_READ_SIZE + 1;
@@ -50,7 +55,7 @@ size_t __fread(void *ptr, size_t size, size_t nmemb, FILE *fstream)
         int rsize = (nbytes >= MAX_READ_SIZE) ? MAX_READ_SIZE : nbytes;
 
         /* read file */
-        if(read(fstream->fd, (char *)((uintptr_t)ptr + total), rsize) != rsize) {
+        if(read(stream->fd, (char *)((uintptr_t)ptr + total), rsize) != rsize) {
             break; //read error
         }
 
@@ -59,15 +64,15 @@ size_t __fread(void *ptr, size_t size, size_t nmemb, FILE *fstream)
     }
 
     /* end of the critical section */
-    spin_unlock(&fstream->lock);
+    spin_unlock(&stream->lock);
 
     return total;
 }
 
-size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream)
+size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     /* start of the critical section */
-    spin_lock(&fstream->lock);
+    spin_lock(&stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_WRITE_SIZE + 1;
@@ -78,7 +83,7 @@ size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream)
         int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
 
         /* write file */
-        if(write(fstream->fd, (char *)((uintptr_t)ptr + total), wsize) != wsize) {
+        if(write(stream->fd, (char *)((uintptr_t)ptr + total), wsize) != wsize) {
             break; //write error
         }
 
@@ -87,7 +92,7 @@ size_t __fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream)
     }
 
     /* end of the critical section */
-    spin_unlock(&fstream->lock);
+    spin_unlock(&stream->lock);
 
     return total;
 }

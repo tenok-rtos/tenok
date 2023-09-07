@@ -68,6 +68,8 @@ void shell_cmd_cat(int argc, char *argv[])
 
         shell_print_lf_cr(str, recvd);
     }
+
+    fclose(&file);
 }
 
 HOOK_SHELL_CMD(cat);

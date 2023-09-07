@@ -6,6 +6,7 @@
 #define FILE tenok__FILE
 
 #define fopen  __fopen
+#define fclose __fclose
 #define fread  __fread
 #define fwrite __fwrite
 #define fseek  __fseek
@@ -17,8 +18,9 @@ typedef struct {
 } tenok__FILE;
 
 int fopen(const char *pathname, const char *mode, FILE *file);
-size_t fread(void *ptr, size_t size, size_t nmemb, FILE *fstream);
-size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fstream);
+int fclose(FILE *stream);
+size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 int fseek(FILE *stream, long offset, int whence);
 int fileno(FILE *stream);
 

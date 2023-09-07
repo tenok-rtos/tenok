@@ -16,6 +16,7 @@ int fork(void);
 uint32_t sleep(uint32_t ticks);
 int mount(const char *source, const char *target);
 int open(const char *pathname, int flags, mode_t);
+int close(int fd);
 ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
 long lseek(int fd, long offset, int whence);
