@@ -15,7 +15,7 @@ static int uart1_dma_puts(const char *data, size_t size);
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, loff_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, loff_t offset);
 
-sem_t sem_uart1_tx;
+struct semaphore sem_uart1_tx;
 pipe_t *uart1_rx_pipe;
 
 int uart1_state = UART_TX_IDLE;
@@ -87,7 +87,7 @@ void serial0_init(void)
     uart1_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
     /* initialize the semaphore for transmission */
-    sem_init(&sem_uart1_tx, 0, 0);
+    sema_init(&sem_uart1_tx, 0);
 
     /* initialize uart1 */
     uart1_init(115200);
@@ -140,7 +140,7 @@ static int uart1_dma_puts(const char *data, size_t size)
 
     /* wait until dma finished copying */
     if(uart1_state == UART_TX_DMA_BUSY) {
-        if(sem_trywait(&sem_uart1_tx) == 0) {
+        if(down_trylock(&sem_uart1_tx) == 0) {
             uart1_state = UART_TX_IDLE;
             return size;
         } else {
@@ -162,7 +162,7 @@ void DMA2_Stream7_IRQHandler(void)
     if(DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF7) == SET) {
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
-        sem_post(&sem_uart1_tx);
+        up(&sem_uart1_tx);
     }
 }
 

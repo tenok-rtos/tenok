@@ -133,3 +133,28 @@ pthread_mutex_unlock:
 .global pthread_mutex_lock
 pthread_mutex_lock:
         syscall #25
+
+.type   sem_init, %function
+.global sem_init
+sem_init:
+        syscall #26
+
+.type   sem_post, %function
+.global sem_post
+sem_post:
+        syscall #27
+
+.type   sem_trywait, %function
+.global sem_trywait
+sem_trywait:
+        syscall #28
+
+.type   sem_wait, %function
+.global sem_wait
+sem_wait:
+        syscall #29
+
+.type   sem_getvalue, %function
+.global sem_getvalue
+sem_getvalue:
+        syscall #30

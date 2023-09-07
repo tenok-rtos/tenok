@@ -47,6 +47,11 @@ void sys_mq_send(void);
 void sys_pthread_mutex_init(void);
 void sys_pthread_mutex_unlock(void);
 void sys_pthread_mutex_lock(void);
+void sys_sem_init(void);
+void sys_sem_post(void);
+void sys_sem_trywait(void);
+void sys_sem_wait(void);
+void sys_sem_getvalue(void);
 
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
@@ -104,7 +109,12 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(mq_send, 22),
     DEF_SYSCALL(pthread_mutex_init, 23),
     DEF_SYSCALL(pthread_mutex_unlock, 24),
-    DEF_SYSCALL(pthread_mutex_lock, 25)
+    DEF_SYSCALL(pthread_mutex_lock, 25),
+    DEF_SYSCALL(sem_init, 26),
+    DEF_SYSCALL(sem_post, 27),
+    DEF_SYSCALL(sem_trywait, 28),
+    DEF_SYSCALL(sem_wait, 29),
+    DEF_SYSCALL(sem_getvalue, 30)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -782,20 +792,19 @@ void sys_pthread_mutex_unlock(void)
     /* only the owner task can unlock the mutex */
     if(mutex->owner != running_task) {
         *(int *)running_task->reg.r0 = EPERM;
-        return;
+    } else {
+        /* release the mutex */
+        mutex->owner = NULL;
+
+        /* check the mutex waiting list */
+        if(!list_is_empty(&mutex->wait_list)) {
+            /* wake up a task from the mutex waiting list */
+            wake_up(&mutex->wait_list);
+        }
+
+        /* return on success */
+        *(int *)running_task->reg.r0 = 0;
     }
-
-    /* release the mutex */
-    mutex->owner = NULL;
-
-    /* check the mutex waiting list */
-    if(!list_is_empty(&mutex->wait_list)) {
-        /* wake up a task from the mutex waiting list */
-        wake_up(&mutex->wait_list);
-    }
-
-    /* return on success */
-    *(int *)running_task->reg.r0 = 0;
 }
 
 void sys_pthread_mutex_lock(void)
@@ -820,6 +829,102 @@ void sys_pthread_mutex_lock(void)
         /* return on success */
         *(int *)running_task->reg.r0 = 0;
     }
+}
+
+void sys_sem_init(void)
+{
+    /* read syscall arguments */
+    sem_t *sem = (sem_t *)*running_task->reg.r0;
+    int pshared = (int)*running_task->reg.r1;
+    unsigned int value = (unsigned int)*running_task->reg.r2;
+
+    sem->count = value;
+    sem->lock = 0;
+    list_init(&sem->wait_list);
+
+    /* return on success */
+    *(int *)running_task->reg.r0 = 0;
+}
+
+void sys_sem_post(void)
+{
+    /* read syscall arguments */
+    sem_t *sem = (sem_t *)*running_task->reg.r0;
+
+    /* prevent integer overflow */
+    if(sem->count >= (INT32_MAX - 1)) {
+        /* turn on the syscall pending flag */
+        running_task->syscall_pending = true;
+    } else {
+        /* increase the semaphore */
+        sem->count++;
+
+        /* wake up a task from the waiting list */
+        if(sem->count > 0 && !list_is_empty(&sem->wait_list)) {
+            wake_up(&sem->wait_list);
+        }
+
+        /* turn off the syscall pending flag */
+        running_task->syscall_pending = false;
+
+        /* return on success */
+        *(int *)running_task->reg.r0;
+    }
+}
+
+void sys_sem_trywait(void)
+{
+    /* read syscall arguments */
+    sem_t *sem = (sem_t *)*running_task->reg.r0;
+
+    if(sem->count <= 0) {
+        /* failed to obtain the semaphore, put the current task into the waiting list */
+        prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
+
+        /* return on error */
+        *(int *)running_task->reg.r0 = -EAGAIN;
+    } else {
+        /* successfully obtained the semaphore */
+        sem->count--;
+
+        /* return on success */
+        *(int *)running_task->reg.r0 = 0;
+    }
+}
+
+void sys_sem_wait(void)
+{
+    /* read syscall arguments */
+    sem_t *sem = (sem_t *)*running_task->reg.r0;
+
+    if(sem->count <= 0) {
+        /* failed to obtain the semaphore, put the current task into the waiting list */
+        prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
+
+        /* turn on the syscall pending flag */
+        running_task->syscall_pending = true;
+    } else {
+        /* successfully obtained the semaphore */
+        sem->count--;
+
+        /* turn off the syscall pending flag */
+        running_task->syscall_pending = false;
+
+        /* return on success */
+        *(int *)running_task->reg.r0 = 0;
+    }
+}
+
+void sys_sem_getvalue(void)
+{
+    /* read syscall arguments */
+    sem_t *sem = (sem_t *)*running_task->reg.r0;
+    int *sval = (int *)*running_task->reg.r0;
+
+    *sval = sem->count;
+
+    /* return on success */
+    *(int *)running_task->reg.r0 = 0;
 }
 
 uint32_t get_proc_mode(void)

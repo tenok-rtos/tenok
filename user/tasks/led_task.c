@@ -10,6 +10,8 @@ void led_task1(void)
     set_program_name("led1");
     setpriority(0, getpid(), 3);
 
+    sem_init(&sem_led, 0, 0);
+
     int state = 1;
     while(1) {
         sem_wait(&sem_led);
