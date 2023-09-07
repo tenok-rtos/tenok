@@ -7,7 +7,7 @@ CFLAGS :=
 CFLAGS +=-g
 
 CFLAGS += -I ../../ \
-	  -I ../../include
+	  -I ../../include/kernel
 
 SRC := ../../kernel/list.c \
        ./msggen.c
