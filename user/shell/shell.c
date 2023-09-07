@@ -648,10 +648,6 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
         i++;
     }
 
-    /* nothing to read */
-    if(i == (len - 1))
-        return 0;
-
     /* get the first argument */
     argv[0] = &cmd[i];
     int argc = 1;
