@@ -277,7 +277,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         case S_IFCHR: {
             /* create a new character device file */
             struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
-            dev_file->file_inode = new_inode;
+            dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 
             new_inode->i_mode   = S_IFCHR;
@@ -290,7 +290,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         case S_IFBLK: {
             /* create a new block device file */
             struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
-            dev_file->file_inode = new_inode;
+            dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 
             new_inode->i_mode   = S_IFBLK;

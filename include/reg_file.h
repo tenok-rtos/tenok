@@ -5,7 +5,7 @@
 
 struct reg_file {
     int pos;
-    struct inode* file_inode;
+    struct inode* f_inode;
     struct file file;
 };
 

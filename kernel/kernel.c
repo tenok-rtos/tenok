@@ -546,7 +546,7 @@ void sys_fstat(void)
 
     /* read the inode of the given file */
     int fdesc_idx = fd - TASK_CNT_MAX;
-    struct inode *inode = running_task->fdtable[fdesc_idx].file->file_inode;
+    struct inode *inode = running_task->fdtable[fdesc_idx].file->f_inode;
 
     /* check if the inode exists */
     if(inode != NULL) {

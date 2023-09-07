@@ -228,7 +228,7 @@ int fifo_init(int fd, struct file **files, struct inode *file_inode)
 
     /* register fifo to the file table */
     pipe->file.f_op = &fifo_ops;
-    pipe->file.file_inode = file_inode;
+    pipe->file.f_inode = file_inode;
     files[fd] = &pipe->file;
 
     return 0;

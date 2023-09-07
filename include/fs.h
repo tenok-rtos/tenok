@@ -107,7 +107,7 @@ struct stat {
 };
 
 struct file {
-    struct inode *file_inode;
+    struct inode *f_inode;
     struct file_operations *f_op;
     int f_flags;
 };
