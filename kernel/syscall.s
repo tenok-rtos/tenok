@@ -9,19 +9,19 @@
 	bx lr                 //return
 .endm
 
-.type   sched_yield, %function
-.global sched_yield
-sched_yield:
-	syscall #1
-
 .type   set_irq, %function
 .global set_irq
 set_irq:
-	syscall #2
+	syscall #1
 
 .type   set_program_name, %function
 .global set_program_name
 set_program_name:
+	syscall #2
+
+.type   sched_yield, %function
+.global sched_yield
+sched_yield:
 	syscall #3
 
 .type   fork, %function

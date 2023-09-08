@@ -23,9 +23,9 @@
 
 #define INITIAL_XPSR 0x01000000
 
-void sys_sched_yield(void);
 void sys_set_irq(void);
 void sys_set_program_name(void);
+void sys_sched_yield(void);
 void sys_fork(void);
 void sys_sleep(void);
 void sys_mount(void);
@@ -88,10 +88,10 @@ task_func_t *hook_task_func = NULL;
 /* syscall table */
 syscall_info_t syscall_table[] = {
     /* non-posix syscalls */
-    DEF_SYSCALL(sched_yield, 1),
-    DEF_SYSCALL(set_irq, 2),
-    DEF_SYSCALL(set_program_name, 3),
+    DEF_SYSCALL(set_irq, 1),
+    DEF_SYSCALL(set_program_name, 2),
     /* posix syscalls */
+    DEF_SYSCALL(sched_yield, 3),
     DEF_SYSCALL(fork, 4),
     DEF_SYSCALL(sleep, 5),
     DEF_SYSCALL(mount, 6),
@@ -292,12 +292,6 @@ void syscall_handler(void)
     }
 }
 
-void sys_sched_yield(void)
-{
-    /* suspend the current task */
-    prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
-}
-
 void sys_set_irq(void)
 {
     uint32_t state = *running_task->reg.r0;
@@ -318,6 +312,12 @@ void sys_set_program_name(void)
     char *name = (char*)*running_task->reg.r0;
 
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
+}
+
+void sys_sched_yield(void)
+{
+    /* suspend the current task */
+    prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
 }
 
 void sys_fork(void)
