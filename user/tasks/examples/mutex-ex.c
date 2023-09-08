@@ -7,7 +7,7 @@
 #include "mutex.h"
 #include "task.h"
 
-_pthread_mutex_t mutex_print;
+pthread_mutex_t mutex_print;
 
 void mutex_task1(void)
 {
@@ -38,7 +38,6 @@ void mutex_task2(void)
         pthread_mutex_lock(&mutex_print);
         write(serial_fd, str, strlen(str));
         pthread_mutex_unlock(&mutex_print);
-
         sleep(1000);
     }
 }

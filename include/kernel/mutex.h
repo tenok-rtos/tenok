@@ -5,18 +5,20 @@
 #include "spinlock.h"
 #include "list.h"
 
+#define pthread_mutex_t __pthread_mutex_t
+
 #define EPERM 1  //the current thread does not own the mutex
 
 typedef struct {
     spinlock_t lock;
     struct task_ctrl_blk *owner;
     struct list wait_list;
-} _pthread_mutex_t;
+} __pthread_mutex_t;
 
 typedef void pthread_mutex_attr_t;
 
-int pthread_mutex_init(_pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
-int pthread_mutex_unlock(_pthread_mutex_t *mutex);
-int pthread_mutex_lock(_pthread_mutex_t *mutex);
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+int pthread_mutex_lock(pthread_mutex_t *mutex);
 
 #endif

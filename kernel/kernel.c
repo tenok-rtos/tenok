@@ -15,6 +15,7 @@
 #include "mqueue.h"
 #include "mutex.h"
 #include "time.h"
+#include "cond.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9
@@ -47,6 +48,9 @@ void sys_mq_send(void);
 void sys_pthread_mutex_init(void);
 void sys_pthread_mutex_unlock(void);
 void sys_pthread_mutex_lock(void);
+void sys_pthread_cond_init(void);
+void sys_pthread_cond_signal(void);
+void sys_pthread_cond_wait(void);
 void sys_sem_init(void);
 void sys_sem_post(void);
 void sys_sem_trywait(void);
@@ -110,11 +114,14 @@ syscall_info_t syscall_table[] = {
     DEF_SYSCALL(pthread_mutex_init, 23),
     DEF_SYSCALL(pthread_mutex_unlock, 24),
     DEF_SYSCALL(pthread_mutex_lock, 25),
-    DEF_SYSCALL(sem_init, 26),
-    DEF_SYSCALL(sem_post, 27),
-    DEF_SYSCALL(sem_trywait, 28),
-    DEF_SYSCALL(sem_wait, 29),
-    DEF_SYSCALL(sem_getvalue, 30)
+    DEF_SYSCALL(pthread_cond_init, 26),
+    DEF_SYSCALL(pthread_cond_signal, 27),
+    DEF_SYSCALL(pthread_cond_wait, 28),
+    DEF_SYSCALL(sem_init, 29),
+    DEF_SYSCALL(sem_post, 30),
+    DEF_SYSCALL(sem_trywait, 31),
+    DEF_SYSCALL(sem_wait, 32),
+    DEF_SYSCALL(sem_getvalue, 33)
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
@@ -774,7 +781,7 @@ void sys_mq_send(void)
 void sys_pthread_mutex_init(void)
 {
     /* read syscall arguments */
-    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
     pthread_mutex_attr_t *attr = (pthread_mutex_attr_t *)*running_task->reg.r1;
 
     mutex->owner = NULL;
@@ -787,7 +794,7 @@ void sys_pthread_mutex_init(void)
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */
-    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
 
     /* only the owner task can unlock the mutex */
     if(mutex->owner != running_task) {
@@ -810,7 +817,7 @@ void sys_pthread_mutex_unlock(void)
 void sys_pthread_mutex_lock(void)
 {
     /* read syscall arguments */
-    _pthread_mutex_t *mutex = (_pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
 
     /* check if mutex is already occupied */
     if(mutex->owner != NULL) {
@@ -829,6 +836,49 @@ void sys_pthread_mutex_lock(void)
         /* return on success */
         *(int *)running_task->reg.r0 = 0;
     }
+}
+
+void sys_pthread_cond_init(void)
+{
+    /* read syscall arguments */
+    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
+
+    list_init(&cond->task_wait_list);
+
+    /* return on success */
+    *(int *)running_task->reg.r0 = 0;
+}
+
+void sys_pthread_cond_signal(void)
+{
+    /* read syscall arguments */
+    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
+
+    /* wake up a task from the wait list */
+    if(!list_is_empty(&cond->task_wait_list)) {
+        wake_up(&cond->task_wait_list);
+    }
+
+    /* pthread_cond_signal never returns error code */
+    *(int *)running_task->reg.r0 = 0;
+}
+
+void sys_pthread_cond_wait(void)
+{
+    /* read syscall arguments */
+    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r1;
+
+    if(mutex->owner) {
+        /* release the mutex */
+        mutex->owner = NULL;
+
+        /* put the current task into the read waiting list */
+        prepare_to_wait(&cond->task_wait_list, &running_task->list, TASK_WAIT);
+    }
+
+    /* pthread_cond_wait never returns error code */
+    *(int *)running_task->reg.r0 = 0;
 }
 
 void sys_sem_init(void)

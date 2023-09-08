@@ -7,7 +7,9 @@
 #include "list.h"
 #include "mqueue.h"
 #include "semaphore.h"
+#include "cond.h"
 #include "fs.h"
+#include "mutex.h"
 
 void sched_yield(void);
 void set_irq(uint32_t state);
@@ -28,5 +30,8 @@ int setpriority(int which, int who, int prio);
 int getpid(void);
 int mknod(const char *pathname, mode_t mode, dev_t dev);
 int mkfifo(const char *pathname, mode_t mode);
+int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
+int pthread_cond_signal(pthread_cond_t *cond);
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 
 #endif
