@@ -17,8 +17,4 @@ typedef struct {
 
 typedef void pthread_mutex_attr_t;
 
-int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
-int pthread_mutex_unlock(pthread_mutex_t *mutex);
-int pthread_mutex_lock(pthread_mutex_t *mutex);
-
 #endif
