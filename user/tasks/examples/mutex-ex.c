@@ -7,22 +7,63 @@
 #include "mutex.h"
 #include "task.h"
 
-pthread_mutex_t mutex_print;
+#define BUFFER_SIZE 10
+
+/* costomized printf */
+#define printf(...) \
+    sprintf(pbuf, __VA_ARGS__); \
+    print(serial_fd, pbuf);
+
+char pbuf[200] = {0};
+
+/* producer and consumer's data */
+int my_buffer[BUFFER_SIZE];
+int my_cnt = 0;
+
+/* data protection and task signaling */
+pthread_mutex_t mutex;
+pthread_cond_t cond_producer;
+pthread_cond_t cond_consumer;
+
+static void print(int fd, char *str)
+{
+    int len = strlen(str);
+    write(fd, str, len);
+}
 
 void mutex_task1(void)
 {
     set_program_name("mutex1");
 
-    pthread_mutex_init(&mutex_print, NULL);
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cond_producer, 0);
+    pthread_cond_init(&cond_consumer, 0);
 
     int serial_fd = open("/dev/serial0", 0, 0);
-    char *str = "mutex task 1 is running\n\r";
+
+    int item = 1;
 
     while(1) {
-        pthread_mutex_lock(&mutex_print);
-        write(serial_fd, str, strlen(str));
-        pthread_mutex_unlock(&mutex_print);
+        /* start of the critical section */
+        pthread_mutex_lock(&mutex);
 
+        if (my_cnt == BUFFER_SIZE) {
+            printf("[task 1] buffer is full. producer is waiting...\n\r");
+            pthread_cond_wait(&cond_producer, &mutex);
+        }
+
+        /* produce an item and add it to the buffer */
+        my_buffer[my_cnt++] = item;
+        printf("[task 1] produced item %d\n\r", item);
+        item++;
+
+        /* signal to consumers that an item is available */
+        pthread_cond_signal(&cond_consumer);
+
+        /* end of the critical section */
+        pthread_mutex_unlock(&mutex);
+
+        /* simulate some work */
         sleep(1000);
     }
 }
@@ -32,13 +73,28 @@ void mutex_task2(void)
     set_program_name("mutex2");
 
     int serial_fd = open("/dev/serial0", 0, 0);
-    char *str = "mutex task 2 is running\n\r";
 
     while(1) {
-        pthread_mutex_lock(&mutex_print);
-        write(serial_fd, str, strlen(str));
-        pthread_mutex_unlock(&mutex_print);
-        sleep(1000);
+        /* start of the critical section */
+        pthread_mutex_lock(&mutex);
+
+        if (my_cnt == 0) {
+            printf("[task 2] buffer is empty. consumer is waiting...\n\r");
+            pthread_cond_wait(&cond_consumer, &mutex);
+        }
+
+        /* consume an item from the buffer */
+        int item = my_buffer[--my_cnt];
+        printf("[task 2] consumed item %d\n\r", item);
+
+        /* signal to producers that there is space in the buffer */
+        pthread_cond_signal(&cond_producer);
+
+        /* end of the critical section */
+        pthread_mutex_unlock(&mutex);
+
+        /* simulate some work */
+        sleep(100);
     }
 }
 
