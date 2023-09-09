@@ -294,7 +294,9 @@ void syscall_handler(void)
 
 void sys_set_irq(void)
 {
-    uint32_t state = *running_task->reg.r0;
+    /* read syscall arguments */
+    uint32_t state = SYSCALL_ARG(uint32_t, 0);
+
     if(state) {
         //asm volatile ("cpsie i"); //enable all irq
         reset_basepri();
@@ -308,8 +310,8 @@ void sys_set_irq(void)
 
 void sys_set_program_name(void)
 {
-    /* read syscall argument */
-    char *name = (char*)*running_task->reg.r0;
+    /* read syscall arguments */
+    char *name = SYSCALL_ARG(char *, 0);
 
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
 }
@@ -323,7 +325,8 @@ void sys_sched_yield(void)
 void sys_fork(void)
 {
     if(task_cnt > TASK_CNT_MAX) {
-        *running_task->reg.r0 = -1; //pass the return value with r0
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -1;
         return;
     }
 
@@ -346,7 +349,7 @@ void sys_fork(void)
     memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
     /* return the child task pid to the parent task */
-    *(int *)running_task->reg.r0 = task_cnt;
+    SYSCALL_ARG(int, 0) = task_cnt;
 
     /*
      * select the proper stack layout and return the pid number to the child task
@@ -366,22 +369,25 @@ void sys_fork(void)
 
 void sys_sleep(void)
 {
+    /* read syscall arguments */
+    uint32_t tick = SYSCALL_ARG(uint32_t, 0);
+
     /* reconfigure the timer for sleeping */
-    running_task->sleep_ticks = *running_task->reg.r0;
+    running_task->sleep_ticks = tick;
 
     /* put the task into the sleep list and change the status */
     running_task->status = TASK_WAIT;
     list_push(&sleep_list, &(running_task->list));
 
     /* pass the return value with r0 */
-    *(uint32_t *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(uint32_t, 0) = 0;
 }
 
 void sys_mount(void)
 {
     /* read syscall arguments */
-    char *source = (char *)*running_task->reg.r0;
-    char *target = (char *)*running_task->reg.r1;
+    char *source = SYSCALL_ARG(char *, 0);
+    char *target = SYSCALL_ARG(char *, 1);
 
     int pid = running_task->pid;
 
@@ -394,15 +400,15 @@ void sys_mount(void)
     int result;
     if(fifo_read(files[pid], (char *)&result, sizeof(result), 0) == sizeof(result)) {
         //return the file descriptor number with r0
-        *(int *)running_task->reg.r0 = result;
+        SYSCALL_ARG(int, 0) = result;
     }
 }
 
 void sys_open(void)
 {
     /* read syscall argument */
-    char *pathname = (char *)*running_task->reg.r0;
-    int flags = (int)*running_task->reg.r1;
+    char *pathname = SYSCALL_ARG(char *, 0);
+    int flags = SYSCALL_ARG(int, 1);
 
     int pid = running_task->pid;
 
@@ -415,7 +421,8 @@ void sys_open(void)
     int file_idx;
     if(fifo_read(files[pid], (char *)&file_idx, sizeof(file_idx), 0) == sizeof(file_idx)) {
         if(file_idx == -1 || running_task->fd_cnt >= FILE_DESC_CNT_MAX) {
-            *(int *)running_task->reg.r0 = -1;
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -1;
             return;
         }
 
@@ -430,7 +437,8 @@ void sys_open(void)
 
         /* unexpeceted error */
         if(fdesc_idx == -1) {
-            *(int *)running_task->reg.r0 = -1;
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -1;
             return;
         }
 
@@ -445,18 +453,18 @@ void sys_open(void)
 
         /* return the file descriptor */
         int fd = fdesc_idx + TASK_CNT_MAX;
-        *(int *)running_task->reg.r0 = fd;
+        SYSCALL_ARG(int, 0) = fd;
     }
 }
 
 void sys_close(void)
 {
-    /* read syscall argument */
-    int fd = *running_task->reg.r0;
+    /* read syscall arguments */
+    int fd = SYSCALL_ARG(int, 0);
 
     /* a valid file descriptor number should starts from TASK_CNT_MAX */
     if(fd < TASK_CNT_MAX) {
-        *(long *)running_task->reg.r0 = EBADF;
+        SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
@@ -465,7 +473,7 @@ void sys_close(void)
 
     /* check if the file descriptor is indeed marked as used */
     if((running_task->fdtable[fdesc_idx].used != true)) {
-        *(long *)running_task->reg.r0 = EBADF;
+        SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
@@ -473,16 +481,16 @@ void sys_close(void)
     running_task->fdtable[fdesc_idx].used = false;
     running_task->fd_cnt--;
 
-    /* pass the return value with r0 */
-    *(int *)running_task->reg.r0 = 0; //success
+    /* return on success */
+    SYSCALL_ARG(long, 0) = 0;
 }
 
 void sys_read(void)
 {
     /* read syscall argument */
-    int fd = *running_task->reg.r0;
-    char *buf = (uint8_t *)*running_task->reg.r1;
-    size_t count = *running_task->reg.r2;
+    int fd = SYSCALL_ARG(int, 0);
+    char *buf = SYSCALL_ARG(uint8_t *, 1);
+    size_t count = SYSCALL_ARG(size_t, 2);
 
     /* get the file pointer */
     struct file *filp;
@@ -500,16 +508,16 @@ void sys_read(void)
 
     /* pass the return value only if the read operation is complete */
     if(running_task->syscall_pending == false) {
-        *(int *)running_task->reg.r0 = retval;
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 
 void sys_write(void)
 {
     /* read syscall arguments */
-    int fd = *running_task->reg.r0;
-    char *buf = (uint8_t *)*running_task->reg.r1;
-    size_t count = *running_task->reg.r2;
+    int fd = SYSCALL_ARG(int, 0);
+    char *buf = SYSCALL_ARG(uint8_t *, 1);
+    size_t count = SYSCALL_ARG(size_t, 2);
 
     /* get the file pointer */
     struct file *filp;
@@ -525,18 +533,19 @@ void sys_write(void)
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
-    *(int *)running_task->reg.r0 = retval; //pass the return value with r0
+    /* return the write result */
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_lseek(void)
 {
     /* read syscall arguments */
-    int fd = *running_task->reg.r0;
-    long offset = *running_task->reg.r1;
-    int whence = *running_task->reg.r2;
+    int fd = SYSCALL_ARG(int, 0);
+    long offset = SYSCALL_ARG(long, 1);
+    int whence = SYSCALL_ARG(int, 2);
 
     if(fd < TASK_CNT_MAX) {
-        *(long *)running_task->reg.r0 = EBADF;
+        SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
@@ -547,17 +556,18 @@ void sys_lseek(void)
     /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
 
-    *(long *)running_task->reg.r0 = retval; //pass the return value with r0
+    /* return the lseek result */
+    SYSCALL_ARG(long, 0) = retval;
 }
 
 void sys_fstat(void)
 {
     /* read syscall arguments */
-    int fd = *running_task->reg.r0;
-    struct stat *statbuf = (struct stat *)*running_task->reg.r1;
+    int fd = SYSCALL_ARG(int, 0);
+    struct stat *statbuf = SYSCALL_ARG(struct stat *, 1);
 
     if(fd < TASK_CNT_MAX) {
-        *(long *)running_task->reg.r0 = EBADF;
+        SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
@@ -574,14 +584,14 @@ void sys_fstat(void)
         statbuf->st_blocks = inode->i_blocks;
     }
 
-    *(int *)running_task->reg.r0 = 0; //pass the return value with r0
+    SYSCALL_ARG(int *, 0) = 0;
 }
 
 void sys_opendir(void)
 {
     /* read syscall arguments */
-    char *pathname = (char *)*running_task->reg.r0;
-    DIR *dirp = (DIR *)*running_task->reg.r1;
+    char *pathname = SYSCALL_ARG(char *, 0);
+    DIR *dirp = SYSCALL_ARG(DIR *, 1);
 
     int pid = running_task->pid;
 
@@ -599,9 +609,11 @@ void sys_opendir(void)
 
         /* pass the return value with r0 */
         if(dirp->inode_dir == NULL) {
-            *(int *)running_task->reg.r0 = -1;
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -1;
         } else {
-            *(int *)running_task->reg.r0 = 0;
+            /* return on success */
+            SYSCALL_ARG(int, 0) = 0;
         }
     }
 }
@@ -609,29 +621,30 @@ void sys_opendir(void)
 void sys_readdir(void)
 {
     /* read syscall arguments */
-    DIR *dirp = (DIR *)*running_task->reg.r0;
-    struct dirent *dirent = (struct dirent *)*running_task->reg.r1;
+    DIR *dirp = SYSCALL_ARG(DIR *, 0);
+    struct dirent *dirent = SYSCALL_ARG(struct dirent *, 1);
 
     /* pass the return value with r0 */
-    *(int *)running_task->reg.r0 = (uint32_t)fs_read_dir(dirp, dirent);
+    SYSCALL_ARG(int, 0) = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
 void sys_getpriority(void)
 {
     /* return the task priority with r0 */
-    *(int *)running_task->reg.r0 = running_task->priority;
+    SYSCALL_ARG(int, 0) = running_task->priority;
 }
 
 void sys_setpriority(void)
 {
     /* read syscall arguments */
-    int which = *running_task->reg.r0;
-    int who = *running_task->reg.r1;
-    int priority = *running_task->reg.r2;
+    int which = SYSCALL_ARG(int, 0);
+    int who = SYSCALL_ARG(int, 1);
+    int priority = SYSCALL_ARG(int, 2);
 
     /* unsupported type of the `which' argument */
     if(which != PRIO_PROCESS) {
-        *(int *)running_task->reg.r0 = -1; //return -1 with r0
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -1;
         return;
     }
 
@@ -640,27 +653,29 @@ void sys_setpriority(void)
     for(i = 0; i < task_cnt; i++) {
         if(tasks[i].pid == who) {
             tasks[i].priority = priority;
-            *(int *)running_task->reg.r0 = 0;  //return 0 with r0
+
+            /* return on success */
+            SYSCALL_ARG(int, 0) = 0;
             return;
         }
     }
 
-    /* process not found */
-    *(int *)running_task->reg.r0 = -1; //return -1 with r0
+    /* process not found, return on error */
+    SYSCALL_ARG(int, 0) = -1;
 }
 
 void sys_getpid(void)
 {
-    /* return the task pid with r0 */
-    *(int *)running_task->reg.r0 = running_task->pid;
+    /* return the task pid */
+    SYSCALL_ARG(int, 0) = running_task->pid;
 }
 
 void sys_mknod(void)
 {
     /* read syscall arguments */
-    char *pathname = (char *)*running_task->reg.r0;
-    //mode_t mode = (mode_t)*running_task->reg.r1;
-    dev_t dev = (dev_t)*running_task->reg.r2;
+    char *pathname = SYSCALL_ARG(char *, 0);
+    //mode_t mode = SYSCALL_ARG(mode_t, 1);
+    dev_t dev = SYSCALL_ARG(dev_t, 2);
 
     int pid = running_task->pid;
 
@@ -676,19 +691,20 @@ void sys_mknod(void)
         return; //not ready
     }
 
-    /* pass the return value with r0 */
     if(file_idx == -1) {
-        *(int *)running_task->reg.r0 = -1;
+        /* file not found, return on error */
+        SYSCALL_ARG(int, 0) = -1;
     } else {
-        *(int *)running_task->reg.r0 = 0;
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_mkfifo(void)
 {
     /* read syscall arguments */
-    char *pathname = (char *)*running_task->reg.r0;
-    //mode_t mode = (mode_t)*running_task->reg.r1;
+    char *pathname = SYSCALL_ARG(char *, 0);
+    //mode_t mode = SYSCALL_ARG(mode_t, 1);
 
     int pid = running_task->pid;
 
@@ -704,23 +720,24 @@ void sys_mkfifo(void)
         return; //not ready
     }
 
-    /* pass the return value with r0 */
     if(file_idx == -1) {
-        *(int *)running_task->reg.r0 = -1;
+        /* file not found, return on error */
+        SYSCALL_ARG(int, 0) = -1;
     } else {
-        *(int *)running_task->reg.r0 = 0;
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_mq_open(void)
 {
     /* read syscall arguments */
-    char *name = (char *)*running_task->reg.r0;
-    int oflag = (int)*running_task->reg.r1;
-    struct mq_attr *attr = (struct mq_attr *)*running_task->reg.r2;
+    char *name = SYSCALL_ARG(char *, 0);
+    int oflag = SYSCALL_ARG(int, 1);
+    struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
     if(mq_cnt >= MQUEUE_CNT_MAX) {
-        *(mqd_t *)running_task->reg.r0 = -1;
+        SYSCALL_ARG(mqd_t, 0) = -1;
         return;
     }
 
@@ -737,16 +754,16 @@ void sys_mq_open(void)
     mq_cnt++;
 
     /* return the message queue descriptor */
-    *(mqd_t *)running_task->reg.r0 = mqdes;
+    SYSCALL_ARG(mqd_t, 0) = mqdes;
 }
 
 void sys_mq_receive(void)
 {
     /* read syscall arguments */
-    mqd_t mqdes = (mqd_t)*running_task->reg.r0;
-    char *msg_ptr = (char *)*running_task->reg.r1;
-    size_t msg_len = (size_t)*running_task->reg.r2;
-    unsigned int *msg_prio = (unsigned int *)*running_task->reg.r3;
+    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
+    char *msg_ptr = SYSCALL_ARG(char *, 1);
+    size_t msg_len = SYSCALL_ARG(size_t, 2);
+    unsigned int *msg_prio = SYSCALL_ARG(unsigned int *, 3);
 
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
@@ -755,17 +772,17 @@ void sys_mq_receive(void)
     /* read message */
     ssize_t retval = generic_pipe_read(pipe, msg_ptr, 1);
     if(running_task->syscall_pending == false) {
-        *(ssize_t *)running_task->reg.r0 = retval;
+        SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
 
 void sys_mq_send(void)
 {
     /* read syscall arguments */
-    mqd_t mqdes = (mqd_t)*running_task->reg.r0;
-    char *msg_ptr = (char *)*running_task->reg.r1;
-    size_t msg_len = (size_t)*running_task->reg.r2;
-    unsigned int msg_prio = (unsigned int)*running_task->reg.r3;
+    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
+    char *msg_ptr = SYSCALL_ARG(char *, 1);
+    size_t msg_len = SYSCALL_ARG(size_t, 2);
+    unsigned int msg_prio = SYSCALL_ARG(unsigned int, 3);
 
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
@@ -774,31 +791,32 @@ void sys_mq_send(void)
     /* send message */
     ssize_t retval = generic_pipe_write(pipe, msg_ptr, 1);
     if(running_task->syscall_pending == false) {
-        *(ssize_t *)running_task->reg.r0 = retval;
+        SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
 
 void sys_pthread_mutex_init(void)
 {
     /* read syscall arguments */
-    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
-    pthread_mutex_attr_t *attr = (pthread_mutex_attr_t *)*running_task->reg.r1;
+    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
+    pthread_mutex_attr_t *attr = SYSCALL_ARG(pthread_mutex_attr_t *, 1);
 
     mutex->owner = NULL;
     mutex->lock = 0;
     list_init(&mutex->wait_list);
 
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */
-    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
     /* only the owner task can unlock the mutex */
     if(mutex->owner != running_task) {
-        *(int *)running_task->reg.r0 = EPERM;
+        /* return on error */
+        SYSCALL_ARG(int, 0) = EPERM;
     } else {
         /* release the mutex */
         mutex->owner = NULL;
@@ -810,14 +828,14 @@ void sys_pthread_mutex_unlock(void)
         }
 
         /* return on success */
-        *(int *)running_task->reg.r0 = 0;
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_pthread_mutex_lock(void)
 {
     /* read syscall arguments */
-    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r0;
+    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
     /* check if mutex is already occupied */
     if(mutex->owner != NULL) {
@@ -834,25 +852,25 @@ void sys_pthread_mutex_lock(void)
         running_task->syscall_pending = false;
 
         /* return on success */
-        *(int *)running_task->reg.r0 = 0;
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_pthread_cond_init(void)
 {
     /* read syscall arguments */
-    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
+    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
 
     list_init(&cond->task_wait_list);
 
     /* return on success */
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_pthread_cond_signal(void)
 {
     /* read syscall arguments */
-    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
+    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
 
     /* wake up a task from the wait list */
     if(!list_is_empty(&cond->task_wait_list)) {
@@ -860,14 +878,14 @@ void sys_pthread_cond_signal(void)
     }
 
     /* pthread_cond_signal never returns error code */
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_pthread_cond_wait(void)
 {
     /* read syscall arguments */
-    pthread_cond_t *cond = (pthread_cond_t *)*running_task->reg.r0;
-    pthread_mutex_t *mutex = (pthread_mutex_t *)*running_task->reg.r1;
+    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
+    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 1);
 
     if(mutex->owner) {
         /* release the mutex */
@@ -878,28 +896,28 @@ void sys_pthread_cond_wait(void)
     }
 
     /* pthread_cond_wait never returns error code */
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_sem_init(void)
 {
     /* read syscall arguments */
-    sem_t *sem = (sem_t *)*running_task->reg.r0;
-    int pshared = (int)*running_task->reg.r1;
-    unsigned int value = (unsigned int)*running_task->reg.r2;
+    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
+    int pshared = SYSCALL_ARG(int, 1);
+    unsigned int value = SYSCALL_ARG(unsigned int, 2);
 
     sem->count = value;
     sem->lock = 0;
     list_init(&sem->wait_list);
 
     /* return on success */
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_sem_post(void)
 {
     /* read syscall arguments */
-    sem_t *sem = (sem_t *)*running_task->reg.r0;
+    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
     /* prevent integer overflow */
     if(sem->count >= (INT32_MAX - 1)) {
@@ -918,34 +936,34 @@ void sys_sem_post(void)
         running_task->syscall_pending = false;
 
         /* return on success */
-        *(int *)running_task->reg.r0;
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_sem_trywait(void)
 {
     /* read syscall arguments */
-    sem_t *sem = (sem_t *)*running_task->reg.r0;
+    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
     if(sem->count <= 0) {
         /* failed to obtain the semaphore, put the current task into the waiting list */
         prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
 
         /* return on error */
-        *(int *)running_task->reg.r0 = -EAGAIN;
+        SYSCALL_ARG(int, 0) = -EAGAIN;
     } else {
         /* successfully obtained the semaphore */
         sem->count--;
 
         /* return on success */
-        *(int *)running_task->reg.r0 = 0;
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_sem_wait(void)
 {
     /* read syscall arguments */
-    sem_t *sem = (sem_t *)*running_task->reg.r0;
+    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
     if(sem->count <= 0) {
         /* failed to obtain the semaphore, put the current task into the waiting list */
@@ -961,20 +979,20 @@ void sys_sem_wait(void)
         running_task->syscall_pending = false;
 
         /* return on success */
-        *(int *)running_task->reg.r0 = 0;
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
 void sys_sem_getvalue(void)
 {
     /* read syscall arguments */
-    sem_t *sem = (sem_t *)*running_task->reg.r0;
-    int *sval = (int *)*running_task->reg.r0;
+    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
+    int *sval = SYSCALL_ARG(int *, 0);
 
     *sval = sem->count;
 
     /* return on success */
-    *(int *)running_task->reg.r0 = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 uint32_t get_proc_mode(void)

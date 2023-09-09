@@ -22,6 +22,9 @@
 #define CURRENT_TASK_INFO(var) struct task_ctrl_blk *var = current_task_info()
 #define TASK_ENTRY(task_list) container_of(task_list, struct task_ctrl_blk, list);
 
+#define SYSCALL_ARG(type, arg_num) \
+    *(type *)running_task->reg.r ## arg_num
+
 typedef struct {
     void (* syscall_handler)(void);
     uint32_t num;
