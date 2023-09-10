@@ -1,7 +1,9 @@
 #include <errno.h>
+#include "tenok/fcntl.h"
+#include "tenok/unistd.h"
+#include "tenok/sys/resource.h"
 #include "task.h"
 #include "mavlink.h"
-#include "syscall.h"
 #include "mqueue.h"
 #include "../mavlink/parser.h"
 #include "../mavlink/publisher.h"

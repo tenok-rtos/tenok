@@ -170,4 +170,8 @@ void reset_syscall_pending(void);
 
 void sprint_tasks(char *str, size_t size);
 
+/* non-posix syscalls */
+void set_irq(uint32_t state);
+void set_program_name(char *name);
+
 #endif

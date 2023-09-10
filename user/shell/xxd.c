@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include "tenok/sys/stat.h"
 #include "shell.h"
-#include "syscall.h"
 #include "file.h"
 
 #define XXD_N_BYTES     16 //byte numbers for xxd to display per one line

@@ -4,7 +4,6 @@
 #include "semaphore.h"
 #include "uart.h"
 #include "fs.h"
-#include "syscall.h"
 #include "kernel.h"
 #include "pipe.h"
 

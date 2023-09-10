@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include "tenok/dirent.h"
 #include "shell.h"
-#include "syscall.h"
 #include "file.h"
 
 extern struct inode *shell_dir_curr;

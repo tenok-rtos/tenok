@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include "tenok/fcntl.h"
+#include "tenok/unistd.h"
+#include "tenok/sys/resource.h"
 #include "fs.h"
 #include "kernel.h"
-#include "syscall.h"
+#include "mpool.h"
 #include "fifo.h"
 #include "rom_dev.h"
 #include "reg_file.h"

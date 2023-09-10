@@ -1,6 +1,8 @@
+#include <stdio.h>
+#include "tenok/unistd.h"
+#include "tenok/sys/resource.h"
 #include "task.h"
 #include "shell.h"
-#include "syscall.h"
 #include "fs.h"
 
 extern char _shell_cmds_start;

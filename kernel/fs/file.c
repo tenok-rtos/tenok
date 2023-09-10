@@ -2,8 +2,10 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
+#include "tenok/fcntl.h"
+#include "tenok/unistd.h"
+#include "tenok/sys/stat.h"
 #include "fs.h"
-#include "syscall.h"
 #include "reg_file.h"
 #include "kconfig.h"
 #include "file.h"

@@ -2,10 +2,12 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
+#include "tenok/fcntl.h"
+#include "tenok/dirent.h"
+#include "tenok/unistd.h"
 #include "stm32f4xx.h"
 #include "uart.h"
 #include "shell.h"
-#include "syscall.h"
 #include "kconfig.h"
 #include "mutex.h"
 #include "fs.h"

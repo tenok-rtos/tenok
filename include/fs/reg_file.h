@@ -2,6 +2,7 @@
 #define __REG_FILE_H__
 
 #include "fs.h"
+#include "mpool.h"
 
 struct reg_file {
     int pos;

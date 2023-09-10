@@ -5,7 +5,6 @@
 #include "uart.h"
 #include "fs.h"
 #include "mqueue.h"
-#include "syscall.h"
 #include "kernel.h"
 #include "pipe.h"
 

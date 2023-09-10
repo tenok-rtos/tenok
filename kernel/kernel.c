@@ -3,9 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include "tenok/unistd.h"
+#include "tenok/semaphore.h"
+#include "tenok/sys/mount.h"
 #include "stm32f4xx.h"
 #include "kernel.h"
-#include "syscall.h"
 #include "kconfig.h"
 #include "list.h"
 #include "mpool.h"

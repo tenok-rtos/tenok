@@ -45,6 +45,7 @@ CFLAGS += -I ./include/arch
 CFLAGS += -I ./include/fs
 CFLAGS += -I ./include/kernel
 CFLAGS += -I ./include/tenok
+CFLAGS += -I ./include/tenok/sys
 CFLAGS += -I ./kernel
 CFLAGS += -I ./kernel/mm
 CFLAGS += -I ./user

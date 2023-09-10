@@ -1,6 +1,7 @@
 #include <errno.h>
+#include "tenok/fcntl.h"
+#include "tenok/unistd.h"
 #include "mavlink.h"
-#include "syscall.h"
 #include "time.h"
 
 extern int mavlink_fd;

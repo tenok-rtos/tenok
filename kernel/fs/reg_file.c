@@ -4,7 +4,6 @@
 #include <errno.h>
 #include "fs.h"
 #include "mpool.h"
-#include "syscall.h"
 #include "reg_file.h"
 #include "kconfig.h"
 

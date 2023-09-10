@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "fs.h"
-#include "syscall.h"
 #include "uart.h"
 
 extern char _rom_start;

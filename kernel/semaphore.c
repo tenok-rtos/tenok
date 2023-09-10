@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <errno.h>
+#include "tenok/sched.h"
 #include "kernel.h"
 #include "list.h"
 #include "semaphore.h"
-#include "syscall.h"
 
 int sema_init(sem_t *sem, unsigned int value)
 {

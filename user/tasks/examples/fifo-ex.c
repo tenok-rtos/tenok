@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include "tenok/fcntl.h"
+#include "tenok/unistd.h"
+#include "tenok/sys/stat.h"
 #include "kernel.h"
-#include "syscall.h"
 #include "uart.h"
 #include "task.h"
 
