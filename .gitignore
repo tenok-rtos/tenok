@@ -9,4 +9,5 @@
 */rtplot/build/
 */rtplot/src/rtplot.egg-info/
 */gazebo_bridge/gazebo_bridge
+include/kernel/syscall.h
 build/

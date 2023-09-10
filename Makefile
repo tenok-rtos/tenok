@@ -108,7 +108,7 @@ ASM := ./platform/startup_stm32f4xx.s \
        ./kernel/arch/context_switch.s \
        ./kernel/arch/spinlock.s
 
-all: msggen $(ELF)
+all: gen_syscalls msggen $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
@@ -118,6 +118,9 @@ $(ELF): $(ASM) $(OBJS)
 $(BIN): $(ELF)
 	@echo "OBJCPY" $@
 	@$(OBJCOPY) -O binary $(PROJECT).elf $(PROJECT).bin
+
+gen_syscalls:
+	./scripts/gen-syscalls.py > include/kernel/syscall.h
 
 -include $(DEPEND)
 
@@ -159,4 +162,4 @@ astyle:
 size:
 	$(SIZE) $(ELF)
 
-.PHONY: all check clean gdbauto astyle size msggen
+.PHONY: all check clean gdbauto astyle size msggen gen_syscalls

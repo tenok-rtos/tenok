@@ -8,6 +8,7 @@
 #include "tenok/sys/mount.h"
 #include "stm32f4xx.h"
 #include "kernel.h"
+#include "syscall.h"
 #include "kconfig.h"
 #include "list.h"
 #include "mpool.h"
@@ -24,40 +25,6 @@
 #define THREAD_PSP   0xFFFFFFFD
 
 #define INITIAL_XPSR 0x01000000
-
-void sys_set_irq(void);
-void sys_set_program_name(void);
-void sys_sched_yield(void);
-void sys_fork(void);
-void sys_sleep(void);
-void sys_mount(void);
-void sys_open(void);
-void sys_close(void);
-void sys_read(void);
-void sys_write(void);
-void sys_lseek(void);
-void sys_fstat(void);
-void sys_opendir(void);
-void sys_readdir(void);
-void sys_getpriority(void);
-void sys_setpriority(void);
-void sys_getpid(void);
-void sys_mknod(void);
-void sys_mkfifo(void);
-void sys_mq_open(void);
-void sys_mq_receive(void);
-void sys_mq_send(void);
-void sys_pthread_mutex_init(void);
-void sys_pthread_mutex_unlock(void);
-void sys_pthread_mutex_lock(void);
-void sys_pthread_cond_init(void);
-void sys_pthread_cond_signal(void);
-void sys_pthread_cond_wait(void);
-void sys_sem_init(void);
-void sys_sem_post(void);
-void sys_sem_trywait(void);
-void sys_sem_wait(void);
-void sys_sem_getvalue(void);
 
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
@@ -89,41 +56,7 @@ task_func_t *hook_task_func = NULL;
 
 /* syscall table */
 syscall_info_t syscall_table[] = {
-    /* non-posix syscalls */
-    DEF_SYSCALL(set_irq, 1),
-    DEF_SYSCALL(set_program_name, 2),
-    /* posix syscalls */
-    DEF_SYSCALL(sched_yield, 3),
-    DEF_SYSCALL(fork, 4),
-    DEF_SYSCALL(sleep, 5),
-    DEF_SYSCALL(mount, 6),
-    DEF_SYSCALL(open, 7),
-    DEF_SYSCALL(close, 8),
-    DEF_SYSCALL(read, 9),
-    DEF_SYSCALL(write, 10),
-    DEF_SYSCALL(lseek, 11),
-    DEF_SYSCALL(fstat, 12),
-    DEF_SYSCALL(opendir, 13),
-    DEF_SYSCALL(readdir, 14),
-    DEF_SYSCALL(getpriority, 15),
-    DEF_SYSCALL(setpriority, 16),
-    DEF_SYSCALL(getpid, 17),
-    DEF_SYSCALL(mknod, 18),
-    DEF_SYSCALL(mkfifo, 19),
-    DEF_SYSCALL(mq_open, 20),
-    DEF_SYSCALL(mq_receive, 21),
-    DEF_SYSCALL(mq_send, 22),
-    DEF_SYSCALL(pthread_mutex_init, 23),
-    DEF_SYSCALL(pthread_mutex_unlock, 24),
-    DEF_SYSCALL(pthread_mutex_lock, 25),
-    DEF_SYSCALL(pthread_cond_init, 26),
-    DEF_SYSCALL(pthread_cond_signal, 27),
-    DEF_SYSCALL(pthread_cond_wait, 28),
-    DEF_SYSCALL(sem_init, 29),
-    DEF_SYSCALL(sem_post, 30),
-    DEF_SYSCALL(sem_trywait, 31),
-    DEF_SYSCALL(sem_wait, 32),
-    DEF_SYSCALL(sem_getvalue, 33)
+    SYSCALL_TABLE_INIT
 };
 
 int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
