@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tenok/dirent.h"
+#include "tenok/sys/types.h"
 #include "list.h"
 #include "kconfig.h"
 
@@ -15,9 +16,6 @@
 #define RDEV_ROOTFS 0
 
 typedef void (*drv_init_func_t)(void);
-
-typedef int  ssize_t;
-typedef long loff_t;
 
 enum {
     FS_CREATE_FILE = 1,
@@ -83,8 +81,8 @@ struct file {
 
 struct file_operations {
     long    (*llseek)(struct file *filp, long offset, int whence);
-    ssize_t (*read)(struct file *filp, char *buf, size_t size, loff_t offset);
-    ssize_t (*write)(struct file *filp, const char *buf, size_t size, loff_t offset);
+    ssize_t (*read)(struct file *filp, char *buf, size_t size, off_t offset);
+    ssize_t (*write)(struct file *filp, const char *buf, size_t size, off_t offset);
 };
 
 struct fdtable {

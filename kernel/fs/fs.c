@@ -16,8 +16,8 @@
 static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 static int fs_create_file(char *pathname, uint8_t file_type);
 
-ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 extern struct memory_pool mem_pool;
@@ -110,7 +110,7 @@ static bool rootfs_mem_check(uint32_t addr)
     return pass;
 }
 
-ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     uint8_t *read_addr = (uint8_t *)offset; //offset is the read address of the data
 
@@ -122,7 +122,7 @@ ssize_t rootfs_read(struct file *filp, char *buf, size_t size, loff_t offset)
     return size;
 }
 
-ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     uint8_t *write_addr = (uint8_t *)offset; //offset is the read address of the data
 
@@ -445,15 +445,15 @@ static void fs_mount_directory(struct inode *inode_src, struct inode *inode_targ
     const uint32_t inode_size  = sizeof(struct inode);
     const uint32_t dentry_size = sizeof(struct dentry);
 
-    loff_t inode_addr;
+    off_t inode_addr;
     struct inode inode;
 
-    loff_t dentry_addr;
+    off_t dentry_addr;
     struct dentry dentry;
 
     /* load the driver file of the storage device */
     struct file *dev_file = mount_points[inode_src->i_rdev].dev_file;
-    ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
+    ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, off_t offset) = dev_file->f_op->read;
 
     /* get the list head of the dentry list */
     struct list i_dentry_list = inode_src->i_dentry;
@@ -485,7 +485,7 @@ static void fs_mount_directory(struct inode *inode_src, struct inode *inode_targ
         fs_mount_file(inode_target, &inode, &dentry);
 
         /* calculate the address of the next dentry to read */
-        dentry_addr = (loff_t)list_entry(dentry.d_list.next, struct dentry, d_list);
+        dentry_addr = (off_t)list_entry(dentry.d_list.next, struct dentry, d_list);
 
         /* if the address points to the inodes region, then the iteration is back to the list head */
         if((uint32_t)dentry.d_list.next < (sb_size + inode_size * INODE_CNT_MAX))
@@ -745,15 +745,15 @@ static int fs_mount(char *source, char *target)
     mount_points[mount_cnt].dev_file = dev_file;
 
     /* get the function pointer of the device read() */
-    ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, loff_t offset) = dev_file->f_op->read;
+    ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, off_t offset) = dev_file->f_op->read;
 
     /* calculate the start address of the super block, inode table, and block region */
     const uint32_t sb_size     = sizeof(struct super_block);
     const uint32_t inode_size  = sizeof(struct inode);
     const uint32_t dentry_size = sizeof(struct dentry);
-    loff_t super_blk_addr = 0;
-    loff_t inodes_addr = super_blk_addr + sb_size;
-    loff_t block_addr = inodes_addr + (inode_size * INODE_CNT_MAX);
+    off_t super_blk_addr = 0;
+    off_t inodes_addr = super_blk_addr + sb_size;
+    off_t block_addr = inodes_addr + (inode_size * INODE_CNT_MAX);
 
     /* read the super block from the device */
     dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sb_size, super_blk_addr);

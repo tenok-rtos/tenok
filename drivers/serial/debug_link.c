@@ -12,8 +12,8 @@
 
 static int uart3_dma_puts(const char *data, size_t size);
 
-ssize_t serial2_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t serial2_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 struct semaphore sem_uart3_tx;
 pipe_t *uart3_rx_pipe;
@@ -92,13 +92,13 @@ void serial2_init(void)
     uart3_init(115200);
 }
 
-ssize_t serial2_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     generic_pipe_read(uart3_rx_pipe, (char *)buf, size);
     return size;
 }
 
-ssize_t serial2_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
 #if (ENABLE_UART3_DMA != 0)
     return uart3_dma_puts(buf, size);

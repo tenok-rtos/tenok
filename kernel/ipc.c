@@ -214,8 +214,8 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
     return retval;
 }
 
-ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 static struct file_operations fifo_ops = {
     .read = fifo_read,
@@ -235,14 +235,14 @@ int fifo_init(int fd, struct file **files, struct inode *file_inode)
     return 0;
 }
 
-ssize_t fifo_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     pipe_t *pipe = container_of(filp, struct ringbuf, file);
     pipe->flags = filp->f_flags;
     return generic_pipe_read(pipe, buf, size);
 }
 
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     pipe_t *pipe = container_of(filp, struct ringbuf, file);
     pipe->flags = filp->f_flags;

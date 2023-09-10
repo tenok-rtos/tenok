@@ -8,8 +8,8 @@
 extern char _rom_start;
 extern char _rom_end;
 
-ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 static struct file_operations rom_dev_ops = {
     .read = rom_dev_read,
@@ -21,7 +21,7 @@ void rom_dev_init(void)
     register_blkdev("rom", &rom_dev_ops);
 }
 
-ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     char *read_addr = &_rom_start + offset;
 
@@ -34,7 +34,7 @@ ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, loff_t offset)
     return size;
 }
 
-ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     return 0; //rom does not support write operation
 }

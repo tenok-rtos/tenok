@@ -10,8 +10,8 @@
 
 #define UART2_RX_BUF_SIZE 100
 
-ssize_t serial1_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t serial1_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 pipe_t *uart2_rx_pipe;
 
@@ -69,13 +69,13 @@ void serial1_init(void)
     uart2_init(115200);
 }
 
-ssize_t serial1_read(struct file *filp, char *buf, size_t size, loff_t offset)
+ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     generic_pipe_read(uart2_rx_pipe, (char *)buf, size);
     return size;
 }
 
-ssize_t serial1_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     return uart_puts(USART2, buf, size);
 }

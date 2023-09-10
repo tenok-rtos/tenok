@@ -8,8 +8,8 @@
 #include "kconfig.h"
 
 long reg_file_llseek(struct file *filp, long offset, int whence);
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset);
-ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset);
+ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
@@ -33,7 +33,7 @@ int reg_file_init(struct file **files, struct inode *file_inode, struct memory_p
     return 0;
 }
 
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset /* not used */)
+ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /* not used */)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -93,7 +93,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, loff_t offset /
     return size - remained_size;
 }
 
-ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, loff_t offset)
+ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     return 0; //regular file write is currently not implemented, import the file with mkromfs instead.
 }
