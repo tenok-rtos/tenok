@@ -6,7 +6,6 @@
 #include "tenok/pthread.h"
 #include "kernel.h"
 #include "uart.h"
-#include "mutex.h"
 #include "task.h"
 
 #define BUFFER_SIZE 10

@@ -4,7 +4,9 @@
 #include <string.h>
 #include <errno.h>
 #include "tenok/unistd.h"
+#include "tenok/pthread.h"
 #include "tenok/semaphore.h"
+#include "tenok/sys/stat.h"
 #include "tenok/sys/mount.h"
 #include "stm32f4xx.h"
 #include "kernel.h"
@@ -16,9 +18,7 @@
 #include "pipe.h"
 #include "fifo.h"
 #include "mqueue.h"
-#include "mutex.h"
 #include "time.h"
-#include "cond.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9

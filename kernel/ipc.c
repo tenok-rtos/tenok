@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
+#include "tenok/fcntl.h"
 #include "fs.h"
 #include "fifo.h"
 #include "ringbuf.h"

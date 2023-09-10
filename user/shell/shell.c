@@ -9,7 +9,6 @@
 #include "uart.h"
 #include "shell.h"
 #include "kconfig.h"
-#include "mutex.h"
 #include "fs.h"
 
 static void shell_reset_line(struct shell *shell);

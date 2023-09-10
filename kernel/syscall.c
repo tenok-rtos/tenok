@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "tenok/sys/stat.h"
+#include "tenok/pthread.h"
 #include "syscall.h"
-#include "mutex.h"
-#include "cond.h"
 #include "semaphore.h"
 #include "mqueue.h"
 #include "fs.h"

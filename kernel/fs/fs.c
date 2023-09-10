@@ -3,6 +3,7 @@
 #include <errno.h>
 #include "tenok/fcntl.h"
 #include "tenok/unistd.h"
+#include "tenok/sys/stat.h"
 #include "tenok/sys/resource.h"
 #include "fs.h"
 #include "kernel.h"

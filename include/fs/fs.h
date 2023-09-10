@@ -4,26 +4,17 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "tenok/dirent.h"
 #include "list.h"
 #include "kconfig.h"
-
-#define S_IFIFO 0 //fifo
-#define S_IFCHR 1 //char device
-#define S_IFBLK 2 //block device
-#define S_IFREG 3 //regular file
-#define S_IFDIR 4 //directory
-
-#define RDEV_ROOTFS 0
-
-#ifndef O_NONBLOCK
-#define O_NONBLOCK  00004000
-#endif
-
-typedef void (*drv_init_func_t)(void);
 
 #define HOOK_DRIVER(drv_init_func) \
     static drv_init_func_t _ ## drv_init_func \
         __attribute__((section(".drivers"), used)) = drv_init_func
+
+#define RDEV_ROOTFS 0
+
+typedef void (*drv_init_func_t)(void);
 
 typedef int  ssize_t;
 typedef long loff_t;
@@ -82,28 +73,6 @@ struct dentry {
     uint32_t d_parent; //the inode of the parent directory
 
     struct list d_list;
-};
-
-/* return type of the opendir() syscall */
-typedef struct dirstream {
-    struct inode  *inode_dir;   //directory inode
-    struct list   *dentry_list; //list pointer of the dentry to return
-} DIR;
-
-/* return type of the readdir() syscall */
-struct dirent {
-    char     d_name[FILE_NAME_LEN_MAX]; //file name
-    uint32_t d_ino;  //the inode of the file
-    uint8_t  d_type; //file type
-};
-
-/* return type of the fstat() syscall */
-struct stat {
-    uint8_t  st_mode;   //file type
-    uint32_t st_ino;    //inode number
-    uint32_t st_rdev;   //device number
-    uint32_t st_size;   //total size in bytes
-    uint32_t st_blocks; //number of the blocks used by the file
 };
 
 struct file {
