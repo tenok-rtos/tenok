@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#include "tenok/sys/stat.h"
+
+#include <fs/file.h>
+
+#include <tenok/sys/stat.h>
+
 #include "shell.h"
-#include "file.h"
 
 #define XXD_N_BYTES     16 //byte numbers for xxd to display per one line
 #define XXD_PAUSE_LINES 10 //the number of lines that xxd can print at once

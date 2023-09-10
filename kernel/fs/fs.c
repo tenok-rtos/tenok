@@ -1,17 +1,20 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "tenok/fcntl.h"
-#include "tenok/unistd.h"
-#include "tenok/sys/stat.h"
-#include "tenok/sys/resource.h"
-#include "fs.h"
-#include "kernel.h"
-#include "mpool.h"
-#include "fifo.h"
-#include "rom_dev.h"
-#include "reg_file.h"
+
+#include <mm/mpool.h>
+#include <fs/fs.h>
+#include <fs/reg_file.h>
+#include <kernel/fifo.h>
+#include <kernel/kernel.h>
+
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/stat.h>
+#include <tenok/sys/resource.h>
+
 #include "uart.h"
+#include "rom_dev.h"
 
 static void fs_mount_directory(struct inode *inode_src, struct inode *inode_target);
 static int fs_create_file(char *pathname, uint8_t file_type);

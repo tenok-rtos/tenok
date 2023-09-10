@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include <fs/fs.h>
+#include <kernel/list.h>
+
 #include "kconfig.h"
-#include "list.h"
-#include "fs.h"
 
 #define	PRIO_PROCESS 0
 #define	PRIO_PGRP    1

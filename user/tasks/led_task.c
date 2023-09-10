@@ -1,9 +1,9 @@
-#include "tenok/unistd.h"
-#include "tenok/semaphore.h"
-#include "tenok/sys/resource.h"
-#include "task.h"
+#include <kernel/task.h>
+#include <tenok/unistd.h>
+#include <tenok/semaphore.h>
+#include <tenok/sys/resource.h>
+
 #include "bsp_drv.h"
-#include "semaphore.h"
 
 sem_t sem_led;
 

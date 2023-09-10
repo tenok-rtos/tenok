@@ -3,22 +3,25 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "tenok/unistd.h"
-#include "tenok/pthread.h"
-#include "tenok/semaphore.h"
-#include "tenok/sys/stat.h"
-#include "tenok/sys/mount.h"
-#include "stm32f4xx.h"
-#include "kernel.h"
-#include "syscall.h"
+
+#include <fs/fs.h>
+#include <mm/mpool.h>
+#include <kernel/list.h>
+#include <kernel/pipe.h>
+#include <kernel/fifo.h>
+#include <kernel/kernel.h>
+#include <kernel/syscall.h>
+
+#include <tenok/time.h>
+#include <tenok/mqueue.h>
+#include <tenok/unistd.h>
+#include <tenok/pthread.h>
+#include <tenok/semaphore.h>
+#include <tenok/sys/stat.h>
+#include <tenok/sys/mount.h>
+
 #include "kconfig.h"
-#include "list.h"
-#include "mpool.h"
-#include "fs.h"
-#include "pipe.h"
-#include "fifo.h"
-#include "mqueue.h"
-#include "time.h"
+#include "stm32f4xx.h"
 
 #define HANDLER_MSP  0xFFFFFFF1
 #define THREAD_MSP   0xFFFFFFF9

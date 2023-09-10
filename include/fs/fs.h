@@ -4,9 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "tenok/dirent.h"
-#include "tenok/sys/types.h"
-#include "list.h"
+
+#include <kernel/list.h>
+
+#include <tenok/dirent.h>
+#include <tenok/sys/types.h>
+
 #include "kconfig.h"
 
 #define HOOK_DRIVER(drv_init_func) \

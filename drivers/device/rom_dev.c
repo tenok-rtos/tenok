@@ -2,7 +2,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
-#include "fs.h"
+
+#include <fs/fs.h>
+
 #include "uart.h"
 
 extern char _rom_start;

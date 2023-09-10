@@ -2,8 +2,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include "kernel.h"
-#include "ringbuf.h"
+
+#include "kernel/kernel.h"
+#include "kernel/ringbuf.h"
 
 void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_size)
 {

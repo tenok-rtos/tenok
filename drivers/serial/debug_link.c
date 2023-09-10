@@ -1,12 +1,13 @@
 #include <errno.h>
 #include <string.h>
-#include "stm32f4xx.h"
-#include "semaphore.h"
+
+#include "fs/fs.h"
+#include "kernel/kernel.h"
+#include "kernel/pipe.h"
+#include "kernel/semaphore.h"
+
 #include "uart.h"
-#include "fs.h"
-#include "mqueue.h"
-#include "kernel.h"
-#include "pipe.h"
+#include "stm32f4xx.h"
 
 #define UART3_RX_BUF_SIZE 100
 

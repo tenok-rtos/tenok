@@ -2,7 +2,8 @@
 #define __FIFO_H__
 
 #include <stdio.h>
-#include "fs.h"
+
+#include <fs/fs.h>
 
 int fifo_init(int fd, struct file **files, struct inode *file_inode);
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);

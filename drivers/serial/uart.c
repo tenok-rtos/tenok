@@ -1,10 +1,8 @@
 #include <errno.h>
 #include <string.h>
-#include "stm32f4xx.h"
+
 #include "uart.h"
-#include "fs.h"
-#include "mqueue.h"
-#include "kernel.h"
+#include "stm32f4xx.h"
 
 void uart_putc(USART_TypeDef *uart, char c)
 {

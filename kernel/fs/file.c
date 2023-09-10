@@ -2,13 +2,18 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
-#include "tenok/fcntl.h"
-#include "tenok/unistd.h"
-#include "tenok/sys/stat.h"
-#include "fs.h"
-#include "reg_file.h"
+
+#include <fs/fs.h>
+#include <fs/file.h>
+#include <fs/reg_file.h>
+
+#include <tenok/time.h>
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/stat.h>
+#include <tenok/sys/types.h>
+
 #include "kconfig.h"
-#include "file.h"
 
 #define MAX_READ_SIZE  100
 #define MAX_WRITE_SIZE 100

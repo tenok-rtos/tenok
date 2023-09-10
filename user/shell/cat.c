@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#include "tenok/unistd.h"
-#include "tenok/sys/stat.h"
+
+#include <fs/file.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/stat.h>
+
 #include "shell.h"
-#include "file.h"
 
 extern struct inode *shell_dir_curr;
 

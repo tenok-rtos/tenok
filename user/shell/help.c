@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+
 #include "shell.h"
 
 void shell_cmd_help(int argc, char *argv[])

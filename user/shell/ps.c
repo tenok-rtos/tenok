@@ -1,5 +1,6 @@
+#include <kernel/kernel.h>
+
 #include "shell.h"
-#include "kernel.h"
 
 void shell_cmd_ps(int argc, char *argv[])
 {

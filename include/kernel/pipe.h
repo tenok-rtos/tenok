@@ -2,7 +2,8 @@
 #define __PIPE_H__
 
 #include <stdio.h>
-#include "ringbuf.h"
+
+#include <kernel/ringbuf.h>
 
 typedef struct ringbuf pipe_t;
 

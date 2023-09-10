@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "kernel.h"
-#include "time.h"
+
+#include <kernel/kernel.h>
+#include <tenok/time.h>
+
 #include "kconfig.h"
 
 #define SYS_TIM_TICK_PERIOD (1.0f / OS_TICK_FREQ)

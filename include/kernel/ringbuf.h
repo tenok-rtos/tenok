@@ -1,11 +1,12 @@
 #ifndef __RINGBUF_H__
 #define __RINGBUF_H__
 
-#include "stddef.h"
-#include "stdint.h"
-#include "stdbool.h"
-#include "fs.h"
-#include "spinlock.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <fs/fs.h>
+#include <kernel/spinlock.h>
 
 struct ringbuf {
     int     start;

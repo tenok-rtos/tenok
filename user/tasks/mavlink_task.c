@@ -1,12 +1,14 @@
 #include <errno.h>
-#include "tenok/fcntl.h"
-#include "tenok/unistd.h"
-#include "tenok/sys/resource.h"
-#include "task.h"
+
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/mqueue.h>
+#include <tenok/sys/resource.h>
+#include <kernel/task.h>
+
 #include "mavlink.h"
-#include "mqueue.h"
-#include "../mavlink/parser.h"
-#include "../mavlink/publisher.h"
+#include "mavlink/parser.h"
+#include "mavlink/publisher.h"
 
 mqd_t mqdes_recvd_msg;
 

@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include "tenok/unistd.h"
-#include "tenok/sys/resource.h"
-#include "task.h"
+
+#include <kernel/task.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/resource.h>
+
 #include "shell.h"
 #include "fs.h"
 

@@ -1,12 +1,14 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "tenok/sys/stat.h"
-#include "tenok/pthread.h"
-#include "syscall.h"
-#include "semaphore.h"
-#include "mqueue.h"
-#include "fs.h"
+
+#include <fs/fs.h>
+#include <kernel/syscall.h>
+
+#include <tenok/mqueue.h>
+#include <tenok/semaphore.h>
+#include <tenok/pthread.h>
+#include <tenok/sys/stat.h>
 
 #define _naked __attribute__ ((naked))
 

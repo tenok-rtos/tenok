@@ -1,7 +1,12 @@
 #include <stddef.h>
-#include "task.h"
+
+#include <kernel/task.h>
+
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/resource.h>
+
 #include "uart.h"
-#include "syscall.h"
 #include "tenok_test_msg.h"
 
 #define INC 1
@@ -40,7 +45,7 @@ void debug_link_task(void)
             }
         }
 
-        sleep(10); //100Hz
+        usleep(10000); //100Hz (10ms)
     }
 }
 

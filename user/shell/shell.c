@@ -2,14 +2,17 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-#include "tenok/fcntl.h"
-#include "tenok/dirent.h"
-#include "tenok/unistd.h"
-#include "stm32f4xx.h"
+
+#include <fs/fs.h>
+
+#include <tenok/fcntl.h>
+#include <tenok/dirent.h>
+#include <tenok/unistd.h>
+
 #include "uart.h"
 #include "shell.h"
 #include "kconfig.h"
-#include "fs.h"
+#include "stm32f4xx.h"
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);

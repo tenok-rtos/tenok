@@ -1,7 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "mpool.h"
-#include "kernel.h"
+
+#include <mm/mpool.h>
+#include <kernel/kernel.h>
 
 void memory_pool_init(struct memory_pool *mem_pool, uint8_t *mem, size_t size)
 {

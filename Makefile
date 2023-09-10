@@ -49,6 +49,7 @@ CFLAGS += -I ./include/tenok/sys
 CFLAGS += -I ./kernel
 CFLAGS += -I ./kernel/mm
 CFLAGS += -I ./user
+CFLAGS += -I ./user/debug-link
 CFLAGS += -I ./build/msg
 
 SRC += lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \

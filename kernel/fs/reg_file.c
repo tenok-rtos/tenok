@@ -2,10 +2,12 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
-#include "fs.h"
-#include "mpool.h"
-#include "reg_file.h"
+
+#include <fs/fs.h>
+#include <mm/mpool.h>
+
 #include "kconfig.h"
+#include "reg_file.h"
 
 long reg_file_llseek(struct file *filp, long offset, int whence);
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);

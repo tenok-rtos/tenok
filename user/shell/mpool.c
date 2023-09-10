@@ -1,6 +1,8 @@
 #include <stdio.h>
+
+#include <mm/mpool.h>
+
 #include "shell.h"
-#include "mpool.h"
 
 extern struct memory_pool mem_pool;
 

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+
 #include "tenok_link.h"
 
 #define TENOK_HEADER_SIZE 3

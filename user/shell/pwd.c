@@ -1,6 +1,8 @@
 #include <stdio.h>
+
+#include <fs/fs.h>
+
 #include "shell.h"
-#include "fs.h"
 
 extern struct inode *shell_dir_curr;
 

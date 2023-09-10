@@ -1,6 +1,7 @@
 #include <stddef.h>
-#include "bsp_drv.h"
-#include "kernel.h"
+
+#include <kernel/kernel.h>
+
 #include "bsp_drv.h"
 
 int main(void)

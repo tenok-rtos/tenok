@@ -1,5 +1,5 @@
-#include "./parser.h"
-#include "./hil.h"
+#include "mavlink/hil.h"
+#include "mavlink/parser.h"
 
 enum ENUM_MAV_CMDS {
     ENUM_MAVLINK_HANDLER(mav_hil_sensor),

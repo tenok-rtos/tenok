@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include "tenok/fcntl.h"
-#include "tenok/unistd.h"
-#include "tenok/sys/stat.h"
-#include "kernel.h"
+
+#include <kernel/task.h>
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/sys/stat.h>
+
 #include "uart.h"
-#include "task.h"
 
 #define TEST_STR "fifo: hello world\n\r"
 #define LEN      strlen(TEST_STR)

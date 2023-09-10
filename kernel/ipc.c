@@ -1,13 +1,15 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
-#include "tenok/fcntl.h"
-#include "fs.h"
-#include "fifo.h"
-#include "ringbuf.h"
+
+#include <fs/fs.h>
+#include <kernel/fifo.h>
+#include <kernel/pipe.h>
+#include <kernel/kernel.h>
+#include <kernel/ringbuf.h>
+#include <tenok/fcntl.h>
+
 #include "kconfig.h"
-#include "kernel.h"
-#include "pipe.h"
 
 pipe_t *generic_pipe_create(size_t nmem, size_t size)
 {

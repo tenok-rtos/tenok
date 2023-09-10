@@ -1,7 +1,7 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
-#include "spinlock.h"
+#include <kernel/spinlock.h>
 
 #define FILE tenok__FILE
 

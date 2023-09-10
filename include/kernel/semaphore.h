@@ -1,8 +1,8 @@
 #ifndef __KERNEL_SEMAPHORE_H__
 #define __KERNEL_SEMAPHORE_H__
 
-#include "spinlock.h"
-#include "list.h"
+#include <kernel/list.h>
+#include <kernel/spinlock.h>
 
 struct semaphore {
     spinlock_t lock;

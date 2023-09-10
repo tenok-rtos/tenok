@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <string.h>
-#include "tenok/dirent.h"
-#include "tenok/sys/stat.h"
+
+#include <fs/fs.h>
+#include <fs/file.h>
+
+#include <tenok/dirent.h>
+#include <tenok/sys/stat.h>
+
 #include "shell.h"
-#include "file.h"
-#include "fs.h"
 
 extern struct inode *shell_dir_curr;
 

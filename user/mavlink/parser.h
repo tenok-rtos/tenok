@@ -2,6 +2,7 @@
 #define __TENOK_MAVLINK_PARSER_H
 
 #include <stdint.h>
+
 #include "mavlink.h"
 
 #define DEF_MAVLINK_CMD(handler_function, id) \

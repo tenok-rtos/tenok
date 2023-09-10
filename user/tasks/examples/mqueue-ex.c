@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include "tenok/fcntl.h"
-#include "tenok/unistd.h"
-#include "kernel.h"
+
+#include <kernel/task.h>
+#include <tenok/fcntl.h>
+#include <tenok/unistd.h>
+#include <tenok/mqueue.h>
+
 #include "uart.h"
-#include "mqueue.h"
-#include "task.h"
 
 mqd_t mqdes_print;
 

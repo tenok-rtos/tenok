@@ -1,7 +1,7 @@
 #ifndef __MPOOL_H__
 #define __MPOOL_H__
 
-#include "spinlock.h"
+#include <kernel/spinlock.h>
 
 struct memory_pool {
     spinlock_t lock;
