@@ -29,6 +29,11 @@ _naked void set_program_name(char *name)
     SYSCALL(SET_PROGRAM_NAME);
 }
 
+_naked uint32_t delay_ticks(uint32_t ticks)
+{
+    SYSCALL(DELAY_TICKS);
+}
+
 _naked void sched_yield(void)
 {
     SYSCALL(SCHED_YIELD);
@@ -37,11 +42,6 @@ _naked void sched_yield(void)
 _naked int fork(void)
 {
     SYSCALL(FORK);
-}
-
-_naked uint32_t sleep(uint32_t ticks)
-{
-    SYSCALL(SLEEP);
 }
 
 _naked int mount(const char *source, const char *target)

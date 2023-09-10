@@ -251,6 +251,22 @@ void sys_set_program_name(void)
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
 }
 
+void sys_delay_ticks(void)
+{
+    /* read syscall arguments */
+    uint32_t tick = SYSCALL_ARG(uint32_t, 0);
+
+    /* reconfigure the timer for sleeping */
+    running_task->sleep_ticks = tick;
+
+    /* put the task into the sleep list and change the status */
+    running_task->status = TASK_WAIT;
+    list_push(&sleep_list, &(running_task->list));
+
+    /* pass the return value with r0 */
+    SYSCALL_ARG(uint32_t, 0) = 0;
+}
+
 void sys_sched_yield(void)
 {
     /* suspend the current task */
@@ -300,22 +316,6 @@ void sys_fork(void)
     }
 
     task_cnt++;
-}
-
-void sys_sleep(void)
-{
-    /* read syscall arguments */
-    uint32_t tick = SYSCALL_ARG(uint32_t, 0);
-
-    /* reconfigure the timer for sleeping */
-    running_task->sleep_ticks = tick;
-
-    /* put the task into the sleep list and change the status */
-    running_task->status = TASK_WAIT;
-    list_push(&sleep_list, &(running_task->list));
-
-    /* pass the return value with r0 */
-    SYSCALL_ARG(uint32_t, 0) = 0;
 }
 
 void sys_mount(void)

@@ -23,3 +23,8 @@ int clock_gettime(clockid_t clockid, struct timespec *tp)
     tp->tv_sec = time_s;
     tp->tv_nsec = SYS_TIM_TICK_PERIOD * (float)tick * 1e9;
 }
+
+unsigned int sleep(unsigned int seconds)
+{
+    delay_ticks(seconds * OS_TICK_FREQ);
+}

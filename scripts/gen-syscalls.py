@@ -3,9 +3,9 @@
 syscalls = \
 ['set_irq',
  'set_program_name',
+ 'delay_ticks',
  'sched_yield',
  'fork',
- 'sleep',
  'mount',
  'open',
  'close',

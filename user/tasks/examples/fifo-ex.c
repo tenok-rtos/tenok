@@ -27,7 +27,7 @@ void fifo_task1(void)
 
     while(1) {
         write(fifo_fd, TEST_STR, LEN);
-        sleep(1000);
+        sleep(1);
     }
 }
 

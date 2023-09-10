@@ -66,7 +66,7 @@ void mutex_task1(void)
         pthread_mutex_unlock(&mutex);
 
         /* simulate some work */
-        sleep(1000);
+        sleep(1);
     }
 }
 
@@ -96,7 +96,7 @@ void mutex_task2(void)
         pthread_mutex_unlock(&mutex);
 
         /* simulate some work */
-        sleep(100);
+        delay_ticks(100);
     }
 }
 
