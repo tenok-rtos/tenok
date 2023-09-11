@@ -42,14 +42,11 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
             curr_task->syscall_pending = true;
         }
     } else {
-        size_t type_size = ringbuf_get_type_size(pipe);
-
         /* pop data from the pipe */
-        for(int i = 0; i < size; i++) {
-            ringbuf_get(pipe, buf + (type_size * i));
-        }
+        ringbuf_out(pipe, buf, size);
 
         /* calculate total read bytes */
+        size_t type_size = ringbuf_get_type_size(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
@@ -99,14 +96,11 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
             curr_task->syscall_pending = true;
         }
     } else {
-        size_t type_size = ringbuf_get_type_size(pipe);
-
         /* push data into the pipe */
-        for(int i = 0; i < size; i++) {
-            ringbuf_put(pipe, buf + (type_size * i));
-        }
+        ringbuf_in(pipe, buf, size);
 
         /* calculate total written bytes */
+        size_t type_size = ringbuf_get_type_size(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
