@@ -48,6 +48,8 @@ print('')
 print('#ifndef __SYSCALL_H__')
 print('#define __SYSCALL_H__\n')
 
+print('#define SYSCALL_CNT %d\n' %(syscall_cnt))
+
 for i in range(0, syscall_cnt):
     id = syscalls[i].upper()
     syscall_num = i + 1

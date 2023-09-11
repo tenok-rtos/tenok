@@ -62,7 +62,7 @@ syscall_info_t syscall_table[] = {
     SYSCALL_TABLE_INIT
 };
 
-int syscall_table_size = sizeof(syscall_table) / sizeof(syscall_info_t);
+int syscall_table_size = SYSCALL_CNT;
 
 void *kmalloc(size_t size)
 {
