@@ -1,6 +1,8 @@
 #ifndef __SPINLOCK_H__
 #define __SPINLOCK_H__
 
+#include <stdint.h>
+
 #define spin_lock_irq(lock) \
 	do { \
 	preempt_disable(); \

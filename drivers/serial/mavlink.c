@@ -6,7 +6,6 @@
 #include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
-#include <kernel/semaphore.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
