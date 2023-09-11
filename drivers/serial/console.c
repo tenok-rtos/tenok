@@ -91,7 +91,7 @@ void serial0_init(void)
     register_chrdev("serial0", &serial0_file_ops);
 
     /* create pipe for reception */
-    uart1.rx_fifo = ringbuf_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
+    uart1.rx_fifo = ringbuf_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
     list_init(&uart1_tx_wq);
     list_init(&uart1_rx_wq);
@@ -102,7 +102,7 @@ void serial0_init(void)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    bool ready = ringbuf_get_cnt(uart1.rx_fifo) >= size;
+    bool ready = ringbuf_len(uart1.rx_fifo) >= size;
     wait_event(&uart1_rx_wq, ready);
 
     if(ready) {
@@ -169,7 +169,7 @@ void USART1_IRQHandler(void)
         uint8_t c = USART_ReceiveData(USART1);
         ringbuf_put(uart1.rx_fifo, &c);
 
-        if(ringbuf_get_cnt(uart1.rx_fifo) >= uart1.rx_wait_size) {
+        if(ringbuf_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
             wake_up(&uart1_rx_wq);
             uart1.rx_wait_size = 0;
         }

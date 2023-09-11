@@ -19,7 +19,7 @@ void ringbuf_init(struct ringbuf *rb, void *data, size_t type_size, size_t ring_
     list_init(&rb->w_wait_list);
 }
 
-struct ringbuf *ringbuf_create(size_t nmem, size_t size)
+struct ringbuf *ringbuf_alloc(size_t nmem, size_t size)
 {
     struct ringbuf *rb = kmalloc(sizeof(struct ringbuf));
     uint8_t *rb_data = kmalloc(nmem * size);
@@ -79,17 +79,17 @@ void ringbuf_out(struct ringbuf *rb, void *data, size_t n)
     }
 }
 
-size_t ringbuf_get_free_space(struct ringbuf *rb)
+size_t ringbuf_avail(struct ringbuf *rb)
 {
     return rb->ring_size - rb->count;
 }
 
-size_t ringbuf_get_cnt(struct ringbuf *rb)
+size_t ringbuf_len(struct ringbuf *rb)
 {
     return rb->count;
 }
 
-size_t ringbuf_get_type_size(struct ringbuf *rb)
+size_t ringbuf_esize(struct ringbuf *rb)
 {
     return rb->type_size;
 }

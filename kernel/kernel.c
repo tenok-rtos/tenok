@@ -695,7 +695,7 @@ void sys_mq_open(void)
     }
 
     /* initialize the ring buffer */
-    struct ringbuf *pipe = ringbuf_create(attr->mq_msgsize, attr->mq_maxmsg);
+    struct ringbuf *pipe = ringbuf_alloc(attr->mq_msgsize, attr->mq_maxmsg);
 
     /* register a new message queue */
     int mqdes = mq_cnt;

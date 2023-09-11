@@ -14,7 +14,7 @@
 
 pipe_t *generic_pipe_create(size_t nmem, size_t size)
 {
-    return ringbuf_create(nmem, size);
+    return ringbuf_alloc(nmem, size);
 }
 
 ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
@@ -29,7 +29,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
     struct list *w_wait_list = &pipe->w_wait_list;
 
     /* block the current task if the request size is larger than the fifo can serve */
-    if(size > ringbuf_get_cnt(pipe)) {
+    if(size > ringbuf_len(pipe)) {
         /* failed to read */
         retval = -EAGAIN;
 
@@ -46,7 +46,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
         ringbuf_out(pipe, buf, size);
 
         /* calculate total read bytes */
-        size_t type_size = ringbuf_get_type_size(pipe);
+        size_t type_size = ringbuf_esize(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
@@ -59,7 +59,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
         struct task_ctrl_blk *task = TASK_ENTRY(w_wait_list->next);
 
         /* check if request size of the blocked writting task can be fulfilled */
-        if(task->file_request.size <= ringbuf_get_free_space(pipe)) {
+        if(task->file_request.size <= ringbuf_avail(pipe)) {
             /* yes, wake up the task from the write waiting list */
             wake_up(w_wait_list);
         }
@@ -83,7 +83,7 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
     struct list *r_wait_list = &pipe->r_wait_list;
 
     /* check the ring buffer has enough space to write or not */
-    if(size > ringbuf_get_free_space(pipe)) {
+    if(size > ringbuf_avail(pipe)) {
         /* failed to write */
         retval = -EAGAIN;
 
@@ -100,7 +100,7 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
         ringbuf_in(pipe, buf, size);
 
         /* calculate total written bytes */
-        size_t type_size = ringbuf_get_type_size(pipe);
+        size_t type_size = ringbuf_esize(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
@@ -113,7 +113,7 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
         struct task_ctrl_blk *task = TASK_ENTRY(r_wait_list->next);
 
         /* check if request size of the blocked reading task can be fulfilled */
-        if(task->file_request.size <= ringbuf_get_cnt(pipe)) {
+        if(task->file_request.size <= ringbuf_len(pipe)) {
             /* yes, wake up the task from the read waiting list */
             wake_up(r_wait_list);
         }
