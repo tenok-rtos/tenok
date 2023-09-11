@@ -37,7 +37,8 @@ typedef void (*task_func_t)(void);
 enum {
     TASK_WAIT,
     TASK_READY,
-    TASK_RUNNING
+    TASK_RUNNING,
+    TASK_TERMINATED
 } TASK_STATUS;
 
 /* layout of the user stack when the fpu is not used */

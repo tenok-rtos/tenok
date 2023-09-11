@@ -335,6 +335,11 @@ void sys_fork(void)
     task_cnt++;
 }
 
+void sys__exit(void)
+{
+    running_task->status = TASK_TERMINATED;
+}
+
 void sys_mount(void)
 {
     /* read syscall arguments */

@@ -33,6 +33,11 @@ NACKED int fork(void)
     SYSCALL(FORK);
 }
 
+NACKED void _exit(int status)
+{
+    SYSCALL(_EXIT);
+}
+
 NACKED int getpriority(void)
 {
     SYSCALL(GETPRIORITY);
