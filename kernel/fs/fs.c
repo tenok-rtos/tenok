@@ -5,7 +5,7 @@
 #include <mm/mpool.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
-#include <kernel/fifo.h>
+#include <kernel/ipc.h>
 #include <kernel/kernel.h>
 
 #include <tenok/fcntl.h>

@@ -7,8 +7,7 @@
 #include <fs/fs.h>
 #include <mm/mpool.h>
 #include <kernel/list.h>
-#include <kernel/pipe.h>
-#include <kernel/fifo.h>
+#include <kernel/ipc.h>
 #include <kernel/kernel.h>
 #include <kernel/syscall.h>
 
@@ -695,7 +694,7 @@ void sys_mq_open(void)
     }
 
     /* initialize the ring buffer */
-    struct ringbuf *pipe = ringbuf_alloc(attr->mq_msgsize, attr->mq_maxmsg);
+    struct kfifo *pipe = kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
 
     /* register a new message queue */
     int mqdes = mq_cnt;

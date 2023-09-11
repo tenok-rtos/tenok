@@ -1,9 +1,9 @@
 #ifndef __MQUEUE_H__
 #define __MQUEUE_H__
 
-#include "fs.h"
-#include "ringbuf.h"
-#include "mpool.h"
+#include <fs/fs.h>
+#include <mm/mpool.h>
+#include <kernel/kfifo.h>
 
 typedef int mqd_t;
 
@@ -20,7 +20,7 @@ struct msg_queue {
     char name[FILE_NAME_LEN_MAX];
     struct mq_attr attr;
 
-    struct ringbuf *pipe;
+    struct kfifo *pipe;
 };
 
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr);

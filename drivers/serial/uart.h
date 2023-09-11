@@ -11,7 +11,7 @@ enum {
 } UART_TX_STATE;
 
 typedef struct {
-    struct ringbuf *rx_fifo;
+    struct kfifo *rx_fifo;
     int rx_wait_size;
     bool tx_dma_ready;
     int state;

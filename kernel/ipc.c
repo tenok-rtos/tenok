@@ -4,17 +4,16 @@
 
 #include <fs/fs.h>
 #include <kernel/wait.h>
-#include <kernel/fifo.h>
-#include <kernel/pipe.h>
+#include <kernel/ipc.h>
 #include <kernel/kernel.h>
-#include <kernel/ringbuf.h>
+#include <kernel/kfifo.h>
 #include <tenok/fcntl.h>
 
 #include "kconfig.h"
 
 pipe_t *generic_pipe_create(size_t nmem, size_t size)
 {
-    return ringbuf_alloc(nmem, size);
+    return kfifo_alloc(nmem, size);
 }
 
 ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
@@ -29,7 +28,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
     struct list *w_wait_list = &pipe->w_wait_list;
 
     /* block the current task if the request size is larger than the fifo can serve */
-    if(size > ringbuf_len(pipe)) {
+    if(size > kfifo_len(pipe)) {
         /* failed to read */
         retval = -EAGAIN;
 
@@ -43,10 +42,10 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
         }
     } else {
         /* pop data from the pipe */
-        ringbuf_out(pipe, buf, size);
+        kfifo_out(pipe, buf, size);
 
         /* calculate total read bytes */
-        size_t type_size = ringbuf_esize(pipe);
+        size_t type_size = kfifo_esize(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
@@ -59,7 +58,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
         struct task_ctrl_blk *task = TASK_ENTRY(w_wait_list->next);
 
         /* check if request size of the blocked writting task can be fulfilled */
-        if(task->file_request.size <= ringbuf_avail(pipe)) {
+        if(task->file_request.size <= kfifo_avail(pipe)) {
             /* yes, wake up the task from the write waiting list */
             wake_up(w_wait_list);
         }
@@ -83,7 +82,7 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
     struct list *r_wait_list = &pipe->r_wait_list;
 
     /* check the ring buffer has enough space to write or not */
-    if(size > ringbuf_avail(pipe)) {
+    if(size > kfifo_avail(pipe)) {
         /* failed to write */
         retval = -EAGAIN;
 
@@ -97,10 +96,10 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
         }
     } else {
         /* push data into the pipe */
-        ringbuf_in(pipe, buf, size);
+        kfifo_in(pipe, buf, size);
 
         /* calculate total written bytes */
-        size_t type_size = ringbuf_esize(pipe);
+        size_t type_size = kfifo_esize(pipe);
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
@@ -113,7 +112,7 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
         struct task_ctrl_blk *task = TASK_ENTRY(r_wait_list->next);
 
         /* check if request size of the blocked reading task can be fulfilled */
-        if(task->file_request.size <= ringbuf_len(pipe)) {
+        if(task->file_request.size <= kfifo_len(pipe)) {
             /* yes, wake up the task from the read waiting list */
             wake_up(r_wait_list);
         }
@@ -148,14 +147,14 @@ int fifo_init(int fd, struct file **files, struct inode *file_inode)
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    pipe_t *pipe = container_of(filp, struct ringbuf, file);
+    pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
     return generic_pipe_read(pipe, buf, size);
 }
 
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
-    pipe_t *pipe = container_of(filp, struct ringbuf, file);
+    pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
     return generic_pipe_write(pipe, buf, size);
 }
