@@ -748,19 +748,6 @@ void sys_mq_send(void)
     }
 }
 
-void sys_pthread_mutex_init(void)
-{
-    /* read syscall arguments */
-    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
-    pthread_mutex_attr_t *attr = SYSCALL_ARG(pthread_mutex_attr_t *, 1);
-
-    mutex->owner = NULL;
-    mutex->lock = 0;
-    list_init(&mutex->wait_list);
-
-    SYSCALL_ARG(int, 0) = 0;
-}
-
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */
@@ -809,17 +796,6 @@ void sys_pthread_mutex_lock(void)
     }
 }
 
-void sys_pthread_cond_init(void)
-{
-    /* read syscall arguments */
-    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
-
-    list_init(&cond->task_wait_list);
-
-    /* return on success */
-    SYSCALL_ARG(int, 0) = 0;
-}
-
 void sys_pthread_cond_signal(void)
 {
     /* read syscall arguments */
@@ -849,21 +825,6 @@ void sys_pthread_cond_wait(void)
     }
 
     /* pthread_cond_wait never returns error code */
-    SYSCALL_ARG(int, 0) = 0;
-}
-
-void sys_sem_init(void)
-{
-    /* read syscall arguments */
-    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
-    int pshared = SYSCALL_ARG(int, 1);
-    unsigned int value = SYSCALL_ARG(unsigned int, 2);
-
-    sem->count = value;
-    sem->lock = 0;
-    list_init(&sem->wait_list);
-
-    /* return on success */
     SYSCALL_ARG(int, 0) = 0;
 }
 

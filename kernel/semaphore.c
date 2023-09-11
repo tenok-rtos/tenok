@@ -3,9 +3,13 @@
 
 #include <tenok/semaphore.h>
 
-NACKED int sem_init(sem_t *sem, int pshared, unsigned int value)
+int sem_init(sem_t *sem, int pshared, unsigned int value)
 {
-    SYSCALL(SEM_INIT);
+    sem->count = value;
+    sem->lock = 0;
+    list_init(&sem->wait_list);
+
+    return 0;
 }
 
 NACKED int sem_post(sem_t *sem)
