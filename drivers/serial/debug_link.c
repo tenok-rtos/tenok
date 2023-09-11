@@ -1,10 +1,12 @@
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 
-#include "fs/fs.h"
-#include "kernel/kernel.h"
-#include "kernel/pipe.h"
-#include "kernel/semaphore.h"
+#include <fs/fs.h>
+#include <kernel/pipe.h>
+#include <kernel/wait.h>
+#include <kernel/kernel.h>
+#include <kernel/semaphore.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
@@ -16,10 +18,15 @@ static int uart3_dma_puts(const char *data, size_t size);
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
-struct semaphore sem_uart3_tx;
-pipe_t *uart3_rx_pipe;
+wait_queue_head_t uart3_tx_wq;
+wait_queue_head_t uart3_rx_wq;
 
-int uart3_state = UART_TX_IDLE;
+uart_dev_t uart3 = {
+    .rx_fifo = NULL,
+    .rx_wait_size = 0,
+    .tx_dma_ready = false,
+    .state = UART_TX_IDLE
+};
 
 static struct file_operations serial2_file_ops = {
     .read = serial2_read,
@@ -84,10 +91,10 @@ void serial2_init(void)
     register_chrdev("serial2", &serial2_file_ops);
 
     /* create pipe for reception */
-    uart3_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART3_RX_BUF_SIZE);
+    uart3.rx_fifo = ringbuf_create(sizeof(uint8_t), UART3_RX_BUF_SIZE);
 
-    /* initialize the semaphore for transmission */
-    sema_init(&sem_uart3_tx, 0);
+    list_init(&uart3_tx_wq);
+    list_init(&uart3_rx_wq);
 
     /* initialize uart3 */
     uart3_init(115200);
@@ -95,8 +102,16 @@ void serial2_init(void)
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    generic_pipe_read(uart3_rx_pipe, (char *)buf, size);
-    return size;
+    bool ready = ringbuf_get_cnt(uart3.rx_fifo) >= size;
+    wait_event(&uart3_rx_wq, ready);
+
+    if(ready) {
+        ringbuf_out(uart3.rx_fifo, buf, size);
+        return size;
+    } else {
+        uart3.rx_wait_size = size;
+        return 0;
+    }
 }
 
 ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset)
@@ -110,7 +125,7 @@ ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    if(uart3_state == UART_TX_IDLE) {
+    if(uart3.state == UART_TX_IDLE) {
         /* configure the dma */
         DMA_InitTypeDef DMA_InitStructure = {
             .DMA_BufferSize = (uint32_t)size,
@@ -135,13 +150,12 @@ static int uart3_dma_puts(const char *data, size_t size)
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
         DMA_Cmd(DMA1_Stream4, ENABLE);
 
-        uart3_state = UART_TX_DMA_BUSY;
-    }
+        uart3.state = UART_TX_DMA_BUSY;
+        uart3.tx_dma_ready = false;
+    } else if(uart3.state == UART_TX_DMA_BUSY) {
+        wait_event(&uart3_tx_wq, uart3.tx_dma_ready);
 
-    /* wait until dma finished copying */
-    if(uart3_state == UART_TX_DMA_BUSY) {
-        if(down(&sem_uart3_tx) == 0) {
-            uart3_state = UART_TX_IDLE;
+        if(uart3.tx_dma_ready) {
             return size;
         } else {
             return -EAGAIN;
@@ -153,7 +167,12 @@ void USART3_IRQHandler(void)
 {
     if(USART_GetITStatus(USART3, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART3);
-        generic_pipe_write_isr(uart3_rx_pipe, (char *)&c, sizeof(char));
+        ringbuf_put(uart3.rx_fifo, &c);
+
+        if(ringbuf_get_cnt(uart3.rx_fifo) >= uart3.rx_wait_size) {
+            wake_up(&uart3_rx_wq);
+            uart3.rx_wait_size = 0;
+        }
     }
 }
 
@@ -162,7 +181,9 @@ void DMA1_Stream4_IRQHandler(void)
     if(DMA_GetITStatus(DMA1_Stream4, DMA_IT_TCIF4) == SET) {
         DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4);
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
-        up(&sem_uart3_tx);
+
+        uart3.tx_dma_ready = true;
+        wake_up(&uart3_rx_wq);
     }
 }
 

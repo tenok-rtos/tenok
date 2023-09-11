@@ -21,12 +21,12 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t off
 wait_queue_head_t uart1_tx_wq;
 wait_queue_head_t uart1_rx_wq;
 
-struct ringbuf *uart1_rx_pipe;
-
-int rx_wait_size = 0;
-bool tx_wait_ready = false;
-
-int uart1_state = UART_TX_IDLE;
+uart_dev_t uart1 = {
+    .rx_fifo = NULL,
+    .rx_wait_size = 0,
+    .tx_dma_ready = false,
+    .state = UART_TX_IDLE
+};
 
 static struct file_operations serial0_file_ops = {
     .read = serial0_read,
@@ -92,7 +92,7 @@ void serial0_init(void)
     register_chrdev("serial0", &serial0_file_ops);
 
     /* create pipe for reception */
-    uart1_rx_pipe = ringbuf_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
+    uart1.rx_fifo = ringbuf_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
     list_init(&uart1_tx_wq);
     list_init(&uart1_rx_wq);
@@ -103,14 +103,14 @@ void serial0_init(void)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    bool ready = ringbuf_get_cnt(uart1_rx_pipe) >= size;
+    bool ready = ringbuf_get_cnt(uart1.rx_fifo) >= size;
     wait_event(&uart1_rx_wq, ready);
 
     if(ready) {
-        ringbuf_out(uart1_rx_pipe, buf, size);
+        ringbuf_out(uart1.rx_fifo, buf, size);
         return size;
     } else {
-        rx_wait_size = size;
+        uart1.rx_wait_size = size;
         return 0;
     }
 }
@@ -126,7 +126,7 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart1_dma_puts(const char *data, size_t size)
 {
-    if(uart1_state == UART_TX_IDLE) {
+    if(uart1.state == UART_TX_IDLE) {
         /* configure the dma */
         DMA_InitTypeDef DMA_InitStructure = {
             .DMA_BufferSize = (uint32_t)size,
@@ -151,12 +151,12 @@ static int uart1_dma_puts(const char *data, size_t size)
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
         DMA_Cmd(DMA2_Stream7, ENABLE);
 
-        uart1_state = UART_TX_DMA_BUSY;
-        tx_wait_ready = false;
-    } else if(uart1_state == UART_TX_DMA_BUSY) {
-        wait_event(&uart1_tx_wq, tx_wait_ready);
+        uart1.state = UART_TX_DMA_BUSY;
+        uart1.tx_dma_ready = false;
+    } else if(uart1.state == UART_TX_DMA_BUSY) {
+        wait_event(&uart1_tx_wq, uart1.tx_dma_ready);
 
-        if(tx_wait_ready) {
+        if(uart1.tx_dma_ready) {
             return size;
         } else {
             return -EAGAIN;
@@ -168,12 +168,11 @@ void USART1_IRQHandler(void)
 {
     if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART1);
+        ringbuf_put(uart1.rx_fifo, &c);
 
-        ringbuf_put(uart1_rx_pipe, &c);
-
-        if(ringbuf_get_cnt(uart1_rx_pipe) >= rx_wait_size) {
+        if(ringbuf_get_cnt(uart1.rx_fifo) >= uart1.rx_wait_size) {
             wake_up(&uart1_rx_wq);
-            rx_wait_size = 0;
+            uart1.rx_wait_size = 0;
         }
     }
 }
@@ -184,7 +183,7 @@ void DMA2_Stream7_IRQHandler(void)
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 
-        tx_wait_ready = true;
+        uart1.tx_dma_ready = true;
         wake_up(&uart1_rx_wq);
     }
 }

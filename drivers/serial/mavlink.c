@@ -1,10 +1,12 @@
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 
-#include "fs/fs.h"
-#include "kernel/kernel.h"
-#include "kernel/pipe.h"
-#include "kernel/semaphore.h"
+#include <fs/fs.h>
+#include <kernel/pipe.h>
+#include <kernel/wait.h>
+#include <kernel/kernel.h>
+#include <kernel/semaphore.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
@@ -14,7 +16,15 @@
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
-pipe_t *uart2_rx_pipe;
+wait_queue_head_t uart2_tx_wq;
+wait_queue_head_t uart2_rx_wq;
+
+uart_dev_t uart2 = {
+    .rx_fifo = NULL,
+    .rx_wait_size = 0,
+    .tx_dma_ready = false,
+    .state = UART_TX_IDLE
+};
 
 static struct file_operations serial1_file_ops = {
     .read = serial1_read,
@@ -64,7 +74,10 @@ void serial1_init(void)
     register_chrdev("serial1", &serial1_file_ops);
 
     /* create pipe for reception */
-    uart2_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART2_RX_BUF_SIZE);
+    uart2.rx_fifo = ringbuf_create(sizeof(uint8_t), UART2_RX_BUF_SIZE);
+
+    list_init(&uart2_tx_wq);
+    list_init(&uart2_rx_wq);
 
     /* initialize uart3 */
     uart2_init(115200);
@@ -72,8 +85,16 @@ void serial1_init(void)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    generic_pipe_read(uart2_rx_pipe, (char *)buf, size);
-    return size;
+    bool ready = ringbuf_get_cnt(uart2.rx_fifo) >= size;
+    wait_event(&uart2_rx_wq, ready);
+
+    if(ready) {
+        ringbuf_out(uart2.rx_fifo, buf, size);
+        return size;
+    } else {
+        uart2.rx_wait_size = size;
+        return 0;
+    }
 }
 
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset)
@@ -85,7 +106,12 @@ void USART2_IRQHandler(void)
 {
     if(USART_GetITStatus(USART2, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART2);
-        generic_pipe_write_isr(uart2_rx_pipe, (char *)&c, sizeof(char));
+        ringbuf_put(uart2.rx_fifo, &c);
+
+        if(ringbuf_get_cnt(uart2.rx_fifo) >= uart2.rx_wait_size) {
+            wake_up(&uart2_rx_wq);
+            uart2.rx_wait_size = 0;
+        }
     }
 }
 
