@@ -107,9 +107,7 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
     wait_event(&uart1_rx_wq, ready);
 
     if(ready) {
-        for(int i = 0; i < size; i++) {
-            ringbuf_get(uart1_rx_pipe, &buf[i]);
-        }
+        ringbuf_out(uart1_rx_pipe, buf, size);
         return size;
     } else {
         rx_wait_size = size;

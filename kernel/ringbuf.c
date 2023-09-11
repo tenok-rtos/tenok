@@ -65,6 +65,20 @@ void ringbuf_get(struct ringbuf *rb, void *data)
     }
 }
 
+void ringbuf_in(struct ringbuf *rb, const void *data, size_t n)
+{
+    for(int i = 0; i < n; i++) {
+        ringbuf_put(rb, (char *)data + rb->type_size * i);
+    }
+}
+
+void ringbuf_out(struct ringbuf *rb, void *data, size_t n)
+{
+    for(int i = 0; i < n; i++) {
+        ringbuf_get(rb, (char *)data + rb->type_size * i);
+    }
+}
+
 size_t ringbuf_get_free_space(struct ringbuf *rb)
 {
     return rb->ring_size - rb->count;
