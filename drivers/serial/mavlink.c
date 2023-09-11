@@ -15,14 +15,11 @@
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
-wait_queue_head_t uart2_tx_wq;
-wait_queue_head_t uart2_rx_wq;
-
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .state = UART_TX_IDLE
+    .tx_state = UART_TX_IDLE
 };
 
 static struct file_operations serial1_file_ops = {
@@ -72,11 +69,12 @@ void serial1_init(void)
     /* initialize serial0 as character device */
     register_chrdev("serial1", &serial1_file_ops);
 
-    /* create pipe for reception */
+    /* create kfifo for reception */
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
-    list_init(&uart2_tx_wq);
-    list_init(&uart2_rx_wq);
+    /* create wait queues for synchronization */
+    init_waitqueue_head(&uart2.tx_wq);
+    init_waitqueue_head(&uart2.rx_wq);
 
     /* initialize uart3 */
     uart2_init(115200);
@@ -85,7 +83,7 @@ void serial1_init(void)
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     bool ready = kfifo_len(uart2.rx_fifo) >= size;
-    wait_event(&uart2_rx_wq, ready);
+    wait_event(&uart2.rx_wq, ready);
 
     if(ready) {
         kfifo_out(uart2.rx_fifo, buf, size);
@@ -108,7 +106,7 @@ void USART2_IRQHandler(void)
         kfifo_put(uart2.rx_fifo, &c);
 
         if(kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
-            wake_up(&uart2_rx_wq);
+            wake_up(&uart2.rx_wq);
             uart2.rx_wait_size = 0;
         }
     }

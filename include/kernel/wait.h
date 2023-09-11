@@ -5,6 +5,8 @@
 
 #include <kernel/list.h>
 
+#define init_waitqueue_head(wq) list_init(wq)
+
 typedef struct list wait_queue_head_t;
 
 void wake_up(struct list *wait_list);

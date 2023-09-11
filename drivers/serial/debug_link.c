@@ -17,14 +17,11 @@ static int uart3_dma_puts(const char *data, size_t size);
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
-wait_queue_head_t uart3_tx_wq;
-wait_queue_head_t uart3_rx_wq;
-
 uart_dev_t uart3 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .state = UART_TX_IDLE
+    .tx_state = UART_TX_IDLE
 };
 
 static struct file_operations serial2_file_ops = {
@@ -89,11 +86,12 @@ void serial2_init(void)
     /* initialize serial2 as character device */
     register_chrdev("serial2", &serial2_file_ops);
 
-    /* create pipe for reception */
+    /* create kfifo for reception */
     uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
 
-    list_init(&uart3_tx_wq);
-    list_init(&uart3_rx_wq);
+    /* create wait queues for synchronization */
+    init_waitqueue_head(&uart3.tx_wq);
+    init_waitqueue_head(&uart3.rx_wq);
 
     /* initialize uart3 */
     uart3_init(115200);
@@ -102,7 +100,7 @@ void serial2_init(void)
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     bool ready = kfifo_len(uart3.rx_fifo) >= size;
-    wait_event(&uart3_rx_wq, ready);
+    wait_event(&uart3.rx_wq, ready);
 
     if(ready) {
         kfifo_out(uart3.rx_fifo, buf, size);
@@ -124,7 +122,7 @@ ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    if(uart3.state == UART_TX_IDLE) {
+    if(uart3.tx_state == UART_TX_IDLE) {
         /* configure the dma */
         DMA_InitTypeDef DMA_InitStructure = {
             .DMA_BufferSize = (uint32_t)size,
@@ -149,10 +147,10 @@ static int uart3_dma_puts(const char *data, size_t size)
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
         DMA_Cmd(DMA1_Stream4, ENABLE);
 
-        uart3.state = UART_TX_DMA_BUSY;
+        uart3.tx_state = UART_TX_DMA_BUSY;
         uart3.tx_dma_ready = false;
-    } else if(uart3.state == UART_TX_DMA_BUSY) {
-        wait_event(&uart3_tx_wq, uart3.tx_dma_ready);
+    } else if(uart3.tx_state == UART_TX_DMA_BUSY) {
+        wait_event(&uart3.tx_wq, uart3.tx_dma_ready);
 
         if(uart3.tx_dma_ready) {
             return size;
@@ -169,7 +167,7 @@ void USART3_IRQHandler(void)
         kfifo_put(uart3.rx_fifo, &c);
 
         if(kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
-            wake_up(&uart3_rx_wq);
+            wake_up(&uart3.rx_wq);
             uart3.rx_wait_size = 0;
         }
     }
@@ -182,7 +180,7 @@ void DMA1_Stream4_IRQHandler(void)
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 
         uart3.tx_dma_ready = true;
-        wake_up(&uart3_rx_wq);
+        wake_up(&uart3.rx_wq);
     }
 }
 
