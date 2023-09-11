@@ -14,7 +14,6 @@ typedef struct semaphore sem_t;
 
 int sema_init(sem_t *sem, unsigned int value);
 int up(struct semaphore *sem);
-int down_trylock(struct semaphore *sem);
 int down(struct semaphore *sem);
 
 #endif

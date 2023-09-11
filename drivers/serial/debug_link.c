@@ -140,7 +140,7 @@ static int uart3_dma_puts(const char *data, size_t size)
 
     /* wait until dma finished copying */
     if(uart3_state == UART_TX_DMA_BUSY) {
-        if(down_trylock(&sem_uart3_tx) == 0) {
+        if(down(&sem_uart3_tx) == 0) {
             uart3_state = UART_TX_IDLE;
             return size;
         } else {

@@ -48,7 +48,7 @@ int up(struct semaphore *sem)
     return retval;
 }
 
-int down_trylock(struct semaphore *sem)
+int down(struct semaphore *sem)
 {
     CURRENT_TASK_INFO(curr_task);
 
@@ -75,34 +75,6 @@ int down_trylock(struct semaphore *sem)
     spin_unlock_irq(&sem->lock);
 
     return retval;
-}
-
-int down(struct semaphore *sem)
-{
-    CURRENT_TASK_INFO(curr_task);
-
-    spin_lock_irq(&sem->lock);
-
-    while(1) {
-        if(sem->count <= 0) {
-            /* failed to obtain the semaphore, put the current task into the waiting list */
-            prepare_to_wait(&sem->wait_list, &curr_task->list, TASK_WAIT);
-
-            /* end of the critical section */
-            spin_unlock_irq(&sem->lock);
-
-            /* start sleeping */
-            sched_yield();
-        } else {
-            /* successfully obtained the semaphore */
-            sem->count--;
-
-            /* end of the critical section */
-            spin_unlock_irq(&sem->lock);
-
-            return 0;
-        }
-    }
 }
 
 NACKED int sem_init(sem_t *sem, int pshared, unsigned int value)
