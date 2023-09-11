@@ -1,8 +1,10 @@
 #ifndef __PTHREAD_H__
 #define __PTHREAD_H__
 
-#include "list.h"
-#include "spinlock.h"
+#include <stdint.h>
+
+#include <kernel/list.h>
+#include <kernel/spinlock.h>
 
 #define pthread_mutex_t    __pthread_mutex_t
 #define pthread_cond_t     __pthread_cond_t

@@ -1,8 +1,10 @@
 #include <stddef.h>
 #include <errno.h>
 
+#include <arch/port.h>
 #include <kernel/list.h>
 #include <kernel/kernel.h>
+#include <kernel/syscall.h>
 
 #include <tenok/sched.h>
 #include <tenok/semaphore.h>
@@ -101,4 +103,29 @@ int down(struct semaphore *sem)
             return 0;
         }
     }
+}
+
+NACKED int sem_init(sem_t *sem, int pshared, unsigned int value)
+{
+    SYSCALL(SEM_INIT);
+}
+
+NACKED int sem_post(sem_t *sem)
+{
+    SYSCALL(SEM_POST);
+}
+
+NACKED int sem_trywait(sem_t *sem)
+{
+    SYSCALL(SEM_TRYWAIT);
+}
+
+NACKED int sem_wait(sem_t *sem)
+{
+    SYSCALL(SEM_WAIT);
+}
+
+NACKED int sem_getvalue(sem_t *sem, int *sval)
+{
+    SYSCALL(SEM_GETVALUE);
 }

@@ -80,12 +80,15 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_spi.c \
        $(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC += ./kernel/syscall.c \
-       ./kernel/ipc.c \
+SRC += ./kernel/ipc.c \
        ./kernel/ringbuf.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
+       ./kernel/task.c \
+       ./kernel/fcntl.c \
+       ./kernel/mqueue.c \
        ./kernel/semaphore.c \
+       ./kernel/pthread.c \
        ./kernel/time.c \
        ./kernel/fs/fs.c \
        ./kernel/fs/file.c \
