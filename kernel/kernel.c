@@ -127,6 +127,18 @@ void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
     task->status = state;
 }
 
+void wait_event(struct list *wq, bool condition)
+{
+    CURRENT_TASK_INFO(curr_task);
+
+    if(condition) {
+        curr_task->syscall_pending = false;
+    } else {
+        prepare_to_wait(wq, &curr_task->list, TASK_WAIT);
+        curr_task->syscall_pending = true;
+    }
+}
+
 /*
  * move the task from the wait_list into the ready_list.
  * the task will not be executed immediately and requires
@@ -134,6 +146,9 @@ void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
  */
 void wake_up(struct list *wait_list)
 {
+    if(list_is_empty(wait_list))
+        return;
+
     /* pop the task from the waiting list */
     struct list *waken_task_list = list_pop(wait_list);
     struct task_ctrl_blk *waken_task = list_entry(waken_task_list, struct task_ctrl_blk, list);

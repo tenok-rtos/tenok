@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include <fs/fs.h>
+#include <kernel/wait.h>
 #include <kernel/fifo.h>
 #include <kernel/pipe.h>
 #include <kernel/kernel.h>

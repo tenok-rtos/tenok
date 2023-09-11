@@ -1,10 +1,12 @@
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 
-#include "fs/fs.h"
-#include "kernel/kernel.h"
-#include "kernel/pipe.h"
-#include "kernel/semaphore.h"
+#include <fs/fs.h>
+#include <kernel/pipe.h>
+#include <kernel/wait.h>
+#include <kernel/kernel.h>
+#include <kernel/semaphore.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
@@ -16,8 +18,13 @@ static int uart1_dma_puts(const char *data, size_t size);
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
-struct semaphore sem_uart1_tx;
-pipe_t *uart1_rx_pipe;
+wait_queue_head_t uart1_tx_wq;
+wait_queue_head_t uart1_rx_wq;
+
+struct ringbuf *uart1_rx_pipe;
+
+int rx_wait_size = 0;
+bool tx_wait_ready = false;
 
 int uart1_state = UART_TX_IDLE;
 
@@ -85,10 +92,10 @@ void serial0_init(void)
     register_chrdev("serial0", &serial0_file_ops);
 
     /* create pipe for reception */
-    uart1_rx_pipe = generic_pipe_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
+    uart1_rx_pipe = ringbuf_create(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
-    /* initialize the semaphore for transmission */
-    sema_init(&sem_uart1_tx, 0);
+    list_init(&uart1_tx_wq);
+    list_init(&uart1_rx_wq);
 
     /* initialize uart1 */
     uart1_init(115200);
@@ -96,8 +103,18 @@ void serial0_init(void)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    generic_pipe_read(uart1_rx_pipe, (char *)buf, size);
-    return size;
+    bool ready = ringbuf_get_cnt(uart1_rx_pipe) >= size;
+    wait_event(&uart1_rx_wq, ready);
+
+    if(ready) {
+        for(int i = 0; i < size; i++) {
+            ringbuf_get(uart1_rx_pipe, &buf[i]);
+        }
+        return size;
+    } else {
+        rx_wait_size = size;
+        return 0;
+    }
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset)
@@ -137,12 +154,11 @@ static int uart1_dma_puts(const char *data, size_t size)
         DMA_Cmd(DMA2_Stream7, ENABLE);
 
         uart1_state = UART_TX_DMA_BUSY;
-    }
+        tx_wait_ready = false;
+    } else if(uart1_state == UART_TX_DMA_BUSY) {
+        wait_event(&uart1_tx_wq, tx_wait_ready);
 
-    /* wait until dma finished copying */
-    if(uart1_state == UART_TX_DMA_BUSY) {
-        if(down(&sem_uart1_tx) == 0) {
-            uart1_state = UART_TX_IDLE;
+        if(tx_wait_ready) {
             return size;
         } else {
             return -EAGAIN;
@@ -154,7 +170,13 @@ void USART1_IRQHandler(void)
 {
     if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART1);
-        generic_pipe_write_isr(uart1_rx_pipe, (char *)&c, sizeof(char));
+
+        ringbuf_put(uart1_rx_pipe, &c);
+
+        if(ringbuf_get_cnt(uart1_rx_pipe) >= rx_wait_size) {
+            wake_up(&uart1_rx_wq);
+            rx_wait_size = 0;
+        }
     }
 }
 
@@ -163,7 +185,9 @@ void DMA2_Stream7_IRQHandler(void)
     if(DMA_GetITStatus(DMA2_Stream7, DMA_IT_TCIF7) == SET) {
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
-        up(&sem_uart1_tx);
+
+        tx_wait_ready = true;
+        wake_up(&uart1_rx_wq);
     }
 }
 

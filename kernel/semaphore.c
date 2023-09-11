@@ -2,6 +2,7 @@
 #include <errno.h>
 
 #include <arch/port.h>
+#include <kernel/wait.h>
 #include <kernel/list.h>
 #include <kernel/kernel.h>
 #include <kernel/syscall.h>
