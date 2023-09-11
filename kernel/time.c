@@ -38,10 +38,10 @@ int usleep(useconds_t usec)
 {
     /* FIXME: granularity is too large with current design */
 
-    int usec_tick = OS_TICK_FREQ * (usec / 1000000);
-    long granularity = 1000000 / OS_TICK_FREQ;
+    int usec_tick = OS_TICK_FREQ * usec / 1000000;
+    long granularity_us = 1000000 / OS_TICK_FREQ;
 
-    if((usec >= 1000000) || (usec_tick < granularity)) {
+    if((usec >= 1000000) || (usec < granularity_us)) {
         return -EINVAL;
     } else {
         delay_ticks(usec_tick);
