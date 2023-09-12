@@ -16,7 +16,7 @@
 
 #define SIGNAL_CNT 9
 
-typedef	int sigset_t;
+typedef	uint32_t sigset_t;
 
 union sigval {
     int   sival_int;
@@ -24,8 +24,8 @@ union sigval {
 };
 
 typedef struct {
-    int      si_signo;
-    int      si_code;
+    int          si_signo;
+    int          si_code;
     union sigval si_value;
 } siginfo_t;
 
@@ -38,6 +38,10 @@ struct sigaction {
     int      sa_flags;
 };
 
+int sigemptyset(sigset_t *set);
+int sigfillset(sigset_t *set);
+int sigaddset(sigset_t *set, int signum);
+int sigdelset(sigset_t *set, int signum);
 int sigaction(int signum, const struct sigaction *act,
               struct sigaction *oldact);
 int kill(pid_t pid, int sig);
