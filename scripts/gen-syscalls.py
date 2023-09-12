@@ -31,7 +31,8 @@ syscalls = \
  'sem_post',
  'sem_trywait',
  'sem_wait',
- 'sem_getvalue']
+ 'sem_getvalue',
+ 'sigaction']
 
 syscall_cnt = len(syscalls)
 

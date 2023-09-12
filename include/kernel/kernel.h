@@ -7,6 +7,8 @@
 #include <fs/fs.h>
 #include <kernel/list.h>
 
+#include <tenok/signal.h>
+
 #include "kconfig.h"
 
 #define	PRIO_PROCESS 0
@@ -143,6 +145,9 @@ struct task_ctrl_blk {
     /* file descriptor table */
     struct fdtable fdtable[FILE_DESC_CNT_MAX];
     int fd_cnt;
+
+    /* signal table */
+    struct sigaction *sig_table[SIGNAL_CNT];
 
     struct list list;
 };

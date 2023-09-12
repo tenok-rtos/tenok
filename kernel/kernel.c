@@ -14,6 +14,7 @@
 #include <tenok/time.h>
 #include <tenok/mqueue.h>
 #include <tenok/unistd.h>
+#include <tenok/signal.h>
 #include <tenok/pthread.h>
 #include <tenok/semaphore.h>
 #include <tenok/sys/stat.h>
@@ -908,6 +909,44 @@ void sys_sem_getvalue(void)
     int *sval = SYSCALL_ARG(int *, 0);
 
     *sval = sem->count;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_sigaction(void)
+{
+    /* read syscall arguments */
+    int signum = SYSCALL_ARG(int, 0);
+    struct sigaction *act = SYSCALL_ARG(struct sigaction *, 1);
+    struct sigaction *oldact = SYSCALL_ARG(struct sigaction *, 2);
+
+    /* get the address of the signal action on the table */
+    struct sigaction *sig_entry = running_task->sig_table[signum];
+
+    /* has the signal action already been registed on the table? */
+    if(sig_entry) {
+        /* preserve old signal action */
+        if(oldact) {
+            *oldact = *sig_entry;
+        }
+
+        /* replace old signal action */
+        *sig_entry = *act;
+    } else {
+        /* allocate memory for new action */
+        struct sigaction *new_act = kmalloc(sizeof(act));
+
+        /* failed to allocate new memory */
+        if(new_act == NULL) {
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -ENOMEM;
+            return;
+        }
+
+        /* register the signal action on the table */
+        *sig_entry = *new_act;
+    }
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;

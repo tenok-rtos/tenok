@@ -89,6 +89,7 @@ SRC += ./kernel/ipc.c \
        ./kernel/mqueue.c \
        ./kernel/semaphore.c \
        ./kernel/pthread.c \
+       ./kernel/signal.c \
        ./kernel/time.c \
        ./kernel/fs/fs.c \
        ./kernel/fs/file.c \
