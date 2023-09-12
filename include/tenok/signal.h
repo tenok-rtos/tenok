@@ -1,6 +1,8 @@
 #ifndef __SIGNAL_H__
 #define __SIGNAL_H__
 
+#include <tenok/sys/types.h>
+
 /* supported signals by tenok */
 #define SIGUSR1  10
 #define SIGUSR2  12
@@ -38,5 +40,6 @@ struct sigaction {
 
 int sigaction(int signum, const struct sigaction *act,
               struct sigaction *oldact);
+int kill(pid_t pid, int sig);
 
 #endif

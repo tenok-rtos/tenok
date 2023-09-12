@@ -9,6 +9,7 @@
 #include <kernel/list.h>
 #include <kernel/ipc.h>
 #include <kernel/kernel.h>
+#include <kernel/signal.h>
 #include <kernel/syscall.h>
 
 #include <tenok/time.h>
@@ -952,6 +953,51 @@ void sys_sigaction(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+static void handler_signal(pid_t pid, int signum)
+{
+    switch(signum) {
+        case SIGKILL: {
+            /* kill a task and the signal cannot be caught */
+            tasks[pid].status = TASK_TERMINATED;
+            break;
+        }
+    }
+}
+
+void sys_kill(void)
+{
+    /* read syscall arguments */
+    pid_t pid = SYSCALL_ARG(pid_t, 0);
+    int sig = SYSCALL_ARG(int, 1);
+
+
+    /* check if the pid is valid */
+    if(pid < 0 || pid >= task_cnt) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* idle task and file system task can not be killed */
+    if((pid == 0 || pid == 1) && (sig == SIGKILL)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EPERM;
+        return;
+    }
+
+    /* check if the signal number is defined */
+    if(!is_signal_defined(sig)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    handler_signal(pid, sig);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
 uint32_t get_proc_mode(void)
 {
     /*
@@ -1165,6 +1211,10 @@ void sprint_tasks(char *str, size_t size)
 
     int i;
     for(i = 0; i < task_cnt; i++) {
+        if(tasks[i].status == TASK_TERMINATED) {
+            continue;
+        }
+
         pos += snprintf(&str[pos], size, "%d\t%d\t%s\n\r", tasks[i].pid, tasks[i].priority, tasks[i].name);
     }
 }

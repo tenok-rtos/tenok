@@ -32,7 +32,8 @@ syscalls = \
  'sem_trywait',
  'sem_wait',
  'sem_getvalue',
- 'sigaction']
+ 'sigaction',
+ 'kill']
 
 syscall_cnt = len(syscalls)
 
