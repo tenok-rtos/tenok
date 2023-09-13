@@ -541,7 +541,9 @@ void sys_write(void)
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
     /* return the write result */
-    SYSCALL_ARG(int, 0) = retval;
+    if(running_task->syscall_pending == false) {
+        SYSCALL_ARG(int, 0) = retval;
+    }
 }
 
 void sys_lseek(void)

@@ -149,10 +149,13 @@ static int uart3_dma_puts(const char *data, size_t size)
 
         uart3.tx_state = UART_TX_DMA_BUSY;
         uart3.tx_dma_ready = false;
-    } else if(uart3.tx_state == UART_TX_DMA_BUSY) {
+    }
+
+    if(uart3.tx_state == UART_TX_DMA_BUSY) {
         wait_event(&uart3.tx_wq, uart3.tx_dma_ready);
 
         if(uart3.tx_dma_ready) {
+            uart3.tx_state = UART_TX_IDLE;
             return size;
         } else {
             return -EAGAIN;
@@ -180,7 +183,7 @@ void DMA1_Stream4_IRQHandler(void)
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 
         uart3.tx_dma_ready = true;
-        wake_up(&uart3.rx_wq);
+        wake_up(&uart3.tx_wq);
     }
 }
 
