@@ -31,7 +31,7 @@ void led_task2(void)
 
     while(1) {
         sem_post(&sem_led);
-        sleep(1000);
+        sleep(1);
     }
 }
 
