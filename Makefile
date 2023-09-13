@@ -91,6 +91,7 @@ SRC += ./kernel/ipc.c \
        ./kernel/pthread.c \
        ./kernel/signal.c \
        ./kernel/time.c \
+       ./kernel/printk.c \
        ./kernel/fs/fs.c \
        ./kernel/fs/file.c \
        ./kernel/fs/reg_file.c \

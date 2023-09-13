@@ -1,6 +1,9 @@
 #include <stdio.h>
 
 #include <kernel/task.h>
+#include <kernel/printk.h>
+
+#include <tenok/time.h>
 #include <tenok/unistd.h>
 #include <tenok/sys/resource.h>
 
@@ -17,24 +20,16 @@ struct shell_autocompl autocompl[100]; //XXX: handle with mpool
 
 void boot_message(void)
 {
-    //TODO: implement dev_info() like linux kernel
+    //XXX: mimic the printk output, the code still need to be improved
 
-    char s[100] = {0};
+    printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
+    printk("Machine model: %s", __BOARD_NAME__);
+    printk("chardev serial0: console");
+    printk("chardev serial1: mavlink");
+    printk("chardev serial2: debug-link");
+    printk("blkdev rom: romfs storage");
 
-    snprintf(s, 100, "[0.000000] firmware build time: %s %s\n\r", __TIME__, __DATE__);
-    shell_puts(s);
-
-    snprintf(s, 100, "[0.000000] chardev [serial0] for console\n\r");
-    shell_puts(s);
-
-    snprintf(s, 100, "[0.000000] chardev [serial1] for mavlink\n\r");
-    shell_puts(s);
-
-    snprintf(s, 100, "[0.000000] chardev [serial2] for debug-link\n\r");
-    shell_puts(s);
-
-    snprintf(s, 100, "type `help' for help\n\r");
-    shell_puts(s);
+    shell_puts("type `help' for help\n\r");
 }
 
 void shell_task(void)
