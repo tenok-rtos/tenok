@@ -21,10 +21,10 @@ void signal_task(void)
     sa.sa_flags = 0;
 
     /* register the signal */
-    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGUSR1, &sa, NULL);
 
     /* send the signal for testing */
-    kill(getpid(), SIGINT);
+    kill(getpid(), SIGUSR1);
 
     /* sleep forever */
     sched_yield();

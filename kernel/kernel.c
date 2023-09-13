@@ -33,6 +33,7 @@
 /* task lists */
 struct list ready_list[TASK_MAX_PRIORITY + 1];
 struct list sleep_list;
+struct list suspend_list;
 
 /* tasks */
 struct task_ctrl_blk tasks[TASK_CNT_MAX];
@@ -88,7 +89,7 @@ void task_return_handler(void)
     while(1);
 }
 
-void task_create(task_func_t task_func, uint8_t priority)
+static void task_create(task_func_t task_func, uint8_t priority)
 {
     if(task_cnt > TASK_CNT_MAX) {
         return;
@@ -117,6 +118,52 @@ void task_create(task_func_t task_func, uint8_t priority)
     tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
 
     task_cnt++;
+}
+
+static void task_suspend(int pid)
+{
+    struct task_ctrl_blk *task = &tasks[pid];
+
+    if(task->status == TASK_SUSPENDED ||
+       task->status == TASK_TERMINATED) {
+        return;
+    }
+
+    prepare_to_wait(&suspend_list, &task->list, TASK_SUSPENDED);
+}
+
+static void task_resume(int pid)
+{
+    /* resume only if the task is suspended */
+    if(tasks[pid].status != TASK_SUSPENDED) {
+        return;
+    }
+
+    struct list *list_itr = suspend_list.next;
+    while(list_itr != &suspend_list) {
+        /* preserve in case the task get removed from the list */
+        struct list *next = list_itr->next;
+
+        /* obtain the task control block */
+        struct task_ctrl_blk *task = list_entry(list_itr, struct task_ctrl_blk, list);
+
+        if(task->pid == pid) {
+            /* remove the task from the suspended list and put it into the ready list */
+            task->status = TASK_READY;
+            list_remove(list_itr);
+            list_push(&ready_list[task->priority], list_itr);
+            return;
+        }
+
+        /* prepare next task list */
+        list_itr = next;
+    }
+}
+
+static void task_kill(int pid)
+{
+    struct task_ctrl_blk *task = &tasks[pid];
+    task->status = TASK_TERMINATED;
 }
 
 /* put the task pointed by the "wait" into the "wait_list", and change the task state. */
@@ -953,12 +1000,30 @@ void sys_sigaction(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
-static void handler_signal(pid_t pid, int signum)
+static void handle_signal(pid_t pid, int signum)
 {
+    struct task_ctrl_blk *task = &tasks[pid];
+
     switch(signum) {
+        case SIGUSR1:
+            break;
+        case SIGUSR2:
+            break;
+        case SIGALRM:
+            break;
+        case SIGPOLL:
+            break;
+        case SIGSTOP:
+            /* stop: can't be caught or ignored */
+            task_suspend(pid);
+            break;
+        case SIGCONT:
+            /* continue */
+            task_resume(pid);
+            break;
         case SIGKILL: {
-            /* kill a task and the signal cannot be caught */
-            tasks[pid].status = TASK_TERMINATED;
+            /* kill: can't be caught or ignored */
+            task_kill(pid);
             break;
         }
     }
@@ -978,8 +1043,9 @@ void sys_kill(void)
         return;
     }
 
-    /* idle task and file system task can not be killed */
-    if((pid == 0 || pid == 1) && (sig == SIGKILL)) {
+    /* reject forbidden signal for idle task and file system task */
+    if((pid == 0 || pid == 1) &&
+       (sig == SIGKILL || sig == SIGSTOP || sig == SIGCONT)) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -992,7 +1058,7 @@ void sys_kill(void)
         return;
     }
 
-    handler_signal(pid, sig);
+    handle_signal(pid, sig);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1167,8 +1233,9 @@ void sched_start(void)
     /* initialized all hooked drivers */
     hook_drivers_init();
 
-    /* initialize the sleep list */
+    /* initialize the sleep list and suspended list */
     list_init(&sleep_list);
+    list_init(&suspend_list);
 
     task_create(first, 0);
 
@@ -1207,14 +1274,21 @@ void sched_start(void)
 
 void sprint_tasks(char *str, size_t size)
 {
-    int pos = snprintf(&str[0], size, "PID\tPR\tNAME\n\r");
+    int pos = snprintf(&str[0], size, "PID\tPR\tSTAT\tNAME\n\r");
+    char *stat;
 
     int i;
     for(i = 0; i < task_cnt; i++) {
         if(tasks[i].status == TASK_TERMINATED) {
             continue;
+        } else if(tasks[i].status == TASK_SUSPENDED) {
+            stat = "T";
+        } else {
+            stat = "R";
         }
 
-        pos += snprintf(&str[pos], size, "%d\t%d\t%s\n\r", tasks[i].pid, tasks[i].priority, tasks[i].name);
+        pos += snprintf(&str[pos], size, "%d\t%d\t%s\t%s\n\r",
+                        tasks[i].pid, tasks[i].priority,
+                        stat, tasks[i].name);
     }
 }

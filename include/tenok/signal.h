@@ -9,12 +9,10 @@
 #define SIGALRM  14
 #define SIGPOLL  29
 #define SIGSTOP  19
-#define SIGTSTP  20
 #define SIGCONT  18
-#define SIGINT   2
 #define SIGKILL  9
 
-#define SIGNAL_CNT 9
+#define SIGNAL_CNT 7
 
 typedef	uint32_t sigset_t;
 

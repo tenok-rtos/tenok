@@ -17,9 +17,7 @@ bool is_signal_defined(int signum)
         case SIGALRM:
         case SIGPOLL:
         case SIGSTOP:
-        case SIGTSTP:
         case SIGCONT:
-        case SIGINT:
         case SIGKILL:
             return true;
     }
@@ -35,10 +33,8 @@ static uint32_t sig2bit(int signum)
             DEF_SIG_BIT(SIGALRM, 2);
             DEF_SIG_BIT(SIGPOLL, 3);
             DEF_SIG_BIT(SIGSTOP, 4);
-            DEF_SIG_BIT(SIGTSTP, 5);
-            DEF_SIG_BIT(SIGCONT, 6);
-            DEF_SIG_BIT(SIGINT, 7);
-            DEF_SIG_BIT(SIGKILL, 8);
+            DEF_SIG_BIT(SIGCONT, 5);
+            DEF_SIG_BIT(SIGKILL, 6);
         default:
             return 0; /* should not happened */
     }
