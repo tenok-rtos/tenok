@@ -31,20 +31,20 @@ int clock_gettime(clockid_t clockid, struct timespec *tp)
     tp->tv_nsec = 1000000000 * tick / OS_TICK_FREQ;
 }
 
-int timer_create(clockid_t clockid, struct sigevent *sevp,
+NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,
                  timer_t *timerid)
 {
     SYSCALL(TIMER_CREATE);
 }
 
-int timer_settime(timer_t timerid, int flags,
+NACKED int timer_settime(timer_t timerid, int flags,
                   const struct itimerspec *new_value,
                   struct itimerspec *old_value)
 {
     SYSCALL(TIMER_SETTIME);
 }
 
-int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
+NACKED int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 {
     SYSCALL(TIMER_GETTIME);
 }
