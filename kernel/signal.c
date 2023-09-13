@@ -40,6 +40,28 @@ static uint32_t sig2bit(int signum)
     }
 }
 
+int get_signal_index(int signum)
+{
+    switch(signum) {
+        case SIGUSR1:
+            return 0;
+        case SIGUSR2:
+            return 1;
+        case SIGALRM:
+            return 2;
+        case SIGPOLL:
+            return 3;
+        case SIGSTOP:
+            return 4;
+        case SIGCONT:
+            return 5;
+        case SIGKILL:
+            return 6;
+    }
+
+    return 0; /* should not happened */
+}
+
 int sigemptyset(sigset_t *set)
 {
     *set = 0;

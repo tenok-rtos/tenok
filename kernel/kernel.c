@@ -969,8 +969,16 @@ void sys_sigaction(void)
     struct sigaction *act = SYSCALL_ARG(struct sigaction *, 1);
     struct sigaction *oldact = SYSCALL_ARG(struct sigaction *, 2);
 
+    /* check if the signal number is defined */
+    if(!is_signal_defined(signum)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
     /* get the address of the signal action on the table */
-    struct sigaction *sig_entry = running_task->sig_table[signum];
+    int sig_idx = get_signal_index(signum);
+    struct sigaction *sig_entry = running_task->sig_table[sig_idx];
 
     /* has the signal action already been registed on the table? */
     if(sig_entry) {
@@ -993,7 +1001,8 @@ void sys_sigaction(void)
         }
 
         /* register the signal action on the table */
-        *sig_entry = *new_act;
+        running_task->sig_table[sig_idx] = new_act;
+        *new_act = *act;
     }
 
     /* return on success */
@@ -1002,16 +1011,22 @@ void sys_sigaction(void)
 
 static void handle_signal(pid_t pid, int signum)
 {
+    bool stage_handler = false;
+
     struct task_ctrl_blk *task = &tasks[pid];
 
     switch(signum) {
         case SIGUSR1:
+            stage_handler = true;
             break;
         case SIGUSR2:
+            stage_handler = true;
             break;
         case SIGALRM:
+            stage_handler = true;
             break;
         case SIGPOLL:
+            stage_handler = true;
             break;
         case SIGSTOP:
             /* stop: can't be caught or ignored */
@@ -1020,12 +1035,37 @@ static void handle_signal(pid_t pid, int signum)
         case SIGCONT:
             /* continue */
             task_resume(pid);
+            stage_handler = true;
             break;
         case SIGKILL: {
             /* kill: can't be caught or ignored */
             task_kill(pid);
             break;
         }
+    }
+
+    if(!stage_handler) {
+        return;
+    }
+
+    int sig_idx = get_signal_index(signum);
+    struct sigaction *act = task->sig_table[sig_idx];
+
+    /* no signal handler is provided */
+    if(act == NULL) {
+        return;
+    } else if(act->sa_handler == NULL) {
+        return;
+    }
+
+    /* TODO:
+     * 1. run signal handler in user space
+     * 2. pass second and third argumentis to the sigaction handler
+     */
+    if(act->sa_flags & SA_SIGINFO) {
+        act->sa_sigaction(signum, NULL, NULL);
+    } else {
+        act->sa_handler(signum);
     }
 }
 
@@ -1034,7 +1074,6 @@ void sys_kill(void)
     /* read syscall arguments */
     pid_t pid = SYSCALL_ARG(pid_t, 0);
     int sig = SYSCALL_ARG(int, 1);
-
 
     /* check if the pid is valid */
     if(pid < 0 || pid >= task_cnt) {

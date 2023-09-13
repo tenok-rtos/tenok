@@ -14,6 +14,8 @@
 
 #define SIGNAL_CNT 7
 
+#define SA_SIGINFO 0x2
+
 typedef	uint32_t sigset_t;
 
 union sigval {
