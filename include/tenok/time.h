@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <tenok/signal.h>
 #include <tenok/sys/types.h>
 
 #define CLOCK_MONOTONIC 0
@@ -14,8 +15,17 @@ struct tenok__timespec {
     long   tv_nsec; //nanoseconds
 };
 
-void sys_time_update_handler(void);
+struct itimerspec {
+    struct timespec it_value;
+    struct timespec it_interval;
+};
 
 int clock_gettime(clockid_t clockid, struct timespec *tp);
+int timer_create(clockid_t clockid, struct sigevent *sevp,
+                 timer_t *timerid);
+int timer_settime(timer_t timerid, int flags,
+                  const struct itimerspec *new_value,
+                  struct itimerspec *old_value);
+int timer_gettime(timer_t timerid, struct itimerspec *curr_value);
 
 #endif

@@ -8,6 +8,7 @@
 #include <mm/mpool.h>
 #include <kernel/list.h>
 #include <kernel/ipc.h>
+#include <kernel/time.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
@@ -1100,6 +1101,21 @@ void sys_kill(void)
     handle_signal(pid, sig);
 
     /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_timer_create(void)
+{
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_timer_settime(void)
+{
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_timer_gettime(void)
+{
     SYSCALL_ARG(int, 0) = 0;
 }
 

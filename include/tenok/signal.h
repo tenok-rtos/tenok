@@ -3,7 +3,6 @@
 
 #include <tenok/sys/types.h>
 
-/* supported signals by tenok */
 #define SIGUSR1  10
 #define SIGUSR2  12
 #define SIGALRM  14
@@ -11,10 +10,12 @@
 #define SIGSTOP  19
 #define SIGCONT  18
 #define SIGKILL  9
-
 #define SIGNAL_CNT 7
 
 #define SA_SIGINFO 0x2
+
+#define SIGEV_NONE   1
+#define SIGEV_SIGNAL 2
 
 typedef	uint32_t sigset_t;
 
@@ -36,6 +37,15 @@ struct sigaction {
     };
     sigset_t sa_mask;
     int      sa_flags;
+};
+
+struct sigevent {
+    int   sigev_notify;
+    int   sigev_signo;
+    union sigval sigev_value;
+    void  (*sigev_notify_function)(union sigval);
+    void  *sigev_notify_attributes;
+    pid_t sigev_notify_thread_id;
 };
 
 int sigemptyset(sigset_t *set);
