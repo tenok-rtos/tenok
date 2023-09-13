@@ -6,7 +6,8 @@
 #include <tenok/signal.h>
 #include <tenok/sys/types.h>
 
-#define CLOCK_MONOTONIC 0
+#define CLOCK_REALTIME  0
+#define CLOCK_MONOTONIC 1
 
 #define timespec tenok__timespec
 

@@ -13,3 +13,4 @@ SRC += $(PROJ_ROOT)/user/tasks/mavlink_task.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/mqueue-ex.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/mutex-ex.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/signal-ex.c
+SRC += $(PROJ_ROOT)/user/tasks/examples/timer-ex.c
