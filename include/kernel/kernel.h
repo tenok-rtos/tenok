@@ -6,6 +6,7 @@
 
 #include <fs/fs.h>
 #include <kernel/list.h>
+#include <kernel/time.h>
 
 #include <tenok/signal.h>
 
@@ -150,6 +151,11 @@ struct task_ctrl_blk {
     /* signal table */
     struct sigaction *sig_table[SIGNAL_CNT];
 
+    /* timers */
+    struct list timer_head;
+    int timer_cnt;
+
+    /* task list head */
     struct list list;
 };
 

@@ -1113,16 +1113,116 @@ void sys_kill(void)
 
 void sys_timer_create(void)
 {
+    /* read syscall arguments */
+    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
+    struct sigevent *sevp = SYSCALL_ARG(struct sigevent *, 1);
+    timer_t *timerid = SYSCALL_ARG(timer_t *, 2);
+
+    /* unsupported clock source */
+    if(clockid != CLOCK_MONOTONIC) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    if(sevp->sigev_notify != SIGEV_NONE &&
+       sevp->sigev_notify != SIGEV_SIGNAL) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    /* allocate memory for the new timer */
+    struct timer *new_tm = kmalloc(sizeof(struct timer));
+
+    /* failed to allocate memory */
+    if(new_tm == NULL) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ENOMEM;
+        return;
+    }
+
+    /* record timer settings */
+    new_tm->id = running_task->timer_cnt;
+    new_tm->sev = *sevp;
+
+    /* timer list initialization */
+    if(running_task->timer_cnt == 0) {
+        /* initialize the timer list head */
+        list_init(&running_task->timer_head);
+    }
+
+    /* put the new timer into the list */
+    list_push(&running_task->timer_head, &new_tm->list);
+
+    /* return timer id */
+    *timerid = running_task->timer_cnt;
+
+    /* increase timer count */
+    running_task->timer_cnt++;
+
+    /* return on success */
     SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_timer_settime(void)
 {
-    SYSCALL_ARG(int, 0) = 0;
+    /* read syscall arguments */
+    timer_t timerid = SYSCALL_ARG(timer_t, 0);
+    int flags = SYSCALL_ARG(int, 1);
+    struct itimerspec *new_value = SYSCALL_ARG(struct itimerspec *, 2);
+    struct itimerspec *old_value = SYSCALL_ARG(struct itimerspec *, 3);
+
+    struct timer *timer;
+    bool timer_found = false;
+
+    /* the task has no timer */
+    if(running_task->timer_cnt == 0) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    /* search for the timer id */
+    struct list *curr;
+    list_for_each(curr, &running_task->timer_head) {
+        /* get the task control block */
+        timer = list_entry(curr, struct timer, list);
+
+        /* update remained ticks of waiting */
+        if(timer->id == timerid) {
+            timer_found = true;
+            break;
+        }
+    }
+
+    if(timer_found) {
+        /* return old timer setting */
+        if(old_value != NULL) {
+            *old_value = timer->setting;
+        }
+
+        /* save new timer setting */
+        timer->setting = *new_value;
+        timer->flags = flags;
+
+        /* enable the timer */
+        //TODO
+
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
+    } else {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+    }
 }
 
 void sys_timer_gettime(void)
 {
+    /* read syscall arguments */
+    timer_t timerid = SYSCALL_ARG(timer_t, 0);
+    struct itimerspec *curr_value = SYSCALL_ARG(struct itimerspec *, 1);
+
     SYSCALL_ARG(int, 0) = 0;
 }
 

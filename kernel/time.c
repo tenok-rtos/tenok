@@ -32,14 +32,14 @@ int clock_gettime(clockid_t clockid, struct timespec *tp)
 }
 
 NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,
-                 timer_t *timerid)
+                        timer_t *timerid)
 {
     SYSCALL(TIMER_CREATE);
 }
 
 NACKED int timer_settime(timer_t timerid, int flags,
-                  const struct itimerspec *new_value,
-                  struct itimerspec *old_value)
+                         const struct itimerspec *new_value,
+                         struct itimerspec *old_value)
 {
     SYSCALL(TIMER_SETTIME);
 }
