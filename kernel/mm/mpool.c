@@ -15,7 +15,7 @@ void memory_pool_init(struct memory_pool *mem_pool, uint8_t *mem, size_t size)
 void *memory_pool_alloc(struct memory_pool *mem_pool, size_t size)
 {
     /* start of the critical section */
-    spin_lock_irq(&mem_pool->lock);
+    spin_lock(&mem_pool->lock);
 
     void *addr = NULL;
 
@@ -27,7 +27,7 @@ void *memory_pool_alloc(struct memory_pool *mem_pool, size_t size)
     }
 
     /* end of the critical section */
-    spin_unlock_irq(&mem_pool->lock);
+    spin_unlock(&mem_pool->lock);
 
     return addr;
 }
