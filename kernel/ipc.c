@@ -22,9 +22,6 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
 
     ssize_t retval = 0;
 
-    /* start of the critical section */
-    spin_lock_irq(&pipe->lock);
-
     struct list *w_wait_list = &pipe->w_wait_list;
 
     /* block the current task if the request size is larger than the fifo can serve */
@@ -64,9 +61,6 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
         }
     }
 
-    /* end of the critical section */
-    spin_unlock_irq(&pipe->lock);
-
     return retval;
 }
 
@@ -75,9 +69,6 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
     CURRENT_TASK_INFO(curr_task);
 
     ssize_t retval = 0;
-
-    /* start of the critical section */
-    spin_lock_irq(&pipe->lock);
 
     struct list *r_wait_list = &pipe->r_wait_list;
 
@@ -117,9 +108,6 @@ ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
             wake_up(r_wait_list);
         }
     }
-
-    /* end of the critical section */
-    spin_unlock_irq(&pipe->lock);
 
     return retval;
 }
