@@ -6,14 +6,16 @@ the term "`tenok`" in their language means "`kernel`."
 
 ## Features
 
-* POSIX-style interface
+* POSIX interface
+* Dual mode: Kernel mode / User mode
+* Linux-like design: Wait queue and kfifo
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
 * Floating-point Unit (FPU) support
-* A built-in shell interface
-* A simple rootfs and romfs
+* Built-in Shell
+* Simple rootfs and romfs
 * Real-time plotting and customizable debug messaging using metalanguage
-* MAVLink communication support
+* Integration with MAVLink communication protocol
 * Software-in-the-loop (SIL) simulation with Gazebo simulator
 
 ## Tools
