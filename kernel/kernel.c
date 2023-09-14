@@ -72,6 +72,11 @@ void *kmalloc(size_t size)
     return memory_pool_alloc(&mem_pool, size);
 }
 
+void kfree(void *ptr)
+{
+    return;
+}
+
 struct task_ctrl_blk *current_task_info(void)
 {
     return running_task;
@@ -1119,6 +1124,22 @@ void sys_timer_settime(void)
 void sys_timer_gettime(void)
 {
     SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_malloc(void)
+{
+    /* read syscall arguments */
+    size_t size = SYSCALL_ARG(size_t, 0);
+
+    SYSCALL_ARG(void *, 0) = kmalloc(size);
+}
+
+void sys_free(void)
+{
+    /* read syscall arguments */
+    void *ptr = SYSCALL_ARG(void *, 0);
+
+    kfree(ptr);
 }
 
 uint32_t get_proc_mode(void)

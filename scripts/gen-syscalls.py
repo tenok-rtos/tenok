@@ -36,7 +36,9 @@ syscalls = \
  'kill',
  'timer_create',
  'timer_settime',
- 'timer_gettime']
+ 'timer_gettime',
+ 'malloc',
+ 'free']
 
 syscall_cnt = len(syscalls)
 
