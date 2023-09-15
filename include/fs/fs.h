@@ -86,6 +86,8 @@ struct file_operations {
     long    (*llseek)(struct file *filp, long offset, int whence);
     ssize_t (*read)(struct file *filp, char *buf, size_t size, off_t offset);
     ssize_t (*write)(struct file *filp, const char *buf, size_t size, off_t offset);
+    int     (*open)(struct inode *inode, struct file *file);
+    int     (*release)(struct inode *inode, struct file *file);
 };
 
 struct fdtable {

@@ -505,14 +505,21 @@ void sys_open(void)
             return;
         }
 
+        struct file *filp = files[file_idx];
+
         /* register new file descriptor to the task */
         struct fdtable *fdesc = &running_task->fdtable[fdesc_idx];
-        fdesc->file = files[file_idx];
+        fdesc->file = filp;
         fdesc->flags = flags;
         fdesc->used = true;
 
         /* increase file descriptor count of the task */
         running_task->fd_cnt++;
+
+        /* call the file operation */
+        if(filp->f_op->open) {
+            filp->f_op->open(filp->f_inode, filp);
+        }
 
         /* return the file descriptor */
         int fd = fdesc_idx + TASK_CNT_MAX;
@@ -538,6 +545,12 @@ void sys_close(void)
     if((running_task->fdtable[fdesc_idx].used != true)) {
         SYSCALL_ARG(long, 0) = EBADF;
         return;
+    }
+
+    /* call the file operation */
+    struct file *filp = running_task->fdtable[fdesc_idx].file;
+    if(filp->f_op->release) {
+        filp->f_op->release(filp->f_inode, filp);
     }
 
     /* free the file descriptor */
