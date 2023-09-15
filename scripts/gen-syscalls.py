@@ -35,6 +35,7 @@ syscalls = \
  'sigaction',
  'kill',
  'timer_create',
+ 'timer_delete',
  'timer_settime',
  'timer_gettime',
  'malloc',

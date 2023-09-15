@@ -24,6 +24,7 @@ struct itimerspec {
 int clock_gettime(clockid_t clockid, struct timespec *tp);
 int timer_create(clockid_t clockid, struct sigevent *sevp,
                  timer_t *timerid);
+int timer_delete(timer_t timerid);
 int timer_settime(timer_t timerid, int flags,
                   const struct itimerspec *new_value,
                   struct itimerspec *old_value);

@@ -1165,6 +1165,35 @@ void sys_timer_create(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_timer_delete(void)
+{
+    /* read syscall arguments */
+    timer_t timerid = SYSCALL_ARG(timer_t, 0);
+
+    struct timer *timer;
+
+    /* search for the timer id */
+    struct list *curr;
+    list_for_each(curr, &running_task->timer_head) {
+        /* get the task control block */
+        timer = list_entry(curr, struct timer, list);
+
+        /* update remained ticks of waiting */
+        if(timer->id == timerid) {
+            /* remove the timer from the list and
+             * free the memory */
+            list_remove(curr);
+            kfree(timer);
+
+            /* return on success */
+            return;
+        }
+    }
+
+    /* invalid timer id, return on error */
+    SYSCALL_ARG(int, 0) = -EINVAL;
+}
+
 void sys_timer_settime(void)
 {
     /* read syscall arguments */
