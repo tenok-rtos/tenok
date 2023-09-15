@@ -2,6 +2,7 @@
 #include <arch/port.h>
 #include <kernel/syscall.h>
 
+#include <tenok/poll.h>
 #include <tenok/sys/stat.h>
 
 NACKED int mount(const char *source, const char *target)
@@ -57,4 +58,9 @@ NACKED int mknod(const char *pathname, mode_t mode, dev_t dev)
 NACKED int mkfifo(const char *pathname, mode_t mode)
 {
     SYSCALL(MKFIFO);
+}
+
+NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
+{
+    SYSCALL(POLL);
 }

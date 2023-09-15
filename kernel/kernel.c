@@ -14,6 +14,7 @@
 #include <kernel/syscall.h>
 
 #include <tenok/time.h>
+#include <tenok/poll.h>
 #include <tenok/mqueue.h>
 #include <tenok/unistd.h>
 #include <tenok/signal.h>
@@ -791,6 +792,14 @@ void sys_mkfifo(void)
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
     }
+}
+
+void sys_poll(void)
+{
+    /* read syscall arguments */
+    struct pollfd *fds = SYSCALL_ARG(struct pollfd *, 0);
+    nfds_t nfds = SYSCALL_ARG(nfds_t, 1);
+    int timeout = SYSCALL_ARG(int, 2);
 }
 
 void sys_mq_open(void)
