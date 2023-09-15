@@ -12,23 +12,32 @@
 
 #define NANOSECOND_TICKS (1000000000 / OS_TICK_FREQ)
 
-time_t time_s = 0;
-long time_ns = 0;
+struct timespec sys_time;
+
+void timer_reset(struct timespec *time)
+{
+    time->tv_sec = 0;
+    time->tv_nsec = 0;
+}
+
+void timer_tick_update(struct timespec *time)
+{
+    time->tv_nsec += NANOSECOND_TICKS;
+
+    if(time->tv_nsec >= 1000000000) {
+        time->tv_sec++;
+        time->tv_nsec -= 1000000000;
+    }
+}
 
 void sys_time_update_handler(void)
 {
-    time_ns += NANOSECOND_TICKS;
-
-    if(time_ns >= 1000000000) {
-        time_s++;
-        time_ns -= 1000000000;
-    }
+    timer_tick_update(&sys_time);
 }
 
 int clock_gettime(clockid_t clockid, struct timespec *tp)
 {
-    tp->tv_sec = time_s;
-    tp->tv_nsec = time_ns;
+    *tp = sys_time;
 }
 
 NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,

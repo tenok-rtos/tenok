@@ -212,7 +212,7 @@ void wake_up(struct list *wait_list)
     waken_task->status = TASK_READY;
 }
 
-void schedule(void)
+static void schedule(void)
 {
     /* since certain os functions may disable the irq with syscall, the os should not reschedule
      * the task until the irq is re-enable the task again */
@@ -264,6 +264,56 @@ void schedule(void)
     running_task->status = TASK_RUNNING;
 }
 
+static void timers_update(void)
+{
+    /* iterate through all tasks */
+    for(int i = 0; i < task_cnt; i++) {
+        /* skip terminated tasks and tasks without timers */
+        if(tasks[i].status == TASK_TERMINATED ||
+           tasks[i].timer_cnt == 0) {
+            continue;
+        }
+
+        struct timer *timer;
+
+        /* iterate through all timers of the task */
+        struct list *curr;
+        list_for_each(curr, &tasks[i].timer_head) {
+            /* obtain the task */
+            timer = list_entry(curr, struct timer, list);
+
+            if(!timer->enabled) {
+                continue;
+            }
+
+            /* increase timer's time by one tick */
+            timer_tick_update(&timer->now);
+
+            /* time's up */
+            if(timer->now.tv_sec >= timer->next.tv_sec &&
+               timer->now.tv_nsec >= timer->next.tv_nsec) {
+                /* reset timer */
+                timer_reset(&timer->now);
+
+                /* assign new time target */
+                timer->next = timer->setting.it_interval;
+
+                /* one-shot timer */
+                if(timer->setting.it_interval.tv_sec == 0 &&
+                   timer->setting.it_interval.tv_nsec == 0) {
+                    timer->enabled = false;
+                }
+
+                /* stage the signal handler */
+                if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
+                    //TODO: run signal handler in the user space
+                    timer->sev.sigev_notify_function(timer->sev.sigev_value);
+                }
+            }
+        }
+    }
+}
+
 static void tasks_tick_update(void)
 {
     sys_time_update_handler();
@@ -286,7 +336,7 @@ static void tasks_tick_update(void)
     }
 }
 
-void syscall_handler(void)
+static void syscall_handler(void)
 {
     /* system call handler */
     int i;
@@ -1175,7 +1225,7 @@ void sys_timer_delete(void)
     /* search for the timer id */
     struct list *curr;
     list_for_each(curr, &running_task->timer_head) {
-        /* get the task control block */
+        /* get the timer */
         timer = list_entry(curr, struct timer, list);
 
         /* update remained ticks of waiting */
@@ -1215,7 +1265,7 @@ void sys_timer_settime(void)
     /* search for the timer id */
     struct list *curr;
     list_for_each(curr, &running_task->timer_head) {
-        /* get the task control block */
+        /* get the timer */
         timer = list_entry(curr, struct timer, list);
 
         /* update remained ticks of waiting */
@@ -1236,7 +1286,8 @@ void sys_timer_settime(void)
         timer->flags = flags;
 
         /* enable the timer */
-        //TODO
+        timer->next = timer->setting.it_value;
+        timer->enabled = true;
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1461,6 +1512,7 @@ void sched_start(void)
         if((int)running_task->stack_top->_r7 < 0) {
             running_task->stack_top->_r7 *= -1; //restore _r7
             tasks_tick_update();
+            timers_update();
         } else {
             syscall_handler();
         }
