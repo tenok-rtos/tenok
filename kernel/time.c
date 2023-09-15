@@ -10,25 +10,25 @@
 
 #include "kconfig.h"
 
-#define SYS_TIM_TICK_PERIOD (1.0f / OS_TICK_FREQ)
+#define NANOSECOND_TICKS (1000000000 / OS_TICK_FREQ)
 
 time_t time_s = 0;
-int tick = 0;
+long time_ns = 0;
 
 void sys_time_update_handler(void)
 {
-    tick++;
+    time_ns += NANOSECOND_TICKS;
 
-    if(tick == OS_TICK_FREQ) {
+    if(time_ns >= 1000000000) {
         time_s++;
-        tick = 0;
+        time_ns -= 1000000000;
     }
 }
 
 int clock_gettime(clockid_t clockid, struct timespec *tp)
 {
     tp->tv_sec = time_s;
-    tp->tv_nsec = 1000000000 * tick / OS_TICK_FREQ;
+    tp->tv_nsec = time_ns;
 }
 
 NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,
