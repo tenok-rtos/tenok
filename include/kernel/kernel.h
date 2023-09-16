@@ -7,6 +7,7 @@
 #include <fs/fs.h>
 #include <kernel/list.h>
 #include <kernel/time.h>
+#include <kernel/wait.h>
 
 #include <tenok/signal.h>
 
@@ -154,6 +155,10 @@ struct task_ctrl_blk {
     /* timers */
     struct list timer_head;
     int timer_cnt;
+
+    /* poll */
+    wait_queue_head_t poll_wq;
+    struct list poll_files_head;
 
     /* task list head */
     struct list list;

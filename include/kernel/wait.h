@@ -10,6 +10,6 @@
 typedef struct list wait_queue_head_t;
 
 void wake_up(struct list *wait_list);
-bool wait_event(struct list *wq, bool condition);
+void wait_event(struct list *wq, bool condition);
 
 #endif

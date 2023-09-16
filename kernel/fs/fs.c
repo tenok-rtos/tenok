@@ -6,6 +6,7 @@
 #include <fs/fs.h>
 #include <fs/reg_file.h>
 #include <kernel/ipc.h>
+#include <kernel/wait.h>
 #include <kernel/kernel.h>
 
 #include <tenok/fcntl.h>
@@ -329,6 +330,9 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         default:
             result = -1;
     }
+
+    /* initialize file events */
+    files[fd]->f_events = 0;
 
     if(result != 0)
         return NULL;

@@ -33,10 +33,12 @@ void poll_task2(void)
     int fifo_fd = open("/poll_test", 0, O_NONBLOCK);
 
     struct pollfd fds[1];
-    fds[0].fd = serial_fd;
+    fds[0].fd = fifo_fd;
     fds[0].events = POLLIN;
 
     char s[100] = {0};
+
+    sleep(3);
 
     while(1) {
         poll(fds, 1, -1);

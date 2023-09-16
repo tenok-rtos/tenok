@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 #include <kernel/list.h>
+#include <kernel/wait.h>
 
 #include <tenok/dirent.h>
 #include <tenok/sys/types.h>
@@ -79,7 +80,9 @@ struct dentry {
 struct file {
     struct inode *f_inode;
     struct file_operations *f_op;
+    uint32_t f_events;
     int f_flags;
+    struct list list;
 };
 
 struct file_operations {

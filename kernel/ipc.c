@@ -3,10 +3,13 @@
 #include <errno.h>
 
 #include <fs/fs.h>
-#include <kernel/wait.h>
 #include <kernel/ipc.h>
-#include <kernel/kernel.h>
+#include <kernel/wait.h>
+#include <kernel/poll.h>
 #include <kernel/kfifo.h>
+#include <kernel/kernel.h>
+
+#include <tenok/poll.h>
 #include <tenok/fcntl.h>
 
 #include "kconfig.h"
@@ -134,7 +137,7 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset
 
 static struct file_operations fifo_ops = {
     .read = fifo_read,
-    .write = fifo_write
+    .write = fifo_write,
 };
 
 int fifo_init(int fd, struct file **files, struct inode *file_inode)
@@ -154,12 +157,30 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
-    return generic_pipe_read(pipe, buf, size);
+
+    ssize_t retval = generic_pipe_read(pipe, buf, size);
+
+    /* update file event */
+    if(kfifo_len(pipe) > 0) {
+        filp->f_events |= POLLOUT;
+        poll_notify(filp);
+    }
+
+    return retval;
 }
 
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
     pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
-    return generic_pipe_write(pipe, buf, size);
+
+    ssize_t retval = generic_pipe_write(pipe, buf, size);
+
+    /* update file event */
+    if(kfifo_avail(pipe) > 0) {
+        filp->f_events |= POLLIN;
+        poll_notify(filp);
+    }
+
+    return retval;
 }

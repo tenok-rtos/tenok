@@ -110,6 +110,7 @@ static void task_create(task_func_t task_func, uint8_t priority)
     for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
         tasks[task_cnt].fdtable[i].used = false;
     }
+    list_init(&tasks[task_cnt].poll_files_head);
 
     /*
      * stack design contains three parts:
@@ -419,6 +420,8 @@ void sys_fork(void)
     tasks[task_cnt].status = TASK_WAIT;
     list_push(&sleep_list, &tasks[task_cnt].list);
 
+    list_init(&tasks[task_cnt].poll_files_head);
+
     /* copy the stack of the used part only */
     memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
@@ -471,7 +474,7 @@ void sys_open(void)
 {
     /* read syscall argument */
     char *pathname = SYSCALL_ARG(char *, 0);
-    int flags = SYSCALL_ARG(int, 1);
+    int flags = SYSCALL_ARG(int, 2); //FIXME: incorrect argument usage!
 
     int pid = running_task->pid;
 
@@ -807,12 +810,82 @@ void sys_mkfifo(void)
     }
 }
 
+void poll_notify(struct file *filp)
+{
+
+    for(int i = 0; i < task_cnt; i++) {
+        if(tasks[i].status == TASK_TERMINATED) {
+            continue;
+        }
+
+        /* find all tasks that are waiting for poll notification */
+        struct list *curr;
+        list_for_each(curr, &tasks[i].poll_files_head) {
+            struct file *file_iter = list_entry(curr, struct file, list);
+
+            if(filp == file_iter) {
+                wake_up(&tasks[i].poll_wq);
+            }
+        }
+    }
+}
+
 void sys_poll(void)
 {
     /* read syscall arguments */
     struct pollfd *fds = SYSCALL_ARG(struct pollfd *, 0);
     nfds_t nfds = SYSCALL_ARG(nfds_t, 1);
     int timeout = SYSCALL_ARG(int, 2);
+
+    if(running_task->syscall_pending == false) {
+        struct file * filp;
+        bool no_event = true;
+
+        init_waitqueue_head(&running_task->poll_wq);
+        list_init(&running_task->poll_files_head);
+
+        for(int i = 0; i < nfds; i++) {
+            int fd = fds[i].fd - TASK_CNT_MAX;
+            filp = running_task->fdtable[fd].file;
+
+            uint32_t events = filp->f_events;
+            if(fds[i].events & (~fds[i].events & events)) {
+                no_event = false;
+            }
+
+            /* return events */
+            fds[i].revents |= events;
+        }
+
+        if(!no_event) {
+            /* return on success */
+            SYSCALL_ARG(int, 0) = 0;
+            return;
+        }
+
+        /* turn on the syscall pending flag */
+        running_task->syscall_pending = true;
+
+        /* put current task into the wait queue */
+        prepare_to_wait(&running_task->poll_wq, &running_task->list, TASK_WAIT);
+
+        /* save all pollfd into the list */
+        for(int i = 0; i < nfds; i++) {
+            int fd = fds[i].fd - TASK_CNT_MAX;
+            filp = running_task->fdtable[fd].file;
+
+            list_push(&running_task->poll_files_head, &filp->list);
+        }
+    } else {
+        /* turn off the syscall pending flag */
+        running_task->syscall_pending = false;
+
+        /* clear poll files' list head */
+        list_init(&running_task->poll_files_head);
+
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
+    }
 }
 
 void sys_mq_open(void)
