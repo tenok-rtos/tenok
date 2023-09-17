@@ -1263,7 +1263,6 @@ void sys_clock_gettime(void)
     clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
     struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
 
-    /* unsupported clock source */
     if(clockid != CLOCK_MONOTONIC) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
@@ -1271,6 +1270,24 @@ void sys_clock_gettime(void)
     }
 
     get_sys_time(tp);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_clock_settime(void)
+{
+    /* read syscall arguments */
+    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
+    struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
+
+    if(clockid != CLOCK_REALTIME) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    set_sys_time(tp);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;

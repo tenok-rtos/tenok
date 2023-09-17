@@ -47,9 +47,25 @@ void get_sys_time(struct timespec *tp)
     *tp = sys_time;
 }
 
+void set_sys_time(struct timespec *tp)
+{
+    sys_time = *tp;
+}
+
+int clock_getres(clockid_t clk_id, struct timespec *res)
+{
+    res->tv_sec = 0;
+    res->tv_nsec = NANOSECOND_TICKS;
+}
+
 NACKED int clock_gettime(clockid_t clockid, struct timespec *tp)
 {
     SYSCALL(CLOCK_GETTIME);
+}
+
+NACKED int clock_settime(clockid_t clk_id, const struct timespec *tp)
+{
+    SYSCALL(CLOCK_SETTIME);
 }
 
 NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,

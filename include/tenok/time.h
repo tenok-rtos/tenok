@@ -19,7 +19,10 @@ struct itimerspec {
     struct timespec it_interval;
 };
 
+int clock_getres(clockid_t clk_id, struct timespec *res);
 int clock_gettime(clockid_t clockid, struct timespec *tp);
+int clock_settime(clockid_t clk_id, const struct timespec *tp);
+
 int timer_create(clockid_t clockid, struct sigevent *sevp,
                  timer_t *timerid);
 int timer_delete(timer_t timerid);
