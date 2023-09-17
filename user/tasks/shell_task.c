@@ -36,7 +36,7 @@ void boot_message(void)
 
 void shell_task(void)
 {
-    set_program_name("shell");
+    setprogname("shell");
     setpriority(0, getpid(), 2);
 
     char shell_path[PATH_LEN_MAX] = {0};

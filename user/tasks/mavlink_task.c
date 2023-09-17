@@ -29,7 +29,7 @@ void mavlink_out_task(void)
 {
     mavlink_task_init();
 
-    set_program_name("mavlink out");
+    setprogname("mavlink out");
     setpriority(0, getpid(), 4);
 
     int fd = open("/dev/serial1", 0);
@@ -51,7 +51,7 @@ void mavlink_out_task(void)
 
 void mavlink_in_task(void)
 {
-    set_program_name("mavlink in");
+    setprogname("mavlink in");
     setpriority(0, getpid(), 4);
 
     int fd = open("/dev/serial1", 0);

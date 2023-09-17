@@ -366,7 +366,7 @@ static void syscall_handler(void)
     }
 }
 
-void sys_set_program_name(void)
+void sys_setprogname(void)
 {
     /* read syscall arguments */
     char *name = SYSCALL_ARG(char *, 0);
@@ -1598,7 +1598,7 @@ void first(void)/* obtain message queue */
      * among all tasks. (i.e., no other tasks should have same
      * or lower priority as the idle task!)
      */
-    set_program_name("idle");
+    setprogname("idle");
 
     /*=============================*
      * launch the file system task *

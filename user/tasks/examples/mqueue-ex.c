@@ -33,7 +33,7 @@ void message_queue_task1(void)
 {
     my_mqueue_init();
 
-    set_program_name("queue1");
+    setprogname("queue1");
 
     my_message_t msg;
 
@@ -48,7 +48,7 @@ void message_queue_task1(void)
 
 void message_queue_task2(void)
 {
-    set_program_name("queue2");
+    setprogname("queue2");
 
     int serial_fd = open("/dev/serial0", 0);
     my_message_t msg;

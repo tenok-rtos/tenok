@@ -18,7 +18,7 @@ void timer_callback(union sigval sv)
 
 void timer_task(void)
 {
-    set_program_name("timer");
+    setprogname("timer");
 
     int serial_fd = open("/dev/serial0", 0);
 

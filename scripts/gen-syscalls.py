@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 syscalls = \
-['set_program_name',
+['setprogname',
  'delay_ticks',
  'sched_yield',
  'fork',

@@ -15,7 +15,7 @@
 
 void debug_link_task(void)
 {
-    set_program_name("debug link");
+    setprogname("debug link");
     setpriority(0, getpid(), 3);
 
     int debug_link_fd = open("/dev/serial2", 0);

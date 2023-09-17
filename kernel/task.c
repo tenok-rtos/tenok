@@ -8,9 +8,9 @@
 
 #include "kconfig.h"
 
-NACKED void set_program_name(char *name)
+NACKED void setprogname(const char *name)
 {
-    SYSCALL(SET_PROGRAM_NAME);
+    SYSCALL(SETPROGNAME);
 }
 
 NACKED uint32_t delay_ticks(uint32_t ticks)

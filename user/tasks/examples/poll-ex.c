@@ -14,7 +14,7 @@ char buffer[100];
 
 void poll_task1(void)
 {
-    set_program_name("poll1");
+    setprogname("poll1");
 
     mkfifo("/poll_test", 0);
     int fifo_fd = open("/poll_test", 0);
@@ -29,7 +29,7 @@ void poll_task1(void)
 
 void poll_task2(void)
 {
-    set_program_name("poll2");
+    setprogname("poll2");
 
     int serial_fd = open("/dev/serial0", 0);
     int fifo_fd = open("/poll_test", O_NONBLOCK);

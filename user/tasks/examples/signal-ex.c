@@ -12,7 +12,7 @@ void sig_handler(int signum)
 
 void signal_task(void)
 {
-    set_program_name("signal");
+    setprogname("signal");
 
     struct sigaction sa;
 

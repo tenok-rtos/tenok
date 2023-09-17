@@ -16,7 +16,7 @@
 
 void fifo_task1(void)
 {
-    set_program_name("fifo1");
+    setprogname("fifo1");
 
     mkfifo("/fifo_test", 0);
 
@@ -31,7 +31,7 @@ void fifo_task1(void)
 
 void fifo_task2(void)
 {
-    set_program_name("fifo2");
+    setprogname("fifo2");
 
     int fifo_fd = open("/fifo_test", 0);
     int serial_fd = open("/dev/serial0", 0);

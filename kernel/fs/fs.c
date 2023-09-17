@@ -970,7 +970,7 @@ void request_mount(int reply_fd, char *source, char *target)
 
 void file_system_task(void)
 {
-    set_program_name("file system");
+    setprogname("file system");
     setpriority(PRIO_PROCESS, getpid(), 1);
 
     while(1) {
