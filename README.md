@@ -11,6 +11,7 @@ the term "`tenok`" in their language means "`kernel`."
 * Linux-like design: Wait queue and kfifo
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
+* Software timer
 * Floating-point Unit (FPU) support
 * Built-in Shell
 * Simple rootfs and romfs
