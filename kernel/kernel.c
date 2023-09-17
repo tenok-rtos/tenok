@@ -1318,7 +1318,7 @@ void sys_timer_delete(void)
 
     struct timer *timer;
 
-    /* search for the timer id */
+    /* find the timer with the id */
     struct list *curr;
     list_for_each(curr, &running_task->timer_head) {
         /* get the timer */
@@ -1332,6 +1332,7 @@ void sys_timer_delete(void)
             kfree(timer);
 
             /* return on success */
+            SYSCALL_ARG(int, 0) = 0;
             return;
         }
     }
@@ -1347,6 +1348,15 @@ void sys_timer_settime(void)
     int flags = SYSCALL_ARG(int, 1);
     struct itimerspec *new_value = SYSCALL_ARG(struct itimerspec *, 2);
     struct itimerspec *old_value = SYSCALL_ARG(struct itimerspec *, 3);
+
+    /* bad arguments */
+    if(new_value->it_value.tv_sec < 0 ||
+       new_value->it_value.tv_nsec < 0 ||
+       new_value->it_value.tv_nsec > 999999999) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
 
     struct timer *timer;
     bool timer_found = false;
