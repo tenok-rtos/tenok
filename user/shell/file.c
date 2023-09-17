@@ -1,8 +1,6 @@
-#include <stdio.h>
 #include <string.h>
 
-#include <fs/file.h>
-
+#include <tenok/stdio.h>
 #include <tenok/fcntl.h>
 #include <tenok/dirent.h>
 #include <tenok/unistd.h>

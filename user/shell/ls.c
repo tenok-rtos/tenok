@@ -1,9 +1,8 @@
-#include <stdio.h>
 #include <string.h>
 
 #include <fs/fs.h>
-#include <fs/file.h>
 
+#include <tenok/stdio.h>
 #include <tenok/dirent.h>
 #include <tenok/sys/stat.h>
 

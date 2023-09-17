@@ -5,6 +5,7 @@
 
 #include <tenok/tenok.h>
 #include <tenok/time.h>
+#include "tenok/stdio.h"
 #include <tenok/unistd.h>
 #include <tenok/sys/resource.h>
 
