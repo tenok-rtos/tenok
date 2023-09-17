@@ -2,6 +2,7 @@
 
 syscalls = \
 ['setprogname',
+ 'getprogname',
  'delay_ticks',
  'sched_yield',
  'fork',

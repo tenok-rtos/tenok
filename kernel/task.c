@@ -13,6 +13,11 @@ NACKED void setprogname(const char *name)
     SYSCALL(SETPROGNAME);
 }
 
+NACKED const char *getprogname(void)
+{
+    SYSCALL(GETPROGNAME);
+}
+
 NACKED uint32_t delay_ticks(uint32_t ticks)
 {
     SYSCALL(DELAY_TICKS);

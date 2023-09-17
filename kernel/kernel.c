@@ -374,6 +374,12 @@ void sys_setprogname(void)
     strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
 }
 
+void sys_getprogname(void)
+{
+    /* return pointer to the program name */
+    SYSCALL_ARG(char *, 0) = running_task->name;
+}
+
 void sys_delay_ticks(void)
 {
     /* read syscall arguments */
