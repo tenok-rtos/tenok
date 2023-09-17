@@ -37,6 +37,17 @@ void timer_down_count(struct timespec *time)
     }
 }
 
+void time_add(struct timespec *time, time_t sec, long nsec)
+{
+    time->tv_sec += sec;
+    time->tv_nsec += nsec;
+
+    if(time->tv_nsec >= 1000000000) {
+        time->tv_sec++;
+        time->tv_nsec -= 1000000000;
+    }
+}
+
 void sys_time_update_handler(void)
 {
     timer_up_count(&sys_time);

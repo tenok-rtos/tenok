@@ -37,6 +37,7 @@
 struct list ready_list[TASK_MAX_PRIORITY + 1];
 struct list sleep_list;
 struct list suspend_list;
+struct list poll_list; /* for handling timeout of poll() */
 
 /* tasks */
 struct task_ctrl_blk tasks[TASK_CNT_MAX];
@@ -313,6 +314,26 @@ static void timers_update(void)
                     timer->sev.sigev_notify_function(timer->sev.sigev_value);
                 }
             }
+        }
+    }
+}
+
+static void poll_timeout_handler(void)
+{
+    /* get current time */
+    struct timespec tp;
+    get_sys_time(&tp);
+
+    /* iterate through all tasks that waiting for poll events */
+    struct list *curr;
+    list_for_each(curr, &poll_list) {
+        struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, poll_list);
+
+        /* wake up the task if the time is up */
+        if(tp.tv_sec >= task->poll_timeout.tv_sec &&
+           tp.tv_nsec >= task->poll_timeout.tv_nsec) {
+            task->poll_failed = true;
+            wake_up(&task->poll_wq);
         }
     }
 }
@@ -820,9 +841,9 @@ void poll_notify(struct file *filp)
         }
 
         /* find all tasks that are waiting for poll notification */
-        struct list *curr;
-        list_for_each(curr, &tasks[i].poll_files_head) {
-            struct file *file_iter = list_entry(curr, struct file, list);
+        struct list *file_list;
+        list_for_each(file_list, &tasks[i].poll_files_head) {
+            struct file *file_iter = list_entry(file_list, struct file, list);
 
             if(filp == file_iter) {
                 wake_up(&tasks[i].poll_wq);
@@ -839,11 +860,22 @@ void sys_poll(void)
     int timeout = SYSCALL_ARG(int, 2);
 
     if(running_task->syscall_pending == false) {
-        struct file * filp;
-        bool no_event = true;
+        /* setup deadline for poll */
+        if(timeout > 0) {
+            struct timespec tp;
+            get_sys_time(&tp);
+            time_add(&tp, 0, timeout * 1000000);
+            running_task->poll_timeout = tp;
+        }
 
+        /* initialization */
         init_waitqueue_head(&running_task->poll_wq);
         list_init(&running_task->poll_files_head);
+        running_task->poll_failed = false;
+
+        /* check file events */
+        struct file * filp;
+        bool no_event = true;
 
         for(int i = 0; i < nfds; i++) {
             int fd = fds[i].fd - TASK_CNT_MAX;
@@ -864,11 +896,23 @@ void sys_poll(void)
             return;
         }
 
+        /* no events and no timeout: return immediately */
+        if(timeout == 0) {
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -1;
+            return;
+        }
+
         /* turn on the syscall pending flag */
         running_task->syscall_pending = true;
 
         /* put current task into the wait queue */
         prepare_to_wait(&running_task->poll_wq, &running_task->list, TASK_WAIT);
+
+        /* put the task into the poll list for monitoring timeout */
+        if(timeout > 0) {
+            list_push(&poll_list, &running_task->poll_list);
+        }
 
         /* save all pollfd into the list */
         for(int i = 0; i < nfds; i++) {
@@ -884,8 +928,22 @@ void sys_poll(void)
         /* clear poll files' list head */
         list_init(&running_task->poll_files_head);
 
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
+        /* remove the task from the poll list */
+        struct list *curr;
+        list_for_each(curr, &poll_list) {
+            if(curr == &running_task->poll_list) {
+                list_remove(curr);
+                break;
+            }
+        }
+
+        if(running_task->poll_failed) {
+            /* return on error */
+            SYSCALL_ARG(int, 0) = -1;
+        } else {
+            /* return on success */
+            SYSCALL_ARG(int, 0) = 0;
+        }
     }
 }
 
@@ -1656,9 +1714,10 @@ void sched_start(void)
     /* initialized all hooked drivers */
     hook_drivers_init();
 
-    /* initialize the sleep list and suspended list */
+    /* initialize task lists */
     list_init(&sleep_list);
     list_init(&suspend_list);
+    list_init(&poll_list);
 
     task_create(first, 0);
 
@@ -1678,6 +1737,7 @@ void sched_start(void)
             running_task->stack_top->_r7 *= -1; //restore _r7
             tasks_tick_update();
             timers_update();
+            poll_timeout_handler();
         } else {
             syscall_handler();
         }

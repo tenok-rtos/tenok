@@ -159,8 +159,11 @@ struct task_ctrl_blk {
     /* poll */
     wait_queue_head_t poll_wq;
     struct list poll_files_head;
+    struct list poll_list;
+    struct timespec poll_timeout;
+    bool poll_failed;
 
-    /* task list head */
+    /* task list */
     struct list list;
 };
 
