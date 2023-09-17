@@ -1,4 +1,6 @@
 #include <kernel/task.h>
+
+#include <tenok/tenok.h>
 #include <tenok/unistd.h>
 #include <tenok/semaphore.h>
 #include <tenok/sys/resource.h>

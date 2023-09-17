@@ -3,6 +3,7 @@
 #include <kernel/task.h>
 #include <kernel/kernel.h>
 
+#include <tenok/tenok.h>
 #include <tenok/poll.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>

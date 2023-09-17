@@ -2,6 +2,7 @@
 
 #include <kernel/task.h>
 
+#include <tenok/tenok.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
 #include <tenok/sys/resource.h>
@@ -17,7 +18,7 @@ void debug_link_task(void)
     set_program_name("debug link");
     setpriority(0, getpid(), 3);
 
-    int debug_link_fd = open("/dev/serial2", 0, 0);
+    int debug_link_fd = open("/dev/serial2", 0);
 
     int dir = INC;
 

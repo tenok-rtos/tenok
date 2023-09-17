@@ -13,6 +13,7 @@
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
 
+#include <tenok/tenok.h>
 #include <tenok/time.h>
 #include <tenok/poll.h>
 #include <tenok/mqueue.h>

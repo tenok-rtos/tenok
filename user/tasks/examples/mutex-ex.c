@@ -3,6 +3,8 @@
 #include <errno.h>
 
 #include <kernel/task.h>
+
+#include <tenok/tenok.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
 #include <tenok/pthread.h>
@@ -41,7 +43,7 @@ void mutex_task1(void)
     pthread_cond_init(&cond_producer, 0);
     pthread_cond_init(&cond_consumer, 0);
 
-    int serial_fd = open("/dev/serial0", 0, 0);
+    int serial_fd = open("/dev/serial0", 0);
 
     int item = 1;
 
@@ -74,7 +76,7 @@ void mutex_task2(void)
 {
     set_program_name("mutex2");
 
-    int serial_fd = open("/dev/serial0", 0, 0);
+    int serial_fd = open("/dev/serial0", 0);
 
     while(1) {
         /* start of the critical section */

@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include <kernel/task.h>
+
+#include <tenok/tenok.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
 #include <tenok/mqueue.h>
@@ -48,7 +50,7 @@ void message_queue_task2(void)
 {
     set_program_name("queue2");
 
-    int serial_fd = open("/dev/serial0", 0, 0);
+    int serial_fd = open("/dev/serial0", 0);
     my_message_t msg;
 
     while(1) {

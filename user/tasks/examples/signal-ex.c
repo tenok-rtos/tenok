@@ -1,5 +1,6 @@
 #include <kernel/task.h>
 
+#include <tenok/tenok.h>
 #include <tenok/sched.h>
 #include <tenok/signal.h>
 #include <tenok/unistd.h>

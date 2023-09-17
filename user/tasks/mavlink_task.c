@@ -1,10 +1,12 @@
 #include <errno.h>
 
+#include <kernel/task.h>
+
+#include <tenok/tenok.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
 #include <tenok/mqueue.h>
 #include <tenok/sys/resource.h>
-#include <kernel/task.h>
 
 #include "mavlink.h"
 #include "mavlink/parser.h"

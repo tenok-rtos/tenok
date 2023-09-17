@@ -2,6 +2,7 @@
 
 #include <kernel/task.h>
 
+#include <tenok/tenok.h>
 #include <tenok/time.h>
 #include <tenok/fcntl.h>
 #include <tenok/sched.h>
@@ -19,7 +20,7 @@ void timer_task(void)
 {
     set_program_name("timer");
 
-    int serial_fd = open("/dev/serial0", 0, 0);
+    int serial_fd = open("/dev/serial0", 0);
 
     timer_t timerid;
     struct sigevent sev;

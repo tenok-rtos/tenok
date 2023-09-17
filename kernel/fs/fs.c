@@ -9,6 +9,7 @@
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
 
+#include <tenok/tenok.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
 #include <tenok/sys/stat.h>

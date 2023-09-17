@@ -3,6 +3,7 @@
 #include <kernel/task.h>
 #include <kernel/printk.h>
 
+#include <tenok/tenok.h>
 #include <tenok/time.h>
 #include <tenok/unistd.h>
 #include <tenok/sys/resource.h>
