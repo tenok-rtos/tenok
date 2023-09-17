@@ -12,6 +12,7 @@ the term "`tenok`" in their language means "`kernel`."
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
 * Software timer
+* Event monitoring of file descriptors with `poll()`
 * Floating-point Unit (FPU) support
 * Built-in Shell
 * Simple rootfs and romfs
