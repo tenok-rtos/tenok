@@ -8,11 +8,6 @@
 
 #include "kconfig.h"
 
-NACKED void set_irq(uint32_t state)
-{
-    SYSCALL(SET_IRQ);
-}
-
 NACKED void set_program_name(char *name)
 {
     SYSCALL(SET_PROGRAM_NAME);

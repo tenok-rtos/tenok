@@ -56,8 +56,6 @@ int file_cnt = 0;
 struct msg_queue mq_table[MQUEUE_CNT_MAX];
 int mq_cnt = 0;
 
-bool irq_off = false;
-
 //XXX
 int hook_task_cnt = 0;
 int curr_hook_task = 0;
@@ -218,11 +216,6 @@ void wake_up(struct list *wait_list)
 
 static void schedule(void)
 {
-    /* since certain os functions may disable the irq with syscall, the os should not reschedule
-     * the task until the irq is re-enable the task again */
-    if(irq_off == true)
-        return;
-
     /* awake the sleep tasks if the tick is exhausted */
     struct list *list_itr = sleep_list.next;
     while(list_itr != &sleep_list) {
@@ -370,22 +363,6 @@ static void syscall_handler(void)
             syscall_table[i].syscall_handler();
             break;
         }
-    }
-}
-
-void sys_set_irq(void)
-{
-    /* read syscall arguments */
-    uint32_t state = SYSCALL_ARG(uint32_t, 0);
-
-    if(state) {
-        //asm volatile ("cpsie i"); //enable all irq
-        reset_basepri();
-        irq_off = false;
-    } else {
-        //asm volatile ("cpsid i"); //disable all irq
-        set_basepri();
-        irq_off = true;
     }
 }
 
@@ -1573,24 +1550,12 @@ void set_basepri(void)
 
 void preempt_disable(void)
 {
-    if(get_proc_mode() == 0) {
-        /* privileged mode, disable the irq via syscall */
-        set_irq(0);
-    } else {
-        /* privileged mode, set the basepri register directly */
-        set_basepri();
-    }
+    set_basepri();
 }
 
 void preempt_enable(void)
 {
-    if(get_proc_mode() == 0) {
-        /* unprivileged mode, enable the irq via syscall */
-        set_irq(1);
-    } else {
-        /* privileged mode, set the basepri register directly */
-        reset_basepri();
-    }
+    reset_basepri();
 }
 
 void set_syscall_pending(void)
