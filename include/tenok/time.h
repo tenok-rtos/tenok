@@ -9,11 +9,9 @@
 #define CLOCK_REALTIME  0
 #define CLOCK_MONOTONIC 1
 
-#define timespec tenok__timespec
-
-struct tenok__timespec {
-    time_t tv_sec;  //seconds
-    long   tv_nsec; //nanoseconds
+struct timespec {
+    time_t tv_sec;  /* seconds */
+    long   tv_nsec; /* nanoseconds */
 };
 
 struct itimerspec {

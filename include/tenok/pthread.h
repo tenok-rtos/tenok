@@ -6,21 +6,18 @@
 #include <kernel/list.h>
 #include <kernel/spinlock.h>
 
-#define pthread_mutex_t    __pthread_mutex_t
-#define pthread_cond_t     __pthread_cond_t
-#define pthread_condattr_t uint32_t
-
-typedef void pthread_mutex_attr_t;
+typedef void pthread_mutex_attr_t;   /* no usage */
+typedef uint32_t pthread_condattr_t; /* no usage */
 
 typedef struct {
     spinlock_t lock;
     struct task_ctrl_blk *owner;
     struct list wait_list;
-} __pthread_mutex_t;
+} pthread_mutex_t;
 
 typedef struct {
     struct list task_wait_list;
-} __pthread_cond_t;
+} pthread_cond_t;
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
