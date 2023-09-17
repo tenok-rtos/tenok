@@ -859,7 +859,7 @@ void sys_poll(void)
             filp = running_task->fdtable[fd].file;
 
             uint32_t events = filp->f_events;
-            if(fds[i].events & (~fds[i].events & events)) {
+            if(~fds[i].events & events) {
                 no_event = false;
             }
 
