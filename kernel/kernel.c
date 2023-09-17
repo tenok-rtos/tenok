@@ -1257,6 +1257,25 @@ void sys_kill(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_clock_gettime(void)
+{
+    /* read syscall arguments */
+    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
+    struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
+
+    /* unsupported clock source */
+    if(clockid != CLOCK_MONOTONIC) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    get_sys_time(tp);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
 void sys_timer_create(void)
 {
     /* read syscall arguments */

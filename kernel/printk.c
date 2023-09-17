@@ -42,7 +42,7 @@ void printk(char *format,  ...)
     va_start(args, format);
 
     struct timespec tp;
-    clock_gettime(0, &tp);
+    clock_gettime(CLOCK_MONOTONIC, &tp);
 
     char sec[15] = {0};
     ltoa(sec, tp.tv_sec, 10);

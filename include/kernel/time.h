@@ -20,6 +20,7 @@ struct timer {
 
 void timer_up_count(struct timespec *time);
 void timer_down_count(struct timespec *time);
+void get_sys_time(struct timespec *tp);
 void sys_time_update_handler(void);
 
 #endif

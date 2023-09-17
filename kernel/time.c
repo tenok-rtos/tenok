@@ -42,9 +42,14 @@ void sys_time_update_handler(void)
     timer_up_count(&sys_time);
 }
 
-int clock_gettime(clockid_t clockid, struct timespec *tp)
+void get_sys_time(struct timespec *tp)
 {
     *tp = sys_time;
+}
+
+NACKED int clock_gettime(clockid_t clockid, struct timespec *tp)
+{
+    SYSCALL(CLOCK_GETTIME);
 }
 
 NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,
