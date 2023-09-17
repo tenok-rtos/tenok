@@ -474,7 +474,7 @@ void sys_open(void)
 {
     /* read syscall argument */
     char *pathname = SYSCALL_ARG(char *, 0);
-    int flags = SYSCALL_ARG(int, 2); //FIXME: incorrect argument usage!
+    int flags = SYSCALL_ARG(int, 1);
 
     int pid = running_task->pid;
 

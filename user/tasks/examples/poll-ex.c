@@ -15,7 +15,7 @@ void poll_task1(void)
     set_program_name("poll1");
 
     mkfifo("/poll_test", 0);
-    int fifo_fd = open("/poll_test", 0, 0);
+    int fifo_fd = open("/poll_test", 0);
 
     char *s = "poll example.\n\r";
 
@@ -29,8 +29,8 @@ void poll_task2(void)
 {
     set_program_name("poll2");
 
-    int serial_fd = open("/dev/serial0", 0, 0);
-    int fifo_fd = open("/poll_test", 0, O_NONBLOCK);
+    int serial_fd = open("/dev/serial0", 0);
+    int fifo_fd = open("/poll_test", O_NONBLOCK);
 
     struct pollfd fds[1];
     fds[0].fd = fifo_fd;

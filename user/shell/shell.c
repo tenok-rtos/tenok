@@ -24,7 +24,7 @@ int serial_fd = 0;
 
 void shell_serial_init(void)
 {
-    serial_fd = open("/dev/serial0", 0, 0);
+    serial_fd = open("/dev/serial0", 0);
 }
 
 void shell_path_init(void)

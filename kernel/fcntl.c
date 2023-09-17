@@ -10,7 +10,7 @@ NACKED int mount(const char *source, const char *target)
     SYSCALL(MOUNT);
 }
 
-NACKED int open(const char *pathname, int flags, mode_t mode)
+NACKED int open(const char *pathname, int flags)
 {
     SYSCALL(OPEN);
 }

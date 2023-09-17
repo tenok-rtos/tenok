@@ -7,6 +7,6 @@
 #define O_NONBLOCK  00004000
 #endif
 
-int open(const char *pathname, int flags, mode_t mode);
+int open(const char *pathname, int flags);
 
 #endif

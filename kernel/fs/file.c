@@ -23,7 +23,7 @@ extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int __fopen(const char *pathname, const char *mode, FILE *stream)
 {
     /* open the file with the system call */
-    int fd = open(pathname, 0, 0);
+    int fd = open(pathname, 0);
 
     /* failed to open the file */
     if(fd < 0)
