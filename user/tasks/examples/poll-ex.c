@@ -4,6 +4,7 @@
 #include <kernel/kernel.h>
 
 #include <tenok/tenok.h>
+#include <tenok/stdio.h>
 #include <tenok/poll.h>
 #include <tenok/fcntl.h>
 #include <tenok/unistd.h>
