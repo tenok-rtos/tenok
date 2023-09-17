@@ -289,19 +289,19 @@ static void timers_update(void)
                 continue;
             }
 
-            /* increase timer's time by one tick */
-            timer_tick_update(&timer->now);
+            /* update the timer */
+            timer_down_count(&timer->counter);
+
+            /* update the return time */
+            timer->ret_time.it_value = timer->counter;
 
             /* time's up */
-            if(timer->now.tv_sec >= timer->next.tv_sec &&
-               timer->now.tv_nsec >= timer->next.tv_nsec) {
-                /* reset timer */
-                timer_reset(&timer->now);
+            if(timer->counter.tv_sec == 0 &&
+               timer->counter.tv_nsec == 0) {
+                /* reload the timer */
+                timer->counter = timer->setting.it_interval;
 
-                /* assign new time target */
-                timer->next = timer->setting.it_interval;
-
-                /* one-shot timer */
+                /* shutdown the one-shot type timer */
                 if(timer->setting.it_interval.tv_sec == 0 &&
                    timer->setting.it_interval.tv_nsec == 0) {
                     timer->enabled = false;
@@ -1358,7 +1358,7 @@ void sys_timer_settime(void)
         return;
     }
 
-    /* search for the timer id */
+    /* find the timer with the id */
     struct list *curr;
     list_for_each(curr, &running_task->timer_head) {
         /* get the timer */
@@ -1377,12 +1377,13 @@ void sys_timer_settime(void)
             *old_value = timer->setting;
         }
 
-        /* save new timer setting */
-        timer->setting = *new_value;
+        /* save timer's setting */
         timer->flags = flags;
+        timer->setting = *new_value;
+        timer->ret_time = timer->setting;
 
         /* enable the timer */
-        timer->next = timer->setting.it_value;
+        timer->counter = timer->setting.it_value;
         timer->enabled = true;
 
         /* return on success */
@@ -1399,7 +1400,29 @@ void sys_timer_gettime(void)
     timer_t timerid = SYSCALL_ARG(timer_t, 0);
     struct itimerspec *curr_value = SYSCALL_ARG(struct itimerspec *, 1);
 
-    SYSCALL_ARG(int, 0) = 0;
+    struct timer *timer;
+    bool found = false;
+
+    /* find the timer with the id */
+    struct list *curr;
+    list_for_each(curr, &running_task->timer_head) {
+        timer = list_entry(curr, struct timer, list);
+
+        /* check timer id */
+        if(timerid == timer->id) {
+            found = true;
+            break;
+        }
+    }
+
+    if(found) {
+        /* return on success */
+        *curr_value = timer->ret_time;
+        SYSCALL_ARG(int, 0) = 0;
+    } else {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+    }
 }
 
 void sys_malloc(void)

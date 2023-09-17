@@ -14,13 +14,7 @@
 
 struct timespec sys_time;
 
-void timer_reset(struct timespec *time)
-{
-    time->tv_sec = 0;
-    time->tv_nsec = 0;
-}
-
-void timer_tick_update(struct timespec *time)
+void timer_up_count(struct timespec *time)
 {
     time->tv_nsec += NANOSECOND_TICKS;
 
@@ -30,9 +24,22 @@ void timer_tick_update(struct timespec *time)
     }
 }
 
+void timer_down_count(struct timespec *time)
+{
+    time->tv_nsec -= NANOSECOND_TICKS;
+
+    if(time->tv_nsec < 0 && time->tv_sec > 0) {
+        time->tv_sec--;
+        time->tv_nsec += 1000000000;
+    } else if(time->tv_nsec <= 0 && time->tv_sec <= 0) {
+        time->tv_sec = 0;
+        time->tv_nsec = 0;
+    }
+}
+
 void sys_time_update_handler(void)
 {
-    timer_tick_update(&sys_time);
+    timer_up_count(&sys_time);
 }
 
 int clock_gettime(clockid_t clockid, struct timespec *tp)
