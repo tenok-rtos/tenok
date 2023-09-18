@@ -164,6 +164,8 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
     if(kfifo_len(pipe) > 0) {
         filp->f_events |= POLLOUT;
         poll_notify(filp);
+    } else {
+        filp->f_events &= ~POLLOUT;
     }
 
     return retval;
@@ -180,6 +182,8 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset
     if(kfifo_avail(pipe) > 0) {
         filp->f_events |= POLLIN;
         poll_notify(filp);
+    } else {
+        filp->f_events &= ~POLLIN;
     }
 
     return retval;
