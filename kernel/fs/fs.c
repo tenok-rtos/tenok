@@ -240,10 +240,6 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
 /* create a file under a directory (currently support for rootfs only) */
 static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {
-    /* regular file write is currently not implemented, import the file with mkromfs instead. */
-    if(file_type == S_IFREG)
-        return NULL;
-
     /* inodes numbers is full */
     if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
         return NULL;
