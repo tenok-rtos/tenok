@@ -237,6 +237,13 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
     return (struct dentry *)dir_data_p;
 }
 
+uint32_t fs_allocate_block(void)
+{
+    uint32_t new_blk = (uint32_t)&rootfs_blk[mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt];
+    mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
+    return new_blk;
+}
+
 /* create a file under a directory (currently support for rootfs only) */
 static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_type)
 {

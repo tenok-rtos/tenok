@@ -97,7 +97,99 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
 
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
-    return 0; //regular file write is currently not implemented, import the file with mkromfs instead.
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+
+    /* get the inode of the regular file */
+    struct inode *inode = reg_file->f_inode;
+
+    if(inode->i_rdev != RDEV_ROOTFS) {
+        return 0;
+    }
+
+    /* get the driver file of the storage device */
+    struct file *driver_file = mount_points[inode->i_rdev].dev_file;
+
+    uint32_t blk_head_size = sizeof(struct block_header);
+    uint32_t blk_free_size = FS_BLK_SIZE - sizeof(struct block_header);
+
+    size_t remained_size = size;
+    size_t write_size = 0;
+
+    while(1) {
+        /* calculate the block index corresponding to the current file read position */
+        int blk_i = reg_file->pos / blk_free_size;
+
+        if(blk_i >= filp->f_inode->i_blocks) {
+            uint32_t new_blk = fs_allocate_block();
+
+            struct block_header *blk_head;
+            uint32_t next_blk_addr;
+
+            if(inode->i_blocks == 0) {
+                inode->i_data = new_blk;
+                blk_head = (struct block_header *)new_blk;
+                blk_head->b_next = (uint32_t)NULL;
+            } else {
+                for(int i = 0; i < inode->i_blocks; i++) {
+                    if(i == 0) {
+                        /* get the address of the firt block from inode.i_data */
+                        blk_head = (struct block_header *)inode->i_data;
+                        next_blk_addr = new_blk;
+                    } else {
+                        /* get the address of the rest from the block header */
+                        blk_head = (struct block_header *)next_blk_addr;
+                        next_blk_addr = blk_head->b_next;
+                    }
+                }
+
+                next_blk_addr = blk_head->b_next;
+                blk_head = (struct block_header *)new_blk;
+                blk_head->b_next = (uint32_t)NULL;
+            }
+
+            inode->i_blocks++;
+        }
+
+        /* get the start and end address of the block */
+        uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
+        uint32_t blk_end_addr = blk_start_addr + FS_BLK_SIZE;
+
+        /* calculate the block offset of the current read position */
+        uint8_t blk_pos = reg_file->pos % blk_free_size;
+
+        /* calculate the write address */
+        uint32_t write_addr = blk_start_addr + blk_head_size + blk_pos;
+
+        /* calculate the max size to read from the current block */
+        uint32_t max_write_size = blk_free_size - blk_pos;
+        if(remained_size > max_write_size) {
+            write_size = max_write_size;
+        } else {
+            write_size = remained_size;
+        }
+
+        /* write data */
+        int buf_pos = size - remained_size;
+        int retval = driver_file->f_op->write(NULL, (uint8_t *)&buf[buf_pos], write_size, write_addr);
+
+        /* write failure */
+        if(retval < 0)
+            break;
+
+        /* update the remained size */
+        remained_size -= write_size;
+
+        /* update the file read position */
+        reg_file->pos += write_size;
+
+        /* no more data to read */
+        if(remained_size == 0)
+            break;
+    }
+
+    filp->f_inode->i_size += size;
+
+    return size - remained_size;
 }
 
 long reg_file_llseek(struct file *filp, long offset, int whence)
