@@ -1,5 +1,5 @@
 ## Tenok
-An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Pico/RT](https://github.com/PikoRT/pikoRT).
+An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and
 the term "`tenok`" in their language means "`kernel`."
@@ -157,5 +157,5 @@ make gdbauto
 ## References
 1. [rtenv](https://github.com/embedded2014/rtenv) / [rtenv+](https://github.com/embedded2014/rtenv-plus)
 2. [mini-arm-os](https://github.com/jserv/mini-arm-os)
-3. [Pico/RT](https://github.com/PikoRT/pikoRT)
+3. [Piko/RT](https://github.com/PikoRT/pikoRT)
 4. [linenoise](https://github.com/antirez/linenoise)
