@@ -1,5 +1,5 @@
 ## Tenok
-An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv](https://github.com/embedded2014/rtenv) and [rtenv-plus](https://github.com/embedded2014/rtenv-plus).
+An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Pico/RT](https://github.com/PikoRT/pikoRT).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and
 the term "`tenok`" in their language means "`kernel`."
