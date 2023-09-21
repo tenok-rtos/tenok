@@ -32,6 +32,9 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
+RAM_ADDR = 0x20000000;
+RAM_SIZE = 192K;
+
 /* Highest address of the user mode stack */
 _estack = 0x20020000;    /* end of 128K RAM on AHB bus*/
 
@@ -43,7 +46,7 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
   FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1024K
-  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 192K
+  RAM (xrw)       : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
   MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
 }
 
@@ -162,6 +165,12 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(4);
+  } >RAM
+
+  .page_mem RAM_ADDR + RAM_SIZE - 32K : {
+    PROVIDE (_page_mem_start = .);
+    . += 26K;
+    PROVIDE (_page_mem_end = .);
   } >RAM
 
   /* MEMORY_bank1 section, code must be located here explicitly            */

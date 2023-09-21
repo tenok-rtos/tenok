@@ -52,6 +52,9 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
+RAM_ADDR = 0x20000000;
+RAM_SIZE = 192K;
+
 /* Highest address of the user mode stack */
 _estack = 0x20030000;    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
@@ -61,7 +64,7 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-  RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 192K
+  RAM (xrw)      : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
   CCMRAM (xrw)   : ORIGIN = 0x10000000, LENGTH = 64K
   FLASH (rx)     : ORIGIN = 0x8000000,  LENGTH = 2048K
   SDRAM (rw)     : ORIGIN = 0xD0000000, LENGTH = 8M
@@ -208,6 +211,12 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(4);
+  } >RAM
+
+  .page_mem RAM_ADDR + RAM_SIZE - 32K : {
+    PROVIDE (_page_mem_start = .);
+    . += 26K;
+    PROVIDE (_page_mem_end = .);
   } >RAM
 
   .sdram (NOLOAD) :

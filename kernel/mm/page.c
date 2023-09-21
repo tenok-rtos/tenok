@@ -2,7 +2,7 @@
 #include <kernel/bitops.h>
 #include <kernel/log2.h>
 
-/*extern*/ char _page_mem_start;
+extern char _page_mem_start;
 
 /* .pgmem section (32KB):
  *     - 128 pages of 256B requires a 16-bytes map
