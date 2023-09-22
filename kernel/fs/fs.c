@@ -120,7 +120,7 @@ ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset)
     uint8_t *read_addr = (uint8_t *)offset; //offset is the read address of the data
 
     if(rootfs_mem_check((uint32_t)read_addr) == false)
-        return EFAULT;
+        return -EFAULT;
 
     memcpy(buf, read_addr, size);
 
@@ -132,7 +132,7 @@ ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offs
     uint8_t *write_addr = (uint8_t *)offset; //offset is the read address of the data
 
     if(rootfs_mem_check((uint32_t)write_addr) == false)
-        return EFAULT;
+        return -EFAULT;
 
     memcpy(write_addr, buf, size);
 
