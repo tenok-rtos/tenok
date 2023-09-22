@@ -5,6 +5,7 @@
 #include <errno.h>
 
 #include <fs/fs.h>
+#include <rom_dev.h>
 #include <mm/mpool.h>
 #include <kernel/list.h>
 #include <kernel/ipc.h>
@@ -1614,6 +1615,7 @@ void first(void)/* obtain message queue */
     /*=======================*
      * mount the file system *
      *=======================*/
+    rom_dev_init();
     mount("/dev/rom", "/");
 
     /*================================*

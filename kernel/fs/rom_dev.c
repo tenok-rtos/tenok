@@ -40,5 +40,3 @@ ssize_t rom_dev_write(struct file *filp, const char *buf, size_t size, off_t off
 {
     return 0; //rom does not support write operation
 }
-
-HOOK_DRIVER(rom_dev_init);
