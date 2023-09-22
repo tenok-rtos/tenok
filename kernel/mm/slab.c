@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <string.h>
 
+#include <mm/page.h>
 #include <mm/slab.h>
-#include <kernel/page.h>
 #include <kernel/list.h>
 #include <kernel/util.h>
 #include <kernel/bitops.h>

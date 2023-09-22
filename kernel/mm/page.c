@@ -1,4 +1,4 @@
-#include <kernel/page.h>
+#include <mm/page.h>
 #include <kernel/bitops.h>
 #include <kernel/log2.h>
 
