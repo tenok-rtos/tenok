@@ -25,9 +25,9 @@ int reg_file_init(struct file **files, struct inode *file_inode, struct memory_p
 {
     /* create a new regular file */
     struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
-    reg_file->pos         = 0;
-    reg_file->f_inode  = file_inode;
-    reg_file->file.f_op   = &reg_file_ops;
+    reg_file->pos = 0;
+    reg_file->f_inode = file_inode;
+    reg_file->file.f_op = &reg_file_ops;
 
     files[file_inode->i_fd] = &reg_file->file;
     files[file_inode->i_fd]->f_inode = file_inode;
@@ -119,39 +119,17 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
         /* calculate the block index corresponding to the current file read position */
         int blk_i = reg_file->pos / blk_free_size;
 
-        if(blk_i >= filp->f_inode->i_blocks) {
-            uint32_t new_blk = fs_allocate_block();
+        /* get the start address of the block */
+        uint32_t blk_start_addr = (blk_i >= filp->f_inode->i_blocks) ?
+                                  fs_allocate_block(inode) :
+                                  fs_get_block_addr(inode, blk_i);
 
-            struct block_header *blk_head;
-            uint32_t next_blk_addr;
-
-            if(inode->i_blocks == 0) {
-                inode->i_data = new_blk;
-                blk_head = (struct block_header *)new_blk;
-                blk_head->b_next = (uint32_t)NULL;
-            } else {
-                for(int i = 0; i < inode->i_blocks; i++) {
-                    if(i == 0) {
-                        /* get the address of the firt block from inode.i_data */
-                        blk_head = (struct block_header *)inode->i_data;
-                        next_blk_addr = new_blk;
-                    } else {
-                        /* get the address of the rest from the block header */
-                        blk_head = (struct block_header *)next_blk_addr;
-                        next_blk_addr = blk_head->b_next;
-                    }
-                }
-
-                next_blk_addr = blk_head->b_next;
-                blk_head = (struct block_header *)new_blk;
-                blk_head->b_next = (uint32_t)NULL;
-            }
-
-            inode->i_blocks++;
+        /* check if the block address is valid */
+        if(blk_start_addr == (uint32_t)NULL) {
+            break;
         }
 
-        /* get the start and end address of the block */
-        uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
+        /* calculate the end address of the block */
         uint32_t blk_end_addr = blk_start_addr + FS_BLK_SIZE;
 
         /* calculate the block offset of the current read position */
@@ -187,6 +165,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
             break;
     }
 
+    /* update the file size */
     filp->f_inode->i_size += size;
 
     return size - remained_size;

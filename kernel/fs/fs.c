@@ -237,10 +237,48 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
     return (struct dentry *)dir_data_p;
 }
 
-uint32_t fs_allocate_block(void)
+uint32_t fs_allocate_block(struct inode *inode)
 {
+    uint8_t rdev = inode->i_rdev;
+
+    /* this function currently only supports rootfs */
+    if(rdev != RDEV_ROOTFS) {
+        return (uint32_t)NULL;
+    }
+
+    /* exceeded the maximum block count */
+    if(mount_points[rdev].super_blk.s_blk_cnt >= FS_BLK_CNT) {
+        return (uint32_t)NULL;
+    }
+
+    /* allocate a new block */
     uint32_t new_blk = (uint32_t)&rootfs_blk[mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt];
+    ((struct block_header *)new_blk)->b_next = (uint32_t)NULL;
+
+    /* update the super block */
     mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
+
+    /* the file has never been allocated with blocks */
+    if(inode->i_blocks == 0) {
+        /* initialize the inode data pointer */
+        inode->i_data = new_blk;
+        inode->i_blocks++;
+        return new_blk;
+    }
+
+    struct block_header *blk_head;
+    uint32_t next_blk_addr;
+
+    /* iterate to the last block of the file */
+    blk_head = (struct block_header *)inode->i_data;
+    for(int i = 1; i < inode->i_blocks; i++) {
+        blk_head = (struct block_header *)blk_head->b_next;
+    }
+
+    /* append new block */
+    blk_head->b_next = new_blk;
+    inode->i_blocks++;
+
     return new_blk;
 }
 

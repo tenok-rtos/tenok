@@ -107,7 +107,7 @@ int register_blkdev(char *name, struct file_operations *fops);
 void fs_get_pwd(char *path, struct inode *dir_curr);
 int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
-uint32_t fs_allocate_block(void);
+uint32_t fs_allocate_block(struct inode *inode);
 
 void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
