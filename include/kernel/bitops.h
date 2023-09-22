@@ -9,7 +9,7 @@
 /* find last bit set:
  * the index of the last bit that's set, or 0 if value is zero.
  */
-static inline unsigned long flsl(unsigned long word)
+static inline unsigned long _flsl(unsigned long word)
 {
     return word ? sizeof(long) * BITS_PER_CHAR - __builtin_clz(word) : 0;
 }

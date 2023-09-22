@@ -48,3 +48,9 @@ struct list *list_pop(struct list *list)
 
     return first;
 }
+
+void list_move(struct list *list, struct list *new_head)
+{
+    list_remove(list);
+    list_push(new_head, list);
+}

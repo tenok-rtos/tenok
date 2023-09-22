@@ -98,6 +98,7 @@ SRC += ./kernel/ipc.c \
        ./kernel/mm/mpool.c \
        ./kernel/mm/mm.c \
        ./kernel/mm/page.c \
+       ./kernel/mm/slab.c \
        ./main.c
 
 SRC += ./user/debug-link/tenok_link.c 

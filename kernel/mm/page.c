@@ -68,7 +68,7 @@ static inline unsigned long get_buddy_index(unsigned long idx)
 
 static inline void *page_idx_to_addr(unsigned long idx, unsigned long order)
 {
-    /* page size = 2^(order + min_exponention)
+    /* page size = 2^(order + base)
      * address = page_start_address + index * page_size
      */
     return &_page_mem_start + idx * (1 << (order + ilog2(PAGE_SIZE_MIN)));
