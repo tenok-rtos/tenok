@@ -59,14 +59,14 @@ size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
     int retval;
     for(int i = 0; i < times; i++) {
         int rsize = (nbytes >= MAX_READ_SIZE) ? MAX_READ_SIZE : nbytes;
-
-        /* read file */
-        if(read(stream->fd, (char *)((uintptr_t)ptr + total), rsize) != rsize) {
-            break; //read error
-        }
+        retval = read(stream->fd, (char *)((uintptr_t)ptr + total), rsize);
 
         total += rsize;
         nbytes -= rsize;
+
+        if(retval != rsize) {
+            break; //EOF or read error
+        }
     }
 
     /* end of the critical section */
@@ -86,15 +86,16 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
     int retval;
     for(int i = 0; i < times; i++) {
-        int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
-
         /* write file */
-        if(write(stream->fd, (char *)((uintptr_t)ptr + total), wsize) != wsize) {
-            break; //write error
-        }
+        int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
+        retval = write(stream->fd, (char *)((uintptr_t)ptr + total), wsize);
 
         total += wsize;
         nbytes -= wsize;
+
+        if(retval != wsize) {
+            break; //EOF or write error
+        }
     }
 
     /* end of the critical section */

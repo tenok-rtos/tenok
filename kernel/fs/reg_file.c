@@ -51,7 +51,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
     size_t remained_size = size;
     size_t read_size = 0;
 
-    while(1) {
+    while(remained_size) {
         /* calculate the block index corresponding to the current file read position */
         int blk_i = reg_file->pos / blk_free_size;
 
@@ -86,10 +86,6 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
 
         /* update the file read position */
         reg_file->pos += read_size;
-
-        /* no more data to read */
-        if(remained_size == 0)
-            break;
     }
 
     return size - remained_size;
@@ -115,7 +111,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
     size_t remained_size = size;
     size_t write_size = 0;
 
-    while(1) {
+    while(remained_size) {
         /* calculate the block index corresponding to the current file read position */
         int blk_i = reg_file->pos / blk_free_size;
 
@@ -159,10 +155,6 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
 
         /* update the file read position */
         reg_file->pos += write_size;
-
-        /* no more data to read */
-        if(remained_size == 0)
-            break;
     }
 
     /* update the file size */
