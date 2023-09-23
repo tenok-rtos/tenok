@@ -128,6 +128,8 @@ struct task_ctrl_blk {
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
 
+    uint32_t stack_top_preserved;
+
     struct {
         uint32_t *r0, *r1, *r2, *r3;
     } reg;

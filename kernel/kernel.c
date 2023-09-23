@@ -7,6 +7,7 @@
 #include <fs/fs.h>
 #include <rom_dev.h>
 #include <mm/mpool.h>
+#include <arch/port.h>
 #include <kernel/list.h>
 #include <kernel/ipc.h>
 #include <kernel/time.h>
@@ -127,6 +128,55 @@ static void task_create(task_func_t task_func, uint8_t priority)
     tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
 
     task_cnt++;
+}
+
+NACKED void sig_return_handler(void)
+{
+    SYSCALL(100); //TODO: seperate the syscall request and signal returning request
+}
+
+void stage_sigaction_handler(struct task_ctrl_blk *task,
+                             sa_sigaction_t sa_sigaction,
+                             int sigval,
+                             siginfo_t *info,
+                             void *context)
+{
+    /* preserve the original stack pointer of the user task */
+    task->stack_top_preserved = (uint32_t)task->stack_top;
+
+    /* prepare a new space on user task's stack for the signal handler */
+    uint32_t *stack_top = (uint32_t *)task->stack_top - 18;
+    stack_top[17] = INITIAL_XPSR;                 //psr
+    stack_top[16] = (uint32_t)sa_sigaction;       //pc
+    stack_top[15] = (uint32_t)sig_return_handler; //lr
+    stack_top[14] = 0;              //r12 (ip)
+    stack_top[13] = 0;              //r3
+    stack_top[12] = (uint32_t)info; //r2
+    stack_top[11] = (uint32_t)info; //r1
+    stack_top[10] = sigval;         //r0
+    stack_top[8]  = THREAD_PSP;
+    task->stack_top = (struct task_stack *)stack_top;
+}
+
+void stage_signal_handler(struct task_ctrl_blk *task,
+                          sa_handler_t sa_handler,
+                          int sigval)
+{
+    /* preserve the original stack pointer of the user task */
+    task->stack_top_preserved = (uint32_t)task->stack_top;
+
+    /* prepare a new space on user task's stack for the signal handler */
+    uint32_t *stack_top = (uint32_t *)task->stack_top - 18;
+    stack_top[17] = INITIAL_XPSR;                 //psr
+    stack_top[16] = (uint32_t)sa_handler;         //pc
+    stack_top[15] = (uint32_t)sig_return_handler; //lr
+    stack_top[14] = 0;      //r12 (ip)
+    stack_top[13] = 0;      //r3
+    stack_top[12] = 0;      //r2
+    stack_top[11] = 0;      //r1
+    stack_top[10] = sigval; //r0
+    stack_top[8]  = THREAD_PSP;
+    task->stack_top = (struct task_stack *)stack_top;
 }
 
 static void task_suspend(int pid)
@@ -304,8 +354,8 @@ static void timers_update(void)
 
                 /* stage the signal handler */
                 if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
-                    //TODO: run signal handler in the user space
-                    timer->sev.sigev_notify_function(timer->sev.sigev_value);
+                    stage_signal_handler(&tasks[i],
+                                         (sa_handler_t)timer->sev.sigev_notify_function, 0);
                 }
             }
         }
@@ -356,6 +406,12 @@ static void tasks_tick_update(void)
 
 static void syscall_handler(void)
 {
+    /* TODO: sepeate the signal handling from here */
+    if(running_task->stack_top->r7 == 100) {
+        running_task->stack_top = (struct task_stack *)running_task->stack_top_preserved;
+        return;
+    }
+
     /* system call handler */
     int i;
     for(i = 0; i < syscall_table_size; i++) {
@@ -1254,14 +1310,18 @@ static void handle_signal(pid_t pid, int signum)
         return;
     }
 
-    /* TODO:
-     * 1. run signal handler in user space
-     * 2. pass second and third argumentis to the sigaction handler
-     */
+    /* stage the signal or sigaction handler */
     if(act->sa_flags & SA_SIGINFO) {
         act->sa_sigaction(signum, NULL, NULL);
+
+        stage_sigaction_handler(&tasks[pid],
+                                act->sa_sigaction,
+                                signum,
+                                /*siginfo_t *info*/NULL,
+                                /**context*/NULL);
+
     } else {
-        act->sa_handler(signum);
+        stage_signal_handler(&tasks[pid], act->sa_handler, signum);
     }
 }
 

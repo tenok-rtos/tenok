@@ -39,6 +39,9 @@ struct sigaction {
     int      sa_flags;
 };
 
+typedef void (*sa_handler_t)(int);
+typedef void (*sa_sigaction_t)(int, siginfo_t *, void *);
+
 struct sigevent {
     int   sigev_notify;
     int   sigev_signo;

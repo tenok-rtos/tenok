@@ -11,16 +11,19 @@
 
 #define print(fd, str) write(fd, str, strlen(str))
 
+int serial_fd;
+
 void timer_callback(union sigval sv)
 {
-    //TODO: print message
+    char *s = "timer: time's up.\n\r";
+    write(serial_fd, s, strlen(s));
 }
 
 void timer_task(void)
 {
     setprogname("timer");
 
-    int serial_fd = open("/dev/serial0", 0);
+    serial_fd = open("/dev/serial0", 0);
 
     timer_t timerid;
     struct sigevent sev;
@@ -50,10 +53,10 @@ void timer_task(void)
         print(serial_fd, "failed to set the timer.\n\r");
     }
 
-    /* sleep forever */
-    sched_yield();
-
-    while(1);
+    /* sleep */
+    while(1) {
+        sleep(1);
+    }
 }
 
 HOOK_USER_TASK(timer_task);
