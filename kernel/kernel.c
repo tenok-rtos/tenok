@@ -423,6 +423,22 @@ static void syscall_handler(void)
     }
 }
 
+void sys_procstat(void)
+{
+    /* read syscall arguments */
+    struct procstat_info *info = SYSCALL_ARG(struct procstat_info *, 0);
+
+    for(int i = 0; i < task_cnt; i++) {
+        info[i].pid = tasks[i].pid;
+        info[i].priority = tasks[i].priority;
+        info[i].status = tasks[i].status;
+        strncpy(info[i].name, tasks[i].name, TASK_NAME_LEN_MAX);
+    }
+
+    /* return task count */
+    SYSCALL_ARG(int, 0) = task_cnt;
+}
+
 void sys_setprogname(void)
 {
     /* read syscall arguments */
@@ -1786,26 +1802,5 @@ void sched_start(void)
             /* record the address of syscall arguments in the stack (r0-r3 registers) */
             save_syscall_args();
         }
-    }
-}
-
-void sprint_tasks(char *str, size_t size)
-{
-    int pos = snprintf(&str[0], size, "PID\tPR\tSTAT\tNAME\n\r");
-    char *stat;
-
-    int i;
-    for(i = 0; i < task_cnt; i++) {
-        if(tasks[i].status == TASK_TERMINATED) {
-            continue;
-        } else if(tasks[i].status == TASK_SUSPENDED) {
-            stat = "T";
-        } else {
-            stat = "R";
-        }
-
-        pos += snprintf(&str[pos], size, "%d\t%d\t%s\t%s\n\r",
-                        tasks[i].pid, tasks[i].priority,
-                        stat, tasks[i].name);
     }
 }

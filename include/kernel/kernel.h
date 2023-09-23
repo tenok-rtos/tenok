@@ -192,6 +192,4 @@ void set_basepri(void);
 void set_syscall_pending(void);
 void reset_syscall_pending(void);
 
-void sprint_tasks(char *str, size_t size);
-
 #endif

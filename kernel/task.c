@@ -4,9 +4,15 @@
 #include <arch/port.h>
 #include <kernel/syscall.h>
 
+#include <tenok/tenok.h>
 #include <tenok/sys/types.h>
 
 #include "kconfig.h"
+
+NACKED int procstat(struct procstat_info info[TASK_CNT_MAX])
+{
+    SYSCALL(PROCSTAT);
+}
 
 NACKED void setprogname(const char *name)
 {
