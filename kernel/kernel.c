@@ -39,6 +39,7 @@
 struct list ready_list[TASK_MAX_PRIORITY + 1];
 struct list sleep_list;
 struct list suspend_list;
+struct list sig_wait_list;
 struct list poll_list; /* for handling timeout of poll() */
 
 /* tasks */
@@ -263,6 +264,26 @@ void wake_up(struct list *wait_list)
     /* put the task into the ready list */
     list_push(&ready_list[waken_task->priority], &waken_task->list);
     waken_task->status = TASK_READY;
+}
+
+void wake_up_task(struct list *wait_list, int pid)
+{
+    if(list_is_empty(wait_list))
+        return;
+
+    /* iterate the whole waiting list to find the task */
+    struct list *curr;
+    list_for_each(curr, wait_list) {
+        struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, list);
+
+        /* compare the pid */
+        if(task->pid == pid) {
+            /* move the task to the ready list */
+            list_move(&task->list, &ready_list[task->priority]);
+            task->status = TASK_READY;
+            return;
+        }
+    }
 }
 
 static void schedule(void)
@@ -1277,11 +1298,48 @@ void sys_sigaction(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_sigwait(void)
+{
+    /* read syscall arguments */
+    sigset_t *set = SYSCALL_ARG(sigset_t *, 0);
+    int *sig = SYSCALL_ARG(int *, 1);
+
+    sigset_t invalid_mask = ~(sig2bit(SIGUSR1) | sig2bit(SIGUSR2) |
+                              sig2bit(SIGPOLL) | sig2bit(SIGSTOP) |
+                              sig2bit(SIGCONT));
+
+    /* reject request of waiting on undefined signal */
+    if(*set & invalid_mask) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    /* record the signal set to wait */
+    running_task->sig_wait_set = *set;
+    running_task->ret_sig = sig;
+    running_task->wait_for_signal = true;
+
+    /* put the task into the signal waiting task */
+    prepare_to_wait(&sig_wait_list, &running_task->list, TASK_WAIT);
+}
+
 static void handle_signal(pid_t pid, int signum)
 {
     bool stage_handler = false;
 
     struct task_ctrl_blk *task = &tasks[pid];
+
+    /* wake up the task from the signal waiting list */
+    if(task->wait_for_signal && (sig2bit(signum) & task->sig_wait_set)) {
+        /* disable the signal waiting flag */
+        task->wait_for_signal = false;
+
+        /* wake up the waiting task and setup return values */
+        wake_up_task(&sig_wait_list, pid);
+        *task->ret_sig = signum;
+        *(int *)task->reg.r0 = 0;
+    }
 
     switch(signum) {
         case SIGUSR1:
@@ -1757,6 +1815,7 @@ void sched_start(void)
     /* initialize task lists */
     list_init(&sleep_list);
     list_init(&suspend_list);
+    list_init(&sig_wait_list);
     list_init(&poll_list);
 
     task_create(first, 0);

@@ -35,6 +35,7 @@ syscalls = \
  'sem_wait',
  'sem_getvalue',
  'sigaction',
+ 'sigwait',
  'kill',
  'clock_gettime',
  'clock_settime',

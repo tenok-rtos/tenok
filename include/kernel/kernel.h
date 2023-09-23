@@ -128,8 +128,6 @@ struct task_ctrl_blk {
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
 
-    uint32_t stack_top_preserved;
-
     struct {
         uint32_t *r0, *r1, *r2, *r3;
     } reg;
@@ -152,7 +150,11 @@ struct task_ctrl_blk {
     int fd_cnt;
 
     /* signal table */
+    uint32_t stack_top_preserved;
     struct sigaction *sig_table[SIGNAL_CNT];
+    sigset_t sig_wait_set;
+    bool wait_for_signal;
+    int *ret_sig;
 
     /* timers */
     struct list timer_head;

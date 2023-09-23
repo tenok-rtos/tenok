@@ -24,7 +24,7 @@ bool is_signal_defined(int signum)
     return false;
 }
 
-static uint32_t sig2bit(int signum)
+uint32_t sig2bit(int signum)
 {
     switch(signum) {
             DEF_SIG_BIT(SIGUSR1, 0);
@@ -94,6 +94,11 @@ NACKED int sigaction(int signum, const struct sigaction *act,
                      struct sigaction *oldact)
 {
     SYSCALL(SIGACTION);
+}
+
+NACKED int sigwait(const sigset_t *set, int *sig)
+{
+    SYSCALL(SIGWAIT);
 }
 
 NACKED int kill(pid_t pid, int sig)

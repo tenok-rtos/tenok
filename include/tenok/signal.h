@@ -56,6 +56,7 @@ int sigaddset(sigset_t *set, int signum);
 int sigdelset(sigset_t *set, int signum);
 int sigaction(int signum, const struct sigaction *act,
               struct sigaction *oldact);
+int sigwait(const sigset_t *set, int *sig);
 int kill(pid_t pid, int sig);
 
 #endif
