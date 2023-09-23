@@ -1306,7 +1306,7 @@ void sys_sigwait(void)
 
     sigset_t invalid_mask = ~(sig2bit(SIGUSR1) | sig2bit(SIGUSR2) |
                               sig2bit(SIGPOLL) | sig2bit(SIGSTOP) |
-                              sig2bit(SIGCONT));
+                              sig2bit(SIGCONT) | sig2bit(SIGKILL));
 
     /* reject request of waiting on undefined signal */
     if(*set & invalid_mask) {
