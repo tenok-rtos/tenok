@@ -101,6 +101,16 @@ NACKED int sigwait(const sigset_t *set, int *sig)
     SYSCALL(SIGWAIT);
 }
 
+int pause(void)
+{
+    int sig;
+    sigset_t set = sig2bit(SIGUSR1) | sig2bit(SIGUSR2) |
+                   sig2bit(SIGPOLL) | sig2bit(SIGSTOP) |
+                   sig2bit(SIGCONT) | sig2bit(SIGKILL);
+    sigwait(&set, &sig);
+    return 0;
+}
+
 NACKED int kill(pid_t pid, int sig)
 {
     SYSCALL(KILL);
