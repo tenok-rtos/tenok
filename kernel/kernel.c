@@ -1290,9 +1290,6 @@ static void handle_signal(pid_t pid, int signum)
         case SIGUSR2:
             stage_handler = true;
             break;
-        case SIGALRM:
-            stage_handler = true;
-            break;
         case SIGPOLL:
             stage_handler = true;
             break;
@@ -1328,14 +1325,8 @@ static void handle_signal(pid_t pid, int signum)
 
     /* stage the signal or sigaction handler */
     if(act->sa_flags & SA_SIGINFO) {
-        act->sa_sigaction(signum, NULL, NULL);
-
-        stage_sigaction_handler(&tasks[pid],
-                                act->sa_sigaction,
-                                signum,
-                                /*siginfo_t *info*/NULL,
-                                /**context*/NULL);
-
+        stage_sigaction_handler(&tasks[pid], act->sa_sigaction,
+                                signum, NULL, NULL);
     } else {
         stage_signal_handler(&tasks[pid], act->sa_handler, signum);
     }

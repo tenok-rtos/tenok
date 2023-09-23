@@ -5,12 +5,11 @@
 
 #define SIGUSR1  10
 #define SIGUSR2  12
-#define SIGALRM  14
 #define SIGPOLL  29
 #define SIGSTOP  19
 #define SIGCONT  18
 #define SIGKILL  9
-#define SIGNAL_CNT 7
+#define SIGNAL_CNT 6
 
 #define SA_SIGINFO 0x2
 

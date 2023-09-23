@@ -14,7 +14,6 @@ bool is_signal_defined(int signum)
     switch(signum) {
         case SIGUSR1:
         case SIGUSR2:
-        case SIGALRM:
         case SIGPOLL:
         case SIGSTOP:
         case SIGCONT:
@@ -30,11 +29,10 @@ static uint32_t sig2bit(int signum)
     switch(signum) {
             DEF_SIG_BIT(SIGUSR1, 0);
             DEF_SIG_BIT(SIGUSR2, 1);
-            DEF_SIG_BIT(SIGALRM, 2);
-            DEF_SIG_BIT(SIGPOLL, 3);
-            DEF_SIG_BIT(SIGSTOP, 4);
-            DEF_SIG_BIT(SIGCONT, 5);
-            DEF_SIG_BIT(SIGKILL, 6);
+            DEF_SIG_BIT(SIGPOLL, 2);
+            DEF_SIG_BIT(SIGSTOP, 3);
+            DEF_SIG_BIT(SIGCONT, 4);
+            DEF_SIG_BIT(SIGKILL, 5);
         default:
             return 0; /* should not happened */
     }
@@ -47,16 +45,14 @@ int get_signal_index(int signum)
             return 0;
         case SIGUSR2:
             return 1;
-        case SIGALRM:
-            return 2;
         case SIGPOLL:
-            return 3;
+            return 2;
         case SIGSTOP:
-            return 4;
+            return 3;
         case SIGCONT:
-            return 5;
+            return 4;
         case SIGKILL:
-            return 6;
+            return 5;
     }
 
     return 0; /* should not happened */
