@@ -14,6 +14,7 @@
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
+#include <kernel/interrupt.h>
 
 #include <tenok/tenok.h>
 #include <tenok/time.h>
@@ -1788,6 +1789,9 @@ void sched_start(void)
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
     NVIC_SetPriority(SysTick_IRQn, KERNEL_INT_PRI << 4); //set PRI[7:4] = KERNEL_INT_PRI
     NVIC_SetPriority(SVCall_IRQn, KERNEL_INT_PRI << 4);  //set PRI[7:4] = KERNEL_INT_PRI
+
+    /* initialize the irq vector table */
+    irq_init();
 
     uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
     os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);

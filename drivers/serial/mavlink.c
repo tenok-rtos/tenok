@@ -6,6 +6,7 @@
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
+#include <kernel/interrupt.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
@@ -14,6 +15,8 @@
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
+
+void USART2_IRQHandler(void);
 
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
@@ -61,6 +64,8 @@ void uart2_init(uint32_t baudrate)
         .NVIC_IRQChannelCmd = ENABLE
     };
     NVIC_Init(&NVIC_InitStruct);
+
+    request_irq(USART2_IRQn, USART2_IRQHandler, 0, NULL, NULL);
     USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 }
 

@@ -6,6 +6,7 @@
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
+#include <kernel/interrupt.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
@@ -16,6 +17,9 @@ static int uart1_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset);
+
+void USART1_IRQHandler(void);
+void DMA2_Stream7_IRQHandler(void);
 
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
@@ -63,7 +67,6 @@ void uart1_init(uint32_t baudrate)
     USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
 #endif
     USART_ClearFlag(USART1, USART_FLAG_TC);
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 
     /* initialize interrupt of the uart1 */
     NVIC_InitTypeDef nvic = {
@@ -74,10 +77,15 @@ void uart1_init(uint32_t baudrate)
     };
     NVIC_Init(&nvic);
 
+    request_irq(USART1_IRQn, USART1_IRQHandler, 0, NULL, NULL);
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
 #if (ENABLE_UART1_DMA != 0)
     /* initialize interrupt of the dma2 channel7 */
     nvic.NVIC_IRQChannel = DMA2_Stream7_IRQn;
     NVIC_Init(&nvic);
+
+    request_irq(DMA2_Stream7_IRQn, DMA2_Stream7_IRQHandler, 0, NULL, NULL);
     DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 #endif
 }
