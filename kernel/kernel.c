@@ -129,6 +129,8 @@ static void task_create(task_func_t task_func, uint8_t priority)
     stack_top[8]  = THREAD_PSP;                    //_lr = 0xfffffffd
     tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
 
+    list_push(&sleep_list, &tasks[task_cnt].list);
+
     task_cnt++;
 }
 
@@ -1827,9 +1829,10 @@ void sched_start(void)
     /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
-    /* configure the first task to run */
+    /* manually set task 0 as the first task to run */
     running_task = &tasks[0];
     tasks[0].status = TASK_RUNNING;
+    list_remove(&tasks[0].list); //remove from the sleep list
 
     while(1) {
         /*
