@@ -80,7 +80,8 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_spi.c \
        $(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC += ./kernel/ipc.c \
+SRC += ./kernel/arch/stm32f4_irq.c \
+       ./kernel/ipc.c \
        ./kernel/kfifo.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
