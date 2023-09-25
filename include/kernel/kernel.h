@@ -173,6 +173,8 @@ struct task_ctrl_blk {
 };
 
 void *kmalloc(size_t size);
+void kfree(void *ptr);
+int ktask_create(task_func_t task_func, uint8_t priority);
 
 struct task_ctrl_blk *current_task_info(void);
 

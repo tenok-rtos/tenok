@@ -93,6 +93,7 @@ SRC += ./kernel/arch/stm32f4_irq.c \
        ./kernel/signal.c \
        ./kernel/time.c \
        ./kernel/printk.c \
+       ./kernel/softirq.c \
        ./kernel/fs/fs.c \
        ./kernel/fs/file.c \
        ./kernel/fs/reg_file.c \

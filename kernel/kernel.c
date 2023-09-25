@@ -15,6 +15,7 @@
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
 #include <kernel/interrupt.h>
+#include <kernel/softirq.h>
 
 #include <tenok/tenok.h>
 #include <tenok/time.h>
@@ -1837,6 +1838,8 @@ void sched_start(void)
     list_init(&poll_list);
 
     task_create(first, 0);
+
+    softirq_init();
 
     /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);

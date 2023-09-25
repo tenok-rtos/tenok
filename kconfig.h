@@ -18,9 +18,8 @@
 #define MQUEUE_CNT_MAX       50
 
 /* file system */
-#define FILE_SYSTEM_FD       1    /* file system program is assumed to be the *
-                                   * second task to be launched               */
-
+#define FILE_SYSTEM_FD       2
+ 
 #define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
                                    * the file operation request will failed        */
 
