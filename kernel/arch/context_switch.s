@@ -21,6 +21,10 @@ SysTick_Handler:
     stmdb r0!, {r7} //preserve the syscall number of the _r7
     stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve context: r4-r11 and lr
 
+    /* set thread mode to be privileged */
+    mov  r4, #0
+    msr  control, r4
+
     /* load kernel state */
     pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //load r4-r11, ip and lr from the msp
     msr   psr_nzcvq, ip //load psr from the ip
@@ -47,6 +51,10 @@ SVC_Handler:
     stmdb r0!, {r7} //preserve the syscall number of the _r7
     stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve user context: r4-r11 and lr
 
+    /* set thread mode to be privileged */
+    mov  r4, #0
+    msr  control, r4
+
     /* load kernel state */
     pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}  //load r4-r11, ip and lr from the msp
     msr   psr_nzcvq, ip //load psr from the ip
@@ -65,6 +73,10 @@ jump_to_user_space:
     mrs   ip, psr //save psr into the ip
     push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //preserve kernel context: r4-r11, ip and lr
 
+    /* set thread mode to be unprivileged */
+    mov  r4, #1
+    msr  control, r4
+
     /* load user state */
     ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the user state from the address pointed by the r0
     ldmia r0!, {r7} //load syscall number _r7
@@ -74,7 +86,6 @@ jump_to_user_space:
     vldmiaeq r0!, {s16-s31}
 
     msr   psp, r0   //psp = r0 (set the psp to the stack address of the task to jump)
-    isb
 
     /* enable the interrupt */
     cpsie i
@@ -96,7 +107,7 @@ os_env_init:
     msr  psp, r0     //psp = r1
     mov  r0, #3      //r0 = 3
     msr  control, r0 //control = r0 (stack pointer is now switched to psp)
-    isb              //flush the cpu pipeline
+    isb              //flush the pipeline since the stack pointer is changed
 
     /* switch to handler mode via svc */
     push {r7}   //preserve old r7 for overwriting
