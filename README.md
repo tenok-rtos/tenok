@@ -8,12 +8,12 @@ the term "`tenok`" in their language means "`kernel`."
 
 * POSIX interface
 * Dual mode: Kernel mode / User mode
-* Linux-like design: Wait queue and kfifo
+* Linux-like design: Wait queue, kfifo, and Tasklet (Softirq)
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
-* Aschronous signals
+* Asynchronous signals
 * Software timer
-* Event waiting for file descriptors with `poll()`
+* Event waiting of file descriptors with `poll()`
 * Floating-point Unit (FPU) support
 * Built-in Shell
 * Simple rootfs and romfs
