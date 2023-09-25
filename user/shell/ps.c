@@ -36,9 +36,16 @@ static void ps(void)
                 break;
         }
 
-        snprintf(s, 100, "%d\t%d\t%s\t%s\n\r",
-                 info[i].pid, info[i].priority,
-                 stat, info[i].name);
+        if(info[i].privilege) {
+            snprintf(s, 100, "%d\t%d\t%s\t[%s]\n\r",
+                     info[i].pid, info[i].priority,
+                     stat, info[i].name);
+        } else {
+            snprintf(s, 100, "%d\t%d\t%s\t%s\n\r",
+                     info[i].pid, info[i].priority,
+                     stat, info[i].name);
+        }
+
         shell_puts(s);
     }
 

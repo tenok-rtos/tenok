@@ -67,14 +67,21 @@ SVC_Handler:
 jump_to_user_space:
     //arguments:
     //r0 (input) : stack address of the user task
+    //r1 (input) : run user task with priviledge or not
     //r0 (return): stack address after loading the user stack
 
     /* save kernel state */
     mrs   ip, psr //save psr into the ip
     push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //preserve kernel context: r4-r11, ip and lr
 
-    /* set thread mode to be unprivileged */
-    mov  r4, #1
+    /* set thread mode's privilege */
+    cmp   r1, #0
+    beq   unprivileged
+    mov   r4, #0
+    b write_priviledge_mode
+unprivileged:
+    mov   r4, #1
+write_priviledge_mode:
     msr  control, r4
 
     /* load user state */

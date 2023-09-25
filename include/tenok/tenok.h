@@ -1,12 +1,15 @@
 #ifndef __TENOK_H__
 #define __TENOK_H__
 
+#include <stdbool.h>
+
 #include "kconfig.h"
 
 struct procstat_info {
     int pid;
     int priority;
     int status;
+    bool privilege;
     char name[TASK_NAME_LEN_MAX];
 };
 

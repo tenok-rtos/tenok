@@ -100,21 +100,24 @@ void task_return_handler(void)
     while(1);
 }
 
-static void task_create(task_func_t task_func, uint8_t priority)
+static int task_create(task_func_t task_func, uint8_t priority)
 {
-    if(task_cnt > TASK_CNT_MAX) {
-        return;
+    if(task_cnt >= TASK_CNT_MAX) {
+        return - 1;
     }
 
-    tasks[task_cnt].pid = task_cnt;
-    tasks[task_cnt].status = TASK_WAIT;
-    tasks[task_cnt].priority = priority;
-    tasks[task_cnt].stack_size = TASK_STACK_SIZE; //TODO: variable size?
-    tasks[task_cnt].fd_cnt = 0;
+    struct task_ctrl_blk *task = &tasks[task_cnt];
+
+    task->pid = task_cnt;
+    task->status = TASK_WAIT;
+    task->priority = priority;
+    task->privileged = false;
+    task->stack_size = TASK_STACK_SIZE; //TODO: variable size?
+    task->fd_cnt = 0;
     for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-        tasks[task_cnt].fdtable[i].used = false;
+        task->fdtable[i].used = false;
     }
-    list_init(&tasks[task_cnt].poll_files_head);
+    list_init(&task->poll_files_head);
 
     /*
      * stack design contains three parts:
@@ -122,16 +125,24 @@ static void task_create(task_func_t task_func, uint8_t priority)
      * _r7 (for passing system call number), and
      * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
      */
-    uint32_t *stack_top = tasks[task_cnt].stack + tasks[task_cnt].stack_size - 18;
+    uint32_t *stack_top = task->stack + task->stack_size - 18;
     stack_top[17] = INITIAL_XPSR;
     stack_top[16] = (uint32_t)task_func;           // pc = task_entry
     stack_top[15] = (uint32_t)task_return_handler; // lr
     stack_top[8]  = THREAD_PSP;                    //_lr = 0xfffffffd
-    tasks[task_cnt].stack_top = (struct task_stack *)stack_top;
+    task->stack_top = (struct task_stack *)stack_top;
 
     list_push(&sleep_list, &tasks[task_cnt].list);
 
     task_cnt++;
+
+    return task->pid;
+}
+
+int ktask_create(task_func_t task_func, uint8_t priority)
+{
+    int pid = task_create(task_func, priority);
+    tasks[pid].privileged = true;
 }
 
 NACKED void sig_return_handler(void)
@@ -456,6 +467,7 @@ void sys_procstat(void)
         info[i].pid = tasks[i].pid;
         info[i].priority = tasks[i].priority;
         info[i].status = tasks[i].status;
+        info[i].privilege = tasks[i].privileged;
         strncpy(info[i].name, tasks[i].name, TASK_NAME_LEN_MAX);
     }
 
@@ -1854,7 +1866,8 @@ void sched_start(void)
         /* execute the task if the pending flag of the syscall is not set */
         if(running_task->syscall_pending == false) {
             /* switch to the user space */
-            running_task->stack_top = (struct task_stack *)jump_to_user_space((uint32_t)running_task->stack_top);
+            running_task->stack_top = (struct task_stack *)
+                                      jump_to_user_space((uint32_t)running_task->stack_top, running_task->privileged);
 
             /* record the address of syscall arguments in the stack (r0-r3 registers) */
             save_syscall_args();

@@ -136,6 +136,7 @@ struct task_ctrl_blk {
     uint32_t pid;
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
+    bool     privileged;
 
     uint32_t sleep_ticks;
 
@@ -179,7 +180,7 @@ void os_service_init(void);
 void sched_start(void);
 
 void os_env_init(uint32_t stack);
-uint32_t *jump_to_user_space(uint32_t stack);
+uint32_t *jump_to_user_space(uint32_t stack, bool privileged);
 
 void prepare_to_wait(struct list *q, struct list *wait, int state);
 
