@@ -1120,3 +1120,46 @@ void file_system_task(void)
         }
     }
 }
+
+/**
+ * debug only:
+ */
+#include "shell.h"
+
+void fs_print_inode_bitmap(void)
+{
+    char buf[100] = {0};
+
+    shell_puts("inodes bitmap:\n\r");
+
+    for(int i = 0; i < INODE_CNT_MAX; i++) {
+        for(int j = 0; j < 8; j++) {
+            int bit = (bitmap_inodes[i] >> j) & (~1l);
+            buf[j] = bit ? 'x' : '-';
+        }
+        buf[8] = '\n';
+        buf[9] = '\r';
+        buf[10] = '\0';
+
+        shell_puts(buf);
+    }
+}
+
+void fs_print_block_bitmap(void)
+{
+    char buf[100] = {0};
+
+    shell_puts("fs blocks bitmap:\n\r");
+
+    for(int i = 0; i < FS_BITMAP_BLK; i++) {
+        for(int j = 0; j < 8; j++) {
+            int bit = (bitmap_blks[i] >> j) & (~1l);
+            buf[j] = bit ? 'x' : '-';
+        }
+        buf[8] = '\n';
+        buf[9] = '\r';
+        buf[10] = '\0';
+
+        shell_puts(buf);
+    }
+}

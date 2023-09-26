@@ -116,5 +116,8 @@ void request_mount(int reply_fd, char *source, char *path);
 
 void file_system_task(void);
 
+void fs_print_inode_bitmap(void);
+void fs_print_block_bitmap(void);
+
 #endif
 
