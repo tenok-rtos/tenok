@@ -10,12 +10,9 @@
 #include <kernel/wait.h>
 
 #include <tenok/signal.h>
+#include <tenok/sys/resource.h>
 
 #include "kconfig.h"
-
-#define	PRIO_PROCESS 0
-#define	PRIO_PGRP    1
-#define	PRIO_USER    2
 
 #define TASK_PRIORITY_MIN 1
 
