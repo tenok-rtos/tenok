@@ -13,6 +13,7 @@ syscalls = \
  'close',
  'read',
  'write',
+ 'ioctl',
  'lseek',
  'fstat',
  'opendir',

@@ -30,6 +30,11 @@ NACKED ssize_t write(int fd, const void *buf, size_t count)
     SYSCALL(WRITE);
 }
 
+NACKED int ioctl(int fd, unsigned int cmd, unsigned long arg)
+{
+    SYSCALL(IOCTL);
+}
+
 NACKED long lseek(int fd, long offset, int whence)
 {
     SYSCALL(LSEEK);

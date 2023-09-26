@@ -733,6 +733,32 @@ void sys_write(void)
     }
 }
 
+void sys_ioctl(void)
+{
+    /* read syscall arguments */
+    int fd = SYSCALL_ARG(int, 0);
+    unsigned int cmd = SYSCALL_ARG(unsigned int, 1);
+    unsigned long arg = SYSCALL_ARG(unsigned long, 2);
+
+    /* get the file pointer */
+    struct file *filp;
+    if(fd < TASK_CNT_MAX) {
+        /* anonymous pipe hold by each tasks */
+        filp = files[fd];
+    } else {
+        int fdesc_idx = fd - TASK_CNT_MAX;
+        filp = running_task->fdtable[fdesc_idx].file;
+    }
+
+    /* call the ioctl implementation */
+    int retval = filp->f_op->ioctl(filp, cmd, arg);
+
+    /* return the ioctl result */
+    if(running_task->syscall_pending == false) {
+        SYSCALL_ARG(int, 0) = retval;
+    }
+}
+
 void sys_lseek(void)
 {
     /* read syscall arguments */
