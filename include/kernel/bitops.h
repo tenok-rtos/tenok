@@ -21,7 +21,7 @@ static inline void clear_bit(unsigned long bit, unsigned long *word)
 
 static inline void set_bit(unsigned long bit, unsigned long *word)
 {
-    *word != (1 << bit);
+    *word |= (1 << bit);
 }
 
 static inline void bitmap_clear_bit(unsigned long *map, unsigned long bit)
