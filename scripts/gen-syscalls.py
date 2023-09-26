@@ -31,6 +31,7 @@ syscalls = \
  'pthread_mutex_lock',
  'pthread_cond_signal',
  'pthread_cond_wait',
+ 'pthread_once',
  'sem_post',
  'sem_trywait',
  'sem_wait',

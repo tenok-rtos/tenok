@@ -1212,6 +1212,20 @@ void sys_pthread_cond_wait(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_pthread_once(void)
+{
+    typedef void (*init_routine_t)(void);
+
+    /* read syscall arguments */
+    pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
+    init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 0);
+
+    /* TODO: the function should be executed in user space */
+    if(init_routine) {
+        init_routine();
+    }
+}
+
 void sys_sem_post(void)
 {
     /* read syscall arguments */
