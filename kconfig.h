@@ -19,7 +19,7 @@
 
 /* file system */
 #define FILE_SYSTEM_FD       2
- 
+
 #define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
                                    * the file operation request will failed        */
 
@@ -37,6 +37,9 @@
 
 #define FS_BLK_SIZE          128  /* bytes, block size of the file system */
 #define FS_BLK_CNT           100  /* block count of the file system       */
+
+#define FS_BITMAP_INODE      50   /* word */
+#define FS_BITMAP_BLK        50   /* word */
 
 /* shell */
 #define SHELL_HISTORY_MAX    20

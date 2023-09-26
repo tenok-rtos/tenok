@@ -8,6 +8,7 @@
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
+#include <kernel/bitops.h>
 
 #include <tenok/tenok.h>
 #include <tenok/fcntl.h>
@@ -30,6 +31,9 @@ extern int file_cnt;
 
 struct inode inodes[INODE_CNT_MAX];
 uint8_t rootfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
+
+uint32_t bitmap_inodes[FS_BITMAP_INODE] = {0};
+uint32_t bitmap_blks[FS_BITMAP_BLK] = {0};
 
 struct mount mount_points[MOUNT_CNT_MAX + 1]; //0 is reserved for the rootfs
 int mount_cnt = 0;
@@ -63,14 +67,41 @@ int register_blkdev(char *name, struct file_operations *fops)
     files[fd]->f_op = fops;
 }
 
+struct inode *fs_alloc_inode(void)
+{
+    struct inode *new_inode = NULL;
+
+    /* find the first free inode */
+    int free_idx = find_first_zero_bit(bitmap_inodes, INODE_CNT_MAX);
+    if(free_idx < INODE_CNT_MAX) {
+        /* allocate a new inode */
+        new_inode = &inodes[free_idx];
+        new_inode->i_ino = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
+        mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
+
+        /* update the inode bitmap */
+        bitmap_set_bit(bitmap_inodes, free_idx);
+    }
+
+    return new_inode;
+}
+
 void rootfs_init(void)
 {
-    /* configure the root directory inode */
-    struct inode *inode_root = &inodes[0];
+    /* configure the rootfs super block */
+    struct super_block *rootfs_super_blk = &mount_points[RDEV_ROOTFS].super_blk;
+    rootfs_super_blk->s_inode_cnt = 0;
+    rootfs_super_blk->s_blk_cnt   = 0;
+    rootfs_super_blk->s_rd_only   = false;
+    rootfs_super_blk->s_sb_addr   = (uint32_t)rootfs_super_blk;
+    rootfs_super_blk->s_ino_addr  = (uint32_t)inodes;
+    rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blk;
+
+    /* configure the root directory inode of rootfs */
+    struct inode *inode_root = fs_alloc_inode();
     inode_root->i_mode   = S_IFDIR;
     inode_root->i_rdev   = RDEV_ROOTFS;
     inode_root->i_sync   = true;
-    inode_root->i_ino    = 0;
     inode_root->i_size   = 0;
     inode_root->i_blocks = 0;
     inode_root->i_data   = (uint32_t)NULL;
@@ -85,13 +116,6 @@ void rootfs_init(void)
     file_cnt++;
 
     /* mount the rootfs */
-    struct super_block *rootfs_super_blk = &mount_points[RDEV_ROOTFS].super_blk;
-    rootfs_super_blk->s_inode_cnt = 1;
-    rootfs_super_blk->s_blk_cnt   = 0;
-    rootfs_super_blk->s_rd_only   = false;
-    rootfs_super_blk->s_sb_addr   = (uint32_t)rootfs_super_blk;
-    rootfs_super_blk->s_ino_addr  = (uint32_t)inodes;
-    rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blk;
     mount_points[RDEV_ROOTFS].dev_file = rootfs_file;
     mount_cnt = 1;
 }
@@ -303,9 +327,8 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     int fd = file_cnt + TASK_CNT_MAX;
 
     /* configure the new file inode */
-    struct inode *new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
+    struct inode *new_inode = fs_alloc_inode();
     new_inode->i_rdev   = RDEV_ROOTFS;
-    new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd     = fd;
     new_inode->i_sync   = true;
@@ -380,7 +403,6 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         return NULL;
 
     file_cnt++; //update the file count for generating new file descriptor number
-    mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++; //update the inode count
 
     /* currently no files is under the directory */
     if(list_is_empty(&inode_dir->i_dentry) == true)
