@@ -38,6 +38,7 @@
 #define INITIAL_XPSR 0x01000000
 
 /* task lists */
+struct list tasks_list;
 struct list ready_list[TASK_MAX_PRIORITY + 1];
 struct list sleep_list;
 struct list suspend_list;
@@ -101,7 +102,7 @@ void task_return_handler(void)
     while(1);
 }
 
-static int task_create(task_func_t task_func, uint8_t priority)
+static int task_create(task_func_t task_func, uint8_t priority, bool privileged)
 {
     if(task_cnt >= TASK_CNT_MAX) {
         return - 1;
@@ -112,7 +113,7 @@ static int task_create(task_func_t task_func, uint8_t priority)
     task->pid = task_cnt;
     task->status = TASK_WAIT;
     task->priority = priority;
-    task->privileged = false;
+    task->privileged = privileged;
     task->stack_size = TASK_STACK_SIZE; //TODO: variable size?
     task->fd_cnt = 0;
     for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
@@ -133,7 +134,8 @@ static int task_create(task_func_t task_func, uint8_t priority)
     stack_top[8]  = THREAD_PSP;                    //_lr = 0xfffffffd
     task->stack_top = (struct task_stack *)stack_top;
 
-    list_push(&sleep_list, &tasks[task_cnt].list);
+    list_push(&tasks_list, &task->task_list);
+    list_push(&sleep_list, &task->list);
 
     task_cnt++;
 
@@ -142,8 +144,7 @@ static int task_create(task_func_t task_func, uint8_t priority)
 
 int ktask_create(task_func_t task_func, uint8_t priority)
 {
-    int pid = task_create(task_func, priority);
-    tasks[pid].privileged = true;
+    task_create(task_func, priority, true);
 }
 
 NACKED void sig_return_handler(void)
@@ -195,50 +196,48 @@ void stage_signal_handler(struct task_ctrl_blk *task,
     task->stack_top = (struct task_stack *)stack_top;
 }
 
-static void task_suspend(int pid)
+static struct task_ctrl_blk *acquire_task(int pid)
 {
-    struct task_ctrl_blk *task = &tasks[pid];
+    struct task_ctrl_blk *task;
 
-    if(task->status == TASK_SUSPENDED ||
-       task->status == TASK_TERMINATED) {
+    struct list *curr;
+    list_for_each(curr, &tasks_list) {
+        task = list_entry(curr, struct task_ctrl_blk, task_list);
+        if(task->pid == pid) {
+            return task;
+        }
+    }
+
+    return NULL;
+}
+
+static void task_suspend(struct task_ctrl_blk *task)
+{
+    if (task->status == TASK_SUSPENDED ||
+        task->status == TASK_TERMINATED) {
         return;
     }
 
     prepare_to_wait(&suspend_list, &task->list, TASK_SUSPENDED);
 }
 
-static void task_resume(int pid)
+static void task_resume(struct task_ctrl_blk *task)
 {
-    /* resume only if the task is suspended */
-    if(tasks[pid].status != TASK_SUSPENDED) {
+    if(task->status != TASK_SUSPENDED) {
         return;
     }
 
-    struct list *list_itr = suspend_list.next;
-    while(list_itr != &suspend_list) {
-        /* preserve in case the task get removed from the list */
-        struct list *next = list_itr->next;
-
-        /* obtain the task control block */
-        struct task_ctrl_blk *task = list_entry(list_itr, struct task_ctrl_blk, list);
-
-        if(task->pid == pid) {
-            /* remove the task from the suspended list and put it into the ready list */
-            task->status = TASK_READY;
-            list_remove(list_itr);
-            list_push(&ready_list[task->priority], list_itr);
-            return;
-        }
-
-        /* prepare next task list */
-        list_itr = next;
-    }
+    task->status = TASK_READY;
+    list_move(&task->list, &ready_list[task->priority]);
 }
 
-static void task_kill(int pid)
+static void task_kill(struct task_ctrl_blk *task)
 {
-    struct task_ctrl_blk *task = &tasks[pid];
-    task->status = TASK_TERMINATED;
+    task->status = TASK_TERMINATED; //XXX
+    list_remove(&task->list);
+    list_remove(&task->task_list);
+
+    //TODO: free the task stack
 }
 
 /* put the task pointed by the "wait" into the "wait_list", and change the task state. */
@@ -281,24 +280,10 @@ void wake_up(struct list *wait_list)
     waken_task->status = TASK_READY;
 }
 
-void wake_up_task(struct list *wait_list, int pid)
+void wake_up_task(struct task_ctrl_blk *task)
 {
-    if(list_is_empty(wait_list))
-        return;
-
-    /* iterate the whole waiting list to find the task */
-    struct list *curr;
-    list_for_each(curr, wait_list) {
-        struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, list);
-
-        /* compare the pid */
-        if(task->pid == pid) {
-            /* move the task to the ready list */
-            list_move(&task->list, &ready_list[task->priority]);
-            task->status = TASK_READY;
-            return;
-        }
-    }
+    list_move(&task->list, &ready_list[task->priority]);
+    task->status = TASK_READY;
 }
 
 static void schedule(void)
@@ -351,20 +336,20 @@ static void schedule(void)
 static void timers_update(void)
 {
     /* iterate through all tasks */
-    for(int i = 0; i < task_cnt; i++) {
-        /* skip terminated tasks and tasks without timers */
-        if(tasks[i].status == TASK_TERMINATED ||
-           tasks[i].timer_cnt == 0) {
+    struct list *curr_task;
+    list_for_each(curr_task, &tasks_list) {
+        struct task_ctrl_blk *task = list_entry(curr_task, struct task_ctrl_blk, task_list);
+
+        /* the task contains no timer */
+        if(task->timer_cnt == 0) {
             continue;
         }
 
-        struct timer *timer;
-
         /* iterate through all timers of the task */
-        struct list *curr;
-        list_for_each(curr, &tasks[i].timer_head) {
+        struct list *curr_timer;
+        list_for_each(curr_timer, &task->timer_head) {
             /* obtain the task */
-            timer = list_entry(curr, struct timer, list);
+            struct timer *timer = list_entry(curr_timer, struct timer, list);
 
             if(!timer->enabled) {
                 continue;
@@ -376,23 +361,25 @@ static void timers_update(void)
             /* update the return time */
             timer->ret_time.it_value = timer->counter;
 
-            /* time's up */
-            if(timer->counter.tv_sec == 0 &&
-               timer->counter.tv_nsec == 0) {
-                /* reload the timer */
-                timer->counter = timer->setting.it_interval;
+            /* check if the time is up */
+            if(timer->counter.tv_sec != 0 ||
+               timer->counter.tv_nsec != 0) {
+                continue; /* no */
+            }
 
-                /* shutdown the one-shot type timer */
-                if(timer->setting.it_interval.tv_sec == 0 &&
-                   timer->setting.it_interval.tv_nsec == 0) {
-                    timer->enabled = false;
-                }
+            /* reload the timer */
+            timer->counter = timer->setting.it_interval;
 
-                /* stage the signal handler */
-                if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
-                    stage_signal_handler(&tasks[i],
-                                         (sa_handler_t)timer->sev.sigev_notify_function, 0);
-                }
+            /* shutdown the one-shot type timer */
+            if(timer->setting.it_interval.tv_sec == 0 &&
+               timer->setting.it_interval.tv_nsec == 0) {
+                timer->enabled = false;
+            }
+
+            /* stage the signal handler */
+            if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
+                sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
+                stage_signal_handler(task, func, 0);
             }
         }
     }
@@ -464,16 +451,21 @@ void sys_procstat(void)
     /* read syscall arguments */
     struct procstat_info *info = SYSCALL_ARG(struct procstat_info *, 0);
 
-    for(int i = 0; i < task_cnt; i++) {
-        info[i].pid = tasks[i].pid;
-        info[i].priority = tasks[i].priority;
-        info[i].status = tasks[i].status;
-        info[i].privilege = tasks[i].privileged;
-        strncpy(info[i].name, tasks[i].name, TASK_NAME_LEN_MAX);
+    int i = 0;
+    struct list *curr;
+    list_for_each(curr, &tasks_list) {
+        struct task_ctrl_blk *task = list_entry(curr, struct task_ctrl_blk, task_list);
+        info[i].pid = task->pid;
+        info[i].priority = task->priority;
+        info[i].status = task->status;
+        info[i].privilege = task->privileged;
+        strncpy(info[i].name, task->name, TASK_NAME_LEN_MAX);
+
+        i++;
     }
 
     /* return task count */
-    SYSCALL_ARG(int, 0) = task_cnt;
+    SYSCALL_ARG(int, 0) = i;
 }
 
 void sys_setprogname(void)
@@ -524,21 +516,24 @@ void sys_fork(void)
     uint32_t *parent_stack_end = running_task->stack + running_task->stack_size;
     uint32_t stack_used = parent_stack_end - (uint32_t *)running_task->stack_top;
 
-    /* set priority, the priority must be higher than the idle task! */
-    tasks[task_cnt].priority = (running_task->priority == 0) ? TASK_PRIORITY_MIN : running_task->priority;
+    struct task_ctrl_blk *task = &tasks[task_cnt];
 
-    tasks[task_cnt].pid = task_cnt;
-    tasks[task_cnt].stack_size = running_task->stack_size;
-    tasks[task_cnt].stack_top = (struct task_stack *)(tasks[task_cnt].stack + tasks[task_cnt].stack_size - stack_used);
+    /* set priority, the priority must be higher than the idle task! */
+    task->priority = (running_task->priority == 0) ? TASK_PRIORITY_MIN : running_task->priority;
+
+    task->pid = task_cnt;
+    task->stack_size = running_task->stack_size;
+    task->stack_top = (struct task_stack *)(task->stack + task->stack_size - stack_used);
 
     /* put the forked task into the sleep list */
-    tasks[task_cnt].status = TASK_WAIT;
-    list_push(&sleep_list, &tasks[task_cnt].list);
+    task->status = TASK_WAIT;
+    list_push(&sleep_list, &task->list);
 
-    list_init(&tasks[task_cnt].poll_files_head);
+    list_push(&tasks_list, &task->task_list);
+    list_init(&task->poll_files_head);
 
     /* copy the stack of the used part only */
-    memcpy(tasks[task_cnt].stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
+    memcpy(task->stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
 
     /* return the child task pid to the parent task */
     SYSCALL_ARG(int, 0) = task_cnt;
@@ -548,10 +543,10 @@ void sys_fork(void)
      * check lr[4] bits (0: fpu is used, 1: fpu is unused)
      */
     if(running_task->stack_top->_lr & 0x10) {
-        struct task_stack *sp = (struct task_stack *)tasks[task_cnt].stack_top;
+        struct task_stack *sp = (struct task_stack *)task->stack_top;
         sp->r0 = 0; //return 0 to the child task
     } else {
-        struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)tasks[task_cnt].stack_top;
+        struct task_stack_fpu *sp_fpu = (struct task_stack_fpu *)task->stack_top;
         sp_fpu->r0 = 0; //return 0 to the child task
 
     }
@@ -866,24 +861,24 @@ void sys_setpriority(void)
     /* unsupported type of the `which' argument */
     if(which != PRIO_PROCESS) {
         /* return on error */
-        SYSCALL_ARG(int, 0) = -1;
+        SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
-    /* compare pid and set new priority */
-    int i;
-    for(i = 0; i < task_cnt; i++) {
-        if(tasks[i].pid == who) {
-            tasks[i].priority = priority;
+    /* acquire the task with pid */
+    struct task_ctrl_blk *task = acquire_task(who);
 
-            /* return on success */
-            SYSCALL_ARG(int, 0) = 0;
-            return;
-        }
+    /* check if the task is found */
+    if(task) {
+        /* set new task priority */
+        task->priority = priority;
+
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
+    } else {
+        /* task not found, return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
     }
-
-    /* process not found, return on error */
-    SYSCALL_ARG(int, 0) = -1;
 }
 
 void sys_getpid(void)
@@ -953,19 +948,18 @@ void sys_mkfifo(void)
 
 void poll_notify(struct file *filp)
 {
-
-    for(int i = 0; i < task_cnt; i++) {
-        if(tasks[i].status == TASK_TERMINATED) {
-            continue;
-        }
+    /* iterate through all tasks */
+    struct list *task_list;
+    list_for_each(task_list, &tasks_list) {
+        struct task_ctrl_blk *task = list_entry(task_list, struct task_ctrl_blk, task_list);
 
         /* find all tasks that are waiting for poll notification */
         struct list *file_list;
-        list_for_each(file_list, &tasks[i].poll_files_head) {
+        list_for_each(file_list, &task->poll_files_head) {
             struct file *file_iter = list_entry(file_list, struct file, list);
 
             if(filp == file_iter) {
-                wake_up(&tasks[i].poll_wq);
+                wake_up(&task->poll_wq);
             }
         }
     }
@@ -1380,11 +1374,9 @@ void sys_sigwait(void)
     prepare_to_wait(&sig_wait_list, &running_task->list, TASK_WAIT);
 }
 
-static void handle_signal(pid_t pid, int signum)
+static void handle_signal(struct task_ctrl_blk *task, int signum)
 {
     bool stage_handler = false;
-
-    struct task_ctrl_blk *task = &tasks[pid];
 
     /* wake up the task from the signal waiting list */
     if(task->wait_for_signal && (sig2bit(signum) & task->sig_wait_set)) {
@@ -1392,7 +1384,7 @@ static void handle_signal(pid_t pid, int signum)
         task->wait_for_signal = false;
 
         /* wake up the waiting task and setup return values */
-        wake_up_task(&sig_wait_list, pid);
+        wake_up_task(task);
         *task->ret_sig = signum;
         *(int *)task->reg.r0 = 0;
     }
@@ -1409,16 +1401,16 @@ static void handle_signal(pid_t pid, int signum)
             break;
         case SIGSTOP:
             /* stop: can't be caught or ignored */
-            task_suspend(pid);
+            task_suspend(task);
             break;
         case SIGCONT:
             /* continue */
-            task_resume(pid);
+            task_resume(task);
             stage_handler = true;
             break;
         case SIGKILL: {
             /* kill: can't be caught or ignored */
-            task_kill(pid);
+            task_kill(task);
             break;
         }
     }
@@ -1439,10 +1431,10 @@ static void handle_signal(pid_t pid, int signum)
 
     /* stage the signal or sigaction handler */
     if(act->sa_flags & SA_SIGINFO) {
-        stage_sigaction_handler(&tasks[pid], act->sa_sigaction,
+        stage_sigaction_handler(tasks, act->sa_sigaction,
                                 signum, NULL, NULL);
     } else {
-        stage_signal_handler(&tasks[pid], act->sa_handler, signum);
+        stage_signal_handler(task, act->sa_handler, signum);
     }
 }
 
@@ -1452,15 +1444,17 @@ void sys_kill(void)
     pid_t pid = SYSCALL_ARG(pid_t, 0);
     int sig = SYSCALL_ARG(int, 1);
 
-    /* check if the pid is valid */
-    if(pid < 0 || pid >= task_cnt) {
+    struct task_ctrl_blk *task = acquire_task(pid);
+
+    /* failed to find the task with the pid */
+    if(!task) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* reject forbidden signal for idle task and file system task */
-    if((pid == 0 || pid == 1) &&
+    if((pid == 0 || pid == 1) && /* FIXME: add new flag in task control block instead */
        (sig == SIGKILL || sig == SIGSTOP || sig == SIGCONT)) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
@@ -1474,7 +1468,7 @@ void sys_kill(void)
         return;
     }
 
-    handle_signal(pid, sig);
+    handle_signal(task, sig);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1860,10 +1854,15 @@ void sched_start(void)
         fifo_init(i, (struct file **)&files, NULL);
     }
 
-    /* initialize the task ready lists */
+    /* initialize task lists */
     for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
+    list_init(&tasks_list);
+    list_init(&sleep_list);
+    list_init(&suspend_list);
+    list_init(&sig_wait_list);
+    list_init(&poll_list);
 
     /* initialize the root file system */
     rootfs_init();
@@ -1871,13 +1870,7 @@ void sched_start(void)
     /* initialized all hooked drivers */
     hook_drivers_init();
 
-    /* initialize task lists */
-    list_init(&sleep_list);
-    list_init(&suspend_list);
-    list_init(&sig_wait_list);
-    list_init(&poll_list);
-
-    task_create(first, 0);
+    task_create(first, 0, false);
 
     softirq_init();
 

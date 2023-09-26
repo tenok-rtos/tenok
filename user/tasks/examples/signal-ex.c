@@ -47,9 +47,9 @@ void signal_task1(void)
     write(serial_fd, s, strlen(s));
 
     /* sleep */
-    sched_yield();
-
-    while(1);
+    while(1) {
+        sleep(1);
+    }
 }
 
 void signal_task2(void)
@@ -62,9 +62,9 @@ void signal_task2(void)
     kill(task1_pid, SIGUSR1);
 
     /* sleep */
-    sched_yield();
-
-    while(1);
+    while(1) {
+        sleep(1);
+    }
 }
 
 HOOK_USER_TASK(signal_task1);

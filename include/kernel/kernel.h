@@ -166,6 +166,7 @@ struct task_ctrl_blk {
     bool poll_failed;
 
     /* task list */
+    struct list task_list;
     struct list list;
 };
 
