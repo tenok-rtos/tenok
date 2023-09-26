@@ -30,7 +30,7 @@ extern struct memory_pool mem_pool;
 extern int file_cnt;
 
 struct inode inodes[INODE_CNT_MAX];
-uint8_t rootfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
+uint8_t rootfs_blks[FS_BLK_CNT][FS_BLK_SIZE];
 
 uint32_t bitmap_inodes[FS_BITMAP_INODE] = {0};
 uint32_t bitmap_blks[FS_BITMAP_BLK] = {0};
@@ -67,7 +67,7 @@ int register_blkdev(char *name, struct file_operations *fops)
     files[fd]->f_op = fops;
 }
 
-struct inode *fs_alloc_inode(void)
+static struct inode *fs_alloc_inode(void)
 {
     struct inode *new_inode = NULL;
 
@@ -86,6 +86,24 @@ struct inode *fs_alloc_inode(void)
     return new_inode;
 }
 
+static uint8_t *fs_alloc_block(void)
+{
+    uint8_t *new_block = NULL;
+
+    /* find the first free block */
+    int free_idx = find_first_zero_bit(bitmap_blks, FS_BLK_CNT);
+    if(free_idx < FS_BLK_CNT) {
+        /* allocate a new block */
+        new_block = (uint8_t *)&rootfs_blks[free_idx];
+        mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
+
+        /* update the inode bitmap */
+        bitmap_set_bit(bitmap_blks, free_idx);
+    }
+
+    return new_block;
+}
+
 void rootfs_init(void)
 {
     /* configure the rootfs super block */
@@ -95,7 +113,7 @@ void rootfs_init(void)
     rootfs_super_blk->s_rd_only   = false;
     rootfs_super_blk->s_sb_addr   = (uint32_t)rootfs_super_blk;
     rootfs_super_blk->s_ino_addr  = (uint32_t)inodes;
-    rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blk;
+    rootfs_super_blk->s_blk_addr  = (uint32_t)rootfs_blks;
 
     /* configure the root directory inode of rootfs */
     struct inode *inode_root = fs_alloc_inode();
@@ -130,8 +148,8 @@ static bool rootfs_mem_check(uint32_t addr)
     if((addr >= inode_start_addr) && (addr <= inode_end_addr))
         pass = true;
 
-    uint32_t blk_start_addr = (uint32_t)rootfs_blk;
-    uint32_t blk_end_addr = (uint32_t)rootfs_blk + (FS_BLK_CNT * FS_BLK_SIZE);
+    uint32_t blk_start_addr = (uint32_t)rootfs_blks;
+    uint32_t blk_end_addr = (uint32_t)rootfs_blks + (FS_BLK_CNT * FS_BLK_SIZE);
 
     if((addr >= blk_start_addr) && (addr <= blk_end_addr))
         pass = true;
@@ -254,14 +272,13 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
         /* the data requires a new block */
-        dir_data_p = (uint8_t *)&rootfs_blk[mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt];
-        mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
+        dir_data_p = fs_alloc_block();
     }
 
     return (struct dentry *)dir_data_p;
 }
 
-uint32_t fs_allocate_block(struct inode *inode)
+uint32_t fs_file_append_block(struct inode *inode)
 {
     uint8_t rdev = inode->i_rdev;
 
@@ -276,11 +293,9 @@ uint32_t fs_allocate_block(struct inode *inode)
     }
 
     /* allocate a new block */
-    uint32_t new_blk = (uint32_t)&rootfs_blk[mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt];
-    ((struct block_header *)new_blk)->b_next = (uint32_t)NULL;
 
-    /* update the super block */
-    mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt++;
+    uint32_t new_blk = (uint32_t)fs_alloc_block();
+    ((struct block_header *)new_blk)->b_next = (uint32_t)NULL;
 
     /* the file has never been allocated with blocks */
     if(inode->i_blocks == 0) {

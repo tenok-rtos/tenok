@@ -117,7 +117,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
 
         /* get the start address of the block */
         uint32_t blk_start_addr = (blk_i >= filp->f_inode->i_blocks) ?
-                                  fs_allocate_block(inode) :
+                                  fs_file_append_block(inode) :
                                   fs_get_block_addr(inode, blk_i);
 
         /* check if the block address is valid */
