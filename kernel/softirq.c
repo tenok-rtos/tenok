@@ -12,7 +12,7 @@
 
 #define SOFTIRQD_PID 1
 
-extern struct task_ctrl_blk tasks[TASK_CNT_MAX];
+extern struct thread_info threads[TASK_CNT_MAX];
 extern struct list ready_list[TASK_MAX_PRIORITY + 1];
 
 struct list tasklet_list;
@@ -29,7 +29,7 @@ void tasklet_schedule(struct tasklet_struct *t)
     list_move(&t->list, &tasklet_list);
 
     /* wake up the softirq daemon if it is sleeping */
-    struct task_ctrl_blk *task = &tasks[SOFTIRQD_PID];
+    struct thread_info *task = &threads[SOFTIRQD_PID];
     if(task->status == TASK_WAIT) {
         list_move(&task->list, &ready_list[task->priority]);
         task->status = TASK_READY;

@@ -62,7 +62,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     /* resume a blocked writting task if the pipe has enough space to write */
     if(!list_is_empty(w_wait_list)) {
         /* acquire the task control block */
-        struct task_ctrl_blk *task = TASK_ENTRY(w_wait_list->next);
+        struct thread_info *task = TASK_ENTRY(w_wait_list->next);
 
         /* check if request size of the blocked writting task can be fulfilled */
         if(task->file_request.size <= kfifo_avail(pipe)) {
@@ -120,7 +120,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     /* resume a blocked reading task if the pipe has enough data to read */
     if(!list_is_empty(r_wait_list)) {
         /* acquire the task control block */
-        struct task_ctrl_blk *task = TASK_ENTRY(r_wait_list->next);
+        struct thread_info *task = TASK_ENTRY(r_wait_list->next);
 
         /* check if request size of the blocked reading task can be fulfilled */
         if(task->file_request.size <= kfifo_len(pipe)) {

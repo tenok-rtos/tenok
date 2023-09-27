@@ -12,7 +12,7 @@ typedef uint32_t pthread_once_t;
 
 typedef struct {
     spinlock_t lock;
-    struct task_ctrl_blk *owner;
+    struct thread_info *owner;
     struct list wait_list;
 } pthread_mutex_t;
 

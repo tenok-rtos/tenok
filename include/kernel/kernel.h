@@ -19,11 +19,8 @@
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
 
-#define DEF_IRQ_ENTRY(func, _num) \
-        {.syscall_handler = func, .num = _num}
-
-#define CURRENT_TASK_INFO(var) struct task_ctrl_blk *var = current_task_info()
-#define TASK_ENTRY(task_list) container_of(task_list, struct task_ctrl_blk, list);
+#define CURRENT_TASK_INFO(var) struct thread_info *var = current_thread_info()
+#define TASK_ENTRY(task_list) container_of(task_list, struct thread_info, list);
 
 #define SYSCALL_ARG(type, arg_num) \
     *(type *)running_task->reg.r ## arg_num
@@ -43,8 +40,8 @@ enum {
     TASK_TERMINATED
 } TASK_STATUS;
 
-/* layout of the user stack when the fpu is not used */
-struct task_stack {
+/* stack layout for threads without using fpu */
+struct stack {
     /* registers pushed into the stack by the os */
     uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
@@ -58,7 +55,8 @@ struct task_stack {
     uint32_t stack[TASK_STACK_SIZE - 17];
 };
 
-struct task_stack_fpu {
+/* stack layout for threads that using fpu */
+struct stack_fpu {
     /* registeres pushed into the stack by the os */
     uint32_t r4_to_r11[8];   /* r4, ..., r11 */
     uint32_t _lr;
@@ -74,11 +72,17 @@ struct task_stack_fpu {
     uint32_t stack[TASK_STACK_SIZE - 50];
 };
 
-/* task control block */
-struct task_ctrl_blk {
-    struct task_stack *stack_top; //pointer that points to the stack top
+struct task_struct {
+    int pid;
+    struct list threads_list;
+};
+
+struct thread_info {
+    struct stack *stack_top; //pointer that points to the stack top
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
+
+    struct task_struct *task;
 
     struct {
         uint32_t *r0, *r1, *r2, *r3;
@@ -120,16 +124,15 @@ struct task_ctrl_blk {
     struct timespec poll_timeout;
     bool poll_failed;
 
-    /* task list */
-    struct list task_list;
-    struct list list;
+    struct list thread_list; /* global list of threads */
+    struct list list;        /* list object for scheduling */
 };
 
 void *kmalloc(size_t size);
 void kfree(void *ptr);
 int ktask_create(task_func_t task_func, uint8_t priority);
 
-struct task_ctrl_blk *current_task_info(void);
+struct thread_info *current_thread_info(void);
 
 void sched_start(void);
 
@@ -138,7 +141,7 @@ uint32_t *jump_to_user_space(uint32_t stack, bool privileged);
 
 void prepare_to_wait(struct list *q, struct list *wait, int state);
 
-void set_syscall_pending(struct task_ctrl_blk *task);
-void reset_syscall_pending(struct task_ctrl_blk *task);
+void set_syscall_pending(struct thread_info *task);
+void reset_syscall_pending(struct thread_info *task);
 
 #endif
