@@ -14,12 +14,12 @@
 
 #include "kconfig.h"
 
-pipe_t *generic_pipe_create(size_t nmem, size_t size)
+pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
     return kfifo_alloc(nmem, size);
 }
 
-ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
+ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 {
     CURRENT_TASK_INFO(curr_task);
 
@@ -74,7 +74,7 @@ ssize_t generic_pipe_read(pipe_t *pipe, char *buf, size_t size)
     return retval;
 }
 
-ssize_t generic_pipe_write(pipe_t *pipe, const char *buf, size_t size)
+ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 {
     CURRENT_TASK_INFO(curr_task);
 
@@ -143,7 +143,7 @@ static struct file_operations fifo_ops = {
 int fifo_init(int fd, struct file **files, struct inode *file_inode)
 {
     /* initialize the pipe */
-    pipe_t *pipe = generic_pipe_create(sizeof(uint8_t), PIPE_DEPTH);
+    pipe_t *pipe = pipe_create_generic(sizeof(uint8_t), PIPE_DEPTH);
 
     /* register fifo to the file table */
     pipe->file.f_op = &fifo_ops;
@@ -158,7 +158,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
     pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
 
-    ssize_t retval = generic_pipe_read(pipe, buf, size);
+    ssize_t retval = pipe_read_generic(pipe, buf, size);
 
     /* update file event */
     if(kfifo_len(pipe) > 0) {
@@ -176,7 +176,7 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset
     pipe_t *pipe = container_of(filp, struct kfifo, file);
     pipe->flags = filp->f_flags;
 
-    ssize_t retval = generic_pipe_write(pipe, buf, size);
+    ssize_t retval = pipe_write_generic(pipe, buf, size);
 
     /* update file event */
     if(kfifo_avail(pipe) > 0) {
