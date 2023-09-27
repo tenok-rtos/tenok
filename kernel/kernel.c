@@ -268,16 +268,27 @@ void wait_event(struct list *wq, bool condition)
  */
 void wake_up(struct list *wait_list)
 {
-    if(list_is_empty(wait_list))
+    struct task_ctrl_blk *highest_pri_task = NULL;
+    struct task_ctrl_blk *task;
+
+    /* find the highest priority task in the waiting list */
+    struct list *curr;
+    list_for_each(curr, wait_list) {
+        task = list_entry(curr, struct task_ctrl_blk, list);
+        if(task->priority > highest_pri_task->priority ||
+           highest_pri_task == NULL) {
+            highest_pri_task = task;
+        }
+    }
+
+    /* no task is found */
+    if(!highest_pri_task) {
         return;
+    }
 
-    /* pop the task from the waiting list */
-    struct list *waken_task_list = list_pop(wait_list);
-    struct task_ctrl_blk *waken_task = list_entry(waken_task_list, struct task_ctrl_blk, list);
-
-    /* put the task into the ready list */
-    list_push(&ready_list[waken_task->priority], &waken_task->list);
-    waken_task->status = TASK_READY;
+    /* wake up the task by placing it back to the ready list */
+    list_move(&highest_pri_task->list, &ready_list[highest_pri_task->priority]);
+    highest_pri_task->status = TASK_READY;
 }
 
 void wake_up_task(struct task_ctrl_blk *task)
