@@ -18,6 +18,7 @@
 #include <kernel/softirq.h>
 
 #include <tenok/tenok.h>
+#include <tenok/task.h>
 #include <tenok/time.h>
 #include <tenok/poll.h>
 #include <tenok/mqueue.h>
@@ -62,11 +63,6 @@ int file_cnt = 0;
 struct msg_queue mq_table[MQUEUE_CNT_MAX];
 int mq_cnt = 0;
 
-//XXX
-int hook_task_cnt = 0;
-int curr_hook_task = 0;
-task_func_t *hook_task_func = NULL;
-
 /* syscall table */
 syscall_info_t syscall_table[] = {
     SYSCALL_TABLE_INIT
@@ -102,7 +98,7 @@ void task_return_handler(void)
     while(1);
 }
 
-static int task_create(task_func_t task_func, uint8_t priority, bool privileged)
+static int _task_create(task_func_t task_func, uint8_t priority, bool privileged)
 {
     if(task_cnt >= TASK_CNT_MAX) {
         return - 1;
@@ -144,7 +140,7 @@ static int task_create(task_func_t task_func, uint8_t priority, bool privileged)
 
 int ktask_create(task_func_t task_func, uint8_t priority)
 {
-    task_create(task_func, priority, true);
+    _task_create(task_func, priority, true);
 }
 
 NACKED void sig_return_handler(void)
@@ -507,6 +503,18 @@ void sys_delay_ticks(void)
 
     /* pass the return value with r0 */
     SYSCALL_ARG(uint32_t, 0) = 0;
+}
+
+void sys_task_create(void)
+{
+    /* read syscall arguments */
+    task_func_t task_func = SYSCALL_ARG(task_func_t, 0);
+    int priority = SYSCALL_ARG(int, 1);
+    int stack_size = SYSCALL_ARG(int, 2);
+
+    int retval = _task_create(task_func, priority, false);
+
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_sched_yield(void)
@@ -1783,7 +1791,7 @@ static void save_syscall_args(void)
     }
 }
 
-void first(void)/* obtain message queue */
+void first(void)
 {
     /*
      * after the first task finished initiating other tasks,
@@ -1796,7 +1804,7 @@ void first(void)/* obtain message queue */
     /*=============================*
      * launch the file system task *
      *=============================*/
-    if(!fork()) file_system_task();
+    task_create(file_system_task, 0, 0);
 
     /*=======================*
      * mount the file system *
@@ -1811,19 +1819,16 @@ void first(void)/* obtain message queue */
     extern char _tasks_end;
 
     int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
-    hook_task_cnt = func_list_size / sizeof(task_func_t);
+    int hook_task_cnt = func_list_size / sizeof(task_func_t);
 
     /* point to the first task function of the list */
-    hook_task_func = (task_func_t *)&_tasks_start;
+    task_func_t *hook_task_func = (task_func_t *)&_tasks_start;
 
-    int i;
-    for(curr_hook_task = 0; curr_hook_task < hook_task_cnt; curr_hook_task++) {
-        if(!fork()) {
-            (*(hook_task_func + curr_hook_task))();
-        }
+    for(int i = 0; i < hook_task_cnt; i++) {
+        task_create(*(hook_task_func + i), 0, 0);
     }
 
-    while(1); //idle loop when no other task is ready
+    while(1); //spin in the idle loop when no other task is ready
 }
 
 void hook_drivers_init(void)
@@ -1881,9 +1886,11 @@ void sched_start(void)
     /* initialized all hooked drivers */
     hook_drivers_init();
 
-    task_create(first, 0, false);
-
+    /* initialize the softirq deamon */
     softirq_init();
+
+    /* create the first task */
+    _task_create(first, 0, false);
 
     /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);

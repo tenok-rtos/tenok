@@ -2,6 +2,7 @@
 #include <errno.h>
 
 #include <arch/port.h>
+#include <kernel/kernel.h>
 #include <kernel/syscall.h>
 
 #include <tenok/tenok.h>
@@ -63,6 +64,11 @@ unsigned int sleep(unsigned int seconds)
 {
     delay_ticks(seconds * OS_TICK_FREQ);
     return 0;
+}
+
+NACKED int task_create(task_func_t task_func, uint8_t priority, int stack_size)
+{
+    SYSCALL(TASK_CREATE);
 }
 
 int usleep(useconds_t usec)

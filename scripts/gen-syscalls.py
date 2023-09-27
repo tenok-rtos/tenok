@@ -5,6 +5,7 @@ syscalls = \
  'setprogname',
  'getprogname',
  'delay_ticks',
+ 'task_create',
  'sched_yield',
  'fork',
  '_exit',
