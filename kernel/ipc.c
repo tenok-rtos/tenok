@@ -37,7 +37,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
             prepare_to_wait(&pipe->r_wait_list, &curr_task->list, TASK_WAIT);
 
             /* turn on the syscall pending flag */
-            curr_task->syscall_pending = true;
+            set_syscall_pending(curr_task);
         } else {
             /* non-block mode */
             if(fifo_len > 0) {
@@ -56,7 +56,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
-        curr_task->syscall_pending = false;
+        reset_syscall_pending(curr_task);
     }
 
     /* resume a blocked writting task if the pipe has enough space to write */
@@ -95,7 +95,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
             prepare_to_wait(&pipe->r_wait_list, &curr_task->list, TASK_WAIT);
 
             /* turn on the syscall pending flag */
-            curr_task->syscall_pending = true;
+            set_syscall_pending(curr_task);
         } else {
             /* non-block mode */
             if(fifo_avail > 0) {
@@ -114,7 +114,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
-        curr_task->syscall_pending = false;
+        reset_syscall_pending(curr_task);
     }
 
     /* resume a blocked reading task if the pipe has enough data to read */

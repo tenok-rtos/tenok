@@ -46,8 +46,8 @@ struct list suspend_list;
 struct list sig_wait_list;
 struct list poll_list; /* for handling timeout of poll() */
 
-/* tasks */
 struct task_ctrl_blk tasks[TASK_CNT_MAX];
+
 struct task_ctrl_blk *running_task = NULL;
 int task_cnt = 0;
 
@@ -67,8 +67,6 @@ int mq_cnt = 0;
 syscall_info_t syscall_table[] = {
     SYSCALL_TABLE_INIT
 };
-
-int syscall_table_size = SYSCALL_CNT;
 
 void *kmalloc(size_t size)
 {
@@ -209,8 +207,7 @@ static struct task_ctrl_blk *acquire_task(int pid)
 
 static void task_suspend(struct task_ctrl_blk *task)
 {
-    if (task->status == TASK_SUSPENDED ||
-        task->status == TASK_TERMINATED) {
+    if (task->status == TASK_SUSPENDED) {
         return;
     }
 
@@ -229,7 +226,6 @@ static void task_resume(struct task_ctrl_blk *task)
 
 static void task_kill(struct task_ctrl_blk *task)
 {
-    task->status = TASK_TERMINATED; //XXX
     list_remove(&task->list);
     list_remove(&task->task_list);
 
@@ -250,10 +246,10 @@ void wait_event(struct list *wq, bool condition)
     CURRENT_TASK_INFO(curr_task);
 
     if(condition) {
-        curr_task->syscall_pending = false;
+        reset_syscall_pending(curr_task);
     } else {
         prepare_to_wait(wq, &curr_task->list, TASK_WAIT);
-        curr_task->syscall_pending = true;
+        set_syscall_pending(curr_task);
     }
 }
 
@@ -437,15 +433,15 @@ static void tasks_tick_update(void)
 static void syscall_handler(void)
 {
     /* TODO: sepeate the signal handling from here */
-    if(running_task->stack_top->r7 == 100) {
+    if(running_task->stack_top->_r7 == 100) {
         running_task->stack_top = (struct task_stack *)running_task->stack_top_preserved;
         return;
     }
 
     /* system call handler */
     int i;
-    for(i = 0; i < syscall_table_size; i++) {
-        if(running_task->stack_top->r7 == syscall_table[i].num) {
+    for(i = 0; i < SYSCALL_CNT; i++) {
+        if(running_task->stack_top->_r7 == syscall_table[i].num) {
             /* execute the syscall service */
             syscall_table[i].syscall_handler();
             break;
@@ -575,6 +571,7 @@ void sys_fork(void)
 
 void sys__exit(void)
 {
+    list_remove(&running_task->task_list);
     running_task->status = TASK_TERMINATED;
 }
 
@@ -1036,7 +1033,7 @@ void sys_poll(void)
         }
 
         /* turn on the syscall pending flag */
-        running_task->syscall_pending = true;
+        set_syscall_pending(running_task);
 
         /* put current task into the wait queue */
         prepare_to_wait(&running_task->poll_wq, &running_task->list, TASK_WAIT);
@@ -1055,7 +1052,7 @@ void sys_poll(void)
         }
     } else {
         /* turn off the syscall pending flag */
-        running_task->syscall_pending = false;
+        reset_syscall_pending(running_task);
 
         /* clear poll files' list head */
         list_init(&running_task->poll_files_head);
@@ -1180,13 +1177,13 @@ void sys_pthread_mutex_lock(void)
         prepare_to_wait(&mutex->wait_list, &running_task->list, TASK_WAIT);
 
         /* turn on the syscall pending flag */
-        running_task->syscall_pending = true;
+        set_syscall_pending(running_task);
     } else {
         /* occupy the mutex by setting the owner */
         mutex->owner = running_task;
 
         /* turn off the syscall pending flag */
-        running_task->syscall_pending = false;
+        reset_syscall_pending(running_task);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1247,7 +1244,7 @@ void sys_sem_post(void)
     /* prevent integer overflow */
     if(sem->count >= (INT32_MAX - 1)) {
         /* turn on the syscall pending flag */
-        running_task->syscall_pending = true;
+        set_syscall_pending(running_task);
     } else {
         /* increase the semaphore */
         sem->count++;
@@ -1258,7 +1255,7 @@ void sys_sem_post(void)
         }
 
         /* turn off the syscall pending flag */
-        running_task->syscall_pending = false;
+        reset_syscall_pending(running_task);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1295,13 +1292,13 @@ void sys_sem_wait(void)
         prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
 
         /* turn on the syscall pending flag */
-        running_task->syscall_pending = true;
+        set_syscall_pending(running_task);
     } else {
         /* successfully obtained the semaphore */
         sem->count--;
 
         /* turn off the syscall pending flag */
-        running_task->syscall_pending = false;
+        reset_syscall_pending(running_task);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1723,50 +1720,14 @@ void sys_free(void)
     kfree(ptr);
 }
 
-uint32_t get_proc_mode(void)
+inline void set_syscall_pending(struct task_ctrl_blk *task)
 {
-    /*
-     * get the 9 bits isr number from the ipsr register,
-     * check "exception types" of the ARM CM3 for details
-     */
-    volatile unsigned int mode;
-    asm volatile ("mrs  r0, ipsr \n"
-                  "str  r0, [%0] \n"
-                  :: "r"(&mode));
-    return mode & 0x1ff; //return ipsr[8:0]
+    task->syscall_pending = true;
 }
 
-void reset_basepri(void)
+inline void reset_syscall_pending(struct task_ctrl_blk *task)
 {
-    asm volatile ("mov r0,      #0\n"
-                  "msr basepri, r0\n");
-}
-
-void set_basepri(void)
-{
-    asm volatile ("mov r0,      %0\n"
-                  "msr basepri, r0\n"
-                  :: "i"(KERNEL_INT_PRI << 4));
-}
-
-void preempt_disable(void)
-{
-    set_basepri();
-}
-
-void preempt_enable(void)
-{
-    reset_basepri();
-}
-
-void set_syscall_pending(void)
-{
-    running_task->syscall_pending = true;
-}
-
-void reset_syscall_pending(void)
-{
-    running_task->syscall_pending = false;
+    task->syscall_pending = false;
 }
 
 /* save r0-r3 registers that may carry the syscall arguments via the supervisor call */

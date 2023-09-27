@@ -19,8 +19,6 @@ static void ps(void)
 
     for(int i = 0; i < task_cnt; i++) {
         switch(info[i].status) {
-            case TASK_TERMINATED:
-                continue;
             case TASK_WAIT:
                 stat = "S";
                 break;

@@ -2,6 +2,7 @@
 #include <kernel/softirq.h>
 #include <kernel/list.h>
 #include <kernel/wait.h>
+#include <kernel/interrupt.h>
 
 #include <tenok/tenok.h>
 #include <tenok/unistd.h>

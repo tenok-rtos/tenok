@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include <arch/port.h>
 #include <kernel/kernel.h>
 
 #define IRQ_START 16

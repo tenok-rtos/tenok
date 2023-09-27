@@ -45,83 +45,38 @@ enum {
 
 /* layout of the user stack when the fpu is not used */
 struct task_stack {
-    /* pushed by the os */
-    uint32_t r4;
-    uint32_t r5;
-    uint32_t r6;
-    uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
+    /* registers pushed into the stack by the os */
+    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
+    uint32_t _r7;          /* r7 (syscall number) */
 
-    uint32_t _r7; //syscall number
+    /* registers pushed into the stack by exception entry */
+    uint32_t r0, r1, r2, r3;
+    uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
 
-    /* pushed by the exception entry */
-    uint32_t r0;
-    uint32_t r1;
-    uint32_t r2;
-    uint32_t r3;
-    uint32_t r12;
-    uint32_t lr;
-    uint32_t pc;
-    uint32_t xpsr;
+    /* rest of the stack */
     uint32_t stack[TASK_STACK_SIZE - 17];
 };
 
-/* layout of the user stack when fpu is used */
 struct task_stack_fpu {
-    /* pushed by the os */
-    uint32_t r4;
-    uint32_t r5;
-    uint32_t r6;
-    uint32_t r7;
-    uint32_t r8;
-    uint32_t r9;
-    uint32_t r10;
-    uint32_t r11;
+    /* registeres pushed into the stack by the os */
+    uint32_t r4_to_r11[8];   /* r4, ..., r11 */
     uint32_t _lr;
+    uint32_t _r7;            /* r7 (syscall number) */
+    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
 
-    uint32_t _r7; //syscall number
+    /* registers pushed into the stack by exception entry */
+    uint32_t r0, r1, r2, r3;
+    uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
+    uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
 
-    uint32_t s16;
-    uint32_t s17;
-    uint32_t s18;
-    uint32_t s19;
-    uint32_t s20;
-    uint32_t s21;
-    uint32_t s22;
-    uint32_t s23;
-    uint32_t s24;
-    uint32_t s25;
-    uint32_t s26;
-    uint32_t s27;
-    uint32_t s28;
-    uint32_t s29;
-    uint32_t s30;
-    uint32_t s31;
-
-    /* pushed by the exception entry */
-    uint32_t r0;
-    uint32_t r1;
-    uint32_t r2;
-    uint32_t r3;
-    uint32_t r12;
-    uint32_t lr;
-    uint32_t pc;
-    uint32_t xpsr;
-    //s0
-    //...
-    //s15
-    //fpscr
-
-    uint32_t stack[TASK_STACK_SIZE - 33];
+    /* rest of the stack */
+    uint32_t stack[TASK_STACK_SIZE - 50];
 };
 
 /* task control block */
 struct task_ctrl_blk {
-    struct task_stack *stack_top;    //pointer of the stack top address
+    struct task_stack *stack_top; //pointer that points to the stack top
     uint32_t stack[TASK_STACK_SIZE]; //stack memory
     uint32_t stack_size;
 
@@ -176,7 +131,6 @@ int ktask_create(task_func_t task_func, uint8_t priority);
 
 struct task_ctrl_blk *current_task_info(void);
 
-void os_service_init(void);
 void sched_start(void);
 
 void os_env_init(uint32_t stack);
@@ -184,15 +138,7 @@ uint32_t *jump_to_user_space(uint32_t stack, bool privileged);
 
 void prepare_to_wait(struct list *q, struct list *wait, int state);
 
-void preempt_disable(void);
-void preempt_enable(void);
-
-uint32_t get_proc_mode(void);
-
-void reset_basepri(void);
-void set_basepri(void);
-
-void set_syscall_pending(void);
-void reset_syscall_pending(void);
+void set_syscall_pending(struct task_ctrl_blk *task);
+void reset_syscall_pending(struct task_ctrl_blk *task);
 
 #endif
