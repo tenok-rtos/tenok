@@ -62,9 +62,9 @@ SVC_Handler:
     /* exception return */
     bx    lr //jump to the kernel space
 
-.type   jump_to_user_space, %function
-.global jump_to_user_space
-jump_to_user_space:
+.type   jump_to_thread, %function
+.global jump_to_thread
+jump_to_thread:
     //arguments:
     //r0 (input) : stack address of the thread 
     //r1 (input) : run user task with priviledge or not

@@ -21,7 +21,7 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
 
 ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 {
-    CURRENT_TASK_INFO(curr_thread);
+    CURRENT_THREAD_INFO(curr_thread);
 
     ssize_t retval = 0;
 
@@ -62,7 +62,8 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     /* resume a blocked writting thread if the pipe has enough space to write */
     if(!list_is_empty(w_wait_list)) {
         /* acquire the thread info */
-        struct thread_info *thread = TASK_ENTRY(w_wait_list->next);
+        struct thread_info *thread =
+            list_entry(w_wait_list->next, struct thread_info, list);
 
         /* check if request size of the blocked writting thread can be fulfilled */
         if(thread->file_request.size <= kfifo_avail(pipe)) {
@@ -76,7 +77,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 
 ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 {
-    CURRENT_TASK_INFO(curr_thread);
+    CURRENT_THREAD_INFO(curr_thread);
 
     ssize_t retval = 0;
 
@@ -120,7 +121,8 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     /* resume a blocked reading thread if the pipe has enough data to read */
     if(!list_is_empty(r_wait_list)) {
         /* acquire the thread info */
-        struct thread_info *thread = TASK_ENTRY(r_wait_list->next);
+        struct thread_info *thread =
+            list_entry(r_wait_list->next, struct thread_info, list);
 
         /* check if request size of the blocked reading thread can be fulfilled */
         if(thread->file_request.size <= kfifo_len(pipe)) {

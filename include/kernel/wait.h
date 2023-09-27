@@ -9,6 +9,7 @@
 
 typedef struct list wait_queue_head_t;
 
+void prepare_to_wait(struct list *q, struct list *wait, int state);
 void wake_up(struct list *wait_list);
 void wait_event(struct list *wq, bool condition);
 

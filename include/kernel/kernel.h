@@ -19,11 +19,10 @@
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
 
-#define CURRENT_TASK_INFO(var) struct thread_info *var = current_thread_info()
-#define TASK_ENTRY(task_list) container_of(task_list, struct thread_info, list);
-
 #define SYSCALL_ARG(type, arg_num) \
     *(type *)running_thread->reg.r ## arg_num
+
+#define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
 
 typedef struct {
     void (* syscall_handler)(void);
@@ -74,16 +73,21 @@ struct stack_fpu {
 
 struct task_struct {
     int pid;
-    struct list threads_list;
+
+    /* file descriptors table */
+    struct fdtable fdtable[FILE_DESC_CNT_MAX];
+    int fd_cnt;
+
+    struct list threads_list; /* all threads held by the task */
     struct list list;
 };
 
 struct thread_info {
-    struct stack *stack_top; //pointer that points to the stack top
-    uint32_t stack[TASK_STACK_SIZE]; //stack memory
+    struct stack *stack_top;         /* stack pointer */
+    uint32_t stack[TASK_STACK_SIZE]; /* stack memory */
     uint32_t stack_size;
 
-    struct task_struct *task;
+    struct task_struct *task;        /* the task of this thread */
 
     struct {
         uint32_t *r0, *r1, *r2, *r3;
@@ -94,56 +98,45 @@ struct thread_info {
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
     bool     privileged;
-
-    uint32_t sleep_ticks;
-
     bool     syscall_pending;
+    uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
 
     struct {
         size_t size;
     } file_request;
 
-    /* file descriptor table */
-    struct fdtable fdtable[FILE_DESC_CNT_MAX];
-    int fd_cnt;
-
     /* signal table */
+    int *ret_sig;
+    bool wait_for_signal;
+    sigset_t sig_wait_set; /* the signal set of the thread to wait */
     uint32_t stack_top_preserved;
     struct sigaction *sig_table[SIGNAL_CNT];
-    sigset_t sig_wait_set;
-    bool wait_for_signal;
-    int *ret_sig;
 
     /* timers */
-    struct list timer_head;
     int timer_cnt;
+    struct list timers_list;
 
     /* poll */
-    wait_queue_head_t poll_wq;
-    struct list poll_files_head;
-    struct list poll_list;
-    struct timespec poll_timeout;
     bool poll_failed;
+    wait_queue_head_t poll_wq;
+    struct timespec poll_timeout;
+    struct list poll_files_list;
 
-    struct list thread_list; /* global list of threads */
     struct list task_list;   /* list head for the task to track */
-    struct list list;        /* list object for scheduling */
+    struct list thread_list; /* global list of threads */
+    struct list poll_list;   /* list head for the poll handler to track */
+    struct list list;        /* list head for thread scheduling */
 };
 
 void *kmalloc(size_t size);
 void kfree(void *ptr);
-int ktask_create(task_func_t task_func, uint8_t priority);
+int ktask_create(task_func_t task_func, uint8_t priority, int stack_size);
+
+void set_syscall_pending(struct thread_info *task);
+void reset_syscall_pending(struct thread_info *task);
 
 struct thread_info *current_thread_info(void);
 
 void sched_start(void);
-
-void os_env_init(uint32_t stack);
-uint32_t *jump_to_user_space(uint32_t stack, bool privileged);
-
-void prepare_to_wait(struct list *q, struct list *wait, int state);
-
-void set_syscall_pending(struct thread_info *task);
-void reset_syscall_pending(struct thread_info *task);
 
 #endif
