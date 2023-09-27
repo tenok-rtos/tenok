@@ -23,7 +23,7 @@
 #define TASK_ENTRY(task_list) container_of(task_list, struct thread_info, list);
 
 #define SYSCALL_ARG(type, arg_num) \
-    *(type *)running_task->reg.r ## arg_num
+    *(type *)running_thread->reg.r ## arg_num
 
 typedef struct {
     void (* syscall_handler)(void);
@@ -75,6 +75,7 @@ struct stack_fpu {
 struct task_struct {
     int pid;
     struct list threads_list;
+    struct list list;
 };
 
 struct thread_info {
@@ -89,7 +90,7 @@ struct thread_info {
     } reg;
 
     uint8_t  status;
-    uint32_t pid;
+    uint32_t tid;
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
     bool     privileged;
@@ -125,6 +126,7 @@ struct thread_info {
     bool poll_failed;
 
     struct list thread_list; /* global list of threads */
+    struct list task_list;   /* list head for the task to track */
     struct list list;        /* list object for scheduling */
 };
 

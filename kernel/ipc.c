@@ -21,7 +21,7 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
 
 ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 {
-    CURRENT_TASK_INFO(curr_task);
+    CURRENT_TASK_INFO(curr_thread);
 
     ssize_t retval = 0;
 
@@ -29,15 +29,15 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 
     size_t fifo_len = kfifo_len(pipe);
 
-    /* block the current task if the request size is larger than the fifo can serve */
+    /* block the current thread if the request size is larger than the fifo can serve */
     if(size > fifo_len) {
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
-            /* put the current task into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_task->list, TASK_WAIT);
+            /* put the current thread into the read waiting list */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, TASK_WAIT);
 
             /* turn on the syscall pending flag */
-            set_syscall_pending(curr_task);
+            set_syscall_pending(curr_thread);
         } else {
             /* non-block mode */
             if(fifo_len > 0) {
@@ -56,17 +56,17 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
-        reset_syscall_pending(curr_task);
+        reset_syscall_pending(curr_thread);
     }
 
-    /* resume a blocked writting task if the pipe has enough space to write */
+    /* resume a blocked writting thread if the pipe has enough space to write */
     if(!list_is_empty(w_wait_list)) {
-        /* acquire the task control block */
-        struct thread_info *task = TASK_ENTRY(w_wait_list->next);
+        /* acquire the thread info */
+        struct thread_info *thread = TASK_ENTRY(w_wait_list->next);
 
-        /* check if request size of the blocked writting task can be fulfilled */
-        if(task->file_request.size <= kfifo_avail(pipe)) {
-            /* yes, wake up the task from the write waiting list */
+        /* check if request size of the blocked writting thread can be fulfilled */
+        if(thread->file_request.size <= kfifo_avail(pipe)) {
+            /* yes, wake up the thread from the write waiting list */
             wake_up(w_wait_list);
         }
     }
@@ -76,7 +76,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 
 ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 {
-    CURRENT_TASK_INFO(curr_task);
+    CURRENT_TASK_INFO(curr_thread);
 
     ssize_t retval = 0;
 
@@ -91,11 +91,11 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
-            /* put the current task into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_task->list, TASK_WAIT);
+            /* put the current thread into the read waiting list */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, TASK_WAIT);
 
             /* turn on the syscall pending flag */
-            set_syscall_pending(curr_task);
+            set_syscall_pending(curr_thread);
         } else {
             /* non-block mode */
             if(fifo_avail > 0) {
@@ -114,17 +114,17 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
         retval = type_size * size;
 
         /* request is fulfilled, turn off the syscall pending flag */
-        reset_syscall_pending(curr_task);
+        reset_syscall_pending(curr_thread);
     }
 
-    /* resume a blocked reading task if the pipe has enough data to read */
+    /* resume a blocked reading thread if the pipe has enough data to read */
     if(!list_is_empty(r_wait_list)) {
-        /* acquire the task control block */
-        struct thread_info *task = TASK_ENTRY(r_wait_list->next);
+        /* acquire the thread info */
+        struct thread_info *thread = TASK_ENTRY(r_wait_list->next);
 
-        /* check if request size of the blocked reading task can be fulfilled */
-        if(task->file_request.size <= kfifo_len(pipe)) {
-            /* yes, wake up the task from the read waiting list */
+        /* check if request size of the blocked reading thread can be fulfilled */
+        if(thread->file_request.size <= kfifo_len(pipe)) {
+            /* yes, wake up the thread from the read waiting list */
             wake_up(r_wait_list);
         }
     }

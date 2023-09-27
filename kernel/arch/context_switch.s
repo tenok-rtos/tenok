@@ -66,7 +66,7 @@ SVC_Handler:
 .global jump_to_user_space
 jump_to_user_space:
     //arguments:
-    //r0 (input) : stack address of the user task
+    //r0 (input) : stack address of the thread 
     //r1 (input) : run user task with priviledge or not
     //r0 (return): stack address after loading the user stack
 

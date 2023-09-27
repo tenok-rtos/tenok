@@ -38,6 +38,7 @@
 
 #define INITIAL_XPSR 0x01000000
 
+struct list tasks_list;
 struct list threads_list;
 struct list ready_list[TASK_MAX_PRIORITY + 1];
 struct list sleep_list;
@@ -45,11 +46,13 @@ struct list suspend_list;
 struct list sig_wait_list;
 struct list poll_list; /* for handling timeout of poll() */
 
-
+struct task_struct tasks[TASK_CNT_MAX];
 struct thread_info threads[TASK_CNT_MAX];
 
-struct thread_info *running_task = NULL;
 int task_cnt = 0;
+int thread_cnt = 0;
+
+struct thread_info *running_thread = NULL;
 
 /* memory pool */
 struct memory_pool mem_pool;
@@ -80,13 +83,13 @@ void kfree(void *ptr)
 
 struct thread_info *current_thread_info(void)
 {
-    return running_task;
+    return running_thread;
 }
 
-void task_return_handler(void)
+void thread_return_handler(void)
 {
     /*
-     * the task function is returned. the user can defined the behavior by modifying
+     * the thread function is returned. the user can defined the behavior by modifying
      * the return handler function. by default the os treats this as an error and disable
      * the interrupts then enter into the infinite loop.
      */
@@ -96,24 +99,24 @@ void task_return_handler(void)
     while(1);
 }
 
-static int _task_create(task_func_t task_func, uint8_t priority, bool privileged)
+static struct thread_info *thread_create(task_func_t thread_func, uint8_t priority, bool privileged)
 {
-    if(task_cnt >= TASK_CNT_MAX) {
-        return - 1;
+    if(thread_cnt >= TASK_CNT_MAX) {
+        return NULL;
     }
 
-    struct thread_info *task = &threads[task_cnt];
+    struct thread_info *thread = &threads[thread_cnt];
 
-    task->pid = task_cnt;
-    task->status = TASK_WAIT;
-    task->priority = priority;
-    task->privileged = privileged;
-    task->stack_size = TASK_STACK_SIZE; //TODO: variable size?
-    task->fd_cnt = 0;
+    thread->tid = thread_cnt;
+    thread->status = TASK_WAIT;
+    thread->priority = priority;
+    thread->privileged = privileged;
+    thread->stack_size = TASK_STACK_SIZE; //TODO: variable size?
+    thread->fd_cnt = 0;
     for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-        task->fdtable[i].used = false;
+        thread->fdtable[i].used = false;
     }
-    list_init(&task->poll_files_head);
+    list_init(&thread->poll_files_head);
 
     /*
      * stack design contains three parts:
@@ -121,19 +124,36 @@ static int _task_create(task_func_t task_func, uint8_t priority, bool privileged
      * _r7 (for passing system call number), and
      * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
      */
-    uint32_t *stack_top = task->stack + task->stack_size - 18;
+    uint32_t *stack_top = thread->stack + thread->stack_size - 18;
     stack_top[17] = INITIAL_XPSR;
-    stack_top[16] = (uint32_t)task_func;           // pc = task_entry
-    stack_top[15] = (uint32_t)task_return_handler; // lr
-    stack_top[8]  = THREAD_PSP;                    //_lr = 0xfffffffd
-    task->stack_top = (struct stack *)stack_top;
+    stack_top[16] = (uint32_t)thread_func;           // pc = task_entry
+    stack_top[15] = (uint32_t)thread_return_handler; // lr
+    stack_top[8]  = THREAD_PSP;                      //_lr = 0xfffffffd
+    thread->stack_top = (struct stack *)stack_top;
 
-    list_push(&threads_list, &task->thread_list);
-    list_push(&sleep_list, &task->list);
+    list_push(&threads_list, &thread->thread_list);
+    list_push(&sleep_list, &thread->list);
 
+    thread_cnt++;
+
+    return thread;
+}
+
+static int _task_create(task_func_t task_func, uint8_t priority, bool privileged)
+{
+    /* create a thread for the new task */
+    struct thread_info *thread = thread_create(task_func, priority, false);
+
+    /* allocate a new task */
+    struct task_struct *task = &tasks[task_cnt];
+    task->pid = task_cnt;
+    list_init(&task->threads_list);
+    list_push(&task->threads_list, &thread->task_list);
+    list_push(&tasks_list, &task->list);
     task_cnt++;
 
-    return task->pid;
+    /* set the task ownership of the thread */
+    thread->task = task;
 }
 
 int ktask_create(task_func_t task_func, uint8_t priority)
@@ -146,17 +166,17 @@ NACKED void sig_return_handler(void)
     SYSCALL(100); //TODO: seperate the syscall request and signal returning request
 }
 
-void stage_sigaction_handler(struct thread_info *task,
+void stage_sigaction_handler(struct thread_info *thread,
                              sa_sigaction_t sa_sigaction,
                              int sigval,
                              siginfo_t *info,
                              void *context)
 {
-    /* preserve the original stack pointer of the user task */
-    task->stack_top_preserved = (uint32_t)task->stack_top;
+    /* preserve the original stack pointer of the thread */
+    thread->stack_top_preserved = (uint32_t)thread->stack_top;
 
     /* prepare a new space on user task's stack for the signal handler */
-    uint32_t *stack_top = (uint32_t *)task->stack_top - 18;
+    uint32_t *stack_top = (uint32_t *)thread->stack_top - 18;
     stack_top[17] = INITIAL_XPSR;                 //psr
     stack_top[16] = (uint32_t)sa_sigaction;       //pc
     stack_top[15] = (uint32_t)sig_return_handler; //lr
@@ -166,18 +186,18 @@ void stage_sigaction_handler(struct thread_info *task,
     stack_top[11] = (uint32_t)info; //r1
     stack_top[10] = sigval;         //r0
     stack_top[8]  = THREAD_PSP;
-    task->stack_top = (struct stack *)stack_top;
+    thread->stack_top = (struct stack *)stack_top;
 }
 
-void stage_signal_handler(struct thread_info *task,
+void stage_signal_handler(struct thread_info *thread,
                           sa_handler_t sa_handler,
                           int sigval)
 {
-    /* preserve the original stack pointer of the user task */
-    task->stack_top_preserved = (uint32_t)task->stack_top;
+    /* preserve the original stack pointer of the thread */
+    thread->stack_top_preserved = (uint32_t)thread->stack_top;
 
     /* prepare a new space on user task's stack for the signal handler */
-    uint32_t *stack_top = (uint32_t *)task->stack_top - 18;
+    uint32_t *stack_top = (uint32_t *)thread->stack_top - 18;
     stack_top[17] = INITIAL_XPSR;                 //psr
     stack_top[16] = (uint32_t)sa_handler;         //pc
     stack_top[15] = (uint32_t)sig_return_handler; //lr
@@ -187,49 +207,49 @@ void stage_signal_handler(struct thread_info *task,
     stack_top[11] = 0;      //r1
     stack_top[10] = sigval; //r0
     stack_top[8]  = THREAD_PSP;
-    task->stack_top = (struct stack *)stack_top;
+    thread->stack_top = (struct stack *)stack_top;
 }
 
-static struct thread_info *acquire_task(int pid)
+static struct thread_info *acquire_thread(int tid)
 {
-    struct thread_info *task;
+    struct thread_info *thread;
 
     struct list *curr;
     list_for_each(curr, &threads_list) {
-        task = list_entry(curr, struct thread_info, thread_list);
-        if(task->pid == pid) {
-            return task;
+        thread = list_entry(curr, struct thread_info, thread_list);
+        if(thread->tid == tid) {
+            return thread;
         }
     }
 
     return NULL;
 }
 
-static void task_suspend(struct thread_info *task)
+static void task_suspend(struct thread_info *thread)
 {
-    if (task->status == TASK_SUSPENDED) {
+    if (thread->status == TASK_SUSPENDED) {
         return;
     }
 
-    prepare_to_wait(&suspend_list, &task->list, TASK_SUSPENDED);
+    prepare_to_wait(&suspend_list, &thread->list, TASK_SUSPENDED);
 }
 
-static void task_resume(struct thread_info *task)
+static void task_resume(struct thread_info *thread)
 {
-    if(task->status != TASK_SUSPENDED) {
+    if(thread->status != TASK_SUSPENDED) {
         return;
     }
 
-    task->status = TASK_READY;
-    list_move(&task->list, &ready_list[task->priority]);
+    thread->status = TASK_READY;
+    list_move(&thread->list, &ready_list[thread->priority]);
 }
 
-static void task_kill(struct thread_info *task)
+static void task_kill(struct thread_info *thread)
 {
-    list_remove(&task->list);
-    list_remove(&task->thread_list);
+    list_remove(&thread->list);
+    list_remove(&thread->thread_list);
 
-    //TODO: free the task stack
+    //TODO: free the thread stack
 }
 
 /* put the task pointed by the "wait" into the "wait_list", and change the task state. */
@@ -237,74 +257,74 @@ void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
 {
     list_push(wait_list, wait);
 
-    struct thread_info *task = list_entry(wait, struct thread_info, list);
-    task->status = state;
+    struct thread_info *thread = list_entry(wait, struct thread_info, list);
+    thread->status = state;
 }
 
 void wait_event(struct list *wq, bool condition)
 {
-    CURRENT_TASK_INFO(curr_task);
+    CURRENT_TASK_INFO(curr_thread);
 
     if(condition) {
-        reset_syscall_pending(curr_task);
+        reset_syscall_pending(curr_thread);
     } else {
-        prepare_to_wait(wq, &curr_task->list, TASK_WAIT);
-        set_syscall_pending(curr_task);
+        prepare_to_wait(wq, &curr_thread->list, TASK_WAIT);
+        set_syscall_pending(curr_thread);
     }
 }
 
 /*
- * move the task from the wait_list into the ready_list.
+ * move the thread from the wait_list into the ready_list.
  * the task will not be executed immediately and requires
  * to wait until the scheduler select it.
  */
 void wake_up(struct list *wait_list)
 {
-    struct thread_info *highest_pri_task = NULL;
-    struct thread_info *task;
+    struct thread_info *highest_pri_thread = NULL;
+    struct thread_info *thread;
 
     /* find the highest priority task in the waiting list */
     struct list *curr;
     list_for_each(curr, wait_list) {
-        task = list_entry(curr, struct thread_info, list);
-        if(task->priority > highest_pri_task->priority ||
-           highest_pri_task == NULL) {
-            highest_pri_task = task;
+        thread = list_entry(curr, struct thread_info, list);
+        if(thread->priority > highest_pri_thread->priority ||
+           highest_pri_thread == NULL) {
+            highest_pri_thread = thread;
         }
     }
 
-    /* no task is found */
-    if(!highest_pri_task) {
+    /* no thread is found */
+    if(!highest_pri_thread) {
         return;
     }
 
-    /* wake up the task by placing it back to the ready list */
-    list_move(&highest_pri_task->list, &ready_list[highest_pri_task->priority]);
-    highest_pri_task->status = TASK_READY;
+    /* wake up the thread by placing it back to the ready list */
+    list_move(&highest_pri_thread->list, &ready_list[highest_pri_thread->priority]);
+    highest_pri_thread->status = TASK_READY;
 }
 
-void wake_up_task(struct thread_info *task)
+void wake_up_task(struct thread_info *thread)
 {
-    list_move(&task->list, &ready_list[task->priority]);
-    task->status = TASK_READY;
+    list_move(&thread->list, &ready_list[thread->priority]);
+    thread->status = TASK_READY;
 }
 
 static void schedule(void)
 {
-    /* awake the sleep tasks if the tick is exhausted */
+    /* awake the sleep threads if the tick is exhausted */
     struct list *list_itr = sleep_list.next;
     while(list_itr != &sleep_list) {
-        /* since the task may be removed from the list, the next task must be recorded first */
+        /* since the thread may be removed from the list, the next task must be recorded first */
         struct list *next = list_itr->next;
 
-        /* obtain the task control block */
-        struct thread_info *task = list_entry(list_itr, struct thread_info, list);
+        /* obtain the thread info */
+        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
 
-        /* task is ready, push it into the ready list by its priority */
-        if(task->sleep_ticks == 0) {
-            task->status = TASK_READY;
-            list_remove(list_itr); //remove the task from the sleep list
-            list_push(&ready_list[task->priority], list_itr);
+        /* thread is ready, push it into the ready list by its priority */
+        if(thread->sleep_ticks == 0) {
+            thread->status = TASK_READY;
+            list_remove(list_itr); //remove the thread from the sleep list
+            list_push(&ready_list[thread->priority], list_itr);
         }
 
         /* prepare the next task to check */
@@ -319,11 +339,11 @@ static void schedule(void)
     }
 
     /* task returned to the kernel before the time quantum is exhausted */
-    if(running_task->status == TASK_RUNNING) {
+    if(running_thread->status == TASK_RUNNING) {
         /* check if any higher priority task is woken */
-        if(pri > running_task->priority) {
+        if(pri > running_thread->priority) {
             /* yes, suspend the current task */
-            prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+            prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
         } else {
             /* no, keep running the current task */
             return;
@@ -332,25 +352,25 @@ static void schedule(void)
 
     /* select a task from the ready list */
     struct list *next = list_pop(&ready_list[pri]);
-    running_task = list_entry(next, struct thread_info, list);
-    running_task->status = TASK_RUNNING;
+    running_thread = list_entry(next, struct thread_info, list);
+    running_thread->status = TASK_RUNNING;
 }
 
 static void timers_update(void)
 {
-    /* iterate through all tasks */
-    struct list *curr_task;
-    list_for_each(curr_task, &threads_list) {
-        struct thread_info *task = list_entry(curr_task, struct thread_info, thread_list);
+    /* iterate through all threads */
+    struct list *curr_thread;
+    list_for_each(curr_thread, &threads_list) {
+        struct thread_info *thread = list_entry(curr_thread, struct thread_info, thread_list);
 
         /* the task contains no timer */
-        if(task->timer_cnt == 0) {
+        if(thread->timer_cnt == 0) {
             continue;
         }
 
         /* iterate through all timers of the task */
         struct list *curr_timer;
-        list_for_each(curr_timer, &task->timer_head) {
+        list_for_each(curr_timer, &thread->timer_head) {
             /* obtain the task */
             struct timer *timer = list_entry(curr_timer, struct timer, list);
 
@@ -382,7 +402,7 @@ static void timers_update(void)
             /* stage the signal handler */
             if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
                 sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
-                stage_signal_handler(task, func, 0);
+                stage_signal_handler(thread, func, 0);
             }
         }
     }
@@ -397,13 +417,13 @@ static void poll_timeout_handler(void)
     /* iterate through all tasks that waiting for poll events */
     struct list *curr;
     list_for_each(curr, &poll_list) {
-        struct thread_info *task = list_entry(curr, struct thread_info, poll_list);
+        struct thread_info *thread = list_entry(curr, struct thread_info, poll_list);
 
-        /* wake up the task if the time is up */
-        if(tp.tv_sec >= task->poll_timeout.tv_sec &&
-           tp.tv_nsec >= task->poll_timeout.tv_nsec) {
-            task->poll_failed = true;
-            wake_up(&task->poll_wq);
+        /* wake up the thread if the time is up */
+        if(tp.tv_sec >= thread->poll_timeout.tv_sec &&
+           tp.tv_nsec >= thread->poll_timeout.tv_nsec) {
+            thread->poll_failed = true;
+            wake_up(&thread->poll_wq);
         }
     }
 }
@@ -413,19 +433,19 @@ static void tasks_tick_update(void)
     sys_time_update_handler();
 
     /* the time quantum for the task is exhausted and require re-scheduling */
-    if(running_task->status == TASK_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+    if(running_thread->status == TASK_RUNNING) {
+        prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
     }
 
     /* update the sleep timers */
     struct list *curr;
     list_for_each(curr, &sleep_list) {
-        /* get the task control block */
-        struct thread_info *task = list_entry(curr, struct thread_info, list);
+        /* get the thread info */
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
         /* update remained ticks of waiting */
-        if(task->sleep_ticks > 0) {
-            task->sleep_ticks--;
+        if(thread->sleep_ticks > 0) {
+            thread->sleep_ticks--;
         }
     }
 }
@@ -433,15 +453,15 @@ static void tasks_tick_update(void)
 static void syscall_handler(void)
 {
     /* TODO: sepeate the signal handling from here */
-    if(running_task->stack_top->_r7 == 100) {
-        running_task->stack_top = (struct stack *)running_task->stack_top_preserved;
+    if(running_thread->stack_top->_r7 == 100) {
+        running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
         return;
     }
 
     /* system call handler */
     int i;
     for(i = 0; i < SYSCALL_CNT; i++) {
-        if(running_task->stack_top->_r7 == syscall_table[i].num) {
+        if(running_thread->stack_top->_r7 == syscall_table[i].num) {
             /* execute the syscall service */
             syscall_table[i].syscall_handler();
             break;
@@ -457,12 +477,12 @@ void sys_procstat(void)
     int i = 0;
     struct list *curr;
     list_for_each(curr, &threads_list) {
-        struct thread_info *task = list_entry(curr, struct thread_info, thread_list);
-        info[i].pid = task->pid;
-        info[i].priority = task->priority;
-        info[i].status = task->status;
-        info[i].privilege = task->privileged;
-        strncpy(info[i].name, task->name, TASK_NAME_LEN_MAX);
+        struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
+        info[i].pid = thread->tid;
+        info[i].priority = thread->priority;
+        info[i].status = thread->status;
+        info[i].privilege = thread->privileged;
+        strncpy(info[i].name, thread->name, TASK_NAME_LEN_MAX);
 
         i++;
     }
@@ -476,13 +496,13 @@ void sys_setprogname(void)
     /* read syscall arguments */
     char *name = SYSCALL_ARG(char *, 0);
 
-    strncpy(running_task->name, name, TASK_NAME_LEN_MAX);
+    strncpy(running_thread->name, name, TASK_NAME_LEN_MAX);
 }
 
 void sys_getprogname(void)
 {
     /* return pointer to the program name */
-    SYSCALL_ARG(char *, 0) = running_task->name;
+    SYSCALL_ARG(char *, 0) = running_thread->name;
 }
 
 void sys_delay_ticks(void)
@@ -491,11 +511,11 @@ void sys_delay_ticks(void)
     uint32_t tick = SYSCALL_ARG(uint32_t, 0);
 
     /* reconfigure the timer for sleeping */
-    running_task->sleep_ticks = tick;
+    running_thread->sleep_ticks = tick;
 
-    /* put the task into the sleep list and change the status */
-    running_task->status = TASK_WAIT;
-    list_push(&sleep_list, &(running_task->list));
+    /* put the thread into the sleep list and change the status */
+    running_thread->status = TASK_WAIT;
+    list_push(&sleep_list, &(running_thread->list));
 
     /* pass the return value with r0 */
     SYSCALL_ARG(uint32_t, 0) = 0;
@@ -515,29 +535,29 @@ void sys_task_create(void)
 
 void sys_sched_yield(void)
 {
-    /* suspend the current task */
-    prepare_to_wait(&sleep_list, &running_task->list, TASK_WAIT);
+    /* suspend the current thread */
+    prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
 }
 
 void sys_fork(void)
 {
-    if(task_cnt > TASK_CNT_MAX) {
+    if(thread_cnt > TASK_CNT_MAX) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -1;
         return;
     }
 
     /* calculate the used space of the parent task's stack */
-    uint32_t *parent_stack_end = running_task->stack + running_task->stack_size;
-    uint32_t stack_used = parent_stack_end - (uint32_t *)running_task->stack_top;
+    uint32_t *parent_stack_end = running_thread->stack + running_thread->stack_size;
+    uint32_t stack_used = parent_stack_end - (uint32_t *)running_thread->stack_top;
 
-    struct thread_info *task = &threads[task_cnt];
+    struct thread_info *task = &threads[thread_cnt];
 
     /* set priority, the priority must be higher than the idle task! */
-    task->priority = (running_task->priority == 0) ? TASK_PRIORITY_MIN : running_task->priority;
+    task->priority = (running_thread->priority == 0) ? TASK_PRIORITY_MIN : running_thread->priority;
 
-    task->pid = task_cnt;
-    task->stack_size = running_task->stack_size;
+    task->tid = thread_cnt;
+    task->stack_size = running_thread->stack_size;
     task->stack_top = (struct stack *)(task->stack + task->stack_size - stack_used);
 
     /* put the forked task into the sleep list */
@@ -548,16 +568,16 @@ void sys_fork(void)
     list_init(&task->poll_files_head);
 
     /* copy the stack of the used part only */
-    memcpy(task->stack_top, running_task->stack_top, sizeof(uint32_t)*stack_used);
+    memcpy(task->stack_top, running_thread->stack_top, sizeof(uint32_t)*stack_used);
 
     /* return the child task pid to the parent task */
-    SYSCALL_ARG(int, 0) = task_cnt;
+    SYSCALL_ARG(int, 0) = thread_cnt;
 
     /*
      * select the proper stack layout and return the pid number to the child task
      * check lr[4] bits (0: fpu is used, 1: fpu is unused)
      */
-    if(running_task->stack_top->_lr & 0x10) {
+    if(running_thread->stack_top->_lr & 0x10) {
         struct stack *sp = (struct stack *)task->stack_top;
         sp->r0 = 0; //return 0 to the child task
     } else {
@@ -566,13 +586,13 @@ void sys_fork(void)
 
     }
 
-    task_cnt++;
+    thread_cnt++;
 }
 
 void sys__exit(void)
 {
-    list_remove(&running_task->thread_list);
-    running_task->status = TASK_TERMINATED;
+    list_remove(&running_thread->thread_list);
+    running_thread->status = TASK_TERMINATED;
 }
 
 void sys_mount(void)
@@ -581,16 +601,16 @@ void sys_mount(void)
     char *source = SYSCALL_ARG(char *, 0);
     char *target = SYSCALL_ARG(char *, 1);
 
-    int pid = running_task->pid;
+    int tid = running_thread->tid;
 
     /* if the pending flag is set that means the request is already sent */
-    if(running_task->syscall_pending == false) {
-        request_mount(pid, source, target);
+    if(running_thread->syscall_pending == false) {
+        request_mount(tid, source, target);
     }
 
     /* receive the mount result */
     int result;
-    if(fifo_read(files[pid], (char *)&result, sizeof(result), 0) == sizeof(result)) {
+    if(fifo_read(files[tid], (char *)&result, sizeof(result), 0) == sizeof(result)) {
         //return the file descriptor number with r0
         SYSCALL_ARG(int, 0) = result;
     }
@@ -602,17 +622,17 @@ void sys_open(void)
     char *pathname = SYSCALL_ARG(char *, 0);
     int flags = SYSCALL_ARG(int, 1);
 
-    int pid = running_task->pid;
+    int tid = running_thread->tid;
 
     /* if the pending flag is set that means the request is already sent */
-    if(running_task->syscall_pending == false) {
-        request_open_file(pid, pathname);
+    if(running_thread->syscall_pending == false) {
+        request_open_file(tid, pathname);
     }
 
     /* inquire the file descriptor from the file system task */
     int file_idx;
-    if(fifo_read(files[pid], (char *)&file_idx, sizeof(file_idx), 0) == sizeof(file_idx)) {
-        if(file_idx == -1 || running_task->fd_cnt >= FILE_DESC_CNT_MAX) {
+    if(fifo_read(files[tid], (char *)&file_idx, sizeof(file_idx), 0) == sizeof(file_idx)) {
+        if(file_idx == -1 || running_thread->fd_cnt >= FILE_DESC_CNT_MAX) {
             /* return on error */
             SYSCALL_ARG(int, 0) = -1;
             return;
@@ -621,7 +641,7 @@ void sys_open(void)
         /* find a free file descriptor entry on the table */
         int fdesc_idx = -1;
         for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-            if(running_task->fdtable[i].used == false) {
+            if(running_thread->fdtable[i].used == false) {
                 fdesc_idx = i;
                 break;
             }
@@ -637,13 +657,13 @@ void sys_open(void)
         struct file *filp = files[file_idx];
 
         /* register new file descriptor to the task */
-        struct fdtable *fdesc = &running_task->fdtable[fdesc_idx];
+        struct fdtable *fdesc = &running_thread->fdtable[fdesc_idx];
         fdesc->file = filp;
         fdesc->flags = flags;
         fdesc->used = true;
 
         /* increase file descriptor count of the task */
-        running_task->fd_cnt++;
+        running_thread->fd_cnt++;
 
         /* call the file operation */
         if(filp->f_op->open) {
@@ -671,20 +691,20 @@ void sys_close(void)
     int fdesc_idx = fd - TASK_CNT_MAX;
 
     /* check if the file descriptor is indeed marked as used */
-    if((running_task->fdtable[fdesc_idx].used != true)) {
+    if((running_thread->fdtable[fdesc_idx].used != true)) {
         SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
     /* call the file operation */
-    struct file *filp = running_task->fdtable[fdesc_idx].file;
+    struct file *filp = running_thread->fdtable[fdesc_idx].file;
     if(filp->f_op->release) {
         filp->f_op->release(filp->f_inode, filp);
     }
 
     /* free the file descriptor */
-    running_task->fdtable[fdesc_idx].used = false;
-    running_task->fd_cnt--;
+    running_thread->fdtable[fdesc_idx].used = false;
+    running_thread->fd_cnt--;
 
     /* return on success */
     SYSCALL_ARG(long, 0) = 0;
@@ -704,15 +724,15 @@ void sys_read(void)
         filp = files[fd];
     } else {
         int fdesc_idx = fd - TASK_CNT_MAX;
-        filp = running_task->fdtable[fdesc_idx].file;
-        filp->f_flags = running_task->fdtable[fdesc_idx].flags;
+        filp = running_thread->fdtable[fdesc_idx].file;
+        filp->f_flags = running_thread->fdtable[fdesc_idx].flags;
     }
 
     /* read the file */
     ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
     /* pass the return value only if the read operation is complete */
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -731,15 +751,15 @@ void sys_write(void)
         filp = files[fd];
     } else {
         int fdesc_idx = fd - TASK_CNT_MAX;
-        filp = running_task->fdtable[fdesc_idx].file;
-        filp->f_flags = running_task->fdtable[fdesc_idx].flags;
+        filp = running_thread->fdtable[fdesc_idx].file;
+        filp->f_flags = running_thread->fdtable[fdesc_idx].flags;
     }
 
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
     /* return the write result */
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -758,14 +778,14 @@ void sys_ioctl(void)
         filp = files[fd];
     } else {
         int fdesc_idx = fd - TASK_CNT_MAX;
-        filp = running_task->fdtable[fdesc_idx].file;
+        filp = running_thread->fdtable[fdesc_idx].file;
     }
 
     /* call the ioctl implementation */
     int retval = filp->f_op->ioctl(filp, cmd, arg);
 
     /* return the ioctl result */
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -784,7 +804,7 @@ void sys_lseek(void)
 
     /* get the file pointer from the table */
     int fdesc_idx = fd - TASK_CNT_MAX;
-    struct file *filp = running_task->fdtable[fdesc_idx].file;
+    struct file *filp = running_thread->fdtable[fdesc_idx].file;
 
     /* adjust call lseek implementation */
     int retval = filp->f_op->llseek(filp, offset, whence);
@@ -806,7 +826,7 @@ void sys_fstat(void)
 
     /* read the inode of the given file */
     int fdesc_idx = fd - TASK_CNT_MAX;
-    struct inode *inode = running_task->fdtable[fdesc_idx].file->f_inode;
+    struct inode *inode = running_thread->fdtable[fdesc_idx].file->f_inode;
 
     /* check if the inode exists */
     if(inode != NULL) {
@@ -826,16 +846,16 @@ void sys_opendir(void)
     char *pathname = SYSCALL_ARG(char *, 0);
     DIR *dirp = SYSCALL_ARG(DIR *, 1);
 
-    int pid = running_task->pid;
+    int tid = running_thread->tid;
 
     /* if the pending flag is set that means the request is already sent */
-    if(running_task->syscall_pending == false) {
-        request_open_directory(pid, pathname);
+    if(running_thread->syscall_pending == false) {
+        request_open_directory(tid, pathname);
     }
 
     /* inquire the file descriptor from the file system task */
     struct inode *inode_dir;
-    if(fifo_read(files[pid], (char *)&inode_dir, sizeof(inode_dir), 0) == sizeof(inode_dir)) {
+    if(fifo_read(files[tid], (char *)&inode_dir, sizeof(inode_dir), 0) == sizeof(inode_dir)) {
         //return the directory
         dirp->inode_dir = inode_dir;
         dirp->dentry_list = inode_dir->i_dentry.next;
@@ -864,7 +884,7 @@ void sys_readdir(void)
 void sys_getpriority(void)
 {
     /* return the task priority with r0 */
-    SYSCALL_ARG(int, 0) = running_task->priority;
+    SYSCALL_ARG(int, 0) = running_thread->priority;
 }
 
 void sys_setpriority(void)
@@ -882,7 +902,7 @@ void sys_setpriority(void)
     }
 
     /* acquire the task with pid */
-    struct thread_info *task = acquire_task(who);
+    struct thread_info *task = acquire_thread(who);
 
     /* check if the task is found */
     if(task) {
@@ -900,7 +920,7 @@ void sys_setpriority(void)
 void sys_getpid(void)
 {
     /* return the task pid */
-    SYSCALL_ARG(int, 0) = running_task->pid;
+    SYSCALL_ARG(int, 0) = running_thread->tid;
 }
 
 void sys_mknod(void)
@@ -910,16 +930,16 @@ void sys_mknod(void)
     //mode_t mode = SYSCALL_ARG(mode_t, 1);
     dev_t dev = SYSCALL_ARG(dev_t, 2);
 
-    int pid = running_task->pid;
+    int tid = running_thread->tid;
 
     /* if the pending flag is set that means the request is already sent */
-    if(running_task->syscall_pending == false) {
-        request_create_file(pid, pathname, dev);
+    if(running_thread->syscall_pending == false) {
+        request_create_file(tid, pathname, dev);
     }
 
     /* wait until the file system complete the request */
     int file_idx;
-    int retval = fifo_read(files[pid], (char *)&file_idx, sizeof(file_idx), 0);
+    int retval = fifo_read(files[tid], (char *)&file_idx, sizeof(file_idx), 0);
     if(retval != sizeof(file_idx)) {
         return; //not ready
     }
@@ -939,16 +959,16 @@ void sys_mkfifo(void)
     char *pathname = SYSCALL_ARG(char *, 0);
     //mode_t mode = SYSCALL_ARG(mode_t, 1);
 
-    int pid = running_task->pid;
+    int tid = running_thread->tid;
 
     /* if the pending flag is set that means the request is already sent */
-    if(running_task->syscall_pending == false) {
-        request_create_file(pid, pathname, S_IFIFO);
+    if(running_thread->syscall_pending == false) {
+        request_create_file(tid, pathname, S_IFIFO);
     }
 
     /* wait until the file system complete the request */
     int file_idx;
-    int retval = fifo_read(files[pid], (char *)&pid, sizeof(file_idx), 0);
+    int retval = fifo_read(files[tid], (char *)&tid, sizeof(file_idx), 0);
     if(retval != sizeof(file_idx)) {
         return; //not ready
     }
@@ -964,18 +984,18 @@ void sys_mkfifo(void)
 
 void poll_notify(struct file *filp)
 {
-    /* iterate through all tasks */
-    struct list *task_list;
-    list_for_each(task_list, &threads_list) {
-        struct thread_info *task = list_entry(task_list, struct thread_info, thread_list);
+    /* iterate through all threads */
+    struct list *thread_list;
+    list_for_each(thread_list, &threads_list) {
+        struct thread_info *thread = list_entry(thread_list, struct thread_info, thread_list);
 
-        /* find all tasks that are waiting for poll notification */
+        /* find all threads that are waiting for poll notification */
         struct list *file_list;
-        list_for_each(file_list, &task->poll_files_head) {
+        list_for_each(file_list, &thread->poll_files_head) {
             struct file *file_iter = list_entry(file_list, struct file, list);
 
             if(filp == file_iter) {
-                wake_up(&task->poll_wq);
+                wake_up(&thread->poll_wq);
             }
         }
     }
@@ -988,19 +1008,19 @@ void sys_poll(void)
     nfds_t nfds = SYSCALL_ARG(nfds_t, 1);
     int timeout = SYSCALL_ARG(int, 2);
 
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         /* setup deadline for poll */
         if(timeout > 0) {
             struct timespec tp;
             get_sys_time(&tp);
             time_add(&tp, 0, timeout * 1000000);
-            running_task->poll_timeout = tp;
+            running_thread->poll_timeout = tp;
         }
 
         /* initialization */
-        init_waitqueue_head(&running_task->poll_wq);
-        list_init(&running_task->poll_files_head);
-        running_task->poll_failed = false;
+        init_waitqueue_head(&running_thread->poll_wq);
+        list_init(&running_thread->poll_files_head);
+        running_thread->poll_failed = false;
 
         /* check file events */
         struct file * filp;
@@ -1008,7 +1028,7 @@ void sys_poll(void)
 
         for(int i = 0; i < nfds; i++) {
             int fd = fds[i].fd - TASK_CNT_MAX;
-            filp = running_task->fdtable[fd].file;
+            filp = running_thread->fdtable[fd].file;
 
             uint32_t events = filp->f_events;
             if(~fds[i].events & events) {
@@ -1033,40 +1053,40 @@ void sys_poll(void)
         }
 
         /* turn on the syscall pending flag */
-        set_syscall_pending(running_task);
+        set_syscall_pending(running_thread);
 
-        /* put current task into the wait queue */
-        prepare_to_wait(&running_task->poll_wq, &running_task->list, TASK_WAIT);
+        /* put current thread into the wait queue */
+        prepare_to_wait(&running_thread->poll_wq, &running_thread->list, TASK_WAIT);
 
-        /* put the task into the poll list for monitoring timeout */
+        /* put the thread into the poll list for monitoring timeout */
         if(timeout > 0) {
-            list_push(&poll_list, &running_task->poll_list);
+            list_push(&poll_list, &running_thread->poll_list);
         }
 
         /* save all pollfd into the list */
         for(int i = 0; i < nfds; i++) {
             int fd = fds[i].fd - TASK_CNT_MAX;
-            filp = running_task->fdtable[fd].file;
+            filp = running_thread->fdtable[fd].file;
 
-            list_push(&running_task->poll_files_head, &filp->list);
+            list_push(&running_thread->poll_files_head, &filp->list);
         }
     } else {
         /* turn off the syscall pending flag */
-        reset_syscall_pending(running_task);
+        reset_syscall_pending(running_thread);
 
         /* clear poll files' list head */
-        list_init(&running_task->poll_files_head);
+        list_init(&running_thread->poll_files_head);
 
-        /* remove the task from the poll list */
+        /* remove the thread from the poll list */
         struct list *curr;
         list_for_each(curr, &poll_list) {
-            if(curr == &running_task->poll_list) {
+            if(curr == &running_thread->poll_list) {
                 list_remove(curr);
                 break;
             }
         }
 
-        if(running_task->poll_failed) {
+        if(running_thread->poll_failed) {
             /* return on error */
             SYSCALL_ARG(int, 0) = -1;
         } else {
@@ -1118,7 +1138,7 @@ void sys_mq_receive(void)
 
     /* read message */
     ssize_t retval = pipe_read_generic(pipe, msg_ptr, 1);
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
@@ -1137,7 +1157,7 @@ void sys_mq_send(void)
 
     /* send message */
     ssize_t retval = pipe_write_generic(pipe, msg_ptr, 1);
-    if(running_task->syscall_pending == false) {
+    if(running_thread->syscall_pending == false) {
         SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
@@ -1147,8 +1167,8 @@ void sys_pthread_mutex_unlock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    /* only the owner task can unlock the mutex */
-    if(mutex->owner != running_task) {
+    /* only the owner thread can unlock the mutex */
+    if(mutex->owner != running_thread) {
         /* return on error */
         SYSCALL_ARG(int, 0) = EPERM;
     } else {
@@ -1157,7 +1177,7 @@ void sys_pthread_mutex_unlock(void)
 
         /* check the mutex waiting list */
         if(!list_is_empty(&mutex->wait_list)) {
-            /* wake up a task from the mutex waiting list */
+            /* wake up a thread from the mutex waiting list */
             wake_up(&mutex->wait_list);
         }
 
@@ -1173,17 +1193,17 @@ void sys_pthread_mutex_lock(void)
 
     /* check if mutex is already occupied */
     if(mutex->owner != NULL) {
-        /* put the current task into the mutex waiting list */
-        prepare_to_wait(&mutex->wait_list, &running_task->list, TASK_WAIT);
+        /* put the current thread into the mutex waiting list */
+        prepare_to_wait(&mutex->wait_list, &running_thread->list, TASK_WAIT);
 
         /* turn on the syscall pending flag */
-        set_syscall_pending(running_task);
+        set_syscall_pending(running_thread);
     } else {
         /* occupy the mutex by setting the owner */
-        mutex->owner = running_task;
+        mutex->owner = running_thread;
 
         /* turn off the syscall pending flag */
-        reset_syscall_pending(running_task);
+        reset_syscall_pending(running_thread);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1195,7 +1215,7 @@ void sys_pthread_cond_signal(void)
     /* read syscall arguments */
     pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
 
-    /* wake up a task from the wait list */
+    /* wake up a thread from the wait list */
     if(!list_is_empty(&cond->task_wait_list)) {
         wake_up(&cond->task_wait_list);
     }
@@ -1214,8 +1234,8 @@ void sys_pthread_cond_wait(void)
         /* release the mutex */
         mutex->owner = NULL;
 
-        /* put the current task into the read waiting list */
-        prepare_to_wait(&cond->task_wait_list, &running_task->list, TASK_WAIT);
+        /* put the current thread into the read waiting list */
+        prepare_to_wait(&cond->task_wait_list, &running_thread->list, TASK_WAIT);
     }
 
     /* pthread_cond_wait never returns error code */
@@ -1244,18 +1264,18 @@ void sys_sem_post(void)
     /* prevent integer overflow */
     if(sem->count >= (INT32_MAX - 1)) {
         /* turn on the syscall pending flag */
-        set_syscall_pending(running_task);
+        set_syscall_pending(running_thread);
     } else {
         /* increase the semaphore */
         sem->count++;
 
-        /* wake up a task from the waiting list */
+        /* wake up a thread from the waiting list */
         if(sem->count > 0 && !list_is_empty(&sem->wait_list)) {
             wake_up(&sem->wait_list);
         }
 
         /* turn off the syscall pending flag */
-        reset_syscall_pending(running_task);
+        reset_syscall_pending(running_thread);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1268,8 +1288,8 @@ void sys_sem_trywait(void)
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
     if(sem->count <= 0) {
-        /* failed to obtain the semaphore, put the current task into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
+        /* failed to obtain the semaphore, put the current thread into the waiting list */
+        prepare_to_wait(&sem->wait_list, &running_thread->list, TASK_WAIT);
 
         /* return on error */
         SYSCALL_ARG(int, 0) = -EAGAIN;
@@ -1288,17 +1308,17 @@ void sys_sem_wait(void)
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
     if(sem->count <= 0) {
-        /* failed to obtain the semaphore, put the current task into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_task->list, TASK_WAIT);
+        /* failed to obtain the semaphore, put the current thread into the waiting list */
+        prepare_to_wait(&sem->wait_list, &running_thread->list, TASK_WAIT);
 
         /* turn on the syscall pending flag */
-        set_syscall_pending(running_task);
+        set_syscall_pending(running_thread);
     } else {
         /* successfully obtained the semaphore */
         sem->count--;
 
         /* turn off the syscall pending flag */
-        reset_syscall_pending(running_task);
+        reset_syscall_pending(running_thread);
 
         /* return on success */
         SYSCALL_ARG(int, 0) = 0;
@@ -1333,7 +1353,7 @@ void sys_sigaction(void)
 
     /* get the address of the signal action on the table */
     int sig_idx = get_signal_index(signum);
-    struct sigaction *sig_entry = running_task->sig_table[sig_idx];
+    struct sigaction *sig_entry = running_thread->sig_table[sig_idx];
 
     /* has the signal action already been registed on the table? */
     if(sig_entry) {
@@ -1356,7 +1376,7 @@ void sys_sigaction(void)
         }
 
         /* register the signal action on the table */
-        running_task->sig_table[sig_idx] = new_act;
+        running_thread->sig_table[sig_idx] = new_act;
         *new_act = *act;
     }
 
@@ -1382,27 +1402,27 @@ void sys_sigwait(void)
     }
 
     /* record the signal set to wait */
-    running_task->sig_wait_set = *set;
-    running_task->ret_sig = sig;
-    running_task->wait_for_signal = true;
+    running_thread->sig_wait_set = *set;
+    running_thread->ret_sig = sig;
+    running_thread->wait_for_signal = true;
 
-    /* put the task into the signal waiting task */
-    prepare_to_wait(&sig_wait_list, &running_task->list, TASK_WAIT);
+    /* put the thread into the signal waiting list */
+    prepare_to_wait(&sig_wait_list, &running_thread->list, TASK_WAIT);
 }
 
-static void handle_signal(struct thread_info *task, int signum)
+static void handle_signal(struct thread_info *thread, int signum)
 {
     bool stage_handler = false;
 
-    /* wake up the task from the signal waiting list */
-    if(task->wait_for_signal && (sig2bit(signum) & task->sig_wait_set)) {
+    /* wake up the thread from the signal waiting list */
+    if(thread->wait_for_signal && (sig2bit(signum) & thread->sig_wait_set)) {
         /* disable the signal waiting flag */
-        task->wait_for_signal = false;
+        thread->wait_for_signal = false;
 
-        /* wake up the waiting task and setup return values */
-        wake_up_task(task);
-        *task->ret_sig = signum;
-        *(int *)task->reg.r0 = 0;
+        /* wake up the waiting thread and setup return values */
+        wake_up_task(thread);
+        *thread->ret_sig = signum;
+        *(int *)thread->reg.r0 = 0;
     }
 
     switch(signum) {
@@ -1417,16 +1437,16 @@ static void handle_signal(struct thread_info *task, int signum)
             break;
         case SIGSTOP:
             /* stop: can't be caught or ignored */
-            task_suspend(task);
+            task_suspend(thread);
             break;
         case SIGCONT:
             /* continue */
-            task_resume(task);
+            task_resume(thread);
             stage_handler = true;
             break;
         case SIGKILL: {
             /* kill: can't be caught or ignored */
-            task_kill(task);
+            task_kill(thread);
             break;
         }
     }
@@ -1436,7 +1456,7 @@ static void handle_signal(struct thread_info *task, int signum)
     }
 
     int sig_idx = get_signal_index(signum);
-    struct sigaction *act = task->sig_table[sig_idx];
+    struct sigaction *act = thread->sig_table[sig_idx];
 
     /* no signal handler is provided */
     if(act == NULL) {
@@ -1447,10 +1467,10 @@ static void handle_signal(struct thread_info *task, int signum)
 
     /* stage the signal or sigaction handler */
     if(act->sa_flags & SA_SIGINFO) {
-        stage_sigaction_handler(task, act->sa_sigaction,
+        stage_sigaction_handler(thread, act->sa_sigaction,
                                 signum, NULL, NULL);
     } else {
-        stage_signal_handler(task, act->sa_handler, signum);
+        stage_signal_handler(thread, act->sa_handler, signum);
     }
 }
 
@@ -1460,7 +1480,7 @@ void sys_kill(void)
     pid_t pid = SYSCALL_ARG(pid_t, 0);
     int sig = SYSCALL_ARG(int, 1);
 
-    struct thread_info *task = acquire_task(pid);
+    struct thread_info *task = acquire_thread(pid);
 
     /* failed to find the task with the pid */
     if(!task) {
@@ -1558,23 +1578,23 @@ void sys_timer_create(void)
     }
 
     /* record timer settings */
-    new_tm->id = running_task->timer_cnt;
+    new_tm->id = running_thread->timer_cnt;
     new_tm->sev = *sevp;
 
     /* timer list initialization */
-    if(running_task->timer_cnt == 0) {
+    if(running_thread->timer_cnt == 0) {
         /* initialize the timer list head */
-        list_init(&running_task->timer_head);
+        list_init(&running_thread->timer_head);
     }
 
     /* put the new timer into the list */
-    list_push(&running_task->timer_head, &new_tm->list);
+    list_push(&running_thread->timer_head, &new_tm->list);
 
     /* return timer id */
-    *timerid = running_task->timer_cnt;
+    *timerid = running_thread->timer_cnt;
 
     /* increase timer count */
-    running_task->timer_cnt++;
+    running_thread->timer_cnt++;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1589,7 +1609,7 @@ void sys_timer_delete(void)
 
     /* find the timer with the id */
     struct list *curr;
-    list_for_each(curr, &running_task->timer_head) {
+    list_for_each(curr, &running_thread->timer_head) {
         /* get the timer */
         timer = list_entry(curr, struct timer, list);
 
@@ -1631,7 +1651,7 @@ void sys_timer_settime(void)
     bool timer_found = false;
 
     /* the task has no timer */
-    if(running_task->timer_cnt == 0) {
+    if(running_thread->timer_cnt == 0) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
@@ -1639,7 +1659,7 @@ void sys_timer_settime(void)
 
     /* find the timer with the id */
     struct list *curr;
-    list_for_each(curr, &running_task->timer_head) {
+    list_for_each(curr, &running_thread->timer_head) {
         /* get the timer */
         timer = list_entry(curr, struct timer, list);
 
@@ -1684,7 +1704,7 @@ void sys_timer_gettime(void)
 
     /* find the timer with the id */
     struct list *curr;
-    list_for_each(curr, &running_task->timer_head) {
+    list_for_each(curr, &running_thread->timer_head) {
         timer = list_entry(curr, struct timer, list);
 
         /* check timer id */
@@ -1720,14 +1740,14 @@ void sys_free(void)
     kfree(ptr);
 }
 
-inline void set_syscall_pending(struct thread_info *task)
+inline void set_syscall_pending(struct thread_info *thread)
 {
-    task->syscall_pending = true;
+    thread->syscall_pending = true;
 }
 
-inline void reset_syscall_pending(struct thread_info *task)
+inline void reset_syscall_pending(struct thread_info *thread)
 {
-    task->syscall_pending = false;
+    thread->syscall_pending = false;
 }
 
 /* save r0-r3 registers that may carry the syscall arguments via the supervisor call */
@@ -1737,18 +1757,18 @@ static void save_syscall_args(void)
      * the stack layouts are different according to the fpu is used or not due to the lazy context switch mechanism
      * of the arm processor. when lr[4] bit is set as 0, the fpu is used otherwise it is unused.
      */
-    if(running_task->stack_top->_lr & 0x10) {
-        struct stack *sp = (struct stack *)running_task->stack_top;
-        running_task->reg.r0 = &sp->r0;
-        running_task->reg.r1 = &sp->r1;
-        running_task->reg.r2 = &sp->r2;
-        running_task->reg.r3 = &sp->r3;
+    if(running_thread->stack_top->_lr & 0x10) {
+        struct stack *sp = (struct stack *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp->r0;
+        running_thread->reg.r1 = &sp->r1;
+        running_thread->reg.r2 = &sp->r2;
+        running_thread->reg.r3 = &sp->r3;
     } else {
-        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_task->stack_top;
-        running_task->reg.r0 = &sp_fpu->r0;
-        running_task->reg.r1 = &sp_fpu->r1;
-        running_task->reg.r2 = &sp_fpu->r2;
-        running_task->reg.r3 = &sp_fpu->r3;
+        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp_fpu->r0;
+        running_thread->reg.r1 = &sp_fpu->r1;
+        running_thread->reg.r2 = &sp_fpu->r2;
+        running_thread->reg.r3 = &sp_fpu->r3;
     }
 }
 
@@ -1835,6 +1855,7 @@ void sched_start(void)
     for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
+    list_init(&tasks_list);
     list_init(&threads_list);
     list_init(&sleep_list);
     list_init(&suspend_list);
@@ -1851,13 +1872,13 @@ void sched_start(void)
     softirq_init();
 
     /* create the first task */
-    _task_create(first, 0, false);
+    thread_create(first, 0, false);
 
     /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
     /* manually set task 0 as the first task to run */
-    running_task = &threads[0];
+    running_thread = &threads[0];
     threads[0].status = TASK_RUNNING;
     list_remove(&threads[0].list); //remove from the sleep list
 
@@ -1866,8 +1887,8 @@ void sched_start(void)
          * if _r7 is negative, the kernel is returned from the systick exception,
          * otherwise it is switched by a syscall request.
          */
-        if((int)running_task->stack_top->_r7 < 0) {
-            running_task->stack_top->_r7 *= -1; //restore _r7
+        if((int)running_thread->stack_top->_r7 < 0) {
+            running_thread->stack_top->_r7 *= -1; //restore _r7
             tasks_tick_update();
             timers_update();
             poll_timeout_handler();
@@ -1879,10 +1900,10 @@ void sched_start(void)
         schedule();
 
         /* execute the task if the pending flag of the syscall is not set */
-        if(running_task->syscall_pending == false) {
+        if(running_thread->syscall_pending == false) {
             /* switch to the user space */
-            running_task->stack_top = (struct stack *)
-                                      jump_to_user_space((uint32_t)running_task->stack_top, running_task->privileged);
+            running_thread->stack_top = (struct stack *)
+                                        jump_to_user_space((uint32_t)running_thread->stack_top, running_thread->privileged);
 
             /* record the address of syscall arguments in the stack (r0-r3 registers) */
             save_syscall_args();
