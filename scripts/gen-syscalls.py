@@ -7,7 +7,6 @@ syscalls = \
  'delay_ticks',
  'task_create',
  'sched_yield',
- 'fork',
  '_exit',
  'mount',
  'open',

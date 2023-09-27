@@ -35,11 +35,6 @@ NACKED void sched_yield(void)
     SYSCALL(SCHED_YIELD);
 }
 
-NACKED int fork(void)
-{
-    SYSCALL(FORK);
-}
-
 NACKED void _exit(int status)
 {
     SYSCALL(_EXIT);

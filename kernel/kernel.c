@@ -553,56 +553,6 @@ void sys_sched_yield(void)
     prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
 }
 
-void sys_fork(void)
-{
-    if(thread_cnt > TASK_CNT_MAX) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -1;
-        return;
-    }
-
-    /* calculate the used space of the parent task's stack */
-    uint32_t *parent_stack_end = running_thread->stack + running_thread->stack_size;
-    uint32_t stack_used = parent_stack_end - (uint32_t *)running_thread->stack_top;
-
-    struct thread_info *task = &threads[thread_cnt];
-
-    /* set priority, the priority must be higher than the idle task! */
-    task->priority = (running_thread->priority == 0) ? TASK_PRIORITY_MIN : running_thread->priority;
-
-    task->tid = thread_cnt;
-    task->stack_size = running_thread->stack_size;
-    task->stack_top = (struct stack *)(task->stack + task->stack_size - stack_used);
-
-    /* put the forked task into the sleep list */
-    task->status = TASK_WAIT;
-    list_push(&sleep_list, &task->list);
-
-    list_push(&threads_list, &task->thread_list);
-    list_init(&task->poll_files_list);
-
-    /* copy the stack of the used part only */
-    memcpy(task->stack_top, running_thread->stack_top, sizeof(uint32_t)*stack_used);
-
-    /* return the child task pid to the parent task */
-    SYSCALL_ARG(int, 0) = thread_cnt;
-
-    /*
-     * select the proper stack layout and return the pid number to the child task
-     * check lr[4] bits (0: fpu is used, 1: fpu is unused)
-     */
-    if(running_thread->stack_top->_lr & 0x10) {
-        struct stack *sp = (struct stack *)task->stack_top;
-        sp->r0 = 0; //return 0 to the child task
-    } else {
-        struct stack_fpu *sp_fpu = (struct stack_fpu *)task->stack_top;
-        sp_fpu->r0 = 0; //return 0 to the child task
-
-    }
-
-    thread_cnt++;
-}
-
 void sys__exit(void)
 {
     list_remove(&running_thread->thread_list);
