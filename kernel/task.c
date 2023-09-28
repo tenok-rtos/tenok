@@ -30,6 +30,17 @@ NACKED uint32_t delay_ticks(uint32_t ticks)
     SYSCALL(DELAY_TICKS);
 }
 
+
+inline int sched_get_priority_max(int policy)
+{
+    return TASK_MAX_PRIORITY;
+}
+
+inline int sched_get_priority_min(int policy)
+{
+    return 0;
+}
+
 NACKED void sched_yield(void)
 {
     SYSCALL(SCHED_YIELD);
