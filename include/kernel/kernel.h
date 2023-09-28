@@ -93,6 +93,7 @@ struct thread_info {
     } reg;
 
     uint8_t  status;
+    uint32_t pid;
     uint32_t tid;
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
