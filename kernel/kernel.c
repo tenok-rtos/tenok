@@ -138,11 +138,6 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->priority = priority;
     thread->privileged = privileged;
 
-    /* signals can not be sent to kthreads */
-    if(thread->privileged) {
-        threads->ignore_signals = true;
-    }
-
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
 
@@ -181,9 +176,9 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     thread->task = task;
 }
 
-int ktask_create(task_func_t task_func, uint8_t priority, int stack_size)
+int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
-    _task_create(task_func, priority, stack_size, true);
+    thread_create(task_func, priority, stack_size, true);
 }
 
 NACKED void sig_return_handler(void)
@@ -233,6 +228,21 @@ void stage_signal_handler(struct thread_info *thread,
     stack_top[10] = sigval; //r0
     stack_top[8]  = THREAD_PSP;
     thread->stack_top = (struct stack *)stack_top;
+}
+
+static struct task_struct *acquire_task(int pid)
+{
+    struct task_struct *task;
+
+    struct list *curr;
+    list_for_each(curr, &tasks_list) {
+        task = list_entry(curr, struct task_struct, list);
+        if(task->pid == pid) {
+            return task;
+        }
+    }
+
+    return NULL;
 }
 
 static struct thread_info *acquire_thread(int tid)
@@ -566,9 +576,19 @@ void sys_sched_yield(void)
 
 void sys__exit(void)
 {
-    list_remove(&running_thread->thread_list);
-    running_thread->status = THREAD_TERMINATED;
     //TODO: free the stack memory
+
+    /* obtain the task of the running thread */
+    struct task_struct *curr_task = running_thread->task;
+
+    /* remove all threads of the task */
+    struct list *curr;
+    list_for_each(curr, &curr_task->threads_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
+
+        list_remove(&thread->thread_list);
+        thread->status = THREAD_TERMINATED;
+    }
 }
 
 void sys_mount(void)
@@ -917,7 +937,7 @@ void sys_setpriority(void)
 void sys_getpid(void)
 {
     /* return the task pid */
-    SYSCALL_ARG(int, 0) = running_thread->tid;
+    SYSCALL_ARG(int, 0) = running_thread->task->pid;
 }
 
 void sys_mknod(void)
@@ -1290,7 +1310,8 @@ void sys_pthread_kill(void)
         return;
     }
 
-    if(thread->ignore_signals) {
+    /* kernel thread does not support posix signals */
+    if(thread->privileged) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1570,18 +1591,12 @@ void sys_kill(void)
     pid_t pid = SYSCALL_ARG(pid_t, 0);
     int sig = SYSCALL_ARG(int, 1);
 
-    struct thread_info *task = acquire_thread(pid);
+    struct task_struct *task = acquire_task(pid);
 
     /* failed to find the task with the pid */
     if(!task) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
-    }
-
-    if(task->ignore_signals) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EPERM;
         return;
     }
 
@@ -1592,7 +1607,11 @@ void sys_kill(void)
         return;
     }
 
-    handle_signal(task, sig);
+    struct list *curr;
+    list_for_each(curr, &task->threads_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
+        handle_signal(thread, sig);
+    }
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1873,7 +1892,7 @@ void first(void)
     /*=============================*
      * launch the file system task *
      *=============================*/
-    task_create(file_system_task, 0, 0);
+    task_create(file_system_task, 1, 512);
 
     /*=======================*
      * mount the file system *
@@ -1969,7 +1988,6 @@ void sched_start(void)
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
-    threads[0].ignore_signals = true;
     threads[0].status = THREAD_RUNNING;
     list_remove(&threads[0].list); //remove from the sleep list
 

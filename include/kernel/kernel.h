@@ -97,7 +97,6 @@ struct thread_info {
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
     bool     privileged;  /* kernel thread if set true */
-    bool     ignore_signals;
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
 
@@ -130,7 +129,7 @@ struct thread_info {
 
 void *kmalloc(size_t size);
 void kfree(void *ptr);
-int ktask_create(task_func_t task_func, uint8_t priority, int stack_size);
+int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 
 void set_syscall_pending(struct thread_info *task);
 void reset_syscall_pending(struct thread_info *task);
