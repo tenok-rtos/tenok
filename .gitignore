@@ -11,3 +11,5 @@
 */gazebo_bridge/gazebo_bridge
 include/kernel/syscall.h
 build/
+html/
+latex/
