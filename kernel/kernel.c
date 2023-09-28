@@ -137,6 +137,11 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->priority = priority;
     thread->privileged = privileged;
 
+    /* signals can not be sent to kthreads */
+    if(thread->privileged) {
+        threads->ignore_signals = true;
+    }
+
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
 
@@ -1284,9 +1289,7 @@ void sys_pthread_kill(void)
         return;
     }
 
-    /* reject forbidden signal for idle task and file system task */
-    if((tid == 0 || tid == 1) && /* FIXME: add new flag in task control block instead */
-       (sig == SIGKILL || sig == SIGSTOP || sig == SIGCONT)) {
+    if(thread->ignore_signals) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1303,7 +1306,6 @@ void sys_pthread_kill(void)
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
-
 }
 
 void sys_pthread_exit(void)
@@ -1576,9 +1578,7 @@ void sys_kill(void)
         return;
     }
 
-    /* reject forbidden signal for idle task and file system task */
-    if((pid == 0 || pid == 1) && /* FIXME: add new flag in task control block instead */
-       (sig == SIGKILL || sig == SIGSTOP || sig == SIGCONT)) {
+    if(task->ignore_signals) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1966,6 +1966,7 @@ void sched_start(void)
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
+    threads[0].ignore_signals = true;
     threads[0].status = THREAD_RUNNING;
     list_remove(&threads[0].list); //remove from the sleep list
 

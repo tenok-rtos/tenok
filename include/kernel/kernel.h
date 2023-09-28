@@ -96,7 +96,8 @@ struct thread_info {
     uint32_t tid;
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
-    bool     privileged;
+    bool     privileged;  /* kernel thread if set true */
+    bool     ignore_signals;
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
 
