@@ -101,5 +101,5 @@ void mutex_task2(void)
     }
 }
 
-HOOK_USER_TASK(mutex_task1);
-HOOK_USER_TASK(mutex_task2);
+HOOK_USER_TASK(mutex_task1, 0, 512);
+HOOK_USER_TASK(mutex_task2, 0, 512);

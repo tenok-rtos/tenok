@@ -12,6 +12,7 @@
 #include <kernel/ipc.h>
 #include <kernel/time.h>
 #include <kernel/wait.h>
+#include <kernel/task.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
@@ -1887,13 +1888,15 @@ void first(void)
     extern char _tasks_end;
 
     int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
-    int hook_task_cnt = func_list_size / sizeof(task_func_t);
+    int hook_task_cnt = func_list_size / sizeof(struct task_hook);
 
     /* point to the first task function of the list */
-    task_func_t *hook_task_func = (task_func_t *)&_tasks_start;
+    struct task_hook *hook_task = (struct task_hook *)&_tasks_start;
 
     for(int i = 0; i < hook_task_cnt; i++) {
-        task_create(*(hook_task_func + i), 0, 0);
+        task_create(hook_task[i].task_func,
+                    hook_task[i].priority,
+                    hook_task[i].stacksize);
     }
 
     while(1); //spin in the idle loop when no other task is ready
@@ -1912,7 +1915,7 @@ void hook_drivers_init(void)
 
     int i;
     for(i = 0; i < drv_cnt; i++) {
-        (*(drv_init_func + i))();
+        drv_init_func[i]();
     }
 }
 

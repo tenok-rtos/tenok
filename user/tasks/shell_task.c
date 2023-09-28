@@ -35,7 +35,6 @@ void boot_message(void)
 void shell_task(void)
 {
     setprogname("shell");
-    setpriority(0, getpid(), 2);
 
     char shell_path[PATH_LEN_MAX] = {0};
     char prompt[SHELL_PROMPT_LEN_MAX] = {0};
@@ -65,4 +64,4 @@ void shell_task(void)
     }
 }
 
-HOOK_USER_TASK(shell_task);
+HOOK_USER_TASK(shell_task, 2, 512);

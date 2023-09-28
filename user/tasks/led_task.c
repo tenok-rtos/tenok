@@ -12,7 +12,6 @@ sem_t sem_led;
 void led_task1(void)
 {
     setprogname("led1");
-    setpriority(0, getpid(), 3);
 
     sem_init(&sem_led, 0, 0);
 
@@ -29,7 +28,6 @@ void led_task1(void)
 void led_task2(void)
 {
     setprogname("led2");
-    setpriority(0, getpid(), 3);
 
     while(1) {
         sem_post(&sem_led);
@@ -37,5 +35,5 @@ void led_task2(void)
     }
 }
 
-HOOK_USER_TASK(led_task1);
-HOOK_USER_TASK(led_task2);
+HOOK_USER_TASK(led_task1, 3, 512);
+HOOK_USER_TASK(led_task2, 3, 512);

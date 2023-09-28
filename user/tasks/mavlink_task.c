@@ -29,7 +29,6 @@ void mavlink_out_task(void)
     mavlink_task_init();
 
     setprogname("mavlink out");
-    setpriority(0, getpid(), 4);
 
     int fd = open("/dev/serial1", 0);
 
@@ -51,7 +50,6 @@ void mavlink_out_task(void)
 void mavlink_in_task(void)
 {
     setprogname("mavlink in");
-    setpriority(0, getpid(), 4);
 
     int fd = open("/dev/serial1", 0);
 
@@ -71,5 +69,5 @@ void mavlink_in_task(void)
     }
 }
 
-HOOK_USER_TASK(mavlink_out_task);
-HOOK_USER_TASK(mavlink_in_task);
+HOOK_USER_TASK(mavlink_out_task, 4, 512);
+HOOK_USER_TASK(mavlink_in_task, 4, 512);
