@@ -1,13 +1,12 @@
+#include <tenok.h>
 #include <string.h>
+#include <stdio.h>
+#include <sched.h>
+#include <signal.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <kernel/task.h>
-
-#include <tenok/tenok.h>
-#include <tenok/stdio.h>
-#include <tenok/sched.h>
-#include <tenok/signal.h>
-#include <tenok/unistd.h>
-#include <tenok/fcntl.h>
 
 static int task1_pid;
 static int serial_fd;

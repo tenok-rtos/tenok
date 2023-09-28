@@ -1,13 +1,12 @@
+#include <tenok.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <mqueue.h>
 
 #include <kernel/task.h>
-
-#include <tenok/tenok.h>
-#include <tenok/fcntl.h>
-#include <tenok/unistd.h>
-#include <tenok/mqueue.h>
 
 #include "uart.h"
 

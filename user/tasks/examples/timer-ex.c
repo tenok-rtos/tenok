@@ -1,13 +1,12 @@
+#include <tenok.h>
 #include <string.h>
+#include <time.h>
+#include <fcntl.h>
+#include <sched.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include <kernel/task.h>
-
-#include <tenok/tenok.h>
-#include <tenok/time.h>
-#include <tenok/fcntl.h>
-#include <tenok/sched.h>
-#include <tenok/signal.h>
-#include <tenok/unistd.h>
 
 #define print(fd, str) write(fd, str, strlen(str))
 

@@ -1,6 +1,7 @@
 #ifndef __TENOK_H__
 #define __TENOK_H__
 
+#include <stdint.h>
 #include <stdbool.h>
 
 #include "kconfig.h"

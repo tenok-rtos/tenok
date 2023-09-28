@@ -1,9 +1,9 @@
-#include <kernel/task.h>
+#include <tenok.h>
+#include <unistd.h>
+#include <semaphore.h>
+#include <sys/resource.h>
 
-#include <tenok/tenok.h>
-#include <tenok/unistd.h>
-#include <tenok/semaphore.h>
-#include <tenok/sys/resource.h>
+#include <kernel/task.h>
 
 #include "bsp_drv.h"
 

@@ -1,13 +1,11 @@
+#include <tenok.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/resource.h>
 
 #include <kernel/task.h>
 #include <kernel/printk.h>
-
-#include <tenok/tenok.h>
-#include <tenok/time.h>
-#include "tenok/stdio.h"
-#include <tenok/unistd.h>
-#include <tenok/sys/resource.h>
 
 #include "shell.h"
 #include "fs.h"
