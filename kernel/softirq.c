@@ -30,9 +30,9 @@ void tasklet_schedule(struct tasklet_struct *t)
 
     /* wake up the softirq daemon if it is sleeping */
     struct thread_info *task = &threads[SOFTIRQD_PID];
-    if(task->status == TASK_WAIT) {
+    if(task->status == THREAD_WAIT) {
         list_move(&task->list, &ready_list[task->priority]);
-        task->status = TASK_READY;
+        task->status = THREAD_READY;
     }
 }
 

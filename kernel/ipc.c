@@ -34,7 +34,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
             /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, TASK_WAIT);
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
 
             /* turn on the syscall pending flag */
             set_syscall_pending(curr_thread);
@@ -93,7 +93,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
             /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, TASK_WAIT);
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
 
             /* turn on the syscall pending flag */
             set_syscall_pending(curr_thread);

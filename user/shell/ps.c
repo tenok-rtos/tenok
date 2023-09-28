@@ -19,14 +19,14 @@ static void ps(void)
 
     for(int i = 0; i < task_cnt; i++) {
         switch(info[i].status) {
-            case TASK_WAIT:
+            case THREAD_WAIT:
                 stat = "S";
                 break;
-            case TASK_SUSPENDED:
+            case THREAD_SUSPENDED:
                 stat = "T";
                 break;
-            case TASK_READY:
-            case TASK_RUNNING:
+            case THREAD_READY:
+            case THREAD_RUNNING:
                 stat = "R";
                 break;
             default:

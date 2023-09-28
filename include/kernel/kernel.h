@@ -3,18 +3,15 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <signal.h>
+#include <sys/resource.h>
 
 #include <fs/fs.h>
 #include <kernel/list.h>
 #include <kernel/time.h>
 #include <kernel/wait.h>
 
-#include <tenok/signal.h>
-#include <tenok/sys/resource.h>
-
 #include "kconfig.h"
-
-#define TASK_PRIORITY_MIN 1
 
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
@@ -22,22 +19,24 @@
 #define SYSCALL_ARG(type, arg_num) \
     *(type *)running_thread->reg.r ## arg_num
 
+#define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
+
+typedef void (*task_func_t)(void);
+typedef void (*thread_func_t)(void);
 
 typedef struct {
     void (* syscall_handler)(void);
     uint32_t num;
 } syscall_info_t;
 
-typedef void (*task_func_t)(void);
-
 enum {
-    TASK_WAIT,
-    TASK_READY,
-    TASK_RUNNING,
-    TASK_SUSPENDED,
-    TASK_TERMINATED
-} TASK_STATUS;
+    THREAD_WAIT,
+    THREAD_READY,
+    THREAD_RUNNING,
+    THREAD_SUSPENDED,
+    THREAD_TERMINATED
+} THREAD_STATUS;
 
 /* stack layout for threads without using fpu */
 struct stack {
@@ -135,6 +134,7 @@ int ktask_create(task_func_t task_func, uint8_t priority, int stack_size);
 void set_syscall_pending(struct thread_info *task);
 void reset_syscall_pending(struct thread_info *task);
 
+struct task_struct *current_task_info(void);
 struct thread_info *current_thread_info(void);
 
 void sched_start(void);

@@ -82,6 +82,11 @@ void kfree(void *ptr)
     return;
 }
 
+struct task_struct *current_task_info(void)
+{
+    return running_thread->task;
+}
+
 struct thread_info *current_thread_info(void)
 {
     return running_thread;
@@ -100,7 +105,7 @@ void thread_return_handler(void)
     while(1);
 }
 
-static struct thread_info *thread_create(task_func_t thread_func, uint8_t priority,
+static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
         int stack_size, bool privileged)
 {
     if(thread_cnt >= TASK_CNT_MAX) {
@@ -127,7 +132,7 @@ static struct thread_info *thread_create(task_func_t thread_func, uint8_t priori
 
     thread->stack_top = (struct stack *)stack_top;
     thread->stack_size = stack_size;
-    thread->status = TASK_WAIT;
+    thread->status = THREAD_WAIT;
     thread->tid = thread_cnt;
     thread->priority = priority;
     thread->privileged = privileged;
@@ -146,7 +151,7 @@ static struct thread_info *thread_create(task_func_t thread_func, uint8_t priori
     return thread;
 }
 
-static int _task_create(task_func_t task_func, uint8_t priority,
+static int _task_create(thread_func_t task_func, uint8_t priority,
                         int stack_size, bool privileged)
 {
     /* create a thread for the new task */
@@ -239,26 +244,26 @@ static struct thread_info *acquire_thread(int tid)
     return NULL;
 }
 
-static void task_suspend(struct thread_info *thread)
+static void thread_suspend(struct thread_info *thread)
 {
-    if (thread->status == TASK_SUSPENDED) {
+    if (thread->status == THREAD_SUSPENDED) {
         return;
     }
 
-    prepare_to_wait(&suspend_list, &thread->list, TASK_SUSPENDED);
+    prepare_to_wait(&suspend_list, &thread->list, THREAD_SUSPENDED);
 }
 
-static void task_resume(struct thread_info *thread)
+static void thread_resume(struct thread_info *thread)
 {
-    if(thread->status != TASK_SUSPENDED) {
+    if(thread->status != THREAD_SUSPENDED) {
         return;
     }
 
-    thread->status = TASK_READY;
+    thread->status = THREAD_READY;
     list_move(&thread->list, &ready_list[thread->priority]);
 }
 
-static void task_kill(struct thread_info *thread)
+static void thread_kill(struct thread_info *thread)
 {
     list_remove(&thread->list);
     list_remove(&thread->thread_list);
@@ -282,7 +287,7 @@ void wait_event(struct list *wq, bool condition)
     if(condition) {
         reset_syscall_pending(curr_thread);
     } else {
-        prepare_to_wait(wq, &curr_thread->list, TASK_WAIT);
+        prepare_to_wait(wq, &curr_thread->list, THREAD_WAIT);
         set_syscall_pending(curr_thread);
     }
 }
@@ -314,13 +319,13 @@ void wake_up(struct list *wait_list)
 
     /* wake up the thread by placing it back to the ready list */
     list_move(&highest_pri_thread->list, &ready_list[highest_pri_thread->priority]);
-    highest_pri_thread->status = TASK_READY;
+    highest_pri_thread->status = THREAD_READY;
 }
 
 void wake_up_thread(struct thread_info *thread)
 {
     list_move(&thread->list, &ready_list[thread->priority]);
-    thread->status = TASK_READY;
+    thread->status = THREAD_READY;
 }
 
 static void schedule(void)
@@ -336,7 +341,7 @@ static void schedule(void)
 
         /* thread is ready, push it into the ready list by its priority */
         if(thread->sleep_ticks == 0) {
-            thread->status = TASK_READY;
+            thread->status = THREAD_READY;
             list_remove(list_itr); //remove the thread from the sleep list
             list_push(&ready_list[thread->priority], list_itr);
         }
@@ -353,11 +358,11 @@ static void schedule(void)
     }
 
     /* task returned to the kernel before the time quantum is exhausted */
-    if(running_thread->status == TASK_RUNNING) {
+    if(running_thread->status == THREAD_RUNNING) {
         /* check if any higher priority task is woken */
         if(pri > running_thread->priority) {
             /* yes, suspend the current task */
-            prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
+            prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
         } else {
             /* no, keep running the current task */
             return;
@@ -367,7 +372,7 @@ static void schedule(void)
     /* select a task from the ready list */
     struct list *next = list_pop(&ready_list[pri]);
     running_thread = list_entry(next, struct thread_info, list);
-    running_thread->status = TASK_RUNNING;
+    running_thread->status = THREAD_RUNNING;
 }
 
 static void timers_update(void)
@@ -447,8 +452,8 @@ static void tasks_tick_update(void)
     sys_time_update_handler();
 
     /* the time quantum for the task is exhausted and require re-scheduling */
-    if(running_thread->status == TASK_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
+    if(running_thread->status == THREAD_RUNNING) {
+        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
     }
 
     /* update the sleep timers */
@@ -528,7 +533,7 @@ void sys_delay_ticks(void)
     running_thread->sleep_ticks = tick;
 
     /* put the thread into the sleep list and change the status */
-    running_thread->status = TASK_WAIT;
+    running_thread->status = THREAD_WAIT;
     list_push(&sleep_list, &(running_thread->list));
 
     /* pass the return value with r0 */
@@ -550,13 +555,13 @@ void sys_task_create(void)
 void sys_sched_yield(void)
 {
     /* suspend the current thread */
-    prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
+    prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
 }
 
 void sys__exit(void)
 {
     list_remove(&running_thread->thread_list);
-    running_thread->status = TASK_TERMINATED;
+    running_thread->status = THREAD_TERMINATED;
     //TODO: free the stack memory
 }
 
@@ -1045,7 +1050,7 @@ void sys_poll(void)
         set_syscall_pending(running_thread);
 
         /* put current thread into the wait queue */
-        prepare_to_wait(&running_thread->poll_wq, &running_thread->list, TASK_WAIT);
+        prepare_to_wait(&running_thread->poll_wq, &running_thread->list, THREAD_WAIT);
 
         /* put the thread into the poll list for monitoring timeout */
         if(timeout > 0) {
@@ -1173,8 +1178,10 @@ void sys_pthread_create(void)
 
     /* create new thread */
     struct thread_info *thread =
-        thread_create((task_func_t)start_routine, attr->schedparam.sched_priority,
-                      TASK_STACK_SIZE /*attr->stacksize*/, false);
+        thread_create((thread_func_t)start_routine,
+                      attr->schedparam.sched_priority,
+                      TASK_STACK_SIZE /*attr->stacksize*/,
+                      false);
 
     if(!thread) {
         /* failed to create new thread, return on error */
@@ -1195,7 +1202,7 @@ void sys_pthread_create(void)
 void sys_pthread_yield(void)
 {
     /* suspend the current thread */
-    prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
+    prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
 }
 
 static void handle_signal(struct thread_info *thread, int signum)
@@ -1225,16 +1232,16 @@ static void handle_signal(struct thread_info *thread, int signum)
             break;
         case SIGSTOP:
             /* stop: can't be caught or ignored */
-            task_suspend(thread);
+            thread_suspend(thread);
             break;
         case SIGCONT:
             /* continue */
-            task_resume(thread);
+            thread_resume(thread);
             stage_handler = true;
             break;
         case SIGKILL: {
             /* kill: can't be caught or ignored */
-            task_kill(thread);
+            thread_kill(thread);
             break;
         }
     }
@@ -1302,7 +1309,7 @@ void sys_pthread_kill(void)
 void sys_pthread_exit(void)
 {
     list_remove(&running_thread->thread_list);
-    running_thread->status = TASK_TERMINATED;
+    running_thread->status = THREAD_TERMINATED;
     //TODO: free the stack memory
 }
 
@@ -1338,7 +1345,7 @@ void sys_pthread_mutex_lock(void)
     /* check if mutex is already occupied */
     if(mutex->owner != NULL) {
         /* put the current thread into the mutex waiting list */
-        prepare_to_wait(&mutex->wait_list, &running_thread->list, TASK_WAIT);
+        prepare_to_wait(&mutex->wait_list, &running_thread->list, THREAD_WAIT);
 
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
@@ -1379,7 +1386,7 @@ void sys_pthread_cond_wait(void)
         mutex->owner = NULL;
 
         /* put the current thread into the read waiting list */
-        prepare_to_wait(&cond->task_wait_list, &running_thread->list, TASK_WAIT);
+        prepare_to_wait(&cond->task_wait_list, &running_thread->list, THREAD_WAIT);
     }
 
     /* pthread_cond_wait never returns error code */
@@ -1433,7 +1440,7 @@ void sys_sem_trywait(void)
 
     if(sem->count <= 0) {
         /* failed to obtain the semaphore, put the current thread into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_thread->list, TASK_WAIT);
+        prepare_to_wait(&sem->wait_list, &running_thread->list, THREAD_WAIT);
 
         /* return on error */
         SYSCALL_ARG(int, 0) = -EAGAIN;
@@ -1453,7 +1460,7 @@ void sys_sem_wait(void)
 
     if(sem->count <= 0) {
         /* failed to obtain the semaphore, put the current thread into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_thread->list, TASK_WAIT);
+        prepare_to_wait(&sem->wait_list, &running_thread->list, THREAD_WAIT);
 
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
@@ -1551,7 +1558,7 @@ void sys_sigwait(void)
     running_thread->wait_for_signal = true;
 
     /* put the thread into the signal waiting list */
-    prepare_to_wait(&signal_wait_list, &running_thread->list, TASK_WAIT);
+    prepare_to_wait(&signal_wait_list, &running_thread->list, THREAD_WAIT);
 }
 
 void sys_kill(void)
@@ -1959,7 +1966,7 @@ void sched_start(void)
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
-    threads[0].status = TASK_RUNNING;
+    threads[0].status = THREAD_RUNNING;
     list_remove(&threads[0].list); //remove from the sleep list
 
     while(1) {
