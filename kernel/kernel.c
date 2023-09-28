@@ -557,6 +557,7 @@ void sys__exit(void)
 {
     list_remove(&running_thread->thread_list);
     running_thread->status = TASK_TERMINATED;
+    //TODO: free the stack memory
 }
 
 void sys_mount(void)
@@ -1191,6 +1192,120 @@ void sys_pthread_create(void)
     SYSCALL_ARG(ssize_t, 0) = 0;
 }
 
+void sys_pthread_yield(void)
+{
+    /* suspend the current thread */
+    prepare_to_wait(&sleep_list, &running_thread->list, TASK_WAIT);
+}
+
+static void handle_signal(struct thread_info *thread, int signum)
+{
+    bool stage_handler = false;
+
+    /* wake up the thread from the signal waiting list */
+    if(thread->wait_for_signal && (sig2bit(signum) & thread->sig_wait_set)) {
+        /* disable the signal waiting flag */
+        thread->wait_for_signal = false;
+
+        /* wake up the waiting thread and setup return values */
+        wake_up_thread(thread);
+        *thread->ret_sig = signum;
+        *(int *)thread->reg.r0 = 0;
+    }
+
+    switch(signum) {
+        case SIGUSR1:
+            stage_handler = true;
+            break;
+        case SIGUSR2:
+            stage_handler = true;
+            break;
+        case SIGPOLL:
+            stage_handler = true;
+            break;
+        case SIGSTOP:
+            /* stop: can't be caught or ignored */
+            task_suspend(thread);
+            break;
+        case SIGCONT:
+            /* continue */
+            task_resume(thread);
+            stage_handler = true;
+            break;
+        case SIGKILL: {
+            /* kill: can't be caught or ignored */
+            task_kill(thread);
+            break;
+        }
+    }
+
+    if(!stage_handler) {
+        return;
+    }
+
+    int sig_idx = get_signal_index(signum);
+    struct sigaction *act = thread->sig_table[sig_idx];
+
+    /* no signal handler is provided */
+    if(act == NULL) {
+        return;
+    } else if(act->sa_handler == NULL) {
+        return;
+    }
+
+    /* stage the signal or sigaction handler */
+    if(act->sa_flags & SA_SIGINFO) {
+        stage_sigaction_handler(thread, act->sa_sigaction,
+                                signum, NULL, NULL);
+    } else {
+        stage_signal_handler(thread, act->sa_handler, signum);
+    }
+}
+
+void sys_pthread_kill(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+    int sig = SYSCALL_ARG(int, 1);
+
+    struct thread_info *thread = acquire_thread(tid);
+
+    /* failed to find the task with the pid */
+    if(!thread) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* reject forbidden signal for idle task and file system task */
+    if((tid == 0 || tid == 1) && /* FIXME: add new flag in task control block instead */
+       (sig == SIGKILL || sig == SIGSTOP || sig == SIGCONT)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EPERM;
+        return;
+    }
+
+    /* check if the signal number is defined */
+    if(!is_signal_defined(sig)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    handle_signal(thread, sig);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+
+}
+
+void sys_pthread_exit(void)
+{
+    list_remove(&running_thread->thread_list);
+    running_thread->status = TASK_TERMINATED;
+    //TODO: free the stack memory
+}
+
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */
@@ -1437,70 +1552,6 @@ void sys_sigwait(void)
 
     /* put the thread into the signal waiting list */
     prepare_to_wait(&signal_wait_list, &running_thread->list, TASK_WAIT);
-}
-
-static void handle_signal(struct thread_info *thread, int signum)
-{
-    bool stage_handler = false;
-
-    /* wake up the thread from the signal waiting list */
-    if(thread->wait_for_signal && (sig2bit(signum) & thread->sig_wait_set)) {
-        /* disable the signal waiting flag */
-        thread->wait_for_signal = false;
-
-        /* wake up the waiting thread and setup return values */
-        wake_up_thread(thread);
-        *thread->ret_sig = signum;
-        *(int *)thread->reg.r0 = 0;
-    }
-
-    switch(signum) {
-        case SIGUSR1:
-            stage_handler = true;
-            break;
-        case SIGUSR2:
-            stage_handler = true;
-            break;
-        case SIGPOLL:
-            stage_handler = true;
-            break;
-        case SIGSTOP:
-            /* stop: can't be caught or ignored */
-            task_suspend(thread);
-            break;
-        case SIGCONT:
-            /* continue */
-            task_resume(thread);
-            stage_handler = true;
-            break;
-        case SIGKILL: {
-            /* kill: can't be caught or ignored */
-            task_kill(thread);
-            break;
-        }
-    }
-
-    if(!stage_handler) {
-        return;
-    }
-
-    int sig_idx = get_signal_index(signum);
-    struct sigaction *act = thread->sig_table[sig_idx];
-
-    /* no signal handler is provided */
-    if(act == NULL) {
-        return;
-    } else if(act->sa_handler == NULL) {
-        return;
-    }
-
-    /* stage the signal or sigaction handler */
-    if(act->sa_flags & SA_SIGINFO) {
-        stage_sigaction_handler(thread, act->sa_sigaction,
-                                signum, NULL, NULL);
-    } else {
-        stage_signal_handler(thread, act->sa_handler, signum);
-    }
 }
 
 void sys_kill(void)

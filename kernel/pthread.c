@@ -9,6 +9,38 @@ NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     SYSCALL(PTHREAD_CREATE);
 }
 
+int pthread_attr_init(pthread_attr_t *attr)
+{
+    attr->schedparam.sched_priority = 0;
+    attr->stacksize = 512;
+    attr->stackaddr = NULL;
+    return 0;
+}
+
+int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param)
+{
+    attr->schedparam = *param;
+    return 0;
+}
+
+int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param)
+{
+    *param = attr->schedparam;
+    return 0;
+}
+
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
+{
+    attr->stacksize = stacksize;
+    return 0;
+}
+
+int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
+{
+    *stacksize = attr->stacksize;
+    return 0;
+}
+
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
     mutex->owner = NULL;
@@ -16,6 +48,21 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
     list_init(&mutex->wait_list);
 
     return 0;
+}
+
+NACKED int pthread_yield(void)
+{
+    SYSCALL(PTHREAD_YIELD);
+}
+
+NACKED int pthread_kill(pthread_t thread, int sig)
+{
+    SYSCALL(PTHREAD_KILL);
+}
+
+NACKED void pthread_exit(void *retval)
+{
+    SYSCALL(PTHREAD_EXIT);
 }
 
 NACKED int pthread_mutex_unlock(pthread_mutex_t *mutex)
