@@ -1150,6 +1150,47 @@ void sys_mq_send(void)
     }
 }
 
+void sys_pthread_create(void)
+{
+    typedef void *(*start_routine_t)(void *);
+
+    /* read syscall arguments */
+    pthread_t *pthread = SYSCALL_ARG(pthread_t *, 0);
+    pthread_attr_t *attr = SYSCALL_ARG(pthread_attr_t *, 1);
+    start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
+    //void *arg = XXX; //TODO: read stack to get the fourth argument
+
+    /* invalid priority setting */
+    if(attr->schedparam.sched_priority < 0 ||
+       attr->schedparam.sched_priority > TASK_MAX_PRIORITY) {
+        /* return on error */
+        SYSCALL_ARG(ssize_t, 0) = -EINVAL;
+        return;
+    }
+
+    //TODO: check stack size setting
+
+    /* create new thread */
+    struct thread_info *thread =
+        thread_create((task_func_t)start_routine, attr->schedparam.sched_priority,
+                      TASK_STACK_SIZE /*attr->stacksize*/, false);
+
+    if(!thread) {
+        /* failed to create new thread, return on error */
+        SYSCALL_ARG(ssize_t, 0) = -EAGAIN;
+        return;
+    }
+
+    /* add new thread to the current task */
+    list_push(&running_thread->task->threads_list, &thread->task_list);
+
+    /* return the thread id */
+    *pthread = thread->tid;
+
+    /* return on success */
+    SYSCALL_ARG(ssize_t, 0) = 0;
+}
+
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */

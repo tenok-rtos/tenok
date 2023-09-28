@@ -3,6 +3,12 @@
 
 #include <tenok/pthread.h>
 
+NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                          void *(*start_routine) (void *), void *arg)
+{
+    SYSCALL(PTHREAD_CREATE);
+}
+
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
     mutex->owner = NULL;

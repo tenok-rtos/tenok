@@ -6,9 +6,18 @@
 #include <kernel/list.h>
 #include <kernel/spinlock.h>
 
+#include <tenok/sys/sched.h>
+
+typedef uint32_t pthread_t;
 typedef void pthread_mutex_attr_t;   /* no usage */
 typedef uint32_t pthread_condattr_t; /* no usage */
 typedef uint32_t pthread_once_t;
+
+typedef struct {
+    struct sched_param schedparam;
+    void *stackaddr;
+    size_t stacksize;
+} pthread_attr_t;
 
 typedef struct {
     spinlock_t lock;
@@ -19,6 +28,9 @@ typedef struct {
 typedef struct {
     struct list task_wait_list;
 } pthread_cond_t;
+
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void *(*start_routine) (void *), void *arg);
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);

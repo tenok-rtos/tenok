@@ -27,6 +27,7 @@ syscalls = \
  'mq_open',
  'mq_receive',
  'mq_send',
+ 'pthread_create',
  'pthread_mutex_unlock',
  'pthread_mutex_lock',
  'pthread_cond_signal',
