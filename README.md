@@ -8,7 +8,7 @@ the term "`tenok`" in their language means "`kernel`."
 
 * POSIX interface
 * Dual mode: Kernel mode / User mode
-* Task and Thread (Task resembles the process as a group of threads)
+* Task and Thread (Task resembles UNIX process as a group of threads)
 * Linux-like design: Wait queue, kfifo, and Tasklet (Softirq)
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
@@ -117,7 +117,6 @@ Build:
 git clone https://github.com/shengwen-tw/tenok.git
 cd tenok
 git submodule update --init --recursive
-git submodule update --recursive --remote
 ./scripts/download-examples.sh
 make
  ```
