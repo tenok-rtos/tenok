@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #include "kconfig.h"
 
@@ -19,5 +20,6 @@ int procstat(struct procstat_info info[TASK_CNT_MAX]);
 void setprogname(const char *name);
 const char *getprogname(void);
 uint32_t delay_ticks(uint32_t ticks);
+pid_t gettid(void);
 
 #endif

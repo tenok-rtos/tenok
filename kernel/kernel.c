@@ -947,6 +947,12 @@ void sys_getpid(void)
     SYSCALL_ARG(int, 0) = running_thread->pid;
 }
 
+void sys_gettid(void)
+{
+    /* return the thread id */
+    SYSCALL_ARG(int, 0) = running_thread->tid;
+}
+
 void sys_mknod(void)
 {
     /* read syscall arguments */

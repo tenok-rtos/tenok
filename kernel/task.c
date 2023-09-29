@@ -66,6 +66,11 @@ NACKED int getpid(void)
     SYSCALL(GETPID);
 }
 
+NACKED int gettid(void)
+{
+    SYSCALL(GETTID);
+}
+
 unsigned int sleep(unsigned int seconds)
 {
     delay_ticks(seconds * OS_TICK_FREQ);

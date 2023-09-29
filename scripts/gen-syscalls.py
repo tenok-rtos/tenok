@@ -21,6 +21,7 @@ syscalls = \
  'getpriority',
  'setpriority',
  'getpid',
+ 'gettid',
  'mknod',
  'mkfifo',
  'poll',

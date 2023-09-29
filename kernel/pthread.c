@@ -1,12 +1,18 @@
+#include <tenok.h>
+#include <pthread.h>
+
 #include <arch/port.h>
 #include <kernel/syscall.h>
-
-#include <tenok/pthread.h>
 
 NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                           void *(*start_routine) (void *), void *arg)
 {
     SYSCALL(PTHREAD_CREATE);
+}
+
+pthread_t pthread_self(void)
+{
+    return gettid();
 }
 
 int pthread_attr_init(pthread_attr_t *attr)

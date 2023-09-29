@@ -31,21 +31,18 @@ typedef struct {
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                    void *(*start_routine) (void *), void *arg);
-
+pthread_t pthread_self(void);
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param);
 int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param);
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
-
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
-
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
-
 int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
 
 #endif
