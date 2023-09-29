@@ -2107,11 +2107,6 @@ void hook_drivers_init(void)
 
 void sched_start(void)
 {
-    /* set interrupt priorities */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-    NVIC_SetPriority(SysTick_IRQn, KERNEL_INT_PRI << 4); //set PRI[7:4] = KERNEL_INT_PRI
-    NVIC_SetPriority(SVCall_IRQn, KERNEL_INT_PRI << 4);  //set PRI[7:4] = KERNEL_INT_PRI
-
     /* initialize the irq vector table */
     irq_init();
 
@@ -2149,9 +2144,6 @@ void sched_start(void)
 
     /* create the first task */
     _task_create(first, 0, TASK_STACK_SIZE, false);
-
-    /* enable the systick timer */
-    SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];

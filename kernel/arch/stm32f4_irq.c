@@ -3,6 +3,8 @@
 #include <arch/port.h>
 #include <kernel/kernel.h>
 
+#include "stm32f4xx.h"
+
 #define IRQ_START 16
 #define IRQ_CNT 98
 
@@ -148,6 +150,14 @@ void irq_init(void)
     for(int i = IRQ_START; i < IRQ_CNT; i++) {
         irq_table[IRQ_START + i] = Default_Handler;
     }
+
+    /* set interrupt priorities */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    NVIC_SetPriority(SysTick_IRQn, KERNEL_INT_PRI << 4); //set PRI[7:4] = KERNEL_INT_PRI
+    NVIC_SetPriority(SVCall_IRQn, KERNEL_INT_PRI << 4);  //set PRI[7:4] = KERNEL_INT_PRI
+
+    /* enable the systick timer */
+    SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 }
 
 int request_irq(unsigned int irq, irq_handler_t handler,
