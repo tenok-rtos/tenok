@@ -14,7 +14,7 @@ void *my_thread(void *arg)
 {
     char *msg = "hello new thread.\n\r";
 
-    while(1) {
+    for(int i = 0; i < 10; i++) {
         write(serial_fd, msg, strlen(msg));
         sleep(1);
     }
@@ -36,11 +36,8 @@ void pthread_task(void)
     pthread_t tid;
     pthread_create(&tid, &attr, my_thread, NULL);
 
-    sleep(10);
+    pthread_join(tid, NULL);
 
-    pthread_cancel(tid);
-
-    /* sleep */
     while(1) {
         sleep(1);
     }

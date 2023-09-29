@@ -125,6 +125,7 @@ struct thread_info {
     struct list task_list;   /* list head for the task to track */
     struct list thread_list; /* global list of threads */
     struct list poll_list;   /* list head for the poll handler to track */
+    struct list join_list;   /* list head of other threads to wait for join of the thread */
     struct list list;        /* list head for thread scheduling */
 };
 

@@ -29,6 +29,7 @@ syscalls = \
  'mq_receive',
  'mq_send',
  'pthread_create',
+ 'pthread_join',
  'pthread_cancel',
  'pthread_setschedparam',
  'pthread_getschedparam',

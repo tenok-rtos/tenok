@@ -94,15 +94,7 @@ struct thread_info *current_thread_info(void)
 
 void thread_return_handler(void)
 {
-    /*
-     * the thread function is returned. the user can defined the behavior by modifying
-     * the return handler function. by default the os treats this as an error and disable
-     * the interrupts then enter into the infinite loop.
-     */
-    asm volatile ("cpsid i\n"
-                  "cpsid f\n");
-
-    while(1);
+    SYSCALL(101); //TODO: seperate the thread returning from the syscall request
 }
 
 static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
@@ -139,6 +131,9 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
 
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
+
+    /* initialize the thread join list */
+    list_init(&thread->join_list);
 
     /* record the new thread in the global list */
     list_push(&threads_list, &thread->thread_list);
@@ -491,11 +486,45 @@ static void tasks_tick_update(void)
     }
 }
 
+void signal_cleanup_handler(void)
+{
+    running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
+}
+
+void thread_join_handler(void)
+{
+    /* wake up all threads that waiting to join */
+    struct list *list_itr = running_thread->join_list.next;
+    while(list_itr != &running_thread->join_list) {
+        /* since the thread may be removed from the list, the next task must be recorded first */
+        struct list *next = list_itr->next;
+
+        /* obtain the thread info */
+        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
+
+        thread->status = THREAD_READY;
+        list_remove(list_itr); //remove the thread from the sleep list
+        list_push(&ready_list[thread->priority], list_itr);
+
+        /* prepare the next task to check */
+        list_itr = next;
+    }
+
+    /* remove the thread from the system */
+    list_remove(&running_thread->thread_list);
+    list_remove(&running_thread->task_list);
+    running_thread->status = THREAD_TERMINATED;
+    //TODO: free the stack memory
+}
+
 static void syscall_handler(void)
 {
-    /* TODO: sepeate the signal handling from here */
+    /* TODO: sepeate the non-syscall request from here */
     if(running_thread->stack_top->_r7 == 100) {
-        running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
+        signal_cleanup_handler();
+        return;
+    } else if(running_thread->stack_top->_r7 == 101) {
+        thread_join_handler();
         return;
     }
 
@@ -1238,6 +1267,39 @@ void sys_pthread_create(void)
     *pthread = thread->tid;
 
     /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_join(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+    void **retval = SYSCALL_ARG(void **, 0); //TODO
+
+    struct thread_info *thread = acquire_thread(tid);
+    if(!thread) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* check deadlock (threads should not join on each other) */
+    struct list *curr;
+    list_for_each(curr, &running_thread->join_list) {
+        struct thread_info *check_thread = list_entry(curr, struct thread_info, list);
+
+        /* check if the thread is waiting to join the running thread */
+        if(check_thread == thread) {
+            /* deadlock identified, return on error */
+            SYSCALL_ARG(int, 0) = -EDEADLK;
+            return;
+        }
+    }
+
+    list_push(&thread->join_list, &running_thread->list);
+    running_thread->status = THREAD_WAIT;
+
+    /* return on success after the thread is waken */
     SYSCALL_ARG(int, 0) = 0;
 }
 
