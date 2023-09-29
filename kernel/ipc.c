@@ -1,6 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <errno.h>
+#include <poll.h>
+#include <fcntl.h>
 
 #include <fs/fs.h>
 #include <kernel/ipc.h>
@@ -8,9 +10,6 @@
 #include <kernel/poll.h>
 #include <kernel/kfifo.h>
 #include <kernel/kernel.h>
-
-#include <tenok/poll.h>
-#include <tenok/fcntl.h>
 
 #include "kconfig.h"
 

@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-
-#include <tenok/time.h>
+#include <time.h>
 
 #include "shell.h"
 

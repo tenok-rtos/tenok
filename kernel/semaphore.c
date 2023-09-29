@@ -1,7 +1,7 @@
+#include <semaphore.h>
+
 #include <arch/port.h>
 #include <kernel/syscall.h>
-
-#include <tenok/semaphore.h>
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
 {

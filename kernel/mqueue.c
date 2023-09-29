@@ -1,7 +1,7 @@
+#include <mqueue.h>
+
 #include <arch/port.h>
 #include <kernel/syscall.h>
-
-#include <tenok/mqueue.h>
 
 NACKED mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {

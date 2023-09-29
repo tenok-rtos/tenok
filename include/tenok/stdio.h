@@ -4,10 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <sys/types.h>
 
 #include <kernel/spinlock.h>
-
-#include <tenok/sys/types.h>
 
 #define SEEK_SET 0
 #define SEEK_CUR 1

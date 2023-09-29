@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 #include <arch/port.h>
 #include <kernel/kernel.h>
 #include <kernel/syscall.h>
-
-#include <tenok/time.h>
 
 #include "kconfig.h"
 

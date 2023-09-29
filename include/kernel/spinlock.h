@@ -1,5 +1,5 @@
-#ifndef __SPINLOCK_H__
-#define __SPINLOCK_H__
+#ifndef __KERNEL_SPINLOCK_H__
+#define __KERNEL_SPINLOCK_H__
 
 #include <stdint.h>
 

@@ -4,12 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <dirent.h>
+#include <sys/types.h>
 
 #include <kernel/list.h>
 #include <kernel/wait.h>
-
-#include <tenok/dirent.h>
-#include <tenok/sys/types.h>
 
 #include "kconfig.h"
 

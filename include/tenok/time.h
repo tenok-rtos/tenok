@@ -2,9 +2,8 @@
 #define __TIME_H__
 
 #include <stdint.h>
-
-#include <tenok/signal.h>
-#include <tenok/sys/types.h>
+#include <signal.h>
+#include <sys/types.h>
 
 #define CLOCK_REALTIME  0
 #define CLOCK_MONOTONIC 1

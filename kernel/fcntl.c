@@ -1,9 +1,9 @@
+#include <poll.h>
+#include <sys/stat.h>
+
 #include <fs/fs.h>
 #include <arch/port.h>
 #include <kernel/syscall.h>
-
-#include <tenok/poll.h>
-#include <tenok/sys/stat.h>
 
 NACKED int mount(const char *source, const char *target)
 {

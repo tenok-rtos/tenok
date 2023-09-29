@@ -1,8 +1,19 @@
+#include <tenok.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <task.h>
+#include <time.h>
+#include <poll.h>
+#include <mqueue.h>
+#include <unistd.h>
+#include <signal.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <sys/stat.h>
+#include <sys/mount.h>
 
 #include <fs/fs.h>
 #include <rom_dev.h>
@@ -18,18 +29,6 @@
 #include <kernel/syscall.h>
 #include <kernel/interrupt.h>
 #include <kernel/softirq.h>
-
-#include <tenok/tenok.h>
-#include <tenok/task.h>
-#include <tenok/time.h>
-#include <tenok/poll.h>
-#include <tenok/mqueue.h>
-#include <tenok/unistd.h>
-#include <tenok/signal.h>
-#include <tenok/pthread.h>
-#include <tenok/semaphore.h>
-#include <tenok/sys/stat.h>
-#include <tenok/sys/mount.h>
 
 #include "kconfig.h"
 #include "stm32f4xx.h"

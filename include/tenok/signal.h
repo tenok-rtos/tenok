@@ -1,7 +1,7 @@
 #ifndef __SIGNAL_H__
 #define __SIGNAL_H__
 
-#include <tenok/sys/types.h>
+#include <sys/types.h>
 
 #define SIGUSR1  10
 #define SIGUSR2  12

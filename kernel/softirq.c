@@ -1,12 +1,12 @@
+#include <tenok.h>
+#include <unistd.h>
+#include <sched.h>
+
 #include <kernel/kernel.h>
 #include <kernel/softirq.h>
 #include <kernel/list.h>
 #include <kernel/wait.h>
 #include <kernel/interrupt.h>
-
-#include <tenok/tenok.h>
-#include <tenok/unistd.h>
-#include <tenok/sched.h>
 
 #include "kconfig.h"
 

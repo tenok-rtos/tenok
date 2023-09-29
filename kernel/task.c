@@ -1,12 +1,11 @@
+#include <tenok.h>
 #include <stdint.h>
 #include <errno.h>
+#include <sys/types.h>
 
 #include <arch/port.h>
 #include <kernel/kernel.h>
 #include <kernel/syscall.h>
-
-#include <tenok/tenok.h>
-#include <tenok/sys/types.h>
 
 #include "kconfig.h"
 

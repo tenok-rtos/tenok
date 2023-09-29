@@ -2,11 +2,10 @@
 #define __PTHREAD_H__
 
 #include <stdint.h>
+#include <sys/sched.h>
 
 #include <kernel/list.h>
 #include <kernel/spinlock.h>
-
-#include <tenok/sys/sched.h>
 
 typedef uint32_t pthread_t;
 typedef void pthread_mutex_attr_t;   /* no usage */
