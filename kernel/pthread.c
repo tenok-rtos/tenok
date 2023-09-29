@@ -4,27 +4,6 @@
 #include <arch/port.h>
 #include <kernel/syscall.h>
 
-NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                          void *(*start_routine) (void *), void *arg)
-{
-    SYSCALL(PTHREAD_CREATE);
-}
-
-NACKED int pthread_join(pthread_t thread, void **retval)
-{
-    SYSCALL(PTHREAD_JOIN);
-}
-
-NACKED int pthread_cancel(pthread_t thread)
-{
-    SYSCALL(PTHREAD_CANCEL);
-}
-
-pthread_t pthread_self(void)
-{
-    return gettid();
-}
-
 int pthread_attr_init(pthread_attr_t *attr)
 {
     attr->schedparam.sched_priority = 0;
@@ -55,6 +34,27 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 {
     *stacksize = attr->stacksize;
     return 0;
+}
+
+NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                          void *(*start_routine) (void *), void *arg)
+{
+    SYSCALL(PTHREAD_CREATE);
+}
+
+pthread_t pthread_self(void)
+{
+    return gettid();
+}
+
+NACKED int pthread_join(pthread_t thread, void **retval)
+{
+    SYSCALL(PTHREAD_JOIN);
+}
+
+NACKED int pthread_cancel(pthread_t thread)
+{
+    SYSCALL(PTHREAD_CANCEL);
 }
 
 NACKED int pthread_setschedparam(pthread_t thread, int policy,

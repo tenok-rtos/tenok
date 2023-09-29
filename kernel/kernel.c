@@ -1499,9 +1499,9 @@ void sys_pthread_kill(void)
 
 void sys_pthread_exit(void)
 {
-    list_remove(&running_thread->thread_list);
-    running_thread->status = THREAD_TERMINATED;
-    //TODO: free the stack memory
+    //TODO: handle return value pointer
+
+    thread_join_handler();
 }
 
 void sys_pthread_mutex_unlock(void)

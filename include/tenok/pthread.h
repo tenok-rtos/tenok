@@ -28,16 +28,21 @@ typedef struct {
     struct list task_wait_list;
 } pthread_cond_t;
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine) (void *), void *arg);
-int pthread_join(pthread_t thread, void **retval);
-int pthread_cancel(pthread_t thread);
-pthread_t pthread_self(void);
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param);
 int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param);
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void *(*start_routine) (void *), void *arg);
+pthread_t pthread_self(void);
+int pthread_join(pthread_t thread, void **retval);
+int pthread_cancel(pthread_t thread);
+int pthread_setschedparam(pthread_t thread, int policy, const struct sched_param *param);
+int pthread_getschedparam(pthread_t thread, int *policy, struct sched_param *param);
+int pthread_yield(void);
+int pthread_kill(pthread_t thread, int sig);
+void pthread_exit(void *retval);
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
