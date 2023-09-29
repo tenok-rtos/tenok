@@ -10,6 +10,11 @@ NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     SYSCALL(PTHREAD_CREATE);
 }
 
+NACKED int pthread_cancel(pthread_t thread)
+{
+    SYSCALL(PTHREAD_CANCEL);
+}
+
 pthread_t pthread_self(void)
 {
     return gettid();
@@ -45,6 +50,18 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 {
     *stacksize = attr->stacksize;
     return 0;
+}
+
+NACKED int pthread_setschedparam(pthread_t thread, int policy,
+                                 const struct sched_param *param)
+{
+    SYSCALL(PTHREAD_SETSCHEDPARAM);
+}
+
+NACKED int pthread_getschedparam(pthread_t thread, int *policy,
+                                 struct sched_param *param)
+{
+    SYSCALL(PTHREAD_GETSCHEDPARAM);
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)

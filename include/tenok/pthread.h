@@ -31,6 +31,7 @@ typedef struct {
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                    void *(*start_routine) (void *), void *arg);
+int pthread_cancel(pthread_t thread);
 pthread_t pthread_self(void);
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param);

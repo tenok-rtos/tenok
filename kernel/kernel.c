@@ -1209,7 +1209,7 @@ void sys_pthread_create(void)
     if(attr->schedparam.sched_priority < 0 ||
        attr->schedparam.sched_priority > TASK_MAX_PRIORITY) {
         /* return on error */
-        SYSCALL_ARG(ssize_t, 0) = -EINVAL;
+        SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
@@ -1222,9 +1222,11 @@ void sys_pthread_create(void)
                       TASK_STACK_SIZE /*attr->stacksize*/,
                       false);
 
+    strcpy(thread->name, running_thread->name);
+
     if(!thread) {
         /* failed to create new thread, return on error */
-        SYSCALL_ARG(ssize_t, 0) = -EAGAIN;
+        SYSCALL_ARG(int, 0) = -EAGAIN;
         return;
     }
 
@@ -1237,7 +1239,96 @@ void sys_pthread_create(void)
     *pthread = thread->tid;
 
     /* return on success */
-    SYSCALL_ARG(ssize_t, 0) = 0;
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_cancel(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+
+    struct thread_info *thread = acquire_thread(tid);
+    if(!thread) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* kthread can only be set by the kernel */
+    if(thread->privileged) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EPERM;
+        return;
+    }
+
+    thread_kill(thread);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_setschedparam(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+    int policy = SYSCALL_ARG(int, 1);  //not used
+    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 2);
+
+    struct thread_info *thread = acquire_thread(tid);
+    if(!thread) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* kthread can only be set by the kernel */
+    if(thread->privileged) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EPERM;
+        return;
+    }
+
+    /* invalid priority parameter */
+    if(param->sched_priority < 0 ||
+       param->sched_priority > TASK_MAX_PRIORITY) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    /* apply settings */
+    thread->priority = param->sched_priority;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_getschedparam(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+    int *policy = SYSCALL_ARG(int *, 0);
+    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 0);
+
+    struct thread_info *thread = acquire_thread(tid);
+    if(!thread) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* kthread can only be set by the kernel */
+    if(thread->privileged) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EPERM;
+        return;
+    }
+
+    /* return settings */
+    param->sched_priority = thread->priority;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_pthread_yield(void)
