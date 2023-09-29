@@ -493,24 +493,17 @@ void signal_cleanup_handler(void)
 
 void thread_join_handler(void)
 {
-    /* wake up all threads that waiting to join */
-    struct list *list_itr = running_thread->join_list.next;
-    while(list_itr != &running_thread->join_list) {
-        /* since the thread may be removed from the list, the next task must be recorded first */
-        struct list *next = list_itr->next;
-
-        /* obtain the thread info */
-        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
-
-        thread->status = THREAD_READY;
-        list_remove(list_itr); //remove the thread from the sleep list
-        list_push(&ready_list[thread->priority], list_itr);
-
-        /* prepare the next task to check */
-        list_itr = next;
+    if(list_is_empty(&running_thread->join_list)) {
+        return;
     }
 
-    /* remove the thread from the system */
+    /* wake up the thread */
+    struct thread_info *thread =
+        list_first_entry(&running_thread->join_list,
+                         struct thread_info, list);
+    wake_up_thread(thread);
+
+    /* remove the exited thread from the system */
     list_remove(&running_thread->thread_list);
     list_remove(&running_thread->task_list);
     running_thread->status = THREAD_TERMINATED;
@@ -1280,6 +1273,13 @@ void sys_pthread_join(void)
     if(!thread) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* check if another thread is already waiting for join */
+    if(!list_is_empty(&thread->join_list)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
