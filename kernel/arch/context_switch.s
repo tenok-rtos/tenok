@@ -1,15 +1,15 @@
 .syntax unified
 
-.type   SysTick_Handler, %function
-.global SysTick_Handler
-SysTick_Handler:
+.type   PendSV_Handler, %function
+.global PendSV_Handler
+PendSV_Handler:
     /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
 
     /* disable all interrupts before entering into the kernel */
     cpsid i
     cpsid f
     
-    neg   r7,  r7 //negate _r7 to indicate that the kernel is returned from the systick ISR
+    neg   r7,  r7 //negate _r7 to indicate that the kernel is returned from pendsv handler 
 
     /* save user state */
     mrs   r0,  psp  //load psp into the r0

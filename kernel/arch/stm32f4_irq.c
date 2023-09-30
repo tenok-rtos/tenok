@@ -22,7 +22,7 @@ ISR void UsageFault_Handler(void);
 ISR void SVC_Handler(void);
 ISR void DebugMon_Handler(void);
 ISR void PendSV_Handler(void);
-ISR void SysTick_Handler(void);
+void SysTick_Handler(void);
 
 extern uint32_t _estack;
 
@@ -137,6 +137,12 @@ irq_handler_t irq_table[IRQ_CNT];
 void Default_Handler(void)
 {
     while(1);
+}
+
+void SysTick_Handler(void)
+{
+    /* set nvic pendsv bit */
+    *((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
 }
 
 void irq_handler(void)
