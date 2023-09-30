@@ -67,6 +67,7 @@ print('// Created on ' +
 
 print('')
 
+print('/** @file */')
 print('#ifndef __SYSCALL_H__')
 print('#define __SYSCALL_H__\n')
 

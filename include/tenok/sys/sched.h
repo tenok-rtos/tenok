@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __SYS_SCHED_H__
 #define __SYS_SCHED_H__
 

@@ -7,8 +7,9 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "kernel/kernel.h"
-#include "kernel/kfifo.h"
+#include <mm/mm.h>
+#include <kernel/kernel.h>
+#include <kernel/kfifo.h>
 
 void kfifo_init(struct kfifo *fifo, void *data, size_t type_size, size_t ring_size)
 {

@@ -72,7 +72,6 @@ NACKED int pthread_getschedparam(pthread_t thread, int *policy,
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
     mutex->owner = NULL;
-    mutex->lock = 0;
     list_init(&mutex->wait_list);
 
     return 0;

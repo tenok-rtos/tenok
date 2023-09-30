@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_POLL_H__
 #define __KERNEL_POLL_H__
 

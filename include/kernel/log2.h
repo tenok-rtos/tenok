@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __LOG2_H__
 #define __LOG2_H__
 

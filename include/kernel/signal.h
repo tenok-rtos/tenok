@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_SIGNAL_H__
 #define __KERNEL_SIGNAL_H__
 

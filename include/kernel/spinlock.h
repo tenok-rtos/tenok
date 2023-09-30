@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_SPINLOCK_H__
 #define __KERNEL_SPINLOCK_H__
 

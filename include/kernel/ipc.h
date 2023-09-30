@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_IPC_H__
 #define __KERNEL_IPC_H__
 

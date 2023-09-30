@@ -6,7 +6,6 @@
 int sem_init(sem_t *sem, int pshared, unsigned int value)
 {
     sem->count = value;
-    sem->lock = 0;
     list_init(&sem->wait_list);
 
     return 0;

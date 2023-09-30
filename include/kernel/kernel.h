@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
@@ -129,8 +132,6 @@ struct thread_info {
     struct list list;        /* list head for thread scheduling */
 };
 
-void *kmalloc(size_t size);
-void kfree(void *ptr);
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 
 void set_syscall_pending(struct thread_info *task);
