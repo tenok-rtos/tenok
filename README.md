@@ -1,8 +1,8 @@
-## Tenok
-An experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
+# Tenok
 
-The Amis people are an indigenous tribe that originated in Taiwan, and
-the term "`tenok`" in their language means "`kernel`."
+[Tenok](https://github.com/shengwen-tw/tenok) is an experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
+
+The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
 
 ## Features
 
@@ -28,6 +28,19 @@ the term "`tenok`" in their language means "`kernel`."
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
 * **gazebo_bridge**: Message forwarding between `tenok` (serial) and Gazebo simulator (TCP/IP)
 
+## Getting Started
+
+* [Developement Tools Setup](./docs/1-environment_setup.md)
+* [Build and Run the Tenok](./docs/2-build_and_run.md)
+* [Run Tenok with Gazebo Simulator](./docs/3-gazebo.md)
+* [Interact with Tenok Shell](./docs/4-shell.md)
+
+## Resources 
+
+* [Full API List](https://tenok-rtos.github.io/globals_func.html)
+* [Doxygen Page](https://tenok-rtos.github.io/index.html)
+* [Presentation at COSCUP 2023](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)
+
 ## Supported Platforms
 
 ### ARM Cortex-M4F
@@ -42,159 +55,14 @@ the term "`tenok`" in their language means "`kernel`."
   - UART1 (console): PA9 (TX), PB7 (RX)
   - UART3 (debug-link): PC10 (TX), PC11 (RX)
 
-* QEMU Emulation of [netduinoplus2](https://qemu.readthedocs.io/en/latest/system/arm/stm32.html) (STM32F405RGT6)
+* QEMU Emulation of [netduinoplus2](https://www.qemu.org/docs/master/system/arm/stm32.html) (STM32F405RGT6)
   - Select by enabling `include platform/qemu.mk` in the Makefile
-
-## Shell Keys
-
-* `Backspace`, `Delete`: Delete a single character
-* `Home`, `Ctrl+A`: Move the cursor to the leftmost
-* `End`, `Ctrl+E`: Move the cursor to the rightmost
-* `Ctrl+U`: Delete a whole line
-* `Left Arrow`, `Ctrl+B`: Move the cursor one to left
-* `Right Arrow`, `Ctrl+F`: Move the cursor one to right
-* `Up Arrow`, `Down Arrow`: Display previous typings
-* `Tab`: Command completion
-
-## Development Tools
-
-1. Prerequisites:
-
-```
-sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf* \
-         libtool libpixman-1-dev lib32gcc1 lib32ncurses5 libc6:i386 libncurses5:i386 \
-         libstdc++6:i386 libusb-1.0.0-dev ninja-build gcc-multilib python-is-python3
-```
-
-2. OpenOCD:
-
-```
-git clone git://git.code.sf.net/p/openocd/code openocd
-cd openocd
-./bootstrap
-./configure --prefix=/usr/local --enable-jlink --enable-amtjtagaccel --enable-buspirate \
-            --enable-stlink --disable-libftdi
-echo -e "all:\ninstall:" > doc/Makefile
-make -j4
-sudo make install
-```
-
-3. ARM GCC toolchain 9:
-
-```
-wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-tar jxf ./gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-rm gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-```
-
-4. QEMU:
-
-```
-git clone git://git.qemu.org/qemu.git
-cd qemu
-git submodule init
-git submodule update --recursive
-mkdir build
-cd build
-../configure
-make -j $(nproc)
-```
-
-5. Edit `~/.bashrc` and append the following instructions:
-
-```
-PATH=$PATH:${YOUR_PATH}/qemu/build
-PATH=$PATH:${YOUR_PATH}/gcc-arm-none-eabi-9-2019-q4-major/bin
-```
-
-6. Restart the terminal
-
-## Build and Run
-
-Build:
-
-```
-git clone https://github.com/shengwen-tw/tenok.git
-cd tenok
-git submodule update --init --recursive
-./scripts/download-examples.sh
-make
- ```
- 
-Run emulation:
- 
-```
-make qemu
-```
- 
-Upload binary:
- 
-```
-make flash
-```
-
-Remote debugging with gdb:
-
-```
-make openocd # start the gdb server if you have real hardware
-make gdbauto
-```
-## Run Tenok with Gazebo
-
-1. Install Gazebo simulator:
-
-> Check Gazebo's official [tutorial](https://classic.gazebosim.org/tutorials?tut=install_ubuntu).
-
-2. Build PX4 SITL to provide MAVLink translation plugin for Gazebo:
-
-```
-git clone https://github.com/Tenok-RTOS/gazebo.git
-cd gazebo
-git submodule update --init --recursive
-cd PX4-Autopilot
-make px4_sitl_default gazebo
-```
-
-3. Launch Gazeobo:
-
-```
-./run_gazebo.sh
-```
-
-3. Launch Tenok:
-
-```
-make qemu # or alternatively use real hardware
-```
-
-6. Build Gazeobo bridge:
-
-```
-cd tenok/tools/gazebo_bridge
-make
-```
-
-8. Execute Gazeobo bridge:
-
-> Check MAVLink serial port path from QEMU (e.g., /dev/pts/X) then execute:
-
-```
-cd tenok/tools/gazebo_bridge
-make
-./gazebo_bridge -i 127.0.0.1 -p 4560 -s ${MAVLINK_SERIAL_PATH} -b 115200
-```
-
-> Note that 115200 is the default baudate of the MAVLink serial port by the Tenok.
 
 ## License
 
 `Tenok` is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
 
-## Additional Materials
-
-* [Tenok: Build a real-time operating system for Robotics](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)
-
-## References
+## Related Projects
 1. [rtenv](https://github.com/embedded2014/rtenv) / [rtenv+](https://github.com/embedded2014/rtenv-plus)
 2. [mini-arm-os](https://github.com/jserv/mini-arm-os)
 3. [Piko/RT](https://github.com/PikoRT/pikoRT)
