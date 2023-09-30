@@ -98,7 +98,7 @@ void thread_return_handler(void)
 }
 
 static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
-        int stack_size, bool privileged)
+        int stack_size, uint32_t privilege)
 {
     if(thread_cnt >= TASK_CNT_MAX) {
         return NULL;
@@ -127,7 +127,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->status = THREAD_WAIT;
     thread->tid = thread_cnt;
     thread->priority = priority;
-    thread->privileged = privileged;
+    thread->privilege = privilege;
 
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
@@ -147,11 +147,11 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
 }
 
 static int _task_create(thread_func_t task_func, uint8_t priority,
-                        int stack_size, bool privileged)
+                        int stack_size, uint32_t privilege)
 {
     /* create a thread for the new task */
     struct thread_info *thread =
-        thread_create(task_func, priority, TASK_STACK_SIZE, privileged);
+        thread_create(task_func, priority, TASK_STACK_SIZE, privilege);
 
     /* allocate a new task */
     struct task_struct *task = &tasks[task_cnt];
@@ -175,7 +175,7 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
     /* create a new thread with full privilege */
     struct thread_info *kthread =
-        thread_create(task_func, priority, stack_size, true);
+        thread_create(task_func, priority, stack_size, KERNEL_THREAD);
 
     /* allocate a pid number for the kernel thread */
     kthread->pid = task_cnt;
@@ -544,7 +544,7 @@ void sys_procstat(void)
         info[i].pid = thread->pid;
         info[i].priority = thread->priority;
         info[i].status = thread->status;
-        info[i].privilege = thread->privileged;
+        info[i].privilege = thread->privilege;
         strncpy(info[i].name, thread->name, TASK_NAME_LEN_MAX);
 
         i++;
@@ -591,7 +591,7 @@ void sys_task_create(void)
     int priority = SYSCALL_ARG(int, 1);
     int stack_size = SYSCALL_ARG(int, 2);
 
-    int retval = _task_create(task_func, priority, stack_size, false);
+    int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
 
     SYSCALL_ARG(int, 0) = retval;
 }
@@ -1316,7 +1316,7 @@ void sys_pthread_cancel(void)
     }
 
     /* kthread can only be set by the kernel */
-    if(thread->privileged) {
+    if(thread->privilege == KERNEL_THREAD) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1343,7 +1343,7 @@ void sys_pthread_setschedparam(void)
     }
 
     /* kthread can only be set by the kernel */
-    if(thread->privileged) {
+    if(thread->privilege == KERNEL_THREAD) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1379,7 +1379,7 @@ void sys_pthread_getschedparam(void)
     }
 
     /* kthread can only be set by the kernel */
-    if(thread->privileged) {
+    if(thread->privilege == KERNEL_THREAD) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -1478,7 +1478,7 @@ void sys_pthread_kill(void)
     }
 
     /* kernel thread does not support posix signals */
-    if(thread->privileged) {
+    if(thread->privilege == KERNEL_THREAD) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
@@ -2143,7 +2143,7 @@ void sched_start(void)
     softirq_init();
 
     /* create the first task */
-    _task_create(first, 0, TASK_STACK_SIZE, false);
+    _task_create(first, 0, TASK_STACK_SIZE, USER_THREAD);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
@@ -2172,7 +2172,7 @@ void sched_start(void)
             /* context switch to the selected thread */
             running_thread->stack_top =
                 (struct stack *)jump_to_thread((uint32_t)running_thread->stack_top,
-                                               running_thread->privileged);
+                                               running_thread->privilege);
 
             /* record the address of syscall arguments in the stack (r0-r3 registers) */
             save_syscall_args();

@@ -1,9 +1,8 @@
+#include <tenok.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <kernel/kernel.h>
-
-#include <tenok/tenok.h>
 
 #include "shell.h"
 
@@ -34,7 +33,7 @@ static void ps(void)
                 break;
         }
 
-        if(info[i].privilege) {
+        if(info[i].privilege == KERNEL_THREAD) {
             snprintf(s, 100, "%d\t%d\t%s\t[%s]\n\r",
                      info[i].pid, info[i].priority,
                      stat, info[i].name);

@@ -74,15 +74,8 @@ jump_to_thread:
     mrs   ip, psr //save psr into the ip
     push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //preserve kernel context: r4-r11, ip and lr
 
-    /* set thread mode's privilege */
-    cmp   r1, #0
-    beq   unprivileged
-    mov   r4, #0
-    b write_priviledge_mode
-unprivileged:
-    mov   r4, #1
-write_priviledge_mode:
-    msr  control, r4
+    /* set thread's privilege */
+    msr  control, r1
 
     /* load user state */
     ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the user state from the address pointed by the r0
@@ -120,7 +113,6 @@ os_env_init:
     push {r7}   //preserve old r7 for overwriting
     mov  r7, #0 //write syscall number to the r7
     svc  0      //trigger svc interrupt handler
-    nop
     pop  {r7}   //resume old r7 value
 
     /* disable the interrupt before entering into the kernel */

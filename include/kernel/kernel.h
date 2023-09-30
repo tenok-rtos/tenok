@@ -41,6 +41,11 @@ enum {
     THREAD_TERMINATED
 } THREAD_STATUS;
 
+enum {
+    KERNEL_THREAD = 0,
+    USER_THREAD = 1
+} THREAD_TYPE;
+
 /* stack layout for threads without using fpu */
 struct stack {
     /* registers pushed into the stack by the os */
@@ -100,7 +105,7 @@ struct thread_info {
     uint32_t tid;
     int      priority;
     char     name[TASK_NAME_LEN_MAX];
-    bool     privileged;  /* kernel thread if set true */
+    uint32_t privilege;
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
 
