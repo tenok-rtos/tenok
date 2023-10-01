@@ -1260,7 +1260,7 @@ void sys_pthread_create(void)
         thread_create((thread_func_t)start_routine,
                       attr->schedparam.sched_priority,
                       TASK_STACK_SIZE /*attr->stacksize*/,
-                      false);
+                      USER_THREAD);
 
     strcpy(thread->name, running_thread->name);
 
