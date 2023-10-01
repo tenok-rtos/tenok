@@ -2165,12 +2165,15 @@ void sched_start(void)
         /* select new task */
         schedule();
 
-        /* execute the task if the pending flag of the syscall is not set */
-        if(running_thread->syscall_pending == false) {
-            /* context switch to the selected thread */
-            running_thread->stack_top =
-                (struct stack *)jump_to_thread((uint32_t)running_thread->stack_top,
-                                               running_thread->privilege);
+        /* a task is awakened to complete the pending syscall */
+        if(running_thread->syscall_pending) {
+            syscall_handler();
+            schedule();
         }
+
+        /* jump to the selected thread */
+        running_thread->stack_top =
+            (struct stack *)jump_to_thread((uint32_t)running_thread->stack_top,
+                                           running_thread->privilege);
     }
 }
