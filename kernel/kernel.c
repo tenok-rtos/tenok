@@ -490,15 +490,13 @@ void signal_cleanup_handler(void)
 
 void thread_join_handler(void)
 {
-    if(list_is_empty(&running_thread->join_list)) {
-        return;
+    if(!list_is_empty(&running_thread->join_list)) {
+        /* wake up the thread */
+        struct thread_info *thread =
+            list_first_entry(&running_thread->join_list,
+                             struct thread_info, list);
+        wake_up_thread(thread);
     }
-
-    /* wake up the thread */
-    struct thread_info *thread =
-        list_first_entry(&running_thread->join_list,
-                         struct thread_info, list);
-    wake_up_thread(thread);
 
     /* remove the exited thread from the system */
     list_remove(&running_thread->thread_list);
