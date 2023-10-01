@@ -32,6 +32,8 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     if(size > fifo_len) {
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
+            curr_thread->file_request.size = size;
+
             /* put the current thread into the read waiting list */
             prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
 
@@ -91,6 +93,8 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 
         /* block mode */
         if(!(pipe->flags & O_NONBLOCK)) {
+            curr_thread->file_request.size = size;
+
             /* put the current thread into the read waiting list */
             prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
 
