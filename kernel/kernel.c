@@ -510,6 +510,28 @@ void thread_join_handler(void)
     //TODO: free the stack memory
 }
 
+static void prepare_syscall_args(void)
+{
+    /*
+     * the stack layouts are different according to the fpu is used or not due to the
+     * lazy context switch mechanism of the arm processor. when lr[4] bit is set as 0,
+     * the fpu is used otherwise it is unused.
+     */
+    if(running_thread->stack_top->_lr & 0x10) {
+        struct stack *sp = (struct stack *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp->r0;
+        running_thread->reg.r1 = &sp->r1;
+        running_thread->reg.r2 = &sp->r2;
+        running_thread->reg.r3 = &sp->r3;
+    } else {
+        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp_fpu->r0;
+        running_thread->reg.r1 = &sp_fpu->r1;
+        running_thread->reg.r2 = &sp_fpu->r2;
+        running_thread->reg.r3 = &sp_fpu->r3;
+    }
+}
+
 static void syscall_handler(void)
 {
     /* TODO: sepeate the non-syscall request from here */
@@ -526,6 +548,7 @@ static void syscall_handler(void)
     for(i = 0; i < SYSCALL_CNT; i++) {
         if(running_thread->stack_top->_r7 == syscall_table[i].num) {
             /* execute the syscall service */
+            prepare_syscall_args();
             syscall_table[i].syscall_handler();
             break;
         }
@@ -2024,28 +2047,6 @@ inline void reset_syscall_pending(struct thread_info *thread)
     thread->syscall_pending = false;
 }
 
-/* save r0-r3 registers that may carry the syscall arguments via the supervisor call */
-static void save_syscall_args(void)
-{
-    /*
-     * the stack layouts are different according to the fpu is used or not due to the lazy context switch mechanism
-     * of the arm processor. when lr[4] bit is set as 0, the fpu is used otherwise it is unused.
-     */
-    if(running_thread->stack_top->_lr & 0x10) {
-        struct stack *sp = (struct stack *)running_thread->stack_top;
-        running_thread->reg.r0 = &sp->r0;
-        running_thread->reg.r1 = &sp->r1;
-        running_thread->reg.r2 = &sp->r2;
-        running_thread->reg.r3 = &sp->r3;
-    } else {
-        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_thread->stack_top;
-        running_thread->reg.r0 = &sp_fpu->r0;
-        running_thread->reg.r1 = &sp_fpu->r1;
-        running_thread->reg.r2 = &sp_fpu->r2;
-        running_thread->reg.r3 = &sp_fpu->r3;
-    }
-}
-
 void first(void)
 {
     /*
@@ -2173,9 +2174,6 @@ void sched_start(void)
             running_thread->stack_top =
                 (struct stack *)jump_to_thread((uint32_t)running_thread->stack_top,
                                                running_thread->privilege);
-
-            /* record the address of syscall arguments in the stack (r0-r3 registers) */
-            save_syscall_args();
         }
     }
 }
