@@ -34,29 +34,13 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 * [Build and Run the Tenok](./docs/2-build_and_run.md)
 * [Run Tenok with Gazebo Simulator](./docs/3-gazebo.md)
 * [Interact with Tenok Shell](./docs/4-shell.md)
+* [Supported Platforms](./docs/5-platforms.md)
 
 ## Resources 
 
 * [Full API List](https://tenok-rtos.github.io/globals_func.html)
 * [Doxygen Page](https://tenok-rtos.github.io/index.html)
 * [Presentation at COSCUP 2023](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)
-
-## Supported Platforms
-
-### ARM Cortex-M4F
-
-* [STM32F4DISCOVERY](https://www.st.com/en/evaluation-tools/stm32f4discovery.html) (STM32F407VG)
-  - Select by enabling `include platform/stm32f4disc.mk` in the Makefile
-  - UART1 (console): PA9 (TX), PB7 (RX)
-  - UART3 (debug-link): PC10 (TX), PC11 (RX)
-
-* [32F429IDISCOVERY](https://www.st.com/en/evaluation-tools/32f429idiscovery.html) (STM32F429ZI)
-  - Select by enabling `include platform/stm32f429disc.mk` in the Makefile
-  - UART1 (console): PA9 (TX), PB7 (RX)
-  - UART3 (debug-link): PC10 (TX), PC11 (RX)
-
-* QEMU Emulation of [netduinoplus2](https://www.qemu.org/docs/master/system/arm/stm32.html) (STM32F405RGT6)
-  - Select by enabling `include platform/qemu.mk` in the Makefile
 
 ## License
 
