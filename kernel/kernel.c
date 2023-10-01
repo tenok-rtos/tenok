@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <task.h>
@@ -2041,15 +2042,16 @@ inline void reset_syscall_pending(struct thread_info *thread)
     thread->syscall_pending = false;
 }
 
-void first(void)
+void idle(void)
 {
-    /*
-     * after the first task finished initiating other tasks,
-     * it becomes the idle task and having the lowest priority
-     * among all tasks. (i.e., no other tasks should have same
-     * or lower priority as the idle task!)
-     */
     setprogname("idle");
+
+    while(1);
+}
+
+void init(void)
+{
+    setprogname("init");
 
     /*=============================*
      * launch the file system task *
@@ -2080,7 +2082,7 @@ void first(void)
                     hook_task[i].stacksize);
     }
 
-    while(1); //spin in the idle loop when no other task is ready
+    exit(0);
 }
 
 void hook_drivers_init(void)
@@ -2138,7 +2140,8 @@ void sched_start(void)
     softirq_init();
 
     /* create the first task */
-    _task_create(first, 0, TASK_STACK_SIZE, USER_THREAD);
+    _task_create(idle, 0, TASK_STACK_SIZE, USER_THREAD);
+    _task_create(init, 1, TASK_STACK_SIZE, USER_THREAD);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
