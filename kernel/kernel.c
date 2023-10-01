@@ -100,9 +100,8 @@ void thread_return_handler(void)
 static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
         int stack_size, uint32_t privilege)
 {
-    if(thread_cnt >= TASK_CNT_MAX) {
+    if(thread_cnt >= TASK_CNT_MAX)
         return NULL;
-    }
 
     /* allocate a new thread */
     struct thread_info *thread = &threads[thread_cnt];
@@ -153,6 +152,9 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     struct thread_info *thread =
         thread_create(task_func, priority, TASK_STACK_SIZE, privilege);
 
+    if(!thread)
+        return -1;
+
     /* allocate a new task */
     struct task_struct *task = &tasks[task_cnt];
     task->pid = task_cnt;
@@ -168,18 +170,13 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
 
     /* set the task ownership of the thread */
     thread->task = task;
-    thread->pid = task->pid;
+
+    return task->pid;
 }
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
-    /* create a new thread with full privilege */
-    struct thread_info *kthread =
-        thread_create(task_func, priority, stack_size, KERNEL_THREAD);
-
-    /* allocate a pid number for the kernel thread */
-    kthread->pid = task_cnt;
-    task_cnt++;
+    return _task_create(task_func, priority, stack_size, KERNEL_THREAD);
 }
 
 NACKED void sig_return_handler(void)
@@ -564,7 +561,7 @@ void sys_procstat(void)
     struct list *curr;
     list_for_each(curr, &threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
-        info[i].pid = thread->pid;
+        info[i].pid = thread->task->pid;
         info[i].priority = thread->priority;
         info[i].status = thread->status;
         info[i].privilege = thread->privilege;
@@ -988,7 +985,7 @@ void sys_setpriority(void)
 void sys_getpid(void)
 {
     /* return the task pid */
-    SYSCALL_ARG(int, 0) = running_thread->pid;
+    SYSCALL_ARG(int, 0) = running_thread->task->pid;
 }
 
 void sys_gettid(void)
@@ -1276,7 +1273,6 @@ void sys_pthread_create(void)
 
     /* set the task ownership of the thread */
     thread->task = running_thread->task;
-    thread->pid = running_thread->pid;
     list_push(&running_thread->task->threads_list, &thread->task_list);
 
     /* return the thread id */
