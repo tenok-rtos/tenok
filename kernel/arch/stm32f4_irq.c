@@ -142,7 +142,7 @@ void Default_Handler(void)
 void SysTick_Handler(void)
 {
     /* set nvic pendsv bit */
-    *((volatile uint32_t *)0xe000ed04) = (1UL << 28UL);
+    SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 }
 
 void irq_handler(void)
