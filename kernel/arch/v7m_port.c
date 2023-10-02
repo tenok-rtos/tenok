@@ -8,7 +8,7 @@ uint32_t get_proc_mode(void)
      * get the 9 bits isr number from the ipsr register,
      * check "exception types" of the ARM CM3 for details
      */
-    volatile unsigned int mode;
+    volatile unsigned int mode = 0;
     asm volatile ("mrs  r0, ipsr \n"
                   "str  r0, [%0] \n"
                   :: "r"(&mode));

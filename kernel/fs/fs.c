@@ -53,6 +53,8 @@ int register_chrdev(char *name, struct file_operations *fops)
 
     /* link the file operations */
     files[fd]->f_op = fops;
+
+    return 0;
 }
 
 int register_blkdev(char *name, struct file_operations *fops)
@@ -65,6 +67,8 @@ int register_blkdev(char *name, struct file_operations *fops)
 
     /* link the file operations */
     files[fd]->f_op = fops;
+
+    return 0;
 }
 
 static struct inode *fs_alloc_inode(void)
@@ -184,13 +188,13 @@ ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offs
 static void fs_read_list(struct file *dev_file, uint32_t list_addr, struct list *list)
 {
     /* read the list */
-    dev_file->f_op->read(dev_file, (uint8_t *)list, sizeof(struct list), list_addr);
+    dev_file->f_op->read(dev_file, (char *)list, sizeof(struct list), list_addr);
 }
 
 static void fs_read_dentry(struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
 {
     /* read the dentry */
-    dev_file->f_op->read(dev_file, (uint8_t *)dentry, sizeof(struct dentry), dentry_addr);
+    dev_file->f_op->read(dev_file, (char *)dentry, sizeof(struct dentry), dentry_addr);
 }
 
 static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_num, struct inode *inode)
@@ -200,7 +204,7 @@ static void fs_read_inode(uint8_t rdev, struct file *dev_file, uint32_t inode_nu
     uint32_t inode_addr = super_blk->s_ino_addr + (sizeof(struct inode) * inode_num);
 
     /* read the inode */
-    dev_file->f_op->read(dev_file, (uint8_t *)inode, sizeof(struct inode), inode_addr);
+    dev_file->f_op->read(dev_file, (char *)inode, sizeof(struct inode), inode_addr);
 }
 
 /*
@@ -306,7 +310,6 @@ uint32_t fs_file_append_block(struct inode *inode)
     }
 
     struct block_header *blk_head;
-    uint32_t next_blk_addr;
 
     /* iterate to the last block of the file */
     blk_head = (struct block_header *)inode->i_data;
@@ -541,9 +544,6 @@ static void fs_mount_directory(struct inode *inode_src, struct inode *inode_targ
     struct file *dev_file = mount_points[inode_src->i_rdev].dev_file;
     ssize_t (*dev_read)(struct file *filp, char *buf, size_t size, off_t offset) = dev_file->f_op->read;
 
-    /* get the list head of the dentry list */
-    struct list i_dentry_list = inode_src->i_dentry;
-
     dentry_addr = (uint32_t)inode_src->i_data;
 
     /*
@@ -558,11 +558,11 @@ static void fs_mount_directory(struct inode *inode_src, struct inode *inode_targ
 
     while(1) {
         /* load the dentry from the storage device */
-        dev_read(dev_file, (uint8_t *)&dentry, dentry_size, dentry_addr);
+        dev_read(dev_file, (char *)&dentry, dentry_size, dentry_addr);
 
         /* load the file inode from the storage device */
         inode_addr = sb_size + (inode_size * dentry.d_inode);
-        dev_read(dev_file, (uint8_t *)&inode, inode_size, inode_addr);
+        dev_read(dev_file, (char *)&inode, inode_size, inode_addr);
 
         /* overwrite the device number */
         inode.i_rdev = inode_src->i_rdev;
@@ -836,17 +836,15 @@ static int fs_mount(char *source, char *target)
     /* calculate the start address of the super block, inode table, and block region */
     const uint32_t sb_size     = sizeof(struct super_block);
     const uint32_t inode_size  = sizeof(struct inode);
-    const uint32_t dentry_size = sizeof(struct dentry);
     off_t super_blk_addr = 0;
     off_t inodes_addr = super_blk_addr + sb_size;
-    off_t block_addr = inodes_addr + (inode_size * INODE_CNT_MAX);
 
     /* read the super block from the device */
-    dev_read(dev_file, (uint8_t *)&mount_points[mount_cnt].super_blk, sb_size, super_blk_addr);
+    dev_read(dev_file, (char *)&mount_points[mount_cnt].super_blk, sb_size, super_blk_addr);
 
     /* read the root inode of the storage */
     struct inode inode_root;
-    dev_read(dev_file, (uint8_t *)&inode_root, inode_size, inodes_addr);
+    dev_read(dev_file, (char *)&inode_root, inode_size, inodes_addr);
 
     /* overwrite the device number */
     inode_root.i_rdev = mount_cnt;
@@ -928,7 +926,7 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
         blk_addr = blk_head.b_next;
 
         /* read the block header */
-        dev_file->f_op->read(NULL, (uint8_t *)&blk_head, sizeof(struct block_header), blk_addr);
+        dev_file->f_op->read(NULL, (char *)&blk_head, sizeof(struct block_header), blk_addr);
     }
 
     return blk_addr;

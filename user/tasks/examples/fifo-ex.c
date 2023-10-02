@@ -20,7 +20,6 @@ void fifo_task1(void)
     mkfifo("/fifo_test", 0);
 
     int fifo_fd = open("/fifo_test", 0);
-    char data[] = TEST_STR;
 
     while(1) {
         write(fifo_fd, TEST_STR, LEN);

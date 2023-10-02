@@ -44,7 +44,7 @@ int fopen(const char *pathname, const char *mode, FILE *stream)
 
 int fclose(FILE *stream)
 {
-    close(stream->fd);
+    return close(stream->fd);
 }
 
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
@@ -106,7 +106,7 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
 int fseek(FILE *stream, long offset, int whence)
 {
-    lseek(stream->fd, offset, whence);
+    return lseek(stream->fd, offset, whence);
 }
 
 int fileno(FILE *stream)

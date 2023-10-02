@@ -64,8 +64,12 @@ void set_sys_time(struct timespec *tp)
 
 int clock_getres(clockid_t clk_id, struct timespec *res)
 {
+    //TODO: check clock id
+
     res->tv_sec = 0;
     res->tv_nsec = NANOSECOND_TICKS;
+
+    return 0;
 }
 
 NACKED int clock_gettime(clockid_t clockid, struct timespec *tp)

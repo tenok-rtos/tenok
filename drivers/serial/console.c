@@ -166,10 +166,10 @@ static int uart1_dma_puts(const char *data, size_t size)
         if(uart1.tx_dma_ready) {
             uart1.tx_state = UART_TX_IDLE;
             return size;
-        } else {
-            return -EAGAIN;
         }
     }
+
+    return -EAGAIN;
 }
 
 void USART1_IRQHandler(void)

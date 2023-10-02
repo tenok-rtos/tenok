@@ -164,10 +164,10 @@ static int uart3_dma_puts(const char *data, size_t size)
         if(uart3.tx_dma_ready) {
             uart3.tx_state = UART_TX_IDLE;
             return size;
-        } else {
-            return -EAGAIN;
         }
     }
+
+    return -EAGAIN;
 }
 
 void USART3_IRQHandler(void)

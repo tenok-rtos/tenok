@@ -171,4 +171,5 @@ int request_irq(unsigned int irq, irq_handler_t handler,
                 void *dev)
 {
     irq_table[IRQ_START + irq] = handler;
+    return 0;
 }

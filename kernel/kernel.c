@@ -587,7 +587,7 @@ void sys_read(void)
 {
     /* read syscall argument */
     int fd = SYSCALL_ARG(int, 0);
-    char *buf = SYSCALL_ARG(uint8_t *, 1);
+    char *buf = SYSCALL_ARG(char *, 1);
     size_t count = SYSCALL_ARG(size_t, 2);
 
     /* get the file pointer */
@@ -617,7 +617,7 @@ void sys_write(void)
 {
     /* read syscall arguments */
     int fd = SYSCALL_ARG(int, 0);
-    char *buf = SYSCALL_ARG(uint8_t *, 1);
+    char *buf = SYSCALL_ARG(char *, 1);
     size_t count = SYSCALL_ARG(size_t, 2);
 
     /* get the file pointer */
@@ -861,7 +861,7 @@ void sys_mkfifo(void)
     }
 
     /* wait until the file system complete the request */
-    int file_idx;
+    int file_idx = 0;
     int retval = fifo_read(files[tid], (char *)&tid, sizeof(file_idx), 0);
     if(retval != sizeof(file_idx)) {
         return; //not ready
@@ -997,7 +997,7 @@ void sys_mq_open(void)
 {
     /* read syscall arguments */
     char *name = SYSCALL_ARG(char *, 0);
-    int oflag = SYSCALL_ARG(int, 1);
+    //int oflag = SYSCALL_ARG(int, 1);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
     if(mq_cnt >= MQUEUE_CNT_MAX) {
@@ -1026,8 +1026,8 @@ void sys_mq_receive(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     char *msg_ptr = SYSCALL_ARG(char *, 1);
-    size_t msg_len = SYSCALL_ARG(size_t, 2);
-    unsigned int *msg_prio = SYSCALL_ARG(unsigned int *, 3);
+    //size_t msg_len = SYSCALL_ARG(size_t, 2); //TODO: check len?
+    //unsigned int *msg_prio = SYSCALL_ARG(unsigned int *, 3);
 
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
@@ -1045,8 +1045,8 @@ void sys_mq_send(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     char *msg_ptr = SYSCALL_ARG(char *, 1);
-    size_t msg_len = SYSCALL_ARG(size_t, 2);
-    unsigned int msg_prio = SYSCALL_ARG(unsigned int, 3);
+    //size_t msg_len = SYSCALL_ARG(size_t, 2); //TODO: check len?
+    //unsigned int msg_prio = SYSCALL_ARG(unsigned int, 3);
 
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
@@ -1109,7 +1109,7 @@ void sys_pthread_join(void)
 {
     /* read syscall arguments */
     pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    void **retval = SYSCALL_ARG(void **, 0); //TODO
+    //void **retval = SYSCALL_ARG(void **, 0); //TODO
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
@@ -1174,7 +1174,7 @@ void sys_pthread_setschedparam(void)
 {
     /* read syscall arguments */
     pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    int policy = SYSCALL_ARG(int, 1);  //not used
+    //int policy = SYSCALL_ARG(int, 1);
     struct sched_param *param = SYSCALL_ARG(struct sched_param *, 2);
 
     struct thread_info *thread = acquire_thread(tid);
@@ -1210,8 +1210,8 @@ void sys_pthread_getschedparam(void)
 {
     /* read syscall arguments */
     pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    int *policy = SYSCALL_ARG(int *, 0);
-    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 0);
+    //int *policy = SYSCALL_ARG(int *, 1);
+    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 2);
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
@@ -1428,16 +1428,11 @@ void sys_pthread_cond_wait(void)
 
 void sys_pthread_once(void)
 {
-    typedef void (*init_routine_t)(void);
+    //typedef void (*init_routine_t)(void);
 
     /* read syscall arguments */
-    pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
-    init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 0);
-
-    /* TODO: the function should be executed in user space */
-    if(init_routine) {
-        init_routine();
-    }
+    //pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
+    //init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 0);
 }
 
 void sys_sem_post(void)

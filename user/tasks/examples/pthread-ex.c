@@ -1,6 +1,7 @@
 #include <tenok.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sched.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -18,6 +19,8 @@ void *my_thread(void *arg)
         write(serial_fd, msg, strlen(msg));
         sleep(1);
     }
+
+    pthread_exit(0);
 }
 
 void pthread_task(void)

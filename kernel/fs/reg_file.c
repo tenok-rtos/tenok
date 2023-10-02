@@ -55,9 +55,8 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
         /* calculate the block index corresponding to the current file read position */
         int blk_i = reg_file->pos / blk_free_size;
 
-        /* get the start and end address of the block */
+        /* get the start address of the block */
         uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
-        uint32_t blk_end_addr = blk_start_addr + FS_BLK_SIZE;
 
         /* calculate the block offset of the current read position */
         uint8_t blk_pos = reg_file->pos % blk_free_size;
@@ -75,7 +74,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
 
         /* read data */
         int buf_pos = size - remained_size;
-        int retval = driver_file->f_op->read(NULL, (uint8_t *)&buf[buf_pos], read_size, read_addr);
+        int retval = driver_file->f_op->read(NULL, (char *)&buf[buf_pos], read_size, read_addr);
 
         /* read failure */
         if(retval < 0)
@@ -125,9 +124,6 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
             break;
         }
 
-        /* calculate the end address of the block */
-        uint32_t blk_end_addr = blk_start_addr + FS_BLK_SIZE;
-
         /* calculate the block offset of the current read position */
         uint8_t blk_pos = reg_file->pos % blk_free_size;
 
@@ -144,7 +140,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
 
         /* write data */
         int buf_pos = size - remained_size;
-        int retval = driver_file->f_op->write(NULL, (uint8_t *)&buf[buf_pos], write_size, write_addr);
+        int retval = driver_file->f_op->write(NULL, (char *)&buf[buf_pos], write_size, write_addr);
 
         /* write failure */
         if(retval < 0)

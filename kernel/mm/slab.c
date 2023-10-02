@@ -68,6 +68,8 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
     list_init(&cache->slabs_partial);
     list_init(&cache->slabs_full);
     list_push(&cache->list, &caches);
+
+    return cache;
 }
 
 static struct slab *kmem_cache_grow(struct kmem_cache *cache)
