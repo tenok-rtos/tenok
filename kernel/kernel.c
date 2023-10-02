@@ -60,11 +60,11 @@ int thread_cnt = 0;
 struct memory_pool mem_pool;
 uint8_t mem_pool_buf[MEM_POOL_SIZE];
 
-/* file table */
+/* files */
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
-/* message queue */
+/* message queues */
 struct msg_queue mq_table[MQUEUE_CNT_MAX];
 int mq_cnt = 0;
 
@@ -72,6 +72,16 @@ int mq_cnt = 0;
 syscall_info_t syscall_table[] = {
     SYSCALL_TABLE_INIT
 };
+
+NACKED void thread_return_handler(void)
+{
+    SYSCALL(THREAD_JOIN_EVENT);
+}
+
+NACKED void sig_return_handler(void)
+{
+    SYSCALL(SIGNAL_CLEANUP_EVENT);
+}
 
 void *kmalloc(size_t size)
 {
@@ -81,6 +91,16 @@ void *kmalloc(size_t size)
 void kfree(void *ptr)
 {
     return;
+}
+
+inline void set_syscall_pending(struct thread_info *thread)
+{
+    thread->syscall_pending = true;
+}
+
+inline void reset_syscall_pending(struct thread_info *thread)
+{
+    thread->syscall_pending = false;
 }
 
 struct task_struct *current_task_info(void)
@@ -93,9 +113,34 @@ struct thread_info *current_thread_info(void)
     return running_thread;
 }
 
-void thread_return_handler(void)
+static struct task_struct *acquire_task(int pid)
 {
-    SYSCALL(101); //TODO: seperate the thread returning from the syscall request
+    struct task_struct *task;
+
+    struct list *curr;
+    list_for_each(curr, &tasks_list) {
+        task = list_entry(curr, struct task_struct, list);
+        if(task->pid == pid) {
+            return task;
+        }
+    }
+
+    return NULL;
+}
+
+static struct thread_info *acquire_thread(int tid)
+{
+    struct thread_info *thread;
+
+    struct list *curr;
+    list_for_each(curr, &threads_list) {
+        thread = list_entry(curr, struct thread_info, thread_list);
+        if(thread->tid == tid) {
+            return thread;
+        }
+    }
+
+    return NULL;
 }
 
 static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
@@ -180,11 +225,6 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
     return _task_create(task_func, priority, stack_size, KERNEL_THREAD);
 }
 
-NACKED void sig_return_handler(void)
-{
-    SYSCALL(100); //TODO: seperate the syscall request and signal returning request
-}
-
 void stage_sigaction_handler(struct thread_info *thread,
                              sa_sigaction_t sa_sigaction,
                              int sigval,
@@ -227,36 +267,6 @@ void stage_signal_handler(struct thread_info *thread,
     stack_top[10] = sigval; //r0
     stack_top[8]  = THREAD_PSP;
     thread->stack_top = (struct stack *)stack_top;
-}
-
-static struct task_struct *acquire_task(int pid)
-{
-    struct task_struct *task;
-
-    struct list *curr;
-    list_for_each(curr, &tasks_list) {
-        task = list_entry(curr, struct task_struct, list);
-        if(task->pid == pid) {
-            return task;
-        }
-    }
-
-    return NULL;
-}
-
-static struct thread_info *acquire_thread(int tid)
-{
-    struct thread_info *thread;
-
-    struct list *curr;
-    list_for_each(curr, &threads_list) {
-        thread = list_entry(curr, struct thread_info, thread_list);
-        if(thread->tid == tid) {
-            return thread;
-        }
-    }
-
-    return NULL;
 }
 
 static void thread_suspend(struct thread_info *thread)
@@ -343,153 +353,12 @@ void wake_up_thread(struct thread_info *thread)
     thread->status = THREAD_READY;
 }
 
-static void schedule(void)
-{
-    /* awake the sleep threads if the tick is exhausted */
-    struct list *list_itr = sleep_list.next;
-    while(list_itr != &sleep_list) {
-        /* since the thread may be removed from the list, the next task must be recorded first */
-        struct list *next = list_itr->next;
-
-        /* obtain the thread info */
-        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
-
-        /* thread is ready, push it into the ready list by its priority */
-        if(thread->sleep_ticks == 0) {
-            thread->status = THREAD_READY;
-            list_remove(list_itr); //remove the thread from the sleep list
-            list_push(&ready_list[thread->priority], list_itr);
-        }
-
-        /* prepare the next task to check */
-        list_itr = next;
-    }
-
-    /* find a ready list that contains runnable tasks */
-    int pri;
-    for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
-        if(list_is_empty(&ready_list[pri]) == false)
-            break;
-    }
-
-    /* task returned to the kernel before the time quantum is exhausted */
-    if(running_thread->status == THREAD_RUNNING) {
-        /* check if any higher priority task is woken */
-        if(pri > running_thread->priority) {
-            /* yes, suspend the current task */
-            prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
-        } else {
-            /* no, keep running the current task */
-            return;
-        }
-    }
-
-    /* select a task from the ready list */
-    struct list *next = list_pop(&ready_list[pri]);
-    running_thread = list_entry(next, struct thread_info, list);
-    running_thread->status = THREAD_RUNNING;
-}
-
-static void timers_update(void)
-{
-    /* iterate through all threads */
-    struct list *curr_thread;
-    list_for_each(curr_thread, &threads_list) {
-        struct thread_info *thread = list_entry(curr_thread, struct thread_info, thread_list);
-
-        /* the task contains no timer */
-        if(thread->timer_cnt == 0) {
-            continue;
-        }
-
-        /* iterate through all timers of the task */
-        struct list *curr_timer;
-        list_for_each(curr_timer, &thread->timers_list) {
-            /* obtain the task */
-            struct timer *timer = list_entry(curr_timer, struct timer, list);
-
-            if(!timer->enabled) {
-                continue;
-            }
-
-            /* update the timer */
-            timer_down_count(&timer->counter);
-
-            /* update the return time */
-            timer->ret_time.it_value = timer->counter;
-
-            /* check if the time is up */
-            if(timer->counter.tv_sec != 0 ||
-               timer->counter.tv_nsec != 0) {
-                continue; /* no */
-            }
-
-            /* reload the timer */
-            timer->counter = timer->setting.it_interval;
-
-            /* shutdown the one-shot type timer */
-            if(timer->setting.it_interval.tv_sec == 0 &&
-               timer->setting.it_interval.tv_nsec == 0) {
-                timer->enabled = false;
-            }
-
-            /* stage the signal handler */
-            if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
-                sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
-                stage_signal_handler(thread, func, 0);
-            }
-        }
-    }
-}
-
-static void poll_timeout_handler(void)
-{
-    /* get current time */
-    struct timespec tp;
-    get_sys_time(&tp);
-
-    /* iterate through all tasks that waiting for poll events */
-    struct list *curr;
-    list_for_each(curr, &poll_timeout_list) {
-        struct thread_info *thread = list_entry(curr, struct thread_info, poll_list);
-
-        /* wake up the thread if the time is up */
-        if(tp.tv_sec >= thread->poll_timeout.tv_sec &&
-           tp.tv_nsec >= thread->poll_timeout.tv_nsec) {
-            thread->poll_failed = true;
-            wake_up(&thread->poll_wq);
-        }
-    }
-}
-
-static void tasks_tick_update(void)
-{
-    sys_time_update_handler();
-
-    /* the time quantum for the task is exhausted and require re-scheduling */
-    if(running_thread->status == THREAD_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
-    }
-
-    /* update the sleep timers */
-    struct list *curr;
-    list_for_each(curr, &sleep_list) {
-        /* get the thread info */
-        struct thread_info *thread = list_entry(curr, struct thread_info, list);
-
-        /* update remained ticks of waiting */
-        if(thread->sleep_ticks > 0) {
-            thread->sleep_ticks--;
-        }
-    }
-}
-
-void signal_cleanup_handler(void)
+static inline void signal_cleanup_handler(void)
 {
     running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
 }
 
-void thread_join_handler(void)
+static inline void thread_join_handler(void)
 {
     if(!list_is_empty(&running_thread->join_list)) {
         /* wake up the thread */
@@ -504,51 +373,6 @@ void thread_join_handler(void)
     list_remove(&running_thread->task_list);
     running_thread->status = THREAD_TERMINATED;
     //TODO: free the stack memory
-}
-
-static void prepare_syscall_args(void)
-{
-    /*
-     * the stack layouts are different according to the fpu is used or not due to the
-     * lazy context switch mechanism of the arm processor. when lr[4] bit is set as 0,
-     * the fpu is used otherwise it is unused.
-     */
-    if(running_thread->stack_top->_lr & 0x10) {
-        struct stack *sp = (struct stack *)running_thread->stack_top;
-        running_thread->reg.r0 = &sp->r0;
-        running_thread->reg.r1 = &sp->r1;
-        running_thread->reg.r2 = &sp->r2;
-        running_thread->reg.r3 = &sp->r3;
-    } else {
-        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_thread->stack_top;
-        running_thread->reg.r0 = &sp_fpu->r0;
-        running_thread->reg.r1 = &sp_fpu->r1;
-        running_thread->reg.r2 = &sp_fpu->r2;
-        running_thread->reg.r3 = &sp_fpu->r3;
-    }
-}
-
-static void syscall_handler(void)
-{
-    /* TODO: sepeate the non-syscall request from here */
-    if(running_thread->stack_top->_r7 == 100) {
-        signal_cleanup_handler();
-        return;
-    } else if(running_thread->stack_top->_r7 == 101) {
-        thread_join_handler();
-        return;
-    }
-
-    /* system call handler */
-    int i;
-    for(i = 0; i < SYSCALL_CNT; i++) {
-        if(running_thread->stack_top->_r7 == syscall_table[i].num) {
-            /* execute the syscall service */
-            prepare_syscall_args();
-            syscall_table[i].syscall_handler();
-            break;
-        }
-    }
 }
 
 void sys_procstat(void)
@@ -2032,26 +1856,227 @@ void sys_free(void)
     kfree(ptr);
 }
 
-inline void set_syscall_pending(struct thread_info *thread)
+static void threads_ticks_update(void)
 {
-    thread->syscall_pending = true;
+    /* update the sleep timers */
+    struct list *curr;
+    list_for_each(curr, &sleep_list) {
+        /* get the thread info */
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
+
+        /* update remained ticks of waiting */
+        if(thread->sleep_ticks > 0) {
+            thread->sleep_ticks--;
+        }
+    }
 }
 
-inline void reset_syscall_pending(struct thread_info *thread)
+static void timers_update(void)
 {
-    thread->syscall_pending = false;
+    /* iterate through all threads */
+    struct list *curr_thread;
+    list_for_each(curr_thread, &threads_list) {
+        struct thread_info *thread = list_entry(curr_thread, struct thread_info, thread_list);
+
+        /* the task contains no timer */
+        if(thread->timer_cnt == 0) {
+            continue;
+        }
+
+        /* iterate through all timers of the task */
+        struct list *curr_timer;
+        list_for_each(curr_timer, &thread->timers_list) {
+            /* obtain the task */
+            struct timer *timer = list_entry(curr_timer, struct timer, list);
+
+            if(!timer->enabled) {
+                continue;
+            }
+
+            /* update the timer */
+            timer_down_count(&timer->counter);
+
+            /* update the return time */
+            timer->ret_time.it_value = timer->counter;
+
+            /* check if the time is up */
+            if(timer->counter.tv_sec != 0 ||
+               timer->counter.tv_nsec != 0) {
+                continue; /* no */
+            }
+
+            /* reload the timer */
+            timer->counter = timer->setting.it_interval;
+
+            /* shutdown the one-shot type timer */
+            if(timer->setting.it_interval.tv_sec == 0 &&
+               timer->setting.it_interval.tv_nsec == 0) {
+                timer->enabled = false;
+            }
+
+            /* stage the signal handler */
+            if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
+                sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
+                stage_signal_handler(thread, func, 0);
+            }
+        }
+    }
 }
 
-void idle(void)
+static void poll_timeout_update(void)
+{
+    /* get current time */
+    struct timespec tp;
+    get_sys_time(&tp);
+
+    /* iterate through all tasks that waiting for poll events */
+    struct list *curr;
+    list_for_each(curr, &poll_timeout_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, poll_list);
+
+        /* wake up the thread if the time is up */
+        if(tp.tv_sec >= thread->poll_timeout.tv_sec &&
+           tp.tv_nsec >= thread->poll_timeout.tv_nsec) {
+            thread->poll_failed = true;
+            wake_up(&thread->poll_wq);
+        }
+    }
+}
+
+static void system_ticks_update(void)
+{
+    sys_time_update_handler();
+    threads_ticks_update();
+    timers_update();
+    poll_timeout_update();
+}
+
+static void stop_running_thread(void)
+{
+    /* the function is triggered when the thread time quantum exhausted */
+    if(running_thread->status == THREAD_RUNNING) {
+        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+    }
+}
+
+static inline bool check_systick_event(void)
+{
+    /* if r7 is negative, the kernel is returned from the systick
+     * interrupt. otherwise the kernel is returned from the
+     * supervisor call.
+     */
+    if((int)SUPERVISOR_EVENT(running_thread) < 0) {
+        SUPERVISOR_EVENT(running_thread) *= -1; //restore to positive
+        return true;
+    }
+
+    return false;
+}
+
+static inline void prepare_syscall_args(void)
+{
+    /*
+     * the stack layouts are different according to the fpu is used or not due to the
+     * lazy context switch mechanism of the arm processor. when lr[4] bit is set as 0,
+     * the fpu is used otherwise it is unused.
+     */
+    if(running_thread->stack_top->_lr & 0x10) {
+        struct stack *sp = (struct stack *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp->r0;
+        running_thread->reg.r1 = &sp->r1;
+        running_thread->reg.r2 = &sp->r2;
+        running_thread->reg.r3 = &sp->r3;
+    } else {
+        struct stack_fpu *sp_fpu = (struct stack_fpu *)running_thread->stack_top;
+        running_thread->reg.r0 = &sp_fpu->r0;
+        running_thread->reg.r1 = &sp_fpu->r1;
+        running_thread->reg.r2 = &sp_fpu->r2;
+        running_thread->reg.r3 = &sp_fpu->r3;
+    }
+}
+
+static void syscall_handler(void)
+{
+    for(int i = 0; i < SYSCALL_CNT; i++) {
+        if(SUPERVISOR_EVENT(running_thread) == syscall_table[i].num) {
+            /* execute the syscall service */
+            prepare_syscall_args();
+            syscall_table[i].syscall_handler();
+            break;
+        }
+    }
+}
+
+static void supervisor_request_handler(void)
+{
+    if(SUPERVISOR_EVENT(running_thread) == SIGNAL_CLEANUP_EVENT) {
+        signal_cleanup_handler();
+    } else if(SUPERVISOR_EVENT(running_thread) == THREAD_JOIN_EVENT) {
+        thread_join_handler();
+    } else {
+        syscall_handler();
+    }
+}
+
+static void schedule(void)
+{
+    /* the time quantum for the thread has not exhausted yet */
+    if(running_thread->status == THREAD_RUNNING)
+        return;
+
+    /* awake the sleep threads if the tick is exhausted */
+    struct list *list_itr = sleep_list.next;
+    while(list_itr != &sleep_list) {
+        /* since the thread may be removed from the list, the next task must be recorded first */
+        struct list *next = list_itr->next;
+
+        /* obtain the thread info */
+        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
+
+        /* thread is ready, push it into the ready list by its priority */
+        if(thread->sleep_ticks == 0) {
+            thread->status = THREAD_READY;
+            list_remove(list_itr); //remove the thread from the sleep list
+            list_push(&ready_list[thread->priority], list_itr);
+        }
+
+        /* prepare the next task to check */
+        list_itr = next;
+    }
+
+    /* find a ready list that contains runnable tasks */
+    int pri;
+    for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
+        if(list_is_empty(&ready_list[pri]) == false)
+            break;
+    }
+
+    /* select a task from the ready list */
+    struct list *next = list_pop(&ready_list[pri]);
+    running_thread = list_entry(next, struct thread_info, list);
+    running_thread->status = THREAD_RUNNING;
+}
+
+void hook_drivers_init(void)
+{
+    extern char _drvs_start;
+    extern char _drvs_end;
+
+    int func_list_size = ((uint8_t *)&_drvs_end - (uint8_t *)&_drvs_start);
+    int drv_cnt = func_list_size / sizeof(drv_init_func_t);
+
+    /* point to the first driver initialization function of the list */
+    drv_init_func_t *drv_init_func = (drv_init_func_t *)&_drvs_start;
+
+    int i;
+    for(i = 0; i < drv_cnt; i++) {
+        drv_init_func[i]();
+    }
+}
+
+void first(void)
 {
     setprogname("idle");
-
-    while(1);
-}
-
-void init(void)
-{
-    setprogname("init");
 
     /*=============================*
      * launch the file system task *
@@ -2082,24 +2107,8 @@ void init(void)
                     hook_task[i].stacksize);
     }
 
-    exit(0);
-}
-
-void hook_drivers_init(void)
-{
-    extern char _drvs_start;
-    extern char _drvs_end;
-
-    int func_list_size = ((uint8_t *)&_drvs_end - (uint8_t *)&_drvs_start);
-    int drv_cnt = func_list_size / sizeof(drv_init_func_t);
-
-    /* point to the first driver initialization function of the list */
-    drv_init_func_t *drv_init_func = (drv_init_func_t *)&_drvs_start;
-
-    int i;
-    for(i = 0; i < drv_cnt; i++) {
-        drv_init_func[i]();
-    }
+    /* idle loop with lowest thread priority */
+    while(1);
 }
 
 void sched_start(void)
@@ -2140,8 +2149,7 @@ void sched_start(void)
     softirq_init();
 
     /* create the first task */
-    _task_create(idle, 0, TASK_STACK_SIZE, USER_THREAD);
-    _task_create(init, 1, TASK_STACK_SIZE, USER_THREAD);
+    _task_create(first, 0, TASK_STACK_SIZE, USER_THREAD);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
@@ -2149,23 +2157,17 @@ void sched_start(void)
     list_remove(&threads[0].list); //remove from the sleep list
 
     while(1) {
-        /*
-         * if _r7 is negative, the kernel is returned from the systick exception,
-         * otherwise it is switched by a syscall request.
-         */
-        if((int)running_thread->stack_top->_r7 < 0) {
-            running_thread->stack_top->_r7 *= -1; //restore _r7
-            tasks_tick_update();
-            timers_update();
-            poll_timeout_handler();
+        if(check_systick_event()) {
+            system_ticks_update();
+            stop_running_thread();
         } else {
-            syscall_handler();
+            supervisor_request_handler();
         }
 
-        /* select new task */
+        /* select new thread */
         schedule();
 
-        /* a task is awakened to complete the pending syscall */
+        /* a thread is awakened to complete the pending syscall */
         if(running_thread->syscall_pending) {
             syscall_handler();
             schedule();

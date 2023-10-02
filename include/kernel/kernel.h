@@ -16,6 +16,9 @@
 
 #include "kconfig.h"
 
+#define SIGNAL_CLEANUP_EVENT 100
+#define THREAD_JOIN_EVENT    101
+
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
 
@@ -24,6 +27,8 @@
 
 #define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
+
+#define SUPERVISOR_EVENT(thread) thread->stack_top->_r7
 
 typedef void (*task_func_t)(void);
 typedef void (*thread_func_t)(void);
