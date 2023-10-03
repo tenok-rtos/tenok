@@ -45,6 +45,7 @@ struct list tasks_list;        /* global list for recording all tasks in the sys
 struct list threads_list;      /* global list for recording all threads in the system */
 struct list sleep_list;        /* list of all threads in the sleeping state */
 struct list suspend_list;      /* list of all thread currently suspended */
+struct list timers_list;       /* list of all timers in the system */
 struct list signal_wait_list;  /* list of all threads waiting for signals */
 struct list poll_timeout_list; /* list for tracking threads that setup timeout for poll() */
 struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
@@ -1692,6 +1693,7 @@ void sys_timer_create(void)
     /* record timer settings */
     new_tm->id = running_thread->timer_cnt;
     new_tm->sev = *sevp;
+    new_tm->thread = running_thread;
 
     /* timer list initialization */
     if(running_thread->timer_cnt == 0) {
@@ -1700,6 +1702,7 @@ void sys_timer_create(void)
     }
 
     /* put the new timer into the list */
+    list_push(&timers_list, &new_tm->g_list);
     list_push(&running_thread->timers_list, &new_tm->list);
 
     /* return timer id */
@@ -1727,9 +1730,10 @@ void sys_timer_delete(void)
 
         /* update remained ticks of waiting */
         if(timer->id == timerid) {
-            /* remove the timer from the list and
+            /* remove the timer from the lists and
              * free the memory */
-            list_remove(curr);
+            list_remove(&timer->g_list);
+            list_remove(&timer->list);
             kfree(timer);
 
             /* return on success */
@@ -1869,52 +1873,39 @@ static void threads_ticks_update(void)
 
 static void timers_update(void)
 {
-    /* iterate through all threads */
-    struct list *curr_thread;
-    list_for_each(curr_thread, &threads_list) {
-        struct thread_info *thread = list_entry(curr_thread, struct thread_info, thread_list);
+    struct list *curr;
+    list_for_each(curr, &timers_list) {
+        struct timer *timer = list_entry(curr, struct timer, g_list);
 
-        /* the task contains no timer */
-        if(thread->timer_cnt == 0) {
+        if(!timer->enabled) {
             continue;
         }
 
-        /* iterate through all timers of the task */
-        struct list *curr_timer;
-        list_for_each(curr_timer, &thread->timers_list) {
-            /* obtain the task */
-            struct timer *timer = list_entry(curr_timer, struct timer, list);
+        /* update the timer */
+        timer_down_count(&timer->counter);
 
-            if(!timer->enabled) {
-                continue;
-            }
+        /* update the return time */
+        timer->ret_time.it_value = timer->counter;
 
-            /* update the timer */
-            timer_down_count(&timer->counter);
+        /* check if the time is up */
+        if(timer->counter.tv_sec != 0 ||
+           timer->counter.tv_nsec != 0) {
+            continue; /* no */
+        }
 
-            /* update the return time */
-            timer->ret_time.it_value = timer->counter;
+        /* reload the timer */
+        timer->counter = timer->setting.it_interval;
 
-            /* check if the time is up */
-            if(timer->counter.tv_sec != 0 ||
-               timer->counter.tv_nsec != 0) {
-                continue; /* no */
-            }
+        /* shutdown the one-shot type timer */
+        if(timer->setting.it_interval.tv_sec == 0 &&
+           timer->setting.it_interval.tv_nsec == 0) {
+            timer->enabled = false;
+        }
 
-            /* reload the timer */
-            timer->counter = timer->setting.it_interval;
-
-            /* shutdown the one-shot type timer */
-            if(timer->setting.it_interval.tv_sec == 0 &&
-               timer->setting.it_interval.tv_nsec == 0) {
-                timer->enabled = false;
-            }
-
-            /* stage the signal handler */
-            if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
-                sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
-                stage_signal_handler(thread, func, 0);
-            }
+        /* stage the signal handler */
+        if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
+            sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
+            stage_signal_handler(timer->thread, func, 0);
         }
     }
 }
@@ -2122,6 +2113,7 @@ void sched_start(void)
     list_init(&threads_list);
     list_init(&sleep_list);
     list_init(&suspend_list);
+    list_init(&timers_list);
     list_init(&signal_wait_list);
     list_init(&poll_timeout_list);
     for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
