@@ -225,48 +225,49 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
     return _task_create(task_func, priority, stack_size, KERNEL_THREAD);
 }
 
-void stage_sigaction_handler(struct thread_info *thread,
-                             sa_sigaction_t sa_sigaction,
-                             int sigval,
-                             siginfo_t *info,
-                             void *context)
+static void stage_temporary_handler(struct thread_info *thread,
+                                    uint32_t func,
+                                    uint32_t return_handler,
+                                    uint32_t args[4])
 {
     /* preserve the original stack pointer of the thread */
     thread->stack_top_preserved = (uint32_t)thread->stack_top;
 
     /* prepare a new space on user task's stack for the signal handler */
     uint32_t *stack_top = (uint32_t *)thread->stack_top - 18;
-    stack_top[17] = INITIAL_XPSR;                 //psr
-    stack_top[16] = (uint32_t)sa_sigaction;       //pc
-    stack_top[15] = (uint32_t)sig_return_handler; //lr
+    stack_top[17] = INITIAL_XPSR;   //psr
+    stack_top[16] = func;           //pc
+    stack_top[15] = return_handler; //lr
     stack_top[14] = 0;              //r12 (ip)
-    stack_top[13] = 0;              //r3
-    stack_top[12] = (uint32_t)info; //r2
-    stack_top[11] = (uint32_t)info; //r1
-    stack_top[10] = sigval;         //r0
+    stack_top[13] = args[3];        //r3
+    stack_top[12] = args[2];        //r2
+    stack_top[11] = args[1];        //r1
+    stack_top[10] = args[0];        //r0
     stack_top[8]  = THREAD_PSP;
     thread->stack_top = (struct stack *)stack_top;
 }
 
-void stage_signal_handler(struct thread_info *thread,
-                          sa_handler_t sa_handler,
-                          int sigval)
+static void stage_sigaction_handler(struct thread_info *thread,
+                                    sa_sigaction_t sa_sigaction,
+                                    int sigval,
+                                    siginfo_t *info,
+                                    void *context)
 {
-    /* preserve the original stack pointer of the thread */
-    thread->stack_top_preserved = (uint32_t)thread->stack_top;
+    uint32_t args[4];
+    args[0] = (uint32_t)sigval;
+    args[1] = (uint32_t)info;
+    args[2] = (uint32_t)context;
+    args[3] = 0;
+    stage_temporary_handler(thread, (uint32_t)sa_sigaction, (uint32_t)sig_return_handler, args);
+}
 
-    /* prepare a new space on user task's stack for the signal handler */
-    uint32_t *stack_top = (uint32_t *)thread->stack_top - 18;
-    stack_top[17] = INITIAL_XPSR;                 //psr
-    stack_top[16] = (uint32_t)sa_handler;         //pc
-    stack_top[15] = (uint32_t)sig_return_handler; //lr
-    stack_top[14] = 0;      //r12 (ip)
-    stack_top[13] = 0;      //r3
-    stack_top[12] = 0;      //r2
-    stack_top[11] = 0;      //r1
-    stack_top[10] = sigval; //r0
-    stack_top[8]  = THREAD_PSP;
-    thread->stack_top = (struct stack *)stack_top;
+static void stage_signal_handler(struct thread_info *thread,
+                                 sa_handler_t sa_handler,
+                                 int sigval)
+{
+    uint32_t args[4] = {0};
+    args[0] = (uint32_t)sigval;
+    stage_temporary_handler(thread, (uint32_t)sa_handler, (uint32_t)sig_return_handler, args);
 }
 
 static void thread_suspend(struct thread_info *thread)
