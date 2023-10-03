@@ -12,8 +12,13 @@
 #define list_first_entry(ptr, type, member) \
         list_entry((ptr)->next, type, member)
 
-#define list_for_each(curr, list) \
-	for ((curr) = (list)->next; (curr) != (list); (curr) = (curr)->next)
+#define list_for_each(curr, head) \
+	for ((curr) = (head)->next; (curr) != (head); (curr) = (curr)->next)
+
+#define list_for_each_safe(curr, _next, head) \
+        for(curr = (head)->next, _next = (curr)->next; \
+            (curr) != (head); \
+            (curr) = _next, _next = (curr)->next)
 
 #define LIST_HEAD_INIT(name) \
     {.prev = (&name), .next = (&name)}

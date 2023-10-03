@@ -453,8 +453,8 @@ void sys__exit(void)
     struct task_struct *curr_task = running_thread->task;
 
     /* remove all threads of the task */
-    struct list *curr;
-    list_for_each(curr, &curr_task->threads_list) {
+    struct list *curr, *next;
+    list_for_each_safe(curr, next, &curr_task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
         list_remove(&thread->thread_list);
@@ -1719,8 +1719,8 @@ void sys_timer_delete(void)
     struct timer *timer;
 
     /* find the timer with the id */
-    struct list *curr;
-    list_for_each(curr, &running_thread->timers_list) {
+    struct list *curr, *next;
+    list_for_each_safe(curr, next, &running_thread->timers_list) {
         /* get the timer */
         timer = list_entry(curr, struct timer, list);
 
@@ -2015,28 +2015,21 @@ static void supervisor_request_handler(void)
 
 static void schedule(void)
 {
-    /* the time quantum for the thread has not exhausted yet */
+    /* the time quantum of the current thread has not exhausted yet */
     if(running_thread->status == THREAD_RUNNING)
         return;
 
-    /* awake the sleep threads if the tick is exhausted */
-    struct list *list_itr = sleep_list.next;
-    while(list_itr != &sleep_list) {
-        /* since the thread may be removed from the list, the next task must be recorded first */
-        struct list *next = list_itr->next;
-
+    /* awaken sleep threads if the sleep tick exhausted */
+    struct list *curr, *next;
+    list_for_each_safe(curr, next, &sleep_list) {
         /* obtain the thread info */
-        struct thread_info *thread = list_entry(list_itr, struct thread_info, list);
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
-        /* thread is ready, push it into the ready list by its priority */
+        /* move the thread into the ready list if it is ready */
         if(thread->sleep_ticks == 0) {
+            list_move(curr, &ready_list[thread->priority]);
             thread->status = THREAD_READY;
-            list_remove(list_itr); //remove the thread from the sleep list
-            list_push(&ready_list[thread->priority], list_itr);
         }
-
-        /* prepare the next task to check */
-        list_itr = next;
     }
 
     /* find a ready list that contains runnable tasks */
@@ -2047,12 +2040,12 @@ static void schedule(void)
     }
 
     /* select a task from the ready list */
-    struct list *next = list_pop(&ready_list[pri]);
-    running_thread = list_entry(next, struct thread_info, list);
+    struct list *new_thread_l = list_pop(&ready_list[pri]);
+    running_thread = list_entry(new_thread_l, struct thread_info, list);
     running_thread->status = THREAD_RUNNING;
 }
 
-void hook_drivers_init(void)
+static void hook_drivers_init(void)
 {
     extern char _drvs_start;
     extern char _drvs_end;
