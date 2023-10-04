@@ -55,11 +55,11 @@ ENTRY(Reset_Handler)
 RAM_ADDR = 0x20000000;
 RAM_SIZE = 192K;
 
+/* Generate a link error if kernel stack doesn't fit into RAM */
+KERNEL_STACK_SIZE_MIN = 0x400; /* required amount of stack */
+
 /* Highest address of the user mode stack */
 _estack = 0x20030000;    /* end of RAM */
-/* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0;      /* required amount of heap  */
-_Min_Stack_Size = 0x400; /* required amount of stack */
 
 /* Specify the memory areas */
 MEMORY
@@ -197,26 +197,23 @@ SECTIONS
     *(.bss*)
     *(COMMON)
 
+    PROVIDE (_page_mem_start = .);
+    . += 32K;
+    PROVIDE (_page_mem_end = .);
+
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM
 
-  /* User_heap_stack section, used to check that there is enough RAM left */
-  ._user_heap_stack :
+  /* kernel_stack section, used to check that there is enough RAM left */
+  .kernel_stack :
   {
     . = ALIGN(4);
     PROVIDE ( end = . );
     PROVIDE ( _end = . );
-    . = . + _Min_Heap_Size;
-    . = . + _Min_Stack_Size;
+    . = . + KERNEL_STACK_SIZE_MIN;
     . = ALIGN(4);
-  } >RAM
-
-  .page_mem RAM_ADDR + RAM_SIZE - 32K : {
-    PROVIDE (_page_mem_start = .);
-    . += 26K;
-    PROVIDE (_page_mem_end = .);
   } >RAM
 
   .sdram (NOLOAD) :

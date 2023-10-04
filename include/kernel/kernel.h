@@ -95,11 +95,11 @@ struct task_struct {
 };
 
 struct thread_info {
-    struct stack *stack_top;         /* stack pointer */
-    uint32_t stack[TASK_STACK_SIZE]; /* stack memory */
+    struct stack *stack_top;  /* stack pointer */
+    uint32_t *stack;          /* stack memory (TODO: use byte as unit and support word align-up ) */
     uint32_t stack_size;
 
-    struct task_struct *task;        /* the task of this thread */
+    struct task_struct *task; /* the task of this thread */
 
     struct {
         uint32_t *r0, *r1, *r2, *r3;

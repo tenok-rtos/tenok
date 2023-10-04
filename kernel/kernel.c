@@ -18,6 +18,7 @@
 
 #include <fs/fs.h>
 #include <rom_dev.h>
+#include <mm/page.h>
 #include <mm/mpool.h>
 #include <arch/port.h>
 #include <kernel/list.h>
@@ -153,8 +154,11 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     /* allocate a new thread */
     struct thread_info *thread = &threads[thread_cnt];
 
-    /* reset the thread info structure */
+    /* reset thread data */
     memset(thread, 0, sizeof(struct thread_info));
+
+    /* allocate stack for the new thread */
+    thread->stack = alloc_pages(size_to_page_order(stack_size * 4));
 
     /*
      * stack design contains three parts:
