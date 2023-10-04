@@ -27,6 +27,7 @@
 #include <kernel/wait.h>
 #include <kernel/task.h>
 #include <kernel/util.h>
+#include <kernel/bitops.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
@@ -42,6 +43,9 @@
 
 #define INITIAL_XPSR 0x01000000
 
+//#define TASK_CNT_MAX   64
+#define THREAD_CNT_MAX 64
+
 /* global lists */
 struct list tasks_list;        /* global list for recording all tasks in the system */
 struct list threads_list;      /* global list for recording all threads in the system */
@@ -56,6 +60,9 @@ struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that read
 struct task_struct tasks[TASK_CNT_MAX];
 struct thread_info threads[TASK_CNT_MAX];
 struct thread_info *running_thread = NULL;
+uint32_t bitmap_tasks[2];   /* for dispatching task id */
+uint32_t bitmap_threads[2]; /* for dispatching thread id */
+
 int task_cnt = 0;
 int thread_cnt = 0;
 
@@ -149,9 +156,13 @@ static struct thread_info *acquire_thread(int tid)
 static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
         int stack_size, uint32_t privilege)
 {
-    if(thread_cnt >= TASK_CNT_MAX)
+    /* allocate a new thread id */
+    int tid = find_first_zero_bit(bitmap_threads, THREAD_CNT_MAX);
+    if(tid >= THREAD_CNT_MAX)
         return NULL;
+    bitmap_set_bit(bitmap_threads, tid);
 
+    /* stack size alignment */
     stack_size = align_up(stack_size, 4);
 
     /* allocate a new thread */
@@ -178,7 +189,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->stack_top = (struct stack *)stack_top;
     thread->stack_size = stack_size;
     thread->status = THREAD_WAIT;
-    thread->tid = thread_cnt;
+    thread->tid = tid;
     thread->priority = priority;
     thread->privilege = privilege;
 
@@ -209,14 +220,21 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     if(!thread)
         return -1;
 
+    /* allocate a new task id */
+    int pid = find_first_zero_bit(bitmap_tasks, TASK_CNT_MAX);
+    if(pid >= TASK_CNT_MAX)
+        return -1;
+    bitmap_set_bit(bitmap_tasks, pid);
+
     /* allocate a new task */
     struct task_struct *task = &tasks[task_cnt];
-    task->pid = task_cnt;
+    task->pid = pid;
     list_init(&task->threads_list);
     list_push(&task->threads_list, &thread->task_list);
     list_push(&tasks_list, &task->list);
     task_cnt++;
 
+    /* TODO: rewrite with memset */
     task->fd_cnt = 0;
     for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
         task->fdtable[i].used = false;
