@@ -16,6 +16,9 @@
 
 #include "kconfig.h"
 
+#define TASK_CNT_MAX   15 //FIXME: 64
+#define THREAD_CNT_MAX 64
+
 #define SIGNAL_CLEANUP_EVENT 100
 #define THREAD_JOIN_EVENT    101
 

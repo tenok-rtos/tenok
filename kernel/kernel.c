@@ -43,9 +43,6 @@
 
 #define INITIAL_XPSR 0x01000000
 
-//#define TASK_CNT_MAX   64
-#define THREAD_CNT_MAX 64
-
 /* global lists */
 struct list tasks_list;        /* global list for recording all tasks in the system */
 struct list threads_list;      /* global list for recording all threads in the system */
@@ -58,8 +55,9 @@ struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that read
 
 /* tasks and threads */
 struct task_struct tasks[TASK_CNT_MAX];
-struct thread_info threads[TASK_CNT_MAX];
+struct thread_info threads[THREAD_CNT_MAX];
 struct thread_info *running_thread = NULL;
+
 uint32_t bitmap_tasks[2];   /* for dispatching task id */
 uint32_t bitmap_threads[2]; /* for dispatching thread id */
 
@@ -315,10 +313,23 @@ static void thread_resume(struct thread_info *thread)
 
 static void thread_kill(struct thread_info *thread)
 {
-    list_remove(&thread->list);
+    /* remove the thread from the system */
+    list_remove(&thread->task_list);
     list_remove(&thread->thread_list);
+    list_remove(&thread->list);
+    thread->status = THREAD_TERMINATED;
+    bitmap_clear_bit(bitmap_threads, thread->tid);
+    thread_cnt--;
 
-    //TODO: free the thread stack
+    //TODO: free the stack memory
+
+    /* remove the task from the system if it contains no thread anymore */
+    struct task_struct *task = thread->task;
+    if(list_is_empty(&task->threads_list)) {
+        list_remove(&task->list);
+        bitmap_clear_bit(bitmap_tasks, task->pid);
+        task_cnt--;
+    }
 }
 
 /* put the task pointed by the "wait" into the "wait_list", and change the task state. */
@@ -385,19 +396,28 @@ static inline void signal_cleanup_handler(void)
 
 static inline void thread_join_handler(void)
 {
+    /* wake up the thread waiting for join */
     if(!list_is_empty(&running_thread->join_list)) {
-        /* wake up the thread */
-        struct thread_info *thread =
-            list_first_entry(&running_thread->join_list,
-                             struct thread_info, list);
-        wake_up_thread(thread);
+        wake_up(&running_thread->join_list);
     }
 
-    /* remove the exited thread from the system */
+    /* remove the thread from the system */
     list_remove(&running_thread->thread_list);
     list_remove(&running_thread->task_list);
+    list_remove(&running_thread->list);
     running_thread->status = THREAD_TERMINATED;
+    bitmap_clear_bit(bitmap_threads, running_thread->tid);
+    thread_cnt--;
+
     //TODO: free the stack memory
+
+    /* remove the task from the system if it contains no thread anymore */
+    struct task_struct *task = running_thread->task;
+    if(list_is_empty(&task->threads_list)) {
+        list_remove(&task->list);
+        bitmap_clear_bit(bitmap_tasks, task->pid);
+        task_cnt--;
+    }
 }
 
 void sys_procstat(void)
@@ -472,18 +492,29 @@ void sys_sched_yield(void)
 
 void sys__exit(void)
 {
-    //TODO: free the stack memory
-
     /* obtain the task of the running thread */
-    struct task_struct *curr_task = running_thread->task;
+    struct task_struct *task = running_thread->task;
 
-    /* remove all threads of the task */
+    /* remove all threads of the task from the system */
     struct list *curr, *next;
-    list_for_each_safe(curr, next, &curr_task->threads_list) {
+    list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
         list_remove(&thread->thread_list);
+        list_remove(&thread->task_list);
+        list_remove(&thread->list);
         thread->status = THREAD_TERMINATED;
+        bitmap_clear_bit(bitmap_threads, thread->tid);
+        thread_cnt--;
+
+        //TODO: free the stack memory
+    }
+
+    /* remove the task from the system if it contains no thread anymore */
+    if(list_is_empty(&task->threads_list)) {
+        list_remove(&task->list);
+        bitmap_clear_bit(bitmap_tasks, task->pid);
+        task_cnt--;
     }
 }
 

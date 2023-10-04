@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#include <kernel/kernel.h>
+
 #include "kconfig.h"
 
 struct procstat_info {

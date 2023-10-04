@@ -1,16 +1,16 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <fs/fs.h>
 #include <fs/reg_file.h>
-
-#include <tenok/time.h>
-#include <tenok/fcntl.h>
-#include <tenok/stdio.h>
-#include <tenok/unistd.h>
-#include <tenok/sys/stat.h>
-#include <tenok/sys/types.h>
+#include <kernel/kernel.h>
 
 #include "kconfig.h"
 
