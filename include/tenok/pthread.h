@@ -18,7 +18,7 @@ typedef uint32_t pthread_once_t;
 typedef struct {
     struct sched_param schedparam;
     void *stackaddr;
-    size_t stacksize;
+    size_t stacksize; /* bytes */
 } pthread_attr_t;
 
 typedef struct {

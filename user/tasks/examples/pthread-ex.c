@@ -34,7 +34,7 @@ void pthread_task(void)
 
     pthread_attr_t attr;
     attr.schedparam.sched_priority = 3;
-    attr.stacksize = 512;
+    attr.stacksize = 1024;
 
     pthread_t tid;
     pthread_create(&tid, &attr, my_thread, NULL);
@@ -46,4 +46,4 @@ void pthread_task(void)
     }
 }
 
-HOOK_USER_TASK(pthread_task, 0, 512);
+HOOK_USER_TASK(pthread_task, 0, 1024);

@@ -61,5 +61,5 @@ void softirq_init(void)
     list_init(&tasklet_list);
 
     /* create softirq daemon for handling tasklets  */
-    kthread_create(softirqd, KERNEL_INT_PRI, TASK_STACK_SIZE);
+    kthread_create(softirqd, KERNEL_INT_PRI, 2048);
 }

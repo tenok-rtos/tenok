@@ -62,8 +62,7 @@ struct stack {
     uint32_t r0, r1, r2, r3;
     uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
 
-    /* rest of the stack */
-    uint32_t stack[TASK_STACK_SIZE - 17];
+    /* the rest of the stack is ommited */
 };
 
 /* stack layout for threads that using fpu */
@@ -79,8 +78,7 @@ struct stack_fpu {
     uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
     uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
 
-    /* rest of the stack */
-    uint32_t stack[TASK_STACK_SIZE - 50];
+    /* the rest of the stack is ommited */
 };
 
 struct task_struct {
@@ -97,7 +95,7 @@ struct task_struct {
 struct thread_info {
     struct stack *stack_top;  /* stack pointer */
     uint32_t *stack;          /* stack memory (TODO: use byte as unit and support word align-up ) */
-    uint32_t stack_size;
+    size_t stack_size;        /* bytes */
 
     struct task_struct *task; /* the task of this thread */
 

@@ -69,5 +69,5 @@ void mavlink_in_task(void)
     }
 }
 
-HOOK_USER_TASK(mavlink_out_task, 4, 512);
-HOOK_USER_TASK(mavlink_in_task, 4, 512);
+HOOK_USER_TASK(mavlink_out_task, 4, 2048);
+HOOK_USER_TASK(mavlink_in_task, 4, 2048);

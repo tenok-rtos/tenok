@@ -26,6 +26,7 @@
 #include <kernel/time.h>
 #include <kernel/wait.h>
 #include <kernel/task.h>
+#include <kernel/util.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
 #include <kernel/syscall.h>
@@ -151,6 +152,8 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     if(thread_cnt >= TASK_CNT_MAX)
         return NULL;
 
+    stack_size = align_up(stack_size, 4);
+
     /* allocate a new thread */
     struct thread_info *thread = &threads[thread_cnt];
 
@@ -158,7 +161,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     memset(thread, 0, sizeof(struct thread_info));
 
     /* allocate stack for the new thread */
-    thread->stack = alloc_pages(size_to_page_order(stack_size * 4));
+    thread->stack = alloc_pages(size_to_page_order(stack_size));
 
     /*
      * stack design contains three parts:
@@ -201,7 +204,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
 {
     /* create a thread for the new task */
     struct thread_info *thread =
-        thread_create(task_func, priority, TASK_STACK_SIZE, privilege);
+        thread_create(task_func, priority, stack_size, privilege);
 
     if(!thread)
         return -1;
@@ -1089,7 +1092,7 @@ void sys_pthread_create(void)
     struct thread_info *thread =
         thread_create((thread_func_t)start_routine,
                       attr->schedparam.sched_priority,
-                      TASK_STACK_SIZE /*attr->stacksize*/,
+                      attr->stacksize,
                       USER_THREAD);
 
     strcpy(thread->name, running_thread->name);
@@ -2065,7 +2068,7 @@ void first(void)
     /*=============================*
      * launch the file system task *
      *=============================*/
-    task_create(file_system_task, 1, 512);
+    task_create(file_system_task, 1, 2048);
 
     /*=======================*
      * mount the file system *
@@ -2134,7 +2137,7 @@ void sched_start(void)
     softirq_init();
 
     /* create the first task */
-    _task_create(first, 0, TASK_STACK_SIZE, USER_THREAD);
+    _task_create(first, 0, 512, USER_THREAD);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
