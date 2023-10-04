@@ -234,11 +234,9 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     list_push(&tasks_list, &task->list);
     task_cnt++;
 
-    /* TODO: rewrite with memset */
+    /* reset file descriptor table */
     task->fd_cnt = 0;
-    for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-        task->fdtable[i].used = false;
-    }
+    memset(task->fdtable, 0, sizeof(task->fdtable));
 
     /* set the task ownership of the thread */
     thread->task = task;
@@ -2128,8 +2126,7 @@ void sched_start(void)
     memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
 
     /* initialize fifos for all threads */
-    int i;
-    for(i = 0; i < TASK_CNT_MAX; i++) {
+    for(int i = 0; i < TASK_CNT_MAX; i++) {
         fifo_init(i, (struct file **)&files, NULL);
     }
 
@@ -2141,7 +2138,7 @@ void sched_start(void)
     list_init(&timers_list);
     list_init(&signal_wait_list);
     list_init(&poll_timeout_list);
-    for(i = 0; i <= TASK_MAX_PRIORITY; i++) {
+    for(int i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
 
