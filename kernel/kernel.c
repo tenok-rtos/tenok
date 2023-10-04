@@ -317,7 +317,6 @@ static void thread_kill(struct thread_info *thread)
     list_remove(&thread->task_list);
     list_remove(&thread->thread_list);
     list_remove(&thread->list);
-    thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, thread->tid);
     thread_cnt--;
 
@@ -405,7 +404,6 @@ static inline void thread_join_handler(void)
     list_remove(&running_thread->thread_list);
     list_remove(&running_thread->task_list);
     list_remove(&running_thread->list);
-    running_thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, running_thread->tid);
     thread_cnt--;
 
@@ -503,7 +501,6 @@ void sys__exit(void)
         list_remove(&thread->thread_list);
         list_remove(&thread->task_list);
         list_remove(&thread->list);
-        thread->status = THREAD_TERMINATED;
         bitmap_clear_bit(bitmap_threads, thread->tid);
         thread_cnt--;
 
