@@ -320,7 +320,8 @@ static void thread_kill(struct thread_info *thread)
     bitmap_clear_bit(bitmap_threads, thread->tid);
     thread_cnt--;
 
-    //TODO: free the stack memory
+    /* free the stack memory */
+    free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
 
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = thread->task;
@@ -407,7 +408,9 @@ static inline void thread_join_handler(void)
     bitmap_clear_bit(bitmap_threads, running_thread->tid);
     thread_cnt--;
 
-    //TODO: free the stack memory
+    /* free the stack memory */
+    free_pages((uint32_t)running_thread->stack,
+               size_to_page_order(running_thread->stack_size));
 
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = running_thread->task;
@@ -498,13 +501,15 @@ void sys__exit(void)
     list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
+        /* remove thread from the system */
         list_remove(&thread->thread_list);
         list_remove(&thread->task_list);
         list_remove(&thread->list);
         bitmap_clear_bit(bitmap_threads, thread->tid);
         thread_cnt--;
 
-        //TODO: free the stack memory
+        /* free the stack memory */
+        free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
     }
 
     /* remove the task from the system if it contains no thread anymore */
