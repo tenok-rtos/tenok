@@ -10,11 +10,13 @@
 #include "kconfig.h"
 
 struct procstat_info {
-    int      pid;
-    int      priority;
-    int      status;
-    uint32_t privilege;
-    char     name[TASK_NAME_LEN_MAX];
+    int    pid;
+    int    priority;
+    int    status;
+    bool   privileged;
+    size_t stack_usage;
+    size_t stack_size;
+    char   name[TASK_NAME_LEN_MAX];
 };
 
 /* non-posix syscalls */

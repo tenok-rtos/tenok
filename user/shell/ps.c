@@ -2,9 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <kernel/kernel.h>
-
 #include "shell.h"
+
+static void stack_usage(char *buf, size_t buf_size, size_t stack_usage, size_t stack_size)
+{
+    int integer = (stack_usage * 100) / stack_size;
+    int fraction = ((stack_usage * 1000) / stack_size) - (integer * 10);
+    snprintf(buf, buf_size, "%2d.%d", integer, fraction);
+}
 
 static void ps(void)
 {
@@ -14,7 +19,7 @@ static void ps(void)
     char *stat;
     char s[100] = {0};
 
-    shell_puts("PID\tPR\tSTAT\tNAME\n\r");
+    shell_puts("PID\tPR\tSTAT\tSTACK\%\t  COMMAND\n\r");
 
     for(int i = 0; i < task_cnt; i++) {
         switch(info[i].status) {
@@ -33,14 +38,19 @@ static void ps(void)
                 break;
         }
 
-        if(info[i].privilege == KERNEL_THREAD) {
-            snprintf(s, 100, "%d\t%d\t%s\t[%s]\n\r",
+        char s_stack_usage[10] = {0};
+        stack_usage(s_stack_usage, 10, info[i].stack_usage, info[i].stack_size);
+
+        if(info[i].privileged) {
+            snprintf(s, 100, "%d\t%d\t%s\t%2s\t  [%s]\n\r",
                      info[i].pid, info[i].priority,
-                     stat, info[i].name);
+                     stat, s_stack_usage,
+                     info[i].name);
         } else {
-            snprintf(s, 100, "%d\t%d\t%s\t%s\n\r",
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r",
                      info[i].pid, info[i].priority,
-                     stat, info[i].name);
+                     stat, s_stack_usage,
+                     info[i].name);
         }
 
         shell_puts(s);

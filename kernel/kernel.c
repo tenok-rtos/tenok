@@ -435,7 +435,9 @@ void sys_procstat(void)
         info[i].pid = thread->task->pid;
         info[i].priority = thread->priority;
         info[i].status = thread->status;
-        info[i].privilege = thread->privilege;
+        info[i].privileged = thread->privilege == KERNEL_THREAD;
+        info[i].stack_usage = (size_t)&thread->stack[thread->stack_size] - (size_t)thread->stack_top;
+        info[i].stack_size = thread->stack_size;
         strncpy(info[i].name, thread->name, TASK_NAME_LEN_MAX);
 
         i++;
