@@ -14,14 +14,14 @@ void Default_Handler(void);
 void irq_handler(void);
 
 void Reset_Handler(void);
-ISR void NMI_Handler(void);
-ISR void HardFault_Handler(void);
-ISR void MemManage_Handler(void);
-ISR void BusFault_Handler(void);
-ISR void UsageFault_Handler(void);
-ISR void SVC_Handler(void);
-ISR void DebugMon_Handler(void);
-ISR void PendSV_Handler(void);
+void NMI_Handler(void);
+void HardFault_Handler(void);
+void MemManage_Handler(void);
+void BusFault_Handler(void);
+void UsageFault_Handler(void);
+void SVC_Handler(void);
+void DebugMon_Handler(void);
+void PendSV_Handler(void);
 void SysTick_Handler(void);
 
 extern uint32_t _estack;
@@ -143,6 +143,35 @@ void SysTick_Handler(void)
 {
     /* set nvic pendsv bit */
     SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
+}
+
+void NMI_Handler(void)
+{
+    while(1);
+}
+
+void HardFault_Handler(void)
+{
+    while(1);
+}
+
+void MemManage_Handler(void)
+{
+    while(1);
+}
+
+void BusFault_Handler(void)
+{
+    while(1);
+}
+
+void UsageFault_Handler(void)
+{
+    while(1);
+}
+
+void DebugMon_Handler(void)
+{
 }
 
 void irq_handler(void)
