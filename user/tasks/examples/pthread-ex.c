@@ -20,7 +20,7 @@ void *my_thread(void *arg)
         sleep(1);
     }
 
-    pthread_exit(0);
+    return 0;
 }
 
 void pthread_task(void)
@@ -46,4 +46,4 @@ void pthread_task(void)
     }
 }
 
-HOOK_USER_TASK(pthread_task, 0, 1024);
+HOOK_USER_TASK(pthread_task, 0, 2048);
