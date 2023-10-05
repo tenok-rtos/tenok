@@ -164,7 +164,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     stack_size = align_up(stack_size, 4);
 
     /* allocate a new thread */
-    struct thread_info *thread = &threads[thread_cnt];
+    struct thread_info *thread = &threads[tid];
 
     /* reset thread data */
     memset(thread, 0, sizeof(struct thread_info));
@@ -225,7 +225,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     bitmap_set_bit(bitmap_tasks, pid);
 
     /* allocate a new task */
-    struct task_struct *task = &tasks[task_cnt];
+    struct task_struct *task = &tasks[pid];
     task->pid = pid;
     list_init(&task->threads_list);
     list_push(&task->threads_list, &thread->task_list);
