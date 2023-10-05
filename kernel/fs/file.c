@@ -19,7 +19,7 @@
 
 extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 
-int fopen(const char *pathname, const char *mode, FILE *stream)
+int _fopen(const char *pathname, const char *mode, FILE *stream)
 {
     /* open the file with the system call */
     int fd = open(pathname, 0);
@@ -42,12 +42,12 @@ int fopen(const char *pathname, const char *mode, FILE *stream)
     return 0;
 }
 
-int fclose(FILE *stream)
+int _fclose(FILE *stream)
 {
     return close(stream->fd);
 }
 
-size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     /* start of the critical section */
     spin_lock(&stream->lock);
@@ -75,7 +75,7 @@ size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
     return total;
 }
 
-size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     /* start of the critical section */
     spin_lock(&stream->lock);
@@ -104,12 +104,12 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
     return total;
 }
 
-int fseek(FILE *stream, long offset, int whence)
+int _fseek(FILE *stream, long offset, int whence)
 {
     return lseek(stream->fd, offset, whence);
 }
 
-int fileno(FILE *stream)
+int _fileno(FILE *stream)
 {
     return stream->fd;
 }

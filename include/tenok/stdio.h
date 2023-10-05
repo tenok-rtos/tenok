@@ -15,6 +15,13 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
+#define fopen _fopen
+#define fclose _fclose
+#define fread _fread
+#define fwrite _fwrite
+#define fseek _fseek
+#define fileno _fileno
+
 typedef struct {
     spinlock_t lock;
     int fd;
