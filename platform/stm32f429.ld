@@ -185,6 +185,13 @@ SECTIONS
     _eccmram = .;       /* create a global symbol at ccmram end */
   } >CCMRAM AT> FLASH
 
+  . = ALIGN(4);
+  .pgmem :
+  {
+    PROVIDE (_page_mem_start = .);
+    . += 32K;
+    PROVIDE (_page_mem_end = .);
+  } >RAM
   
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -196,10 +203,6 @@ SECTIONS
     *(.bss)
     *(.bss*)
     *(COMMON)
-
-    PROVIDE (_page_mem_start = .);
-    . += 32K;
-    PROVIDE (_page_mem_end = .);
 
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */

@@ -95,13 +95,12 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
-
-   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
+  .ARM.extab : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
     .ARM : {
     __exidx_start = .;
-      *(.ARM.exidx*)
-      __exidx_end = .;
-    } >FLASH
+    *(.ARM.exidx*)
+    __exidx_end = .;
+  } >FLASH
 
   .preinit_array     :
   {
@@ -139,6 +138,14 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM
 
+  . = ALIGN(4);
+  .pgmem :
+  {
+    PROVIDE (_page_mem_start = .);
+    . += 32K;
+    PROVIDE (_page_mem_end = .);
+  } >RAM
+
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
@@ -149,10 +156,6 @@ SECTIONS
     *(.bss)
     *(.bss*)
     *(COMMON)
-
-    PROVIDE (_page_mem_start = .);
-    . += 32K;
-    PROVIDE (_page_mem_end = .);
 
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
