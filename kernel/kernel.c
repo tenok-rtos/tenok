@@ -178,7 +178,8 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
      * _r7 (for passing system call number), and
      * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
      */
-    uint32_t *stack_top = thread->stack + stack_size - 18;
+    size_t stack_size_word = stack_size / 4;
+    uint32_t *stack_top = thread->stack + stack_size_word - 18;
     stack_top[17] = INITIAL_XPSR;
     stack_top[16] = (uint32_t)thread_func;           // pc = task_entry
     stack_top[15] = (uint32_t)thread_return_handler; // lr
@@ -432,11 +433,13 @@ void sys_procstat(void)
     struct list *curr;
     list_for_each(curr, &threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
+        int stack_size_word = thread->stack_size / 4;
+
         info[i].pid = thread->task->pid;
         info[i].priority = thread->priority;
         info[i].status = thread->status;
         info[i].privileged = thread->privilege == KERNEL_THREAD;
-        info[i].stack_usage = (size_t)&thread->stack[thread->stack_size] - (size_t)thread->stack_top;
+        info[i].stack_usage = (size_t)&thread->stack[stack_size_word] - (size_t)thread->stack_top;
         info[i].stack_size = thread->stack_size;
         strncpy(info[i].name, thread->name, TASK_NAME_LEN_MAX);
 
