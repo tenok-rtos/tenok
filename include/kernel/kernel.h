@@ -97,7 +97,7 @@ struct task_struct {
 
 struct thread_info {
     struct stack *stack_top;  /* stack pointer */
-    uint32_t *stack;          /* stack memory (TODO: use byte as unit and support word align-up ) */
+    uint32_t *stack;          /* base address to the thread stack */
     size_t stack_size;        /* bytes */
 
     struct task_struct *task; /* the task of this thread */
