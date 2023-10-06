@@ -57,12 +57,8 @@ struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that read
 struct task_struct tasks[TASK_CNT_MAX];
 struct thread_info threads[THREAD_CNT_MAX];
 struct thread_info *running_thread = NULL;
-
 uint32_t bitmap_tasks[2];   /* for dispatching task id */
 uint32_t bitmap_threads[2]; /* for dispatching thread id */
-
-int task_cnt = 0;
-int thread_cnt = 0;
 
 /* memory pool */
 struct memory_pool mem_pool;
@@ -172,8 +168,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     /* allocate stack for the new thread */
     thread->stack = alloc_pages(size_to_page_order(stack_size));
 
-    /*
-     * stack design contains three parts:
+    /* stack design contains three parts:
      * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setup exception return),
      * _r7 (for passing system call number), and
      * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
@@ -204,8 +199,6 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     /* put the new thread in the sleep list */
     list_push(&sleep_list, &thread->list);
 
-    thread_cnt++;
-
     return thread;
 }
 
@@ -231,7 +224,6 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     list_init(&task->threads_list);
     list_push(&task->threads_list, &thread->task_list);
     list_push(&tasks_list, &task->list);
-    task_cnt++;
 
     /* reset file descriptor table */
     task->fd_cnt = 0;
@@ -320,7 +312,6 @@ static void thread_kill(struct thread_info *thread)
     list_remove(&thread->list);
     thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, thread->tid);
-    thread_cnt--;
 
     /* free the stack memory */
     free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
@@ -330,7 +321,6 @@ static void thread_kill(struct thread_info *thread)
     if(list_is_empty(&task->threads_list)) {
         list_remove(&task->list);
         bitmap_clear_bit(bitmap_tasks, task->pid);
-        task_cnt--;
     }
 }
 
@@ -409,7 +399,6 @@ static inline void thread_join_handler(void)
     list_remove(&running_thread->list);
     running_thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, running_thread->tid);
-    thread_cnt--;
 
     /* free the stack memory */
     free_pages((uint32_t)running_thread->stack,
@@ -420,7 +409,6 @@ static inline void thread_join_handler(void)
     if(list_is_empty(&task->threads_list)) {
         list_remove(&task->list);
         bitmap_clear_bit(bitmap_tasks, task->pid);
-        task_cnt--;
     }
 }
 
@@ -514,7 +502,6 @@ void sys__exit(void)
         list_remove(&thread->list);
         thread->status = THREAD_TERMINATED;
         bitmap_clear_bit(bitmap_threads, thread->tid);
-        thread_cnt--;
 
         /* free the stack memory */
         free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
@@ -524,7 +511,6 @@ void sys__exit(void)
     if(list_is_empty(&task->threads_list)) {
         list_remove(&task->list);
         bitmap_clear_bit(bitmap_tasks, task->pid);
-        task_cnt--;
     }
 }
 
