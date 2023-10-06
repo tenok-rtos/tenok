@@ -5,10 +5,11 @@
 extern char _page_mem_start;
 
 /* .pgmem section (32KB):
- *     - 128 pages of 256B requires a 16-bytes map
- *     -  64 pages of 512B requires a  8-bytes map
- *     -  32 pages of  1KB requires a  4-bytes map
- *     -  16 pages os  2KB requires a  2-bytes map
+ *     - 128 pages of 256B require a  16-byte map
+ *     -  64 pages of 512B require an  8-byte map
+ *     -  32 pages of  1KB require a   4-byte map
+ *     -  16 pages of  2KB require a   2-byte map
+ *     -   8 pages of  4KB require a   1-byte map
  *
  * bit map = 0 means used (allocated) or undefined (i.e, not been allocated yet)
  * bit map = 1 means free (allocated) */
@@ -16,10 +17,11 @@ static unsigned long *const page_bitmap[] = {
     (unsigned long []){0, 0, 0, 0}, /* 16 bytes */
     (unsigned long []){0, 0},       /*  8 bytes */
     (unsigned long []){0},          /*  4 bytes */
-    (unsigned long []){0xffff},     /*  2 bytes */
+    (unsigned long []){0},          /*  2 bytes */
+    (unsigned long []){0xff},       /*  1 byte  */
 };
 
-static const unsigned long page_bitmap_sz[] = {128, 64, 32, 16};
+static const unsigned long page_bitmap_sz[] = {128, 64, 32, 16, 8};
 
 long size_to_page_order(unsigned long size)
 {
@@ -27,6 +29,7 @@ long size_to_page_order(unsigned long size)
     if(size <= 512) return 1;
     if(size <= 1024) return 2;
     if(size <= 2048) return 3;
+    if(size <= 4096) return 4;
 
     return -1;
 }

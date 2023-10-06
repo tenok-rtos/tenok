@@ -1,7 +1,7 @@
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
-#define PAGE_ORDER_MAX 3
+#define PAGE_ORDER_MAX 4
 #define PAGE_SIZE_MIN  256
 
 void *alloc_pages(unsigned long order);
