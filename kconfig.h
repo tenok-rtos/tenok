@@ -16,7 +16,7 @@
 #define MQUEUE_CNT_MAX       50
 
 /* file system */
-#define FILE_SYSTEM_FD       3
+#define FILE_SYSTEM_FD       1
 
 #define PIPE_DEPTH           100  /* notice that if the path depth is too shallow, *
                                    * the file operation request will failed        */

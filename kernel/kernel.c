@@ -2119,11 +2119,6 @@ void first(void)
 {
     setprogname("idle");
 
-    /*=============================*
-     * launch the file system task *
-     *=============================*/
-    task_create(file_system_task, 1, 1024);
-
     /*=======================*
      * mount the file system *
      *=======================*/
@@ -2188,11 +2183,10 @@ void sched_start(void)
     printk_init();
     boot_message();
 
-    /* initialize the softirq deamon */
+    /* initialize kernel threads and deamons */
+    kthread_create(first, 0, 512);
+    kthread_create(file_system_task, 1, 1024);
     softirq_init();
-
-    /* create the first task */
-    _task_create(first, 0, 512, USER_THREAD);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];

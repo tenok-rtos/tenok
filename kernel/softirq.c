@@ -10,7 +10,7 @@
 
 #include "kconfig.h"
 
-#define SOFTIRQD_PID 1
+#define SOFTIRQD_PID 2
 
 extern struct thread_info threads[TASK_CNT_MAX];
 extern struct list ready_list[TASK_MAX_PRIORITY + 1];
