@@ -15,8 +15,12 @@ extern char _shell_cmds_end;
 extern struct inode *shell_dir_curr;
 
 struct shell shell;
-struct shell_history history[SHELL_HISTORY_MAX];
-struct shell_autocompl autocompl[100]; //XXX: handle with mpool
+
+static struct shell_history history[SHELL_HISTORY_MAX];
+static struct shell_autocompl autocompl[100]; //XXX: handle with mpool
+
+static char shell_path[PATH_LEN_MAX];
+static char prompt[SHELL_PROMPT_LEN_MAX];
 
 void boot_message(void)
 {
@@ -35,9 +39,6 @@ void boot_message(void)
 void shell_task(void)
 {
     setprogname("shell");
-
-    char shell_path[PATH_LEN_MAX] = {0};
-    char prompt[SHELL_PROMPT_LEN_MAX] = {0};
 
     struct shell_cmd *shell_cmds = (struct shell_cmd *)&_shell_cmds_start;
     int  shell_cmd_cnt = SHELL_CMDS_CNT(_shell_cmds_start, _shell_cmds_end);
