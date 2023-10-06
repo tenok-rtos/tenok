@@ -66,5 +66,5 @@ void signal_task2(void)
     }
 }
 
-HOOK_USER_TASK(signal_task1, 0, 2048);
-HOOK_USER_TASK(signal_task2, 0, 2048);
+HOOK_USER_TASK(signal_task1, 0, 1024);
+HOOK_USER_TASK(signal_task2, 0, 1024);

@@ -2125,7 +2125,7 @@ void first(void)
     /*=============================*
      * launch the file system task *
      *=============================*/
-    task_create(file_system_task, 1, 2048);
+    task_create(file_system_task, 1, 1024);
 
     /*=======================*
      * mount the file system *

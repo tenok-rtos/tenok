@@ -46,4 +46,4 @@ void pthread_task(void)
     }
 }
 
-HOOK_USER_TASK(pthread_task, 0, 2048);
+HOOK_USER_TASK(pthread_task, 0, 1024);

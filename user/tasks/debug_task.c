@@ -48,4 +48,4 @@ void debug_link_task(void)
     }
 }
 
-HOOK_USER_TASK(debug_link_task, 3, 2048);
+HOOK_USER_TASK(debug_link_task, 3, 1024);
