@@ -7,9 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <pthread.h>
 #include <sys/types.h>
-
-#include <kernel/spinlock.h>
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
@@ -23,7 +22,7 @@
 #define fileno _fileno
 
 typedef struct {
-    spinlock_t lock;
+    pthread_mutex_t lock;
     int fd;
 } FILE;
 
