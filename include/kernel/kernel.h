@@ -16,7 +16,7 @@
 
 #include "kconfig.h"
 
-#define TASK_CNT_MAX   15 //FIXME: 64
+#define TASK_CNT_MAX   32
 #define THREAD_CNT_MAX 64
 
 #define SIGNAL_CLEANUP_EVENT 100
