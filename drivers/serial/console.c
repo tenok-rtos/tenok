@@ -33,6 +33,12 @@ static struct file_operations serial0_file_ops = {
     .write = serial0_write
 };
 
+/* helper function for printk() */
+bool console_is_free(void)
+{
+    return uart1.tx_state == UART_TX_IDLE;
+}
+
 void uart1_init(uint32_t baudrate)
 {
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -118,6 +124,13 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
         uart1.rx_wait_size = size;
         return 0;
     }
+}
+
+/* uart1 tx is shared by printk() and stdout (shell) */
+ssize_t console_write(const char *buf, size_t size)
+{
+    //TODO: support tx dma for printk
+    return uart_puts(USART1, buf, size);
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset)

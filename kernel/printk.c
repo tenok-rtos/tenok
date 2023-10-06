@@ -1,9 +1,26 @@
 #include <stdio.h>
+#include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
 
-#include "shell.h"
+#include <kernel/time.h>
+#include <kernel/kfifo.h>
+#include <kernel/printk.h>
+
+#define PRINTK_BUF_LEN   100
+#define PRINTK_FIFO_SIZE 5
+
+bool console_is_free(void);
+ssize_t console_write(const char *buf, size_t size);
+
+struct printk_struct {
+    char buf[PRINTK_BUF_LEN];
+    size_t len;
+};
+
+static struct kfifo *printk_fifo;
+static struct printk_struct printk_buf;
+static int printk_state;
 
 void ltoa(char *buf, unsigned long i, int base)
 {
@@ -41,7 +58,7 @@ void printk(char *format,  ...)
     va_start(args, format);
 
     struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
+    get_sys_time(&tp);
 
     char sec[15] = {0};
     ltoa(sec, tp.tv_sec, 10);
@@ -54,11 +71,38 @@ void printk(char *format,  ...)
         zeros[i] = '0';
     }
 
-    char buf[200] = {0};
-    int pos = sprintf(buf, "[%5s.%s%s] ", sec, zeros, rem);
-    pos += vsprintf(&buf[pos], format, args);
-    pos += sprintf(&buf[pos], "\n\r");
+    struct printk_struct printk_obj;
+
+    int pos = sprintf(printk_obj.buf, "[%5s.%s%s] ", sec, zeros, rem);
+    pos += vsprintf(&printk_obj.buf[pos], format, args);
+    pos += sprintf(&printk_obj.buf[pos], "\n\r");
     va_end(args);
 
-    shell_puts(buf); //FIXME: should not rely on shell function
+    printk_obj.len = strlen(printk_obj.buf);
+    kfifo_in(printk_fifo, &printk_obj, 1);
+}
+
+void printk_init(void)
+{
+    printk_fifo = kfifo_alloc(sizeof(struct printk_struct),
+                              PRINTK_FIFO_SIZE);
+}
+
+void printk_handler(void)
+{
+    switch(printk_state) {
+        case PRINTK_IDLE:
+            break;
+        case PRINTK_BUSY:
+            if(console_is_free())
+                printk_state = PRINTK_IDLE;
+            else
+                return;
+    }
+
+    if(!kfifo_is_empty(printk_fifo) && console_is_free()) {
+        kfifo_out(printk_fifo, &printk_buf, 1);
+        console_write(printk_buf.buf, printk_buf.len);
+        printk_state = PRINTK_BUSY;
+    }
 }

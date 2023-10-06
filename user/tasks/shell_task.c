@@ -5,7 +5,6 @@
 #include <sys/resource.h>
 
 #include <kernel/task.h>
-#include <kernel/printk.h>
 
 #include "shell.h"
 #include "fs.h"
@@ -21,20 +20,6 @@ static struct shell_autocompl autocompl[100]; //XXX: handle with mpool
 
 static char shell_path[PATH_LEN_MAX];
 static char prompt[SHELL_PROMPT_LEN_MAX];
-
-void boot_message(void)
-{
-    //XXX: mimic the printk output, the code still need to be improved
-
-    printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
-    printk("Machine model: %s", __BOARD_NAME__);
-    printk("chardev serial0: console");
-    printk("chardev serial1: mavlink");
-    printk("chardev serial2: debug-link");
-    printk("blkdev rom: romfs storage");
-
-    shell_puts("type `help' for help\n\r");
-}
 
 void shell_task(void)
 {
@@ -53,7 +38,7 @@ void shell_task(void)
     shell_cls();
 #endif
 
-    boot_message();
+    shell_puts("type `help' for help\n\r");
 
     while(1) {
         fs_get_pwd(shell_path, shell_dir_curr);

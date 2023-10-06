@@ -27,6 +27,7 @@
 #include <kernel/wait.h>
 #include <kernel/task.h>
 #include <kernel/util.h>
+#include <kernel/printk.h>
 #include <kernel/bitops.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
@@ -2104,6 +2105,16 @@ static void hook_drivers_init(void)
     }
 }
 
+void boot_message(void)
+{
+    printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
+    printk("Machine model: %s", __BOARD_NAME__);
+    printk("chardev serial0: console");
+    printk("chardev serial1: mavlink");
+    printk("chardev serial2: debug-link");
+    printk("blkdev rom: romfs storage");
+}
+
 void first(void)
 {
     setprogname("idle");
@@ -2174,6 +2185,8 @@ void sched_start(void)
 
     /* initialized all hooked drivers */
     hook_drivers_init();
+    printk_init();
+    boot_message();
 
     /* initialize the softirq deamon */
     softirq_init();
@@ -2202,6 +2215,8 @@ void sched_start(void)
             syscall_handler();
             schedule();
         }
+
+        printk_handler();
 
         /* jump to the selected thread */
         running_thread->stack_top =
