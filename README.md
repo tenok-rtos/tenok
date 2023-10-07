@@ -9,7 +9,7 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 * POSIX interface
 * Dual mode: Kernel mode / User mode
 * Task and Thread (Task resembles UNIX process as a group of threads)
-* Linux-like design: Wait queue, kfifo, and Tasklet (Softirq)
+* Linux-like design: Wait queue, tasklet, kfifo, and printk
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
 * Asynchronous signals
