@@ -98,14 +98,13 @@ int serial1_open(struct inode *inode, struct file *file)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    bool ready = kfifo_len(uart2.rx_fifo) >= size;
-    wait_event(&uart2.rx_wq, ready);
+    CURRENT_THREAD_INFO(curr_thread);
 
-    if(ready) {
+    if(kfifo_len(uart2.rx_fifo) >= size) {
         kfifo_out(uart2.rx_fifo, buf, size);
         return size;
     } else {
-        uart2.rx_wait_size = size;
+        prepare_to_wait(&uart2.rx_wq, &curr_thread->list, THREAD_WAIT);
         return -ERESTARTSYS;
     }
 }

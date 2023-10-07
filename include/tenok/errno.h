@@ -3,6 +3,7 @@
 
 #define EPERM   1
 #define ESRCH   3
+#define EIO     5
 #define ENXIO   6
 #define EBADF   9
 #define EAGAIN  11

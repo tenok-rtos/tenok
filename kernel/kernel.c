@@ -327,7 +327,6 @@ static void thread_kill(struct thread_info *thread)
     }
 }
 
-/* put the task pointed by the "wait" into the "wait_list", and change the task state. */
 void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
 {
     list_push(wait_list, wait);
@@ -336,23 +335,6 @@ void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
     thread->status = state;
 }
 
-void wait_event(struct list *wq, bool condition)
-{
-    CURRENT_THREAD_INFO(curr_thread);
-
-    if(condition) {
-        reset_syscall_pending(curr_thread);
-    } else {
-        prepare_to_wait(wq, &curr_thread->list, THREAD_WAIT);
-        set_syscall_pending(curr_thread);
-    }
-}
-
-/*
- * move the thread from the wait_list into the ready_list.
- * the task will not be executed immediately and requires
- * to wait until the scheduler select it.
- */
 void wake_up(struct list *wait_list)
 {
     struct thread_info *highest_pri_thread = NULL;
@@ -378,10 +360,11 @@ void wake_up(struct list *wait_list)
     highest_pri_thread->status = THREAD_READY;
 }
 
-void wake_up_thread(struct thread_info *thread)
+void finish_wait(struct list *thread_list)
 {
-    list_move(&thread->list, &ready_list[thread->priority]);
+    struct thread_info *thread = list_entry(thread_list, struct thread_info, list);
     thread->status = THREAD_READY;
+    list_move(thread_list, &ready_list[thread->priority]);
 }
 
 static inline void signal_cleanup_handler(void)
@@ -1369,7 +1352,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         thread->wait_for_signal = false;
 
         /* wake up the waiting thread and setup return values */
-        wake_up_thread(thread);
+        finish_wait(&thread->list);
         *thread->ret_sig = signum;
         *(int *)thread->reg.r0 = 0;
     }

@@ -125,14 +125,13 @@ int serial0_open(struct inode *inode, struct file *file)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    bool ready = kfifo_len(uart1.rx_fifo) >= size;
-    wait_event(&uart1.rx_wq, ready);
+    CURRENT_THREAD_INFO(curr_thread);
 
-    if(ready) {
+    if(kfifo_len(uart1.rx_fifo) >= size) {
         kfifo_out(uart1.rx_fifo, buf, size);
         return size;
     } else {
-        uart1.rx_wait_size = size;
+        prepare_to_wait(&uart1.rx_wq, &curr_thread->list, THREAD_WAIT);
         return -ERESTARTSYS;
     }
 }
@@ -155,45 +154,50 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart1_dma_puts(const char *data, size_t size)
 {
-    if(uart1.tx_state == UART_TX_IDLE) {
-        /* configure the dma */
-        DMA_InitTypeDef DMA_InitStructure = {
-            .DMA_BufferSize = (uint32_t)size,
-            .DMA_FIFOMode = DMA_FIFOMode_Disable,
-            .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
-            .DMA_MemoryBurst = DMA_MemoryBurst_Single,
-            .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
-            .DMA_MemoryInc = DMA_MemoryInc_Enable,
-            .DMA_Mode = DMA_Mode_Normal,
-            .DMA_PeripheralBaseAddr = (uint32_t)(&USART1->DR),
-            .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
-            .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
-            .DMA_Priority = DMA_Priority_Medium,
-            .DMA_Channel = DMA_Channel_4,
-            .DMA_DIR = DMA_DIR_MemoryToPeripheral,
-            .DMA_Memory0BaseAddr = (uint32_t)data
-        };
-        DMA_Init(DMA2_Stream7, &DMA_InitStructure);
+    CURRENT_THREAD_INFO(curr_thread);
 
-        /* enable dma to copy the data */
-        DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
-        DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
-        DMA_Cmd(DMA2_Stream7, ENABLE);
+    switch(uart1.tx_state) {
+        case UART_TX_IDLE: {
+            /* configure the dma */
+            DMA_InitTypeDef DMA_InitStructure = {
+                .DMA_BufferSize = (uint32_t)size,
+                .DMA_FIFOMode = DMA_FIFOMode_Disable,
+                .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
+                .DMA_MemoryBurst = DMA_MemoryBurst_Single,
+                .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
+                .DMA_MemoryInc = DMA_MemoryInc_Enable,
+                .DMA_Mode = DMA_Mode_Normal,
+                .DMA_PeripheralBaseAddr = (uint32_t)(&USART1->DR),
+                .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
+                .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
+                .DMA_Priority = DMA_Priority_Medium,
+                .DMA_Channel = DMA_Channel_4,
+                .DMA_DIR = DMA_DIR_MemoryToPeripheral,
+                .DMA_Memory0BaseAddr = (uint32_t)data
+            };
+            DMA_Init(DMA2_Stream7, &DMA_InitStructure);
 
-        uart1.tx_state = UART_TX_DMA_BUSY;
-        uart1.tx_dma_ready = false;
-    }
+            /* enable dma to copy the data */
+            DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
+            DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+            DMA_Cmd(DMA2_Stream7, ENABLE);
 
-    if(uart1.tx_state == UART_TX_DMA_BUSY) {
-        wait_event(&uart1.tx_wq, uart1.tx_dma_ready);
+            uart1.tx_state = UART_TX_DMA_BUSY;
+            uart1.tx_dma_ready = false;
 
-        if(uart1.tx_dma_ready) {
+            /* wait until dma complete data transfer */
+            prepare_to_wait(&uart1.tx_wq, &curr_thread->list, THREAD_WAIT);
+            return -ERESTARTSYS;
+        }
+        case UART_TX_DMA_BUSY: {
+            /* notified by the dma irq, the data transfer is now complete */
             uart1.tx_state = UART_TX_IDLE;
             return size;
         }
+        default: {
+            return -EIO;
+        }
     }
-
-    return -ERESTARTSYS;
 }
 
 void USART1_IRQHandler(void)
