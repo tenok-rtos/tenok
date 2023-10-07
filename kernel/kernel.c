@@ -307,7 +307,7 @@ static void thread_resume(struct thread_info *thread)
     list_move(&thread->list, &ready_list[thread->priority]);
 }
 
-static void thread_kill(struct thread_info *thread)
+static void thread_delete(struct thread_info *thread)
 {
     /* remove the thread from the system */
     list_remove(&thread->task_list);
@@ -1266,7 +1266,7 @@ void sys_pthread_cancel(void)
         return;
     }
 
-    thread_kill(thread);
+    thread_delete(thread);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1378,7 +1378,7 @@ static void handle_signal(struct thread_info *thread, int signum)
             break;
         case SIGKILL: {
             /* kill: can't be caught or ignored */
-            thread_kill(thread);
+            thread_delete(thread);
             break;
         }
     }
