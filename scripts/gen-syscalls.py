@@ -18,8 +18,6 @@ syscalls = \
  'fstat',
  'opendir',
  'readdir',
- 'getpriority',
- 'setpriority',
  'getpid',
  'gettid',
  'mknod',

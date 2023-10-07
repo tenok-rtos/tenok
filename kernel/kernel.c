@@ -871,42 +871,6 @@ void sys_readdir(void)
     SYSCALL_ARG(int, 0) = (uint32_t)fs_read_dir(dirp, dirent);
 }
 
-void sys_getpriority(void)
-{
-    /* return the task priority with r0 */
-    SYSCALL_ARG(int, 0) = running_thread->priority;
-}
-
-void sys_setpriority(void)
-{
-    /* read syscall arguments */
-    int which = SYSCALL_ARG(int, 0);
-    int who = SYSCALL_ARG(int, 1);
-    int priority = SYSCALL_ARG(int, 2);
-
-    /* unsupported type of the `which' argument */
-    if(which != PRIO_PROCESS) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
-    }
-
-    /* acquire the task with pid */
-    struct thread_info *task = acquire_thread(who);
-
-    /* check if the task is found */
-    if(task) {
-        /* set new task priority */
-        task->priority = priority;
-
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
-    } else {
-        /* task not found, return on error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-    }
-}
-
 void sys_getpid(void)
 {
     /* return the task pid */

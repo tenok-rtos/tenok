@@ -50,16 +50,6 @@ NACKED void _exit(int status)
     SYSCALL(_EXIT);
 }
 
-NACKED int getpriority(void)
-{
-    SYSCALL(GETPRIORITY);
-}
-
-NACKED int setpriority(int which, int who, int prio)
-{
-    SYSCALL(SETPRIORITY);
-}
-
 NACKED int getpid(void)
 {
     SYSCALL(GETPID);
