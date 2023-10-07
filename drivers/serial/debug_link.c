@@ -19,6 +19,7 @@ static int uart3_dma_puts(const char *data, size_t size);
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int serial2_open(struct inode *inode, struct file *file);
 
 void USART3_IRQHandler(void);
 void DMA1_Stream4_IRQHandler(void);
@@ -32,7 +33,8 @@ uart_dev_t uart3 = {
 
 static struct file_operations serial2_file_ops = {
     .read = serial2_read,
-    .write = serial2_write
+    .write = serial2_write,
+    .open = serial2_open
 };
 
 void uart3_init(uint32_t baudrate)
@@ -106,6 +108,11 @@ void serial2_init(void)
     uart3_init(115200);
 
     printk("chardev serial2: debug-link");
+}
+
+int serial2_open(struct inode *inode, struct file *file)
+{
+    return 0;
 }
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)

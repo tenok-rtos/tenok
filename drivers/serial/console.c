@@ -19,6 +19,7 @@ static int uart1_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int serial0_open(struct inode *inode, struct file *file);
 
 void USART1_IRQHandler(void);
 void DMA2_Stream7_IRQHandler(void);
@@ -32,7 +33,8 @@ uart_dev_t uart1 = {
 
 static struct file_operations serial0_file_ops = {
     .read = serial0_read,
-    .write = serial0_write
+    .write = serial0_write,
+    .open = serial0_open
 };
 
 /* helper function for printk() */
@@ -114,6 +116,11 @@ void serial0_init(void)
     uart1_init(115200);
 
     printk("chardev serial0: console");
+}
+
+int serial0_open(struct inode *inode, struct file *file)
+{
+    return 0;
 }
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)

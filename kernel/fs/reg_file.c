@@ -9,16 +9,18 @@
 #include "kconfig.h"
 #include "reg_file.h"
 
-long reg_file_llseek(struct file *filp, long offset, int whence);
+off_t reg_file_lseek(struct file *filp, off_t offset, int whence);
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int reg_file_open(struct inode *inode, struct file *file);
 
 extern struct mount mount_points[MOUNT_CNT_MAX + 1];
 
 static struct file_operations reg_file_ops = {
-    .llseek = reg_file_llseek,
+    .lseek = reg_file_lseek,
     .read = reg_file_read,
-    .write = reg_file_write
+    .write = reg_file_write,
+    .open = reg_file_open
 };
 
 int reg_file_init(struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
@@ -32,6 +34,11 @@ int reg_file_init(struct file **files, struct inode *file_inode, struct memory_p
     files[file_inode->i_fd] = &reg_file->file;
     files[file_inode->i_fd]->f_inode = file_inode;
 
+    return 0;
+}
+
+int reg_file_open(struct inode *inode, struct file *file)
+{
     return 0;
 }
 
@@ -159,7 +166,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
     return size - remained_size;
 }
 
-long reg_file_llseek(struct file *filp, long offset, int whence)
+off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 

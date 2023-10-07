@@ -17,6 +17,7 @@
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int serial1_open(struct inode *inode, struct file *file);
 
 void USART2_IRQHandler(void);
 
@@ -29,7 +30,8 @@ uart_dev_t uart2 = {
 
 static struct file_operations serial1_file_ops = {
     .read = serial1_read,
-    .write = serial1_write
+    .write = serial1_write,
+    .open = serial1_open
 };
 
 void uart2_init(uint32_t baudrate)
@@ -87,6 +89,11 @@ void serial1_init(void)
     uart2_init(115200);
 
     printk("chardev serial1: mavlink");
+}
+
+int serial1_open(struct inode *inode, struct file *file)
+{
+    return 0;
 }
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)

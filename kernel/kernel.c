@@ -607,10 +607,15 @@ void sys_open(void)
     /* increase file descriptor count of the task */
     task->fd_cnt++;
 
-    /* call the file operation */
-    if(filp->f_op->open) {
-        filp->f_op->open(filp->f_inode, filp);
+    /* check if the file operation is undefined */
+    if(!filp->f_op->open) {
+        /* return on error */
+        SYSCALL_ARG(int, 0)= -ENXIO;
+        return;
     }
+
+    /* call open operation  */
+    filp->f_op->open(filp->f_inode, filp);
 
     /* return the file descriptor */
     int fd = fdesc_idx + TASK_CNT_MAX;
@@ -638,12 +643,6 @@ void sys_close(void)
     if((task->fdtable[fdesc_idx].used != true)) {
         SYSCALL_ARG(long, 0) = EBADF;
         return;
-    }
-
-    /* call the file operation */
-    struct file *filp = task->fdtable[fdesc_idx].file;
-    if(filp->f_op->release) {
-        filp->f_op->release(filp->f_inode, filp);
     }
 
     /* free the file descriptor */
@@ -675,7 +674,14 @@ void sys_read(void)
         filp->f_flags = task->fdtable[fdesc_idx].flags;
     }
 
-    /* read the file */
+    /* check if the file operation is undefined */
+    if(!filp->f_op->read) {
+        /* return on error */
+        SYSCALL_ARG(int, 0)= -ENXIO;
+        return;
+    }
+
+    /* call read operation */
     ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
     /* check if the syscall need to be restarted */
@@ -710,7 +716,14 @@ void sys_write(void)
         filp->f_flags = task->fdtable[fdesc_idx].flags;
     }
 
-    /* write the file */
+    /* check if the file operation is undefined */
+    if(!filp->f_op->write) {
+        /* return on error */
+        SYSCALL_ARG(int, 0)= -ENXIO;
+        return;
+    }
+
+    /* call write operation */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
     /* check if the syscall need to be restarted */
@@ -744,7 +757,14 @@ void sys_ioctl(void)
         filp = task->fdtable[fdesc_idx].file;
     }
 
-    /* call ioctl */
+    /* check if the file operation is undefined */
+    if(!filp->f_op->ioctl) {
+        /* return on error */
+        SYSCALL_ARG(int, 0)= -ENXIO;
+        return;
+    }
+
+    /* call ioctl operation */
     int retval = filp->f_op->ioctl(filp, cmd, arg);
 
     /* check if the syscall need to be restarted */
@@ -777,8 +797,15 @@ void sys_lseek(void)
     int fdesc_idx = fd - TASK_CNT_MAX;
     struct file *filp = task->fdtable[fdesc_idx].file;
 
-    /* call file lseek */
-    int retval = filp->f_op->llseek(filp, offset, whence);
+    /* check if the file operation is undefined */
+    if(!filp->f_op->lseek) {
+        /* return on error */
+        SYSCALL_ARG(int, 0)= -ENXIO;
+        return;
+    }
+
+    /* call lseek operation */
+    int retval = filp->f_op->lseek(filp, offset, whence);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {

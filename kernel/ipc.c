@@ -119,11 +119,18 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int fifo_open(struct inode *inode, struct file *file);
 
 static struct file_operations fifo_ops = {
     .read = fifo_read,
     .write = fifo_write,
+    .open = fifo_open
 };
+
+int fifo_open(struct inode *inode, struct file *file)
+{
+    return 0;
+}
 
 int fifo_init(int fd, struct file **files, struct inode *file_inode)
 {
