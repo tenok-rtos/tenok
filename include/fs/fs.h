@@ -15,10 +15,6 @@
 
 #include "kconfig.h"
 
-#define HOOK_DRIVER(drv_init_func) \
-    static drv_init_func_t _ ## drv_init_func \
-        __attribute__((section(".drivers"), used)) = drv_init_func
-
 #define RDEV_ROOTFS 0
 
 typedef void (*drv_init_func_t)(void);

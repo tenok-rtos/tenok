@@ -4,6 +4,7 @@
 #include <errno.h>
 
 #include <fs/fs.h>
+#include <kernel/printk.h>
 
 #include "uart.h"
 
@@ -21,6 +22,7 @@ static struct file_operations rom_dev_ops = {
 void rom_dev_init(void)
 {
     register_blkdev("rom", &rom_dev_ops);
+    printk("blkdev rom: romfs storage");
 }
 
 ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, off_t offset)

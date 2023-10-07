@@ -38,4 +38,6 @@ void os_env_init(uint32_t stack);
  */
 uint32_t *jump_to_thread(uint32_t stack, bool privileged);
 
+void __platform_init(void);
+
 #endif

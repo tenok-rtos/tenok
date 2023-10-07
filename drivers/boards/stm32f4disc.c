@@ -1,4 +1,5 @@
 #include "stm32f4xx_gpio.h"
+#include "serial.h"
 
 void led_init(void)
 {
@@ -23,6 +24,11 @@ void led_write(int state)
     GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 }
 
-void bsp_driver_init(void)
+void __platform_init(void)
 {
+    led_init();
+    serial0_init();
+    serial1_init();
+    serial2_init();
 }
+

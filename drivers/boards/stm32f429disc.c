@@ -2,6 +2,7 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f429i_discovery_lcd.h"
 #include "stm32f429i_discovery_ioe.h"
+#include "serial.h"
 
 //example of using the sdram:
 //uint8_t sdram[10000] __attribute__((section(".sdram")));
@@ -39,12 +40,8 @@ void led_write(int state)
     GPIO_WriteBit(GPIOG, GPIO_Pin_14, state);
 }
 
-void bsp_driver_init(void)
+void lcd_init(void)
 {
-    /* sdram initialization */
-    SDRAM_Init();
-
-    /* lcd initialization */
     LCD_Init();
     LCD_LayerInit();
     LTDC_Cmd(ENABLE);
@@ -55,7 +52,17 @@ void bsp_driver_init(void)
 
     LCD_SetLayer(lcd_layers[1].lcd_layer);
     LCD_Clear(LCD_COLOR_WHITE);
-    LCD_DisplayStringLine(LCD_LINE_1, "Tenok RTOS");
+    LCD_DisplayStringLine(LCD_LINE_1, (uint8_t *)"Tenok RTOS");
 
     LCD_DisplayOn();
+}
+
+void __platform_init(void)
+{
+    SDRAM_Init();
+    lcd_init();
+    led_init();
+    serial0_init();
+    serial1_init();
+    serial2_init();
 }

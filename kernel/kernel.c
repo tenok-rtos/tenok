@@ -2163,52 +2163,31 @@ static void schedule(void)
     running_thread->status = THREAD_RUNNING;
 }
 
-static void hook_drivers_init(void)
-{
-    extern char _drvs_start;
-    extern char _drvs_end;
-
-    int func_list_size = ((uint8_t *)&_drvs_end - (uint8_t *)&_drvs_start);
-    int drv_cnt = func_list_size / sizeof(drv_init_func_t);
-
-    /* point to the first driver initialization function of the list */
-    drv_init_func_t *drv_init_func = (drv_init_func_t *)&_drvs_start;
-
-    int i;
-    for(i = 0; i < drv_cnt; i++) {
-        drv_init_func[i]();
-    }
-}
-
-void boot_message(void)
+static void print_platform_info(void)
 {
     printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
     printk("Machine model: %s", __BOARD_NAME__);
-    printk("chardev serial0: console");
-    printk("chardev serial1: mavlink");
-    printk("chardev serial2: debug-link");
-    printk("blkdev rom: romfs storage");
 }
 
 void first(void)
 {
     setprogname("idle");
 
-    /*=======================*
-     * mount the file system *
-     *=======================*/
+    /* platform initialization */
+    print_platform_info();
+    __platform_init();
+    rom_dev_init();
+
+    /* mount rom file system */
     mount("/dev/rom", "/");
 
-    /*================================*
-     * launched all hooked user tasks *
-     *================================*/
+    /* launched all hooked user tasks */
     extern char _tasks_start;
     extern char _tasks_end;
 
     int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
     int hook_task_cnt = func_list_size / sizeof(struct task_hook);
 
-    /* point to the first task function of the list */
     struct task_hook *hook_task = (struct task_hook *)&_tasks_start;
 
     for(int i = 0; i < hook_task_cnt; i++) {
@@ -2249,14 +2228,8 @@ void sched_start(void)
         list_init(&ready_list[i]);
     }
 
-    /* initialize the root file system */
     rootfs_init();
-
-    /* initialized all hooked drivers */
-    hook_drivers_init();
-    rom_dev_init();
     printk_init();
-    boot_message();
 
     /* initialize kernel threads and deamons */
     kthread_create(first, 0, 512);

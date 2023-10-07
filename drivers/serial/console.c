@@ -7,6 +7,7 @@
 #include <kernel/wait.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
+#include <kernel/printk.h>
 #include <kernel/interrupt.h>
 
 #include "uart.h"
@@ -111,6 +112,8 @@ void serial0_init(void)
 
     /* initialize uart1 */
     uart1_init(115200);
+
+    printk("chardev serial0: console");
 }
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
@@ -209,5 +212,3 @@ void DMA2_Stream7_IRQHandler(void)
         wake_up(&uart1.tx_wq);
     }
 }
-
-HOOK_DRIVER(serial0_init);

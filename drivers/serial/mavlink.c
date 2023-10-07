@@ -7,6 +7,7 @@
 #include <kernel/wait.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
+#include <kernel/printk.h>
 #include <kernel/interrupt.h>
 
 #include "uart.h"
@@ -84,6 +85,8 @@ void serial1_init(void)
 
     /* initialize uart3 */
     uart2_init(115200);
+
+    printk("chardev serial1: mavlink");
 }
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
@@ -117,5 +120,3 @@ void USART2_IRQHandler(void)
         }
     }
 }
-
-HOOK_DRIVER(serial1_init);
