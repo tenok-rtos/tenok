@@ -10,7 +10,14 @@
 
 #define init_waitqueue_head(wq) list_init(wq)
 
+#define init_wait(wait) \
+        do { \
+            CURRENT_THREAD_INFO(__curr_thread__); \
+            wait = &__curr_thread__->list; \
+        } while(0)
+
 typedef struct list wait_queue_head_t;
+typedef struct list wait_queue_t;
 
 /**
  * @brief  Suspend the current thread and place it into a wait list with a new

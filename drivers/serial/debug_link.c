@@ -117,13 +117,12 @@ int serial2_open(struct inode *inode, struct file *file)
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     if(kfifo_len(uart3.rx_fifo) >= size) {
         kfifo_out(uart3.rx_fifo, buf, size);
         return size;
     } else {
-        prepare_to_wait(&uart3.rx_wq, &curr_thread->list, THREAD_WAIT);
+        init_wait(uart3.rx_wait);
+        prepare_to_wait(&uart3.rx_wq, uart3.rx_wait, THREAD_WAIT);
         return -ERESTARTSYS;
     }
 }
@@ -139,8 +138,6 @@ ssize_t serial2_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     switch(uart3.tx_state) {
         case UART_TX_IDLE: {
             /* configure the dma */
@@ -171,7 +168,8 @@ static int uart3_dma_puts(const char *data, size_t size)
             uart3.tx_dma_ready = false;
 
             /* wait until dma complete data transfer */
-            prepare_to_wait(&uart3.tx_wq, &curr_thread->list, THREAD_WAIT);
+            init_wait(uart3.tx_wait);
+            prepare_to_wait(&uart3.tx_wq, uart3.tx_wait, THREAD_WAIT);
             return -ERESTARTSYS;
         }
         case UART_TX_DMA_BUSY: {
@@ -192,7 +190,7 @@ void USART3_IRQHandler(void)
         kfifo_put(uart3.rx_fifo, &c);
 
         if(kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
-            wake_up(&uart3.rx_wq);
+            finish_wait(uart3.rx_wait);
             uart3.rx_wait_size = 0;
         }
     }
@@ -204,7 +202,7 @@ void DMA1_Stream4_IRQHandler(void)
         DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4);
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 
+        finish_wait(uart3.tx_wait);
         uart3.tx_dma_ready = true;
-        wake_up(&uart3.tx_wq);
     }
 }

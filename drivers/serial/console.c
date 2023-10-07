@@ -125,13 +125,12 @@ int serial0_open(struct inode *inode, struct file *file)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     if(kfifo_len(uart1.rx_fifo) >= size) {
         kfifo_out(uart1.rx_fifo, buf, size);
         return size;
     } else {
-        prepare_to_wait(&uart1.rx_wq, &curr_thread->list, THREAD_WAIT);
+        init_wait(uart1.rx_wait);
+        prepare_to_wait(&uart1.rx_wq, uart1.rx_wait, THREAD_WAIT);
         return -ERESTARTSYS;
     }
 }
@@ -154,8 +153,6 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t off
 
 static int uart1_dma_puts(const char *data, size_t size)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     switch(uart1.tx_state) {
         case UART_TX_IDLE: {
             /* configure the dma */
@@ -186,7 +183,8 @@ static int uart1_dma_puts(const char *data, size_t size)
             uart1.tx_dma_ready = false;
 
             /* wait until dma complete data transfer */
-            prepare_to_wait(&uart1.tx_wq, &curr_thread->list, THREAD_WAIT);
+            init_wait(uart1.tx_wait);
+            prepare_to_wait(&uart1.tx_wq, uart1.tx_wait, THREAD_WAIT);
             return -ERESTARTSYS;
         }
         case UART_TX_DMA_BUSY: {
@@ -207,7 +205,7 @@ void USART1_IRQHandler(void)
         kfifo_put(uart1.rx_fifo, &c);
 
         if(kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
-            wake_up(&uart1.rx_wq);
+            finish_wait(uart1.rx_wait);
             uart1.rx_wait_size = 0;
         }
     }
@@ -219,7 +217,7 @@ void DMA2_Stream7_IRQHandler(void)
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 
+        finish_wait(uart1.tx_wait);
         uart1.tx_dma_ready = true;
-        wake_up(&uart1.tx_wq);
     }
 }

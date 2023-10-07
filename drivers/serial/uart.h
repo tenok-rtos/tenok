@@ -16,6 +16,8 @@ enum {
 typedef struct {
     wait_queue_head_t tx_wq;
     wait_queue_head_t rx_wq;
+    wait_queue_t *tx_wait;
+    wait_queue_t *rx_wait;
 
     struct kfifo *rx_fifo;
 
