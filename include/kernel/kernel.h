@@ -144,9 +144,6 @@ struct thread_info {
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 
-void set_syscall_pending(struct thread_info *task);
-void reset_syscall_pending(struct thread_info *task);
-
 struct task_struct *current_task_info(void);
 struct thread_info *current_thread_info(void);
 

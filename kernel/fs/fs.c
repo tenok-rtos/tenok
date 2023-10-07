@@ -1,6 +1,11 @@
+#include <tenok.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
 
 #include <mm/mpool.h>
 #include <fs/fs.h>
@@ -9,12 +14,6 @@
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
 #include <kernel/bitops.h>
-
-#include <tenok/tenok.h>
-#include <tenok/fcntl.h>
-#include <tenok/unistd.h>
-#include <tenok/sys/stat.h>
-#include <tenok/sys/resource.h>
 
 #include "uart.h"
 #include "rom_dev.h"

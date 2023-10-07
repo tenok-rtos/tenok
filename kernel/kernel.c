@@ -8,6 +8,7 @@
 #include <task.h>
 #include <time.h>
 #include <poll.h>
+#include <errno.h>
 #include <mqueue.h>
 #include <unistd.h>
 #include <signal.h>
@@ -27,6 +28,7 @@
 #include <kernel/wait.h>
 #include <kernel/task.h>
 #include <kernel/util.h>
+#include <kernel/errno.h>
 #include <kernel/printk.h>
 #include <kernel/bitops.h>
 #include <kernel/kernel.h>
@@ -98,12 +100,12 @@ void kfree(void *ptr)
     return;
 }
 
-inline void set_syscall_pending(struct thread_info *thread)
+static inline void set_syscall_pending(struct thread_info *thread)
 {
     thread->syscall_pending = true;
 }
 
-inline void reset_syscall_pending(struct thread_info *thread)
+static inline void reset_syscall_pending(struct thread_info *thread)
 {
     thread->syscall_pending = false;
 }
@@ -523,16 +525,24 @@ void sys_mount(void)
 
     int tid = running_thread->tid;
 
-    /* if the pending flag is set that means the request is already sent */
+    /* send mount request to the file system daemon */
     if(running_thread->syscall_pending == false) {
         request_mount(tid, source, target);
     }
 
-    /* receive the mount result */
-    int result;
-    if(fifo_read(files[tid], (char *)&result, sizeof(result), 0) == sizeof(result)) {
-        //return the file descriptor number with r0
-        SYSCALL_ARG(int, 0) = result;
+    /* read mount result from the file system daemon */
+    int mnt_result;
+    int retval = fifo_read(files[tid], (char *)&mnt_result,
+                           sizeof(mnt_result), 0);
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* file system has not finished the request yet */
+        set_syscall_pending(running_thread);
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 
@@ -543,60 +553,68 @@ void sys_open(void)
     int flags = SYSCALL_ARG(int, 1);
 
     int tid = running_thread->tid;
+    struct task_struct *task = running_thread->task;
 
-    /* if the pending flag is set that means the request is already sent */
+    /* send file open request to the file system daemon */
     if(running_thread->syscall_pending == false) {
         request_open_file(tid, pathname);
     }
 
-    /* obtain the task from the thread */
-    struct task_struct *task = running_thread->task;
-
-    /* inquire the file descriptor from the file system task */
+    /* read the file index from the file system daemon */
     int file_idx;
-    if(fifo_read(files[tid], (char *)&file_idx, sizeof(file_idx), 0) == sizeof(file_idx)) {
-        if(file_idx == -1 || task->fd_cnt >= FILE_DESC_CNT_MAX) {
-            /* return on error */
-            SYSCALL_ARG(int, 0) = -1;
-            return;
-        }
+    int retval = fifo_read(files[tid], (char *)&file_idx, sizeof(file_idx), 0);
 
-        /* find a free file descriptor entry on the table */
-        int fdesc_idx = -1;
-        for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-            if(task->fdtable[i].used == false) {
-                fdesc_idx = i;
-                break;
-            }
-        }
-
-        /* unexpeceted error */
-        if(fdesc_idx == -1) {
-            /* return on error */
-            SYSCALL_ARG(int, 0) = -1;
-            return;
-        }
-
-        struct file *filp = files[file_idx];
-
-        /* register new file descriptor to the task */
-        struct fdtable *fdesc = &task->fdtable[fdesc_idx];
-        fdesc->file = filp;
-        fdesc->flags = flags;
-        fdesc->used = true;
-
-        /* increase file descriptor count of the task */
-        task->fd_cnt++;
-
-        /* call the file operation */
-        if(filp->f_op->open) {
-            filp->f_op->open(filp->f_inode, filp);
-        }
-
-        /* return the file descriptor */
-        int fd = fdesc_idx + TASK_CNT_MAX;
-        SYSCALL_ARG(int, 0) = fd;
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* file system daemon has not finished the request yet */
+        set_syscall_pending(running_thread);
+        return;
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
     }
+
+    if(file_idx == -1 || task->fd_cnt >= FILE_DESC_CNT_MAX) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -1;
+        return;
+    }
+
+    /* find a free file descriptor entry on the table */
+    int fdesc_idx = -1;
+    for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
+        if(task->fdtable[i].used == false) {
+            fdesc_idx = i;
+            break;
+        }
+    }
+
+    /* unexpeceted error */
+    if(fdesc_idx == -1) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -1;
+        return;
+    }
+
+    struct file *filp = files[file_idx];
+
+    /* register new file descriptor to the task */
+    struct fdtable *fdesc = &task->fdtable[fdesc_idx];
+    fdesc->file = filp;
+    fdesc->flags = flags;
+    fdesc->used = true;
+
+    /* increase file descriptor count of the task */
+    task->fd_cnt++;
+
+    /* call the file operation */
+    if(filp->f_op->open) {
+        filp->f_op->open(filp->f_inode, filp);
+    }
+
+    /* return the file descriptor */
+    int fd = fdesc_idx + TASK_CNT_MAX;
+    SYSCALL_ARG(int, 0) = fd;
 }
 
 void sys_close(void)
@@ -660,8 +678,13 @@ void sys_read(void)
     /* read the file */
     ssize_t retval = filp->f_op->read(filp, buf, count, 0);
 
-    /* pass the return value only if the read operation is complete */
-    if(running_thread->syscall_pending == false) {
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -690,8 +713,13 @@ void sys_write(void)
     /* write the file */
     ssize_t retval = filp->f_op->write(filp, buf, count, 0);
 
-    /* return the write result */
-    if(running_thread->syscall_pending == false) {
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -716,11 +744,16 @@ void sys_ioctl(void)
         filp = task->fdtable[fdesc_idx].file;
     }
 
-    /* call the ioctl implementation */
+    /* call ioctl */
     int retval = filp->f_op->ioctl(filp, cmd, arg);
 
-    /* return the ioctl result */
-    if(running_thread->syscall_pending == false) {
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -744,11 +777,18 @@ void sys_lseek(void)
     int fdesc_idx = fd - TASK_CNT_MAX;
     struct file *filp = task->fdtable[fdesc_idx].file;
 
-    /* adjust call lseek implementation */
+    /* call file lseek */
     int retval = filp->f_op->llseek(filp, offset, whence);
 
-    /* return the lseek result */
-    SYSCALL_ARG(long, 0) = retval;
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(int, 0) = retval;
+    }
 }
 
 void sys_fstat(void)
@@ -757,13 +797,12 @@ void sys_fstat(void)
     int fd = SYSCALL_ARG(int, 0);
     struct stat *statbuf = SYSCALL_ARG(struct stat *, 1);
 
+    struct task_struct *task = running_thread->task;
+
     if(fd < TASK_CNT_MAX) {
         SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
-
-    /* obtain the task from the thread */
-    struct task_struct *task = running_thread->task;
 
     /* read the inode of the given file */
     int fdesc_idx = fd - TASK_CNT_MAX;
@@ -789,26 +828,36 @@ void sys_opendir(void)
 
     int tid = running_thread->tid;
 
-    /* if the pending flag is set that means the request is already sent */
+    /* send directory open request to the file system daemon */
     if(running_thread->syscall_pending == false) {
         request_open_directory(tid, pathname);
     }
 
-    /* inquire the file descriptor from the file system task */
+    /* read the directory inode from the file system daemon */
     struct inode *inode_dir;
-    if(fifo_read(files[tid], (char *)&inode_dir, sizeof(inode_dir), 0) == sizeof(inode_dir)) {
-        //return the directory
-        dirp->inode_dir = inode_dir;
-        dirp->dentry_list = inode_dir->i_dentry.next;
+    int retval = fifo_read(files[tid], (char *)&inode_dir, sizeof(inode_dir), 0);
 
-        /* pass the return value with r0 */
-        if(dirp->inode_dir == NULL) {
-            /* return on error */
-            SYSCALL_ARG(int, 0) = -1;
-        } else {
-            /* return on success */
-            SYSCALL_ARG(int, 0) = 0;
-        }
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* file system daemon has not finished the request yet */
+        set_syscall_pending(running_thread);
+        return;
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
+    }
+
+    /* return the directory info */
+    dirp->inode_dir = inode_dir;
+    dirp->dentry_list = inode_dir->i_dentry.next;
+
+    /* pass the return value with r0 */
+    if(dirp->inode_dir == NULL) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -1;
+    } else {
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
     }
 }
 
@@ -879,16 +928,23 @@ void sys_mknod(void)
 
     int tid = running_thread->tid;
 
-    /* if the pending flag is set that means the request is already sent */
+    /* send file create request to the file system daemon */
     if(running_thread->syscall_pending == false) {
         request_create_file(tid, pathname, dev);
     }
 
-    /* wait until the file system complete the request */
+    /* read the file index from the file system daemon  */
     int file_idx;
     int retval = fifo_read(files[tid], (char *)&file_idx, sizeof(file_idx), 0);
-    if(retval != sizeof(file_idx)) {
-        return; //not ready
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* file system daemon has not finished the request yet */
+        set_syscall_pending(running_thread);
+        return;
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
     }
 
     if(file_idx == -1) {
@@ -908,16 +964,23 @@ void sys_mkfifo(void)
 
     int tid = running_thread->tid;
 
-    /* if the pending flag is set that means the request is already sent */
+    /* send file create request to the file system daemon */
     if(running_thread->syscall_pending == false) {
         request_create_file(tid, pathname, S_IFIFO);
     }
 
-    /* wait until the file system complete the request */
+    /* read the file index from the file system daemon */
     int file_idx = 0;
     int retval = fifo_read(files[tid], (char *)&tid, sizeof(file_idx), 0);
-    if(retval != sizeof(file_idx)) {
-        return; //not ready
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* file system has not finished the request yet */
+        set_syscall_pending(running_thread);
+        return;
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
     }
 
     if(file_idx == -1) {
@@ -1088,8 +1151,15 @@ void sys_mq_receive(void)
 
     /* read message */
     ssize_t retval = pipe_read_generic(pipe, msg_ptr, 1);
-    if(running_thread->syscall_pending == false) {
-        SYSCALL_ARG(ssize_t, 0) = retval;
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 
@@ -1107,8 +1177,15 @@ void sys_mq_send(void)
 
     /* send message */
     ssize_t retval = pipe_write_generic(pipe, msg_ptr, 1);
-    if(running_thread->syscall_pending == false) {
-        SYSCALL_ARG(ssize_t, 0) = retval;
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* syscall need to be restarted */
+        set_syscall_pending(running_thread);
+    } else {
+        /* syscall is complete, return the result */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 
@@ -1129,8 +1206,6 @@ void sys_pthread_create(void)
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
-
-    //TODO: check stack size setting
 
     /* create new thread */
     struct thread_info *thread =
@@ -2122,7 +2197,6 @@ void first(void)
     /*=======================*
      * mount the file system *
      *=======================*/
-    rom_dev_init();
     mount("/dev/rom", "/");
 
     /*================================*
@@ -2180,6 +2254,7 @@ void sched_start(void)
 
     /* initialized all hooked drivers */
     hook_drivers_init();
+    rom_dev_init();
     printk_init();
     boot_message();
 

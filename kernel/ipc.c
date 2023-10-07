@@ -8,6 +8,7 @@
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
 #include <kernel/poll.h>
+#include <kernel/errno.h>
 #include <kernel/kfifo.h>
 #include <kernel/kernel.h>
 
@@ -23,42 +24,33 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     CURRENT_THREAD_INFO(curr_thread);
 
     ssize_t retval = 0;
-
+    size_t fifo_len = kfifo_len(pipe);
     struct list *w_wait_list = &pipe->w_wait_list;
 
-    size_t fifo_len = kfifo_len(pipe);
-
-    /* block the current thread if the request size is larger than the fifo can serve */
+    /* check if the request size is larger than the fifo can serve */
     if(size > fifo_len) {
-        /* block mode */
-        if(!(pipe->flags & O_NONBLOCK)) {
-            curr_thread->file_request.size = size;
-
-            /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
-
-            /* turn on the syscall pending flag */
-            set_syscall_pending(curr_thread);
-        } else {
-            /* non-block mode */
+        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_len > 0) {
                 kfifo_out(pipe, buf, fifo_len);
-                retval = fifo_len;
+                return fifo_len;
             } else {
-                retval = -EAGAIN;
+                return -EAGAIN;
             }
+        } else { /* block mode */
+            /* put the current thread into the read waiting list */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            curr_thread->file_request.size = size;
+
+            return -ERESTARTSYS;
         }
-    } else {
-        /* pop data from the pipe */
-        kfifo_out(pipe, buf, size);
-
-        /* calculate total read bytes */
-        size_t type_size = kfifo_esize(pipe);
-        retval = type_size * size;
-
-        /* request is fulfilled, turn off the syscall pending flag */
-        reset_syscall_pending(curr_thread);
     }
+
+    /* pop data from the pipe */
+    kfifo_out(pipe, buf, size);
+
+    /* calculate total read bytes */
+    size_t type_size = kfifo_esize(pipe);
+    retval = type_size * size;
 
     /* resume a blocked writting thread if the pipe has enough space to write */
     if(!list_is_empty(w_wait_list)) {
@@ -81,45 +73,33 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     CURRENT_THREAD_INFO(curr_thread);
 
     ssize_t retval = 0;
-
+    size_t fifo_avail = kfifo_avail(pipe);
     struct list *r_wait_list = &pipe->r_wait_list;
 
-    size_t fifo_avail = kfifo_avail(pipe);
-
-    /* check the ring buffer has enough space to write or not */
+    /* check if the fifo has enough space to write or not */
     if(size > fifo_avail) {
-        /* failed to write */
-        retval = -EAGAIN;
-
-        /* block mode */
-        if(!(pipe->flags & O_NONBLOCK)) {
-            curr_thread->file_request.size = size;
-
-            /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
-
-            /* turn on the syscall pending flag */
-            set_syscall_pending(curr_thread);
-        } else {
-            /* non-block mode */
+        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_avail > 0) {
                 kfifo_in(pipe, buf, fifo_avail);
-                retval = fifo_avail;
+                return fifo_avail;
             } else {
-                retval = -EAGAIN;
+                return -EAGAIN;
             }
+        } else { /* block mode */
+            /* put the current thread into the read waiting list */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            curr_thread->file_request.size = size;
+
+            return -ERESTARTSYS;
         }
-    } else {
-        /* push data into the pipe */
-        kfifo_in(pipe, buf, size);
-
-        /* calculate total written bytes */
-        size_t type_size = kfifo_esize(pipe);
-        retval = type_size * size;
-
-        /* request is fulfilled, turn off the syscall pending flag */
-        reset_syscall_pending(curr_thread);
     }
+
+    /* push data into the pipe */
+    kfifo_in(pipe, buf, size);
+
+    /* calculate total written bytes */
+    size_t type_size = kfifo_esize(pipe);
+    retval = type_size * size;
 
     /* resume a blocked reading thread if the pipe has enough data to read */
     if(!list_is_empty(r_wait_list)) {

@@ -5,6 +5,7 @@
 #include <fs/fs.h>
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
+#include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/interrupt.h>
 
@@ -122,7 +123,7 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
         return size;
     } else {
         uart1.rx_wait_size = size;
-        return 0;
+        return -ERESTARTSYS;
     }
 }
 
@@ -182,7 +183,7 @@ static int uart1_dma_puts(const char *data, size_t size)
         }
     }
 
-    return -EAGAIN;
+    return -ERESTARTSYS;
 }
 
 void USART1_IRQHandler(void)
