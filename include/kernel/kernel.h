@@ -89,7 +89,7 @@ struct task_struct {
 
     /* file descriptors table */
     struct fdtable fdtable[FILE_DESC_CNT_MAX];
-    int fd_cnt;
+    uint32_t fd_bitmap[2];
 
     struct list threads_list; /* all threads held by the task */
     struct list list;

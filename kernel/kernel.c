@@ -230,7 +230,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     list_push(&tasks_list, &task->list);
 
     /* reset file descriptor table */
-    task->fd_cnt = 0;
+    memset(task->fd_bitmap, 0, sizeof(task->fd_bitmap));
     memset(task->fdtable, 0, sizeof(task->fdtable));
 
     /* set the task ownership of the thread */
@@ -558,27 +558,21 @@ void sys_open(void)
         reset_syscall_pending(running_thread);
     }
 
-    if(file_idx == -1 || task->fd_cnt >= FILE_DESC_CNT_MAX) {
+    /* file not found */
+    if(file_idx == -1) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -1;
         return;
     }
 
     /* find a free file descriptor entry on the table */
-    int fdesc_idx = -1;
-    for(int i = 0; i < FILE_DESC_CNT_MAX; i++) {
-        if(task->fdtable[i].used == false) {
-            fdesc_idx = i;
-            break;
-        }
-    }
-
-    /* unexpeceted error */
-    if(fdesc_idx == -1) {
+    int fdesc_idx = find_first_zero_bit(task->fd_bitmap, FILE_DESC_CNT_MAX);
+    if(fdesc_idx >= FILE_DESC_CNT_MAX) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -1;
         return;
     }
+    bitmap_set_bit(task->fd_bitmap, fdesc_idx);
 
     struct file *filp = files[file_idx];
 
@@ -586,10 +580,6 @@ void sys_open(void)
     struct fdtable *fdesc = &task->fdtable[fdesc_idx];
     fdesc->file = filp;
     fdesc->flags = flags;
-    fdesc->used = true;
-
-    /* increase file descriptor count of the task */
-    task->fd_cnt++;
 
     /* check if the file operation is undefined */
     if(!filp->f_op->open) {
@@ -623,15 +613,14 @@ void sys_close(void)
     /* obtain the task from the thread */
     struct task_struct *task = running_thread->task;
 
-    /* check if the file descriptor is indeed marked as used */
-    if((task->fdtable[fdesc_idx].used != true)) {
+    /* check if the file descriptor is indeed used */
+    if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
         SYSCALL_ARG(long, 0) = EBADF;
         return;
     }
 
     /* free the file descriptor */
-    task->fdtable[fdesc_idx].used = false;
-    task->fd_cnt--;
+    bitmap_clear_bit(task->fd_bitmap, fdesc_idx);
 
     /* return on success */
     SYSCALL_ARG(long, 0) = 0;

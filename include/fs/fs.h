@@ -93,7 +93,6 @@ struct file_operations {
 
 struct fdtable {
     int  flags;
-    bool used;
     struct file *file;
 };
 
