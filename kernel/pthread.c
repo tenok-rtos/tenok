@@ -2,6 +2,7 @@
 #include <pthread.h>
 
 #include <arch/port.h>
+#include <kernel/mutex.h>
 #include <kernel/syscall.h>
 
 int pthread_attr_init(pthread_attr_t *attr)
@@ -71,9 +72,7 @@ NACKED int pthread_getschedparam(pthread_t thread, int *policy,
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr)
 {
-    mutex->owner = NULL;
-    list_init(&mutex->wait_list);
-
+    mutex_init(mutex);
     return 0;
 }
 

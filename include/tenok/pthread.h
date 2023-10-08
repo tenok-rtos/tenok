@@ -8,23 +8,20 @@
 #include <sys/sched.h>
 
 #include <kernel/list.h>
+#include <kernel/mutex.h>
 #include <kernel/spinlock.h>
 
 typedef uint32_t pthread_t;
 typedef void pthread_mutex_attr_t;   /* no usage */
 typedef uint32_t pthread_condattr_t; /* no usage */
 typedef uint32_t pthread_once_t;
+typedef struct mutex pthread_mutex_t;
 
 typedef struct {
     struct sched_param schedparam;
     void *stackaddr;
     size_t stacksize; /* bytes */
 } pthread_attr_t;
-
-typedef struct {
-    struct thread_info *owner;
-    struct list wait_list;
-} pthread_mutex_t;
 
 typedef struct {
     struct list task_wait_list;
@@ -143,7 +140,7 @@ int pthread_kill(pthread_t thread, int sig);
 void pthread_exit(void *retval);
 
 /**
- * @brief  Initializes a mutex with specified attributes
+ * @brief  Initialize a mutex with specified attributes
  * @param  mutex: The mutex object to be initialized.
  * @param  attr: The attribute object for initializing the mutex.
  * @retval int: 0 on sucess and nonzero error number on error.

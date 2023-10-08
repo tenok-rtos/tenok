@@ -28,6 +28,7 @@
 #include <kernel/wait.h>
 #include <kernel/task.h>
 #include <kernel/util.h>
+#include <kernel/mutex.h>
 #include <kernel/errno.h>
 #include <kernel/printk.h>
 #include <kernel/bitops.h>
@@ -1453,23 +1454,8 @@ void sys_pthread_mutex_unlock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    /* only the owner thread can unlock the mutex */
-    if(mutex->owner != running_thread) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = EPERM;
-    } else {
-        /* release the mutex */
-        mutex->owner = NULL;
-
-        /* check the mutex waiting list */
-        if(!list_is_empty(&mutex->wait_list)) {
-            /* wake up a thread from the mutex waiting list */
-            wake_up(&mutex->wait_list);
-        }
-
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
-    }
+    int retval = mutex_unlock(mutex);
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_pthread_mutex_lock(void)
@@ -1477,22 +1463,18 @@ void sys_pthread_mutex_lock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    /* check if mutex is already occupied */
-    if(mutex->owner != NULL) {
-        /* put the current thread into the mutex waiting list */
-        prepare_to_wait(&mutex->wait_list, &running_thread->list, THREAD_WAIT);
+    int retval = mutex_lock(mutex);
 
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
     } else {
-        /* occupy the mutex by setting the owner */
-        mutex->owner = running_thread;
-
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
         /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 
