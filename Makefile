@@ -16,7 +16,7 @@ include platform/qemu.mk
 MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg
 
-LDFLAGS += -Wl,--no-warn-rwx-segments
+#LDFLAGS += -Wl,--no-warn-rwx-segments
 
 CFLAGS += -g -mlittle-endian -mthumb \
           -fcommon \
