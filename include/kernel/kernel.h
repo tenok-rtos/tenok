@@ -13,6 +13,7 @@
 #include <kernel/list.h>
 #include <kernel/time.h>
 #include <kernel/wait.h>
+#include <kernel/util.h>
 
 #include "kconfig.h"
 
@@ -89,7 +90,7 @@ struct task_struct {
 
     /* file descriptors table */
     struct fdtable fdtable[FILE_DESC_CNT_MAX];
-    uint32_t fd_bitmap[2];
+    uint32_t fd_bitmap[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
     struct list threads_list; /* all threads held by the task */
     struct list list;

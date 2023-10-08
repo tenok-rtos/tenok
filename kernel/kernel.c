@@ -61,8 +61,8 @@ struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that read
 struct task_struct tasks[TASK_CNT_MAX];
 struct thread_info threads[THREAD_CNT_MAX];
 struct thread_info *running_thread = NULL;
-uint32_t bitmap_tasks[2];   /* for dispatching task id */
-uint32_t bitmap_threads[2]; /* for dispatching thread id */
+uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];     /* for dispatching task id */
+uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)]; /* for dispatching thread id */
 
 /* memory pool */
 struct memory_pool mem_pool;
