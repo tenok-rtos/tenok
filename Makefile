@@ -2,6 +2,7 @@ include config.mk
 
 .DEFAULT_GOAL := all
 
+LDFLAGS :=
 CFLAGS :=
 SRC :=
 
@@ -14,6 +15,8 @@ include platform/qemu.mk
 
 MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg
+
+LDFLAGS += -Wl,--no-warn-rwx-segments
 
 CFLAGS += -g -mlittle-endian -mthumb \
           -fcommon \
