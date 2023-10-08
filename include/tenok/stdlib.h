@@ -4,14 +4,12 @@
 #ifndef __STDLIB_H__
 #define __STDLIB_H__
 
-#define exit(status) _exit(status)
-
 /**
  * @brief  To cause task termination
  * @param  status: Not implemented yet.
  * @retval None
  */
-void _exit(int status);
+void exit(int status);
 
 /**
  * @brief  Allocate size bytes and returns a pointer to the allocated

@@ -473,7 +473,7 @@ void sys_sched_yield(void)
     prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
 }
 
-void sys__exit(void)
+void sys_exit(void)
 {
     /* obtain the task of the running thread */
     struct task_struct *task = running_thread->task;

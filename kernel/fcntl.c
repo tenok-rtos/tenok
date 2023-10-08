@@ -15,19 +15,34 @@ NACKED int open(const char *pathname, int flags)
     SYSCALL(OPEN);
 }
 
-NACKED int close(int fd)
+NACKED int _close(int fd)
 {
     SYSCALL(CLOSE);
 }
 
-NACKED ssize_t read(int fd, void *buf, size_t count)
+int close(int fd)
+{
+    return _close(fd);
+}
+
+NACKED ssize_t _read(int fd, void *buf, size_t count)
 {
     SYSCALL(READ);
 }
 
-NACKED ssize_t write(int fd, const void *buf, size_t count)
+ssize_t read(int fd, void *buf, size_t count)
+{
+    return _read(fd, buf, count);
+}
+
+NACKED ssize_t _write(int fd, const void *buf, size_t count)
 {
     SYSCALL(WRITE);
+}
+
+ssize_t write(int fd, const void *buf, size_t count)
+{
+    return _write(fd, buf, count);
 }
 
 NACKED int ioctl(int fd, unsigned int cmd, unsigned long arg)
@@ -35,14 +50,24 @@ NACKED int ioctl(int fd, unsigned int cmd, unsigned long arg)
     SYSCALL(IOCTL);
 }
 
-NACKED long lseek(int fd, long offset, int whence)
+NACKED long _lseek(int fd, long offset, int whence)
 {
     SYSCALL(LSEEK);
 }
 
-NACKED int fstat(int fd, struct stat *statbuf)
+long lseek(int fd, long offset, int whence)
+{
+    return _lseek(fd, offset, whence);
+}
+
+NACKED int _fstat(int fd, struct stat *statbuf)
 {
     SYSCALL(FSTAT);
+}
+
+int fstat(int fd, struct stat *statbuf)
+{
+    return _fstat(fd, statbuf);
 }
 
 NACKED int opendir(const char *name, DIR *dir)
@@ -68,4 +93,12 @@ NACKED int mkfifo(const char *pathname, mode_t mode)
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);
+}
+
+/* not implemented. the function is defined only
+ * to supress the newlib warning
+ */
+int _isatty(int fd)
+{
+    return 0;
 }

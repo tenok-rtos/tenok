@@ -47,10 +47,10 @@ NACKED void sched_yield(void)
 
 NACKED void _exit(int status)
 {
-    SYSCALL(_EXIT);
+    SYSCALL(EXIT);
 }
 
-NACKED int getpid(void)
+NACKED int _getpid(void)
 {
     SYSCALL(GETPID);
 }

@@ -111,7 +111,12 @@ int pause(void)
     return 0;
 }
 
-NACKED int kill(pid_t pid, int sig)
+NACKED int _kill(pid_t pid, int sig)
 {
     SYSCALL(KILL);
+}
+
+int kill(pid_t pid, int sig)
+{
+    return _kill(pid, sig);
 }
