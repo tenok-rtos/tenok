@@ -1524,25 +1524,8 @@ void sys_sem_post(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    /* prevent integer overflow */
-    if(sem->count >= (INT32_MAX - 1)) {
-        /* turn on the syscall pending flag */
-        set_syscall_pending(running_thread);
-    } else {
-        /* increase the semaphore */
-        sem->count++;
-
-        /* wake up a thread from the waiting list */
-        if(sem->count > 0 && !list_is_empty(&sem->wait_list)) {
-            wake_up(&sem->wait_list);
-        }
-
-        /* turn off the syscall pending flag */
-        reset_syscall_pending(running_thread);
-
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
-    }
+    int retval = up(sem);
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_sem_trywait(void)
@@ -1550,19 +1533,8 @@ void sys_sem_trywait(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    if(sem->count <= 0) {
-        /* failed to obtain the semaphore, put the current thread into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_thread->list, THREAD_WAIT);
-
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EAGAIN;
-    } else {
-        /* successfully obtained the semaphore */
-        sem->count--;
-
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
-    }
+    int retval = down_trylock(sem);
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_sem_wait(void)
@@ -1570,21 +1542,18 @@ void sys_sem_wait(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    if(sem->count <= 0) {
-        /* failed to obtain the semaphore, put the current thread into the waiting list */
-        prepare_to_wait(&sem->wait_list, &running_thread->list, THREAD_WAIT);
+    int retval = down(sem);
 
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
     } else {
-        /* successfully obtained the semaphore */
-        sem->count--;
-
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
         /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
+        SYSCALL_ARG(int, 0) = retval;
     }
 }
 

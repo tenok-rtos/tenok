@@ -4,6 +4,8 @@
 #ifndef __KERNEL_MUTEX_H__
 #define __KERNEL_MUTEX_H__
 
+#include <stdbool.h>
+
 #include <kernel/list.h>
 
 struct mutex {
