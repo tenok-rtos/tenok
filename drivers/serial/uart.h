@@ -9,6 +9,7 @@
 #include "stm32f4xx.h"
 
 enum {
+    UART_INITIALIZING,
     UART_TX_IDLE,
     UART_TX_DMA_BUSY
 } UART_TX_STATE;
