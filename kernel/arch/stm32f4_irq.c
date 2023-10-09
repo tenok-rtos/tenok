@@ -186,10 +186,14 @@ void irq_init(void)
         irq_table[IRQ_START + i] = Default_Handler;
     }
 
-    /* set interrupt priorities */
+    /* priority range of group 4 is 0-15 */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-    NVIC_SetPriority(SysTick_IRQn, KERNEL_INT_PRI << 4); //set PRI[7:4] = KERNEL_INT_PRI
-    NVIC_SetPriority(SVCall_IRQn, KERNEL_INT_PRI << 4);  //set PRI[7:4] = KERNEL_INT_PRI
+    NVIC_SetPriority(MemoryManagement_IRQn, 0);
+    NVIC_SetPriority(BusFault_IRQn, 0);
+    NVIC_SetPriority(UsageFault_IRQn, 0);
+    NVIC_SetPriority(SysTick_IRQn, 1);
+    NVIC_SetPriority(SVCall_IRQn, 15);
+    NVIC_SetPriority(PendSV_IRQn, 15);
 
     /* enable the systick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
