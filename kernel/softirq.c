@@ -13,9 +13,9 @@
 #define SOFTIRQD_PID 2
 
 extern struct thread_info threads[TASK_CNT_MAX];
-extern struct list ready_list[TASK_MAX_PRIORITY + 1];
+extern struct list_head ready_list[TASK_MAX_PRIORITY + 1];
 
-struct list tasklet_list;
+struct list_head tasklet_list;
 
 void tasklet_init(struct tasklet_struct *t,
                   void (*func)(unsigned long), unsigned long data)
@@ -46,7 +46,7 @@ void softirqd(void)
         } else {
             /* pick up the tasklet */
             preempt_disable();
-            struct list *l = list_pop(&tasklet_list);
+            struct list_head *l = list_pop(&tasklet_list);
             preempt_enable();
 
             /* execute the tasklet */

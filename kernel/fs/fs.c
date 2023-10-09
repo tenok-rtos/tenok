@@ -184,10 +184,10 @@ ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offs
     return size;
 }
 
-static void fs_read_list(struct file *dev_file, uint32_t list_addr, struct list *list)
+static void fs_read_list(struct file *dev_file, uint32_t list_addr, struct list_head *list)
 {
     /* read the list */
-    dev_file->f_op->read(dev_file, (char *)list, sizeof(struct list), list_addr);
+    dev_file->f_op->read(dev_file, (char *)list, sizeof(struct list_head), list_addr);
 }
 
 static void fs_read_dentry(struct file *dev_file, uint32_t dentry_addr, struct dentry *dentry)
@@ -230,7 +230,7 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
         fs_mount_directory(inode_dir, inode_dir);
 
     /* traversal of the dentry list */
-    struct list *list_curr;
+    struct list_head *list_curr;
     list_for_each(list_curr, &inode_dir->i_dentry) {
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
@@ -270,7 +270,7 @@ static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
     /* allocate memory for the new dentry */
     uint8_t *dir_data_p;
     if(fit == true) {
-        struct list *list_end = inode_dir->i_dentry.prev;
+        struct list_head *list_end = inode_dir->i_dentry.prev;
         struct dentry *dir = list_entry(list_end, struct dentry, d_list);
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
@@ -875,7 +875,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         if(list_is_empty(&inode->i_dentry) == true)
             break;
 
-        struct list *list_curr;
+        struct list_head *list_curr;
         list_for_each(list_curr, &inode->i_dentry) {
             struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 

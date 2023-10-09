@@ -10,7 +10,7 @@
 
 struct semaphore {
     int32_t count;
-    struct list wait_list;
+    struct list_head wait_list;
 };
 
 /**

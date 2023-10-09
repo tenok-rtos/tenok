@@ -7,7 +7,7 @@
 struct tasklet_struct {
     void (*func)(unsigned long);
     unsigned long data;
-    struct list list;
+    struct list_head list;
 };
 
 /**

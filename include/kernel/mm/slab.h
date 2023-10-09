@@ -9,10 +9,10 @@
 #define CACHE_OPT_NONE  0
 
 struct kmem_cache {
-    struct list slabs_free;
-    struct list slabs_partial;
-    struct list slabs_full;
-    struct list list;
+    struct list_head slabs_free;
+    struct list_head slabs_partial;
+    struct list_head slabs_full;
+    struct list_head list;
     unsigned short objsize;
     unsigned short objnum;
     int opts;
@@ -24,7 +24,7 @@ struct kmem_cache {
 struct slab {
     unsigned long free_bitmap[1];
     int free_objects;
-    struct list list;
+    struct list_head list;
     char data[0];
 };
 

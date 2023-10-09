@@ -23,18 +23,17 @@
 #define LIST_HEAD_INIT(name) \
     {.prev = (&name), .next = (&name)}
 
-#define LIST_HEAD(name) struct list name = LIST_HEAD_INIT(name)
+#define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
 
-struct list {
-    struct list *prev;
-    struct list *next;
+struct list_head {
+    struct list_head *next, *prev;
 };
 
-void list_init(struct list *list);
-int list_is_empty(struct list *list);
-void list_remove(struct list *list);
-void list_push(struct list *list, struct list *new);
-struct list *list_pop(struct list *list);
-void list_move(struct list *list, struct list *new_head);
+void list_init(struct list_head *list);
+int list_is_empty(struct list_head *list);
+void list_remove(struct list_head *list);
+void list_push(struct list_head *list, struct list_head *new);
+struct list_head *list_pop(struct list_head *list);
+void list_move(struct list_head *list, struct list_head *new_head);
 
 #endif

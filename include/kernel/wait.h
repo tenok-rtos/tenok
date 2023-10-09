@@ -16,8 +16,8 @@
             wait = &__curr_thread__->list; \
         } while(0)
 
-typedef struct list wait_queue_head_t;
-typedef struct list wait_queue_t;
+typedef struct list_head wait_queue_head_t;
+typedef struct list_head wait_queue_t;
 
 /**
  * @brief  Suspend the current thread and place it into a wait list with a new
@@ -27,14 +27,14 @@ typedef struct list wait_queue_t;
  * @param  state: The new state of the thread
  * @retval None
  */
-void prepare_to_wait(struct list *q, struct list *wait, int state);
+void prepare_to_wait(struct list_head *q, struct list_head *wait, int state);
 
 /**
  * @brief  Wake up the highest priority task from the wait_list
  * @param  wait_list: The wait list that contains suspended tasks
  * @retval None
  */
-void wake_up(struct list *wait_list);
+void wake_up(struct list_head *wait_list);
 
 /**
  * @brief  Move the thread from a waiting list into the ready list and
@@ -42,6 +42,6 @@ void wake_up(struct list *wait_list);
  * @param  thread_list: The list head of the thread.
  * @retval None
  */
-void finish_wait(struct list *thread_list);
+void finish_wait(struct list_head *thread_list);
 
 #endif

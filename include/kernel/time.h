@@ -19,8 +19,8 @@ struct timer {
     struct itimerspec ret_time; /* for returning to the getter */
     struct timespec counter;    /* internal down counter */
     struct thread_info *thread; /* backlink to the thread */
-    struct list g_list;         /* linked to the global list of timers in the system */
-    struct list list;           /* linked to the timer list of the thread */
+    struct list_head g_list;    /* linked to the global list of timers in the system */
+    struct list_head list;      /* linked to the timer list of the thread */
 };
 
 void timer_up_count(struct timespec *time);

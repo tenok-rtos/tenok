@@ -2,7 +2,7 @@
 
 #include "list.h"
 
-void list_init(struct list *list)
+void list_init(struct list_head *list)
 {
     if(list != NULL) {
         list->prev = list;
@@ -10,12 +10,12 @@ void list_init(struct list *list)
     }
 }
 
-int list_is_empty(struct list *list)
+int list_is_empty(struct list_head *list)
 {
     return list->next == list;
 }
 
-void list_remove(struct list *list)
+void list_remove(struct list_head *list)
 {
     if(list != NULL) {
         list->next->prev = list->prev;
@@ -23,7 +23,7 @@ void list_remove(struct list *list)
     }
 }
 
-void list_push(struct list *list, struct list *new)
+void list_push(struct list_head *list, struct list_head *new)
 {
     if(list != NULL && new != NULL) {
         /* connect new into the list */
@@ -34,10 +34,10 @@ void list_push(struct list *list, struct list *new)
     }
 }
 
-struct list *list_pop(struct list *list)
+struct list_head *list_pop(struct list_head *list)
 {
     //the second position of the list stores the first item
-    struct list *first = list->next;
+    struct list_head *first = list->next;
 
     if(list == first) {
         return NULL;
@@ -49,7 +49,7 @@ struct list *list_pop(struct list *list)
     return first;
 }
 
-void list_move(struct list *list, struct list *new_head)
+void list_move(struct list_head *list, struct list_head *new_head)
 {
     list_remove(list);
     list_push(new_head, list);

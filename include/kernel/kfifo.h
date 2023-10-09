@@ -24,8 +24,8 @@ struct kfifo {
     spinlock_t lock;
 
     struct file file;
-    struct list r_wait_list;
-    struct list w_wait_list;
+    struct list_head r_wait_list;
+    struct list_head w_wait_list;
 };
 
 /**

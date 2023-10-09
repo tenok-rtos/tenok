@@ -92,8 +92,8 @@ struct task_struct {
     struct fdtable fdtable[FILE_DESC_CNT_MAX];
     uint32_t fd_bitmap[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
-    struct list threads_list; /* all threads held by the task */
-    struct list list;
+    struct list_head threads_list; /* all threads held by the task */
+    struct list_head list;
 };
 
 struct thread_info {
@@ -128,19 +128,19 @@ struct thread_info {
 
     /* timers */
     int timer_cnt;
-    struct list timers_list;
+    struct list_head timers_list;
 
     /* poll */
     bool poll_failed;
     wait_queue_head_t poll_wq;
     struct timespec poll_timeout;
-    struct list poll_files_list;
+    struct list_head poll_files_list;
 
-    struct list task_list;   /* list head for the task to track */
-    struct list thread_list; /* global list of threads */
-    struct list poll_list;   /* list head for the poll handler to track */
-    struct list join_list;   /* list head of other threads to wait for join of the thread */
-    struct list list;        /* list head for thread scheduling */
+    struct list_head task_list;   /* list head for the task to track */
+    struct list_head thread_list; /* global list of threads */
+    struct list_head poll_list;   /* list head for the poll handler to track */
+    struct list_head join_list;   /* list head of other threads to wait for join of the thread */
+    struct list_head list;        /* list head for thread scheduling */
 };
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);

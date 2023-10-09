@@ -24,7 +24,7 @@ typedef struct {
 } pthread_attr_t;
 
 typedef struct {
-    struct list task_wait_list;
+    struct list_head task_wait_list;
 } pthread_cond_t;
 
 /**

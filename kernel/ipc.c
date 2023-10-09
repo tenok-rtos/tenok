@@ -25,7 +25,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
 
     ssize_t retval = 0;
     size_t fifo_len = kfifo_len(pipe);
-    struct list *w_wait_list = &pipe->w_wait_list;
+    struct list_head *w_wait_list = &pipe->w_wait_list;
 
     /* check if the request size is larger than the fifo can serve */
     if(size > fifo_len) {
@@ -74,7 +74,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
 
     ssize_t retval = 0;
     size_t fifo_avail = kfifo_avail(pipe);
-    struct list *r_wait_list = &pipe->r_wait_list;
+    struct list_head *r_wait_list = &pipe->r_wait_list;
 
     /* check if the fifo has enough space to write or not */
     if(size > fifo_avail) {

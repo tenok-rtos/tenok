@@ -42,21 +42,21 @@ struct mount {
 
 /* index node */
 struct inode {
-    uint8_t  i_mode;      //file type: e.g., S_IFIFO, S_IFCHR, etc.
+    uint8_t  i_mode;   //file type: e.g., S_IFIFO, S_IFCHR, etc.
 
-    uint8_t  i_rdev;      //the device on which this file system is mounted
-    bool     i_sync;      //the mounted file is loaded into the rootfs or not
+    uint8_t  i_rdev;   //the device on which this file system is mounted
+    bool     i_sync;   //the mounted file is loaded into the rootfs or not
 
-    uint32_t i_ino;       //inode number
-    uint32_t i_parent;    //inode number of the parent directory
+    uint32_t i_ino;    //inode number
+    uint32_t i_parent; //inode number of the parent directory
 
-    uint32_t i_fd;        //file descriptor number
+    uint32_t i_fd;     //file descriptor number
 
-    uint32_t i_size;      //file size (bytes)
-    uint32_t i_blocks;    //block_numbers = file_size / block_size
-    uint32_t i_data;      //virtual address for accessing the storage
+    uint32_t i_size;   //file size (bytes)
+    uint32_t i_blocks; //block_numbers = file_size / block_size
+    uint32_t i_data;   //virtual address for accessing the storage
 
-    struct list i_dentry; //list head of the dentry table
+    struct list_head i_dentry; //list head of the dentry table
 };
 
 /* directory entry */
@@ -66,7 +66,7 @@ struct dentry {
     uint32_t d_inode;  //the inode of the file
     uint32_t d_parent; //the inode of the parent directory
 
-    struct list d_list;
+    struct list_head d_list;
 };
 
 struct super_block romfs_sb;
@@ -113,7 +113,7 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
         return NULL;
 
     /* traversal of the dentry list */
-    struct list *list_curr;
+    struct list_head *list_curr;
     list_for_each(list_curr, &inode_dir->i_dentry) {
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
@@ -157,7 +157,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
     /* allocate memory for the new dentry */
     uint8_t *dir_data_p;
     if(fit == true) {
-        struct list *list_end = inode_dir->i_dentry.prev;
+        struct list_head *list_end = inode_dir->i_dentry.prev;
         struct dentry *dir = list_entry(list_end, struct dentry, d_list);
         dir_data_p = (uint8_t *)dir + sizeof(struct dentry);
     } else {
@@ -320,31 +320,37 @@ void romfs_address_conversion_dir(struct inode *inode)
     /* adjust the address stored in the inode.i_data (which is in the block region) */
     inode->i_data = inode->i_data - (uint32_t)romfs_blk + sb_size + inodes_size;
 
-    struct list *list_start = &inode->i_dentry;
-    struct list *list_curr = list_start;
+    struct list_head *list_start = &inode->i_dentry;
+    struct list_head *list_curr = list_start;
 
     /* adjust the dentry list */
     do {
         /* preserve the next pointer before modifying */
-        struct list *list_next = list_curr->next;
+        struct list_head *list_next = list_curr->next;
 
         /* obtain the dentry */
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
         if(dentry->d_list.prev == &inode->i_dentry) {
             /* the address of the inode.i_dentry (list head) is in the inodes region */
-            dentry->d_list.prev = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
+            dentry->d_list.prev = (struct list_head *)
+                                  ((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
         } else {
             /* besides the list head, others in the blocks region */
-            dentry->d_list.prev = (struct list *)((uint8_t *)dentry->d_list.prev - (uint32_t)romfs_blk + sb_size + inodes_size);
+            dentry->d_list.prev = (struct list_head *)
+                                  ((uint8_t *)dentry->d_list.prev -
+                                   (uint32_t)romfs_blk + sb_size + inodes_size);
         }
 
         if(dentry->d_list.next == &inode->i_dentry) {
             /* the address of the inode.i_dentry (list head) is in the inodes region */
-            dentry->d_list.next = (struct list *)((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
+            dentry->d_list.next = (struct list_head *)
+                                  ((uint8_t *)&inode->i_dentry - (uint32_t)inodes + sb_size);
         } else {
             /* besides the list head, others in the blocks region */
-            dentry->d_list.next = (struct list *)((uint8_t *)dentry->d_list.next - (uint32_t)romfs_blk + sb_size + inodes_size);
+            dentry->d_list.next = (struct list_head *)
+                                  ((uint8_t *)dentry->d_list.next -
+                                   (uint32_t)romfs_blk + sb_size + inodes_size);
         }
 
         if(list_curr != list_start) {
@@ -395,9 +401,11 @@ void romfs_address_conversion_file(struct inode *inode)
             break;
 
         /* adjust block_head.b_next (the address in in the block region) */
-        blk_head->b_next = blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
+        blk_head->b_next =
+            blk_head->b_next - (uint32_t)romfs_blk + sb_size + inodes_size;
 
-        verbose("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i+1, (uint32_t)blk_head->b_next);
+        verbose("[inode: #%d, block #%d, next:%d]\n",
+                inode->i_ino, i+1, (uint32_t)blk_head->b_next);
     }
 
     /* adjust the address stored in the inode.i_data (which is in the block region) */
@@ -497,7 +505,8 @@ void romfs_import_file(char *host_path, char *romfs_path)
     inode->i_size   = file_size;
     inode->i_blocks = blocks;
 
-    printf("import %s => %s (size=%ld, blocks=%d)\n", host_path, romfs_path, file_size, blocks);
+    printf("import %s => %s (size=%ld, blocks=%d)\n",
+           host_path, romfs_path, file_size, blocks);
 
     uint8_t *last_blk_addr = NULL;
     int file_size_remained = file_size;
@@ -506,7 +515,8 @@ void romfs_import_file(char *host_path, char *romfs_path)
     int i;
     for(i = 0; i < blocks; i++) {
         /* new block allocation */
-        uint8_t *block_addr = (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
+        uint8_t *block_addr =
+            (uint8_t *)romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
         romfs_sb.s_blk_cnt++;
 
         /* first block to write */
@@ -516,7 +526,8 @@ void romfs_import_file(char *host_path, char *romfs_path)
 
         /* update the block header for the last block */
         if(i > 0) {
-            struct block_header *blk_head_last =  (struct block_header *)last_blk_addr;
+            struct block_header *blk_head_last =
+                (struct block_header *)last_blk_addr;
             blk_head_last->b_next = (uint32_t)block_addr;
         }
 

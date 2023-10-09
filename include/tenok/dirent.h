@@ -8,8 +8,8 @@
 
 /* return type of the opendir() syscall */
 typedef struct dirstream {
-    struct inode  *inode_dir;   /* directory inode */
-    struct list   *dentry_list; /* list pointer of the dentry to return */
+    struct inode     *inode_dir;   /* directory inode */
+    struct list_head *dentry_list; /* list pointer of the dentry to return */
 } DIR;
 
 /* return type of the readdir() syscall */

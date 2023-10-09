@@ -63,7 +63,7 @@ enum {
 
 struct shell_history {
     char cmd[SHELL_CMD_LEN_MAX];
-    struct list list;
+    struct list_head list;
 };
 
 struct shell_autocompl {
@@ -91,8 +91,8 @@ struct shell {
     int  history_cnt;
     bool show_history;
     struct shell_history *history; //memory for storing the history
-    struct list history_head;
-    struct list *history_curr;
+    struct list_head history_head;
+    struct list_head *history_curr;
 
     /* shell commands */
     struct shell_cmd *shell_cmds;

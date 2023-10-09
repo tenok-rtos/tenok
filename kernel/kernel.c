@@ -48,14 +48,14 @@
 #define INITIAL_XPSR 0x01000000
 
 /* global lists */
-struct list tasks_list;        /* global list for recording all tasks in the system */
-struct list threads_list;      /* global list for recording all threads in the system */
-struct list sleep_list;        /* list of all threads in the sleeping state */
-struct list suspend_list;      /* list of all thread currently suspended */
-struct list timers_list;       /* list of all timers in the system */
-struct list signal_wait_list;  /* list of all threads waiting for signals */
-struct list poll_timeout_list; /* list for tracking threads that setup timeout for poll() */
-struct list ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
+struct list_head tasks_list;        /* global list for recording all tasks in the system */
+struct list_head threads_list;      /* global list for recording all threads in the system */
+struct list_head sleep_list;        /* list of all threads in the sleeping state */
+struct list_head suspend_list;      /* list of all thread currently suspended */
+struct list_head timers_list;       /* list of all timers in the system */
+struct list_head signal_wait_list;  /* list of all threads waiting for signals */
+struct list_head poll_timeout_list; /* list for tracking threads that setup timeout for poll() */
+struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
 
 /* tasks and threads */
 struct task_struct tasks[TASK_CNT_MAX];
@@ -125,7 +125,7 @@ static struct task_struct *acquire_task(int pid)
 {
     struct task_struct *task;
 
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &tasks_list) {
         task = list_entry(curr, struct task_struct, list);
         if(task->pid == pid) {
@@ -140,7 +140,7 @@ static struct thread_info *acquire_thread(int tid)
 {
     struct thread_info *thread;
 
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &threads_list) {
         thread = list_entry(curr, struct thread_info, thread_list);
         if(thread->tid == tid) {
@@ -328,7 +328,7 @@ static void thread_delete(struct thread_info *thread)
     }
 }
 
-void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
+void prepare_to_wait(struct list_head *wait_list, struct list_head *wait, int state)
 {
     list_push(wait_list, wait);
 
@@ -336,13 +336,13 @@ void prepare_to_wait(struct list *wait_list, struct list *wait, int state)
     thread->status = state;
 }
 
-void wake_up(struct list *wait_list)
+void wake_up(struct list_head *wait_list)
 {
     struct thread_info *highest_pri_thread = NULL;
     struct thread_info *thread;
 
     /* find the highest priority task in the waiting list */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, wait_list) {
         thread = list_entry(curr, struct thread_info, list);
         if(thread->priority > highest_pri_thread->priority ||
@@ -361,7 +361,7 @@ void wake_up(struct list *wait_list)
     highest_pri_thread->status = THREAD_READY;
 }
 
-void finish_wait(struct list *thread_list)
+void finish_wait(struct list_head *thread_list)
 {
     struct thread_info *thread = list_entry(thread_list, struct thread_info, list);
     thread->status = THREAD_READY;
@@ -405,7 +405,7 @@ void sys_procstat(void)
     struct procstat_info *info = SYSCALL_ARG(struct procstat_info *, 0);
 
     int i = 0;
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
         int stack_size_word = thread->stack_size / 4;
@@ -479,7 +479,7 @@ void sys_exit(void)
     struct task_struct *task = running_thread->task;
 
     /* remove all threads of the task from the system */
-    struct list *curr, *next;
+    struct list_head *curr, *next;
     list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
@@ -959,12 +959,12 @@ void sys_mkfifo(void)
 void poll_notify(struct file *filp)
 {
     /* iterate through all threads */
-    struct list *thread_list;
+    struct list_head *thread_list;
     list_for_each(thread_list, &threads_list) {
         struct thread_info *thread = list_entry(thread_list, struct thread_info, thread_list);
 
         /* find all threads that are waiting for poll notification */
-        struct list *file_list;
+        struct list_head *file_list;
         list_for_each(file_list, &thread->poll_files_list) {
             struct file *file_iter = list_entry(file_list, struct file, list);
 
@@ -1055,7 +1055,7 @@ void sys_poll(void)
         list_init(&running_thread->poll_files_list);
 
         /* remove the thread from the poll list */
-        struct list *curr;
+        struct list_head *curr;
         list_for_each(curr, &poll_timeout_list) {
             if(curr == &running_thread->poll_list) {
                 list_remove(curr);
@@ -1218,7 +1218,7 @@ void sys_pthread_join(void)
     }
 
     /* check deadlock (threads should not join on each other) */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &running_thread->join_list) {
         struct thread_info *check_thread = list_entry(curr, struct thread_info, list);
 
@@ -1653,7 +1653,7 @@ void sys_kill(void)
         return;
     }
 
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
         handle_signal(thread, sig);
@@ -1763,7 +1763,7 @@ void sys_timer_delete(void)
     struct timer *timer;
 
     /* find the timer with the id */
-    struct list *curr, *next;
+    struct list_head *curr, *next;
     list_for_each_safe(curr, next, &running_thread->timers_list) {
         /* get the timer */
         timer = list_entry(curr, struct timer, list);
@@ -1814,7 +1814,7 @@ void sys_timer_settime(void)
     }
 
     /* find the timer with the id */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &running_thread->timers_list) {
         /* get the timer */
         timer = list_entry(curr, struct timer, list);
@@ -1859,7 +1859,7 @@ void sys_timer_gettime(void)
     bool found = false;
 
     /* find the timer with the id */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &running_thread->timers_list) {
         timer = list_entry(curr, struct timer, list);
 
@@ -1899,7 +1899,7 @@ void sys_free(void)
 static void threads_ticks_update(void)
 {
     /* update the sleep timers */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &sleep_list) {
         /* get the thread info */
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
@@ -1913,7 +1913,7 @@ static void threads_ticks_update(void)
 
 static void timers_update(void)
 {
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &timers_list) {
         struct timer *timer = list_entry(curr, struct timer, g_list);
 
@@ -1957,7 +1957,7 @@ static void poll_timeout_update(void)
     get_sys_time(&tp);
 
     /* iterate through all tasks that waiting for poll events */
-    struct list *curr;
+    struct list_head *curr;
     list_for_each(curr, &poll_timeout_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, poll_list);
 
@@ -2052,7 +2052,7 @@ static void schedule(void)
         return;
 
     /* awaken sleep threads if the sleep tick exhausted */
-    struct list *curr, *next;
+    struct list_head *curr, *next;
     list_for_each_safe(curr, next, &sleep_list) {
         /* obtain the thread info */
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
@@ -2072,7 +2072,7 @@ static void schedule(void)
     }
 
     /* select a task from the ready list */
-    struct list *new_thread_l = list_pop(&ready_list[pri]);
+    struct list_head *new_thread_l = list_pop(&ready_list[pri]);
     running_thread = list_entry(new_thread_l, struct thread_info, list);
     running_thread->status = THREAD_RUNNING;
 }

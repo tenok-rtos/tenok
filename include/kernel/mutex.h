@@ -10,7 +10,7 @@
 
 struct mutex {
     struct thread_info *owner;
-    struct list wait_list;
+    struct list_head wait_list;
 };
 
 /**

@@ -63,7 +63,7 @@ struct inode {
     uint32_t i_blocks;    //block_numbers = file_size / (block_size - block_header_size)
     uint32_t i_data;      //virtual address for accessing the storage
 
-    struct list i_dentry; //list head of the dentry table
+    struct list_head i_dentry; //list head of the dentry table
 };
 
 /* directory entry */
@@ -72,7 +72,7 @@ struct dentry {
     uint32_t d_inode;  //the inode of the file
     uint32_t d_parent; //the inode of the parent directory
 
-    struct list d_list;
+    struct list_head d_list;
 };
 
 struct file {
@@ -80,7 +80,7 @@ struct file {
     struct file_operations *f_op;
     uint32_t f_events;
     int f_flags;
-    struct list list;
+    struct list_head list;
 };
 
 struct file_operations {

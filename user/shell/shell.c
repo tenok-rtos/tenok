@@ -59,7 +59,8 @@ static void shell_ctrl_c_handler(struct shell *shell)
 static void shell_unknown_cmd_handler(int argc, char *argv[])
 {
     char s[50 + SHELL_CMD_LEN_MAX];
-    snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
+    snprintf(s, 50 + SHELL_CMD_LEN_MAX,
+             "unknown command: %s\n\r", argv[0]);
     shell_puts(s);
 }
 
@@ -166,7 +167,9 @@ static void shell_refresh_line(struct shell *shell)
              "\33[2K\r"   /* clear current line */
              "%s%s\r"     /* show prompt */
              "\033[%dC",  /* move cursor */
-             shell->prompt, shell->buf, shell->prompt_len + shell->cursor_pos);
+             shell->prompt,
+             shell->buf,
+             shell->prompt_len + shell->cursor_pos);
     shell_puts(s);
 }
 
@@ -199,13 +202,15 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
         return;
     }
 
-    struct list *history_list;
+    struct list_head *history_list;
     struct shell_history *history_new;
 
     /* check the size of the history list */
     if(shell->history_cnt < shell->history_max_cnt) {
         /* history list is not full, allocate new memory space */
-        history_list = &shell->history[shell->history_max_cnt - shell->history_cnt - 1].list;
+        history_list =
+            &shell->history[shell->history_max_cnt -
+                                                   shell->history_cnt - 1].list;
         shell->history_cnt++;
 
         /* push new history record into the list */
@@ -358,7 +363,7 @@ void shell_print_history(struct shell *shell)
 
     char s[SHELL_CMD_LEN_MAX * 3];
 
-    struct list *list_curr;
+    struct list_head *list_curr;
     struct shell_history *history;
 
     int i = 0;
@@ -421,7 +426,8 @@ static void shell_up_arrow_handler(struct shell *shell)
         shell->show_history = false;
     } else {
         /* display the history to the user */
-        struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
+        struct shell_history *history =
+            list_entry(shell->history_curr, struct shell_history, list);
         strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
     }
 
@@ -451,7 +457,8 @@ static void shell_down_arrow_handler(struct shell *shell)
         shell->show_history = false;
     } else {
         /* display the history to the user */
-        struct shell_history *history = list_entry(shell->history_curr, struct shell_history, list);
+        struct shell_history *history =
+            list_entry(shell->history_curr, struct shell_history, list);
         strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
     }
 

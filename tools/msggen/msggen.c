@@ -26,7 +26,7 @@ struct msg_var_entry {
     char *array_size;
     char *description;
 
-    struct list list;
+    struct list_head list;
 };
 
 int msg_cnt = 0;
@@ -335,7 +335,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     int var_cnt = 0;
 
-    struct list msg_var_list;
+    struct list_head msg_var_list;
     list_init(&msg_var_list);
 
     bool error = false;
@@ -417,7 +417,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             fclose(output_yaml);
 
             while(!list_is_empty(&msg_var_list)) {
-                struct list *curr = list_pop(&msg_var_list);
+                struct list_head *curr = list_pop(&msg_var_list);
                 struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
                 free(msg_var->c_type);
@@ -462,7 +462,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     /* check if variable with duplicated name exists */
     bool var_duplicated = false;
 
-    struct list *cmp1;
+    struct list_head *cmp1;
     list_for_each(cmp1, &msg_var_list) {
         /* counter for recording how many time the variable name appears */
         int cnt = 0;
@@ -471,7 +471,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         struct msg_var_entry *cmp_var1 = list_entry(cmp1, struct msg_var_entry, list);
 
         /* compare with all variable in list */
-        struct list *cmp2;
+        struct list_head *cmp2;
         list_for_each(cmp2, &msg_var_list) {
             struct msg_var_entry *cmp_var2 = list_entry(cmp2, struct msg_var_entry, list);
 
@@ -503,7 +503,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         /* generarte message structure */
         fprintf(output_c_header, "typedef struct __tenok_msg_%s_t {\n", msg_name);
 
-        struct list *curr;
+        struct list_head *curr;
         list_for_each(curr, &msg_var_list) {
             struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
@@ -588,7 +588,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     fclose(output_yaml);
 
     while(!list_is_empty(&msg_var_list)) {
-        struct list *curr = list_pop(&msg_var_list);
+        struct list_head *curr = list_pop(&msg_var_list);
         struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
         free(msg_var->c_type);
