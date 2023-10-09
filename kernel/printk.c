@@ -8,7 +8,7 @@
 #include <kernel/printk.h>
 
 #define PRINTK_BUF_LEN   100
-#define PRINTK_FIFO_SIZE 5
+#define PRINTK_FIFO_SIZE 10
 
 bool console_is_free(void);
 ssize_t console_write(const char *buf, size_t size);
@@ -86,6 +86,14 @@ void printk_init(void)
 {
     printk_fifo = kfifo_alloc(sizeof(struct printk_struct),
                               PRINTK_FIFO_SIZE);
+
+#ifndef BUILD_QEMU
+    /* clean screen */
+    struct printk_struct printk_obj;
+    strcpy(printk_obj.buf, "\x1b[H\x1b[2J");
+    printk_obj.len = strlen(printk_obj.buf);
+    kfifo_in(printk_fifo, &printk_obj, 1);
+#endif
 }
 
 void printk_handler(void)

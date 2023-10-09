@@ -33,11 +33,6 @@ void shell_task(void)
     shell_path_init();
     shell_serial_init();
 
-    /* clean screen */
-#ifndef BUILD_QEMU
-    shell_cls();
-#endif
-
     shell_puts("type `help' for help\n\r");
 
     while(1) {
