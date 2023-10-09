@@ -104,6 +104,7 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
     } else {
         init_wait(uart2.rx_wait);
         prepare_to_wait(&uart2.rx_wq, uart2.rx_wait, THREAD_WAIT);
+        uart2.rx_wait_size = size;
         return -ERESTARTSYS;
     }
 }

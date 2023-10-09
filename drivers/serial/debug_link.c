@@ -123,6 +123,7 @@ ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
     } else {
         init_wait(uart3.rx_wait);
         prepare_to_wait(&uart3.rx_wq, uart3.rx_wait, THREAD_WAIT);
+        uart3.rx_wait_size = size;
         return -ERESTARTSYS;
     }
 }
