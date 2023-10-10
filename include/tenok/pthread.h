@@ -5,16 +5,21 @@
 #define __PTHREAD_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/sched.h>
 
 #include <kernel/list.h>
+#include <kernel/wait.h>
 #include <kernel/mutex.h>
 #include <kernel/spinlock.h>
+
+#define PTHREAD_ONCE_INIT \
+    {.wq = {.next = NULL, .prev = NULL}, \
+     .finished = false}
 
 typedef uint32_t pthread_t;
 typedef void pthread_mutex_attr_t;   /* no usage */
 typedef uint32_t pthread_condattr_t; /* no usage */
-typedef uint32_t pthread_once_t;
 typedef struct mutex pthread_mutex_t;
 
 typedef struct {
@@ -26,6 +31,11 @@ typedef struct {
 typedef struct {
     struct list_head task_wait_list;
 } pthread_cond_t;
+
+typedef struct {
+    wait_queue_head_t wq;
+    bool finished;
+} pthread_once_t;
 
 /**
  * @brief  Initialize a thread attribute object with default values

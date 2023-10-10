@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <pthread.h>
 #include <sys/resource.h>
 
 #include <fs/fs.h>
@@ -22,6 +23,7 @@
 
 #define SIGNAL_CLEANUP_EVENT 100
 #define THREAD_JOIN_EVENT    101
+#define THREAD_ONCE_EVENT    102
 
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
@@ -114,6 +116,8 @@ struct thread_info {
     uint32_t privilege;
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
+
+    pthread_once_t *once_control;
 
     struct {
         size_t size;

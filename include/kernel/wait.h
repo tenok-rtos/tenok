@@ -30,11 +30,18 @@ typedef struct list_head wait_queue_t;
 void prepare_to_wait(struct list_head *q, struct list_head *wait, int state);
 
 /**
- * @brief  Wake up the highest priority task from the wait_list
- * @param  wait_list: The wait list that contains suspended tasks
+ * @brief  Wake up the highest priority thread from the wait_list
+ * @param  wait_list: The wait list that contains suspended threads
  * @retval None
  */
 void wake_up(struct list_head *wait_list);
+
+/**
+ * @brief  Wake up all threads from the wait_list
+ * @param  wait_list: The wait list that contains suspended threads
+ * @retval None
+ */
+void wake_up_all(struct list_head *wait_list);
 
 /**
  * @brief  Move the thread from a waiting list into the ready list and

@@ -91,6 +91,11 @@ NACKED void sig_return_handler(void)
     SYSCALL(SIGNAL_CLEANUP_EVENT);
 }
 
+NACKED void thread_once_return_handler(void)
+{
+    SYSCALL(THREAD_ONCE_EVENT);
+}
+
 void *kmalloc(size_t size)
 {
     return memory_pool_alloc(&mem_pool, size);
@@ -359,6 +364,18 @@ void wake_up(struct list_head *wait_list)
     /* wake up the thread by placing it back to the ready list */
     list_move(&highest_pri_thread->list, &ready_list[highest_pri_thread->priority]);
     highest_pri_thread->status = THREAD_READY;
+}
+
+void wake_up_all(struct list_head *wait_list)
+{
+    /* wake up all threads in the waiting list */
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, wait_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
+
+        list_move(&thread->list, &ready_list[thread->priority]);
+        thread->status = THREAD_READY;
+    }
 }
 
 void finish_wait(struct list_head *thread_list)
@@ -1499,13 +1516,43 @@ void sys_pthread_cond_wait(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+static void pthread_once_cleanup_handler(void)
+{
+    /* restore the stack */
+    running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
+
+    /* wakeup all waiting threads and mark once variable as complete */
+    pthread_once_t *once_control = running_thread->once_control;
+    once_control->finished = true;
+    wake_up_all(&once_control->wq);
+}
+
 void sys_pthread_once(void)
 {
-    //typedef void (*init_routine_t)(void);
+    typedef void (*init_routine_t)(void);
 
     /* read syscall arguments */
-    //pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
-    //init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 0);
+    pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
+    init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 1);
+
+    if(once_control->finished)
+        return;
+
+    if(once_control->wq.next == NULL ||
+       once_control->wq.prev == NULL) {
+        /* first thread to call the pthread_once() */
+        init_waitqueue_head(&once_control->wq);
+    } else {
+        /* pthread_once() is already called */
+        prepare_to_wait(&once_control->wq, &running_thread->list, THREAD_WAIT);
+        return;
+    }
+
+    running_thread->once_control = once_control;
+    stage_temporary_handler(running_thread,
+                            (uint32_t)init_routine,
+                            (uint32_t)thread_once_return_handler,
+                            NULL);
 }
 
 void sys_sem_post(void)
@@ -2040,6 +2087,8 @@ static void supervisor_request_handler(void)
         signal_cleanup_handler();
     } else if(SUPERVISOR_EVENT(running_thread) == THREAD_JOIN_EVENT) {
         thread_join_handler();
+    } else if(SUPERVISOR_EVENT(running_thread) == THREAD_ONCE_EVENT) {
+        pthread_once_cleanup_handler();
     } else {
         syscall_handler();
     }
