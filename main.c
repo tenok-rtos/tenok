@@ -1,6 +1,5 @@
 #include <stddef.h>
-
-#include <kernel/kernel.h>
+#include <tenok.h>
 
 int main(void)
 {

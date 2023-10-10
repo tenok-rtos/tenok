@@ -19,6 +19,8 @@ struct procstat_info {
     char   name[TASK_NAME_LEN_MAX];
 };
 
+void sched_start(void);
+
 /* non-posix syscalls */
 int procstat(struct procstat_info info[TASK_CNT_MAX]);
 void setprogname(const char *name);

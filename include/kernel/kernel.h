@@ -148,6 +148,4 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 struct task_struct *current_task_info(void);
 struct thread_info *current_thread_info(void);
 
-void sched_start(void);
-
 #endif
