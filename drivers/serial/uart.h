@@ -5,6 +5,7 @@
 
 #include <kernel/kfifo.h>
 #include <kernel/wait.h>
+#include <kernel/mutex.h>
 
 #include "stm32f4xx.h"
 
@@ -19,6 +20,7 @@ typedef struct {
     wait_queue_head_t rx_wq;
     wait_queue_t *tx_wait;
     wait_queue_t *rx_wait;
+    struct mutex tx_mtx;
 
     struct kfifo *rx_fifo;
 

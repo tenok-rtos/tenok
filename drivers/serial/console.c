@@ -6,6 +6,7 @@
 #include <kernel/ipc.h>
 #include <kernel/wait.h>
 #include <kernel/errno.h>
+#include <kernel/mutex.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
 #include <kernel/interrupt.h>
@@ -112,6 +113,9 @@ void serial0_init(void)
     init_waitqueue_head(&uart1.tx_wq);
     init_waitqueue_head(&uart1.rx_wq);
 
+    /* initialize mutex for protecting tx resource */
+    mutex_init(&uart1.tx_mtx);
+
     /* initialize uart1 */
     uart1_init(115200);
     uart1.tx_state = UART_TX_IDLE;
@@ -157,6 +161,12 @@ static int uart1_dma_puts(const char *data, size_t size)
 {
     switch(uart1.tx_state) {
         case UART_TX_IDLE: {
+            /* try claiming usage of the tx resource */
+            if(mutex_lock(&uart1.tx_mtx) == -ERESTARTSYS) {
+                /* mutex is locked by other threads */
+                return -ERESTARTSYS;
+            }
+
             /* configure the dma */
             DMA_InitTypeDef DMA_InitStructure = {
                 .DMA_BufferSize = (uint32_t)size,
@@ -190,6 +200,14 @@ static int uart1_dma_puts(const char *data, size_t size)
             return -ERESTARTSYS;
         }
         case UART_TX_DMA_BUSY: {
+            /* try to release the tx resource */
+            if(mutex_unlock(&uart1.tx_mtx) == -EPERM) {
+                /* mutex is locked by other threads,
+                 * call mutex_lock() to wait */
+                mutex_lock(&uart1.tx_mtx);
+                return -ERESTARTSYS;
+            }
+
             /* notified by the dma irq, the data transfer is now complete */
             uart1.tx_state = UART_TX_IDLE;
             return size;
