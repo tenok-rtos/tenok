@@ -500,6 +500,9 @@ void sys_exit(void)
     list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
+        if(thread->detached == true)
+            continue;
+
         /* remove thread from the system */
         list_remove(&thread->thread_list);
         list_remove(&thread->task_list);
@@ -1274,6 +1277,24 @@ void sys_pthread_cancel(void)
     }
 
     thread_delete(thread);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_detach(void)
+{
+    /* read syscall arguments */
+    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
+
+    /* check if the thread exists */
+    if(!bitmap_get_bit(bitmap_threads, tid)) {
+        /* reurn on error */
+        SYSCALL_ARG(long, 0) = -ESRCH;
+        return;
+    }
+
+    threads[tid].detached = true;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;

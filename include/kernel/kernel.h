@@ -116,6 +116,7 @@ struct thread_info {
     uint32_t privilege;
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
+    bool     detached;
 
     pthread_once_t *once_control;
 

@@ -103,6 +103,16 @@ pthread_t pthread_self(void);
 int pthread_join(pthread_t thread, void **retval);
 
 /**
+ * @brief  Mark the thread identified by thread as detached. When a detached
+ *         thread terminates, its resources are automatically released back to
+ *         the  system without the need for another thread to join with the
+ *         terminated thread
+ * @param  thread: The thread ID to be provided.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_detach(pthread_t thread);
+
+/**
  * @brief  Send a cancellation request to a thread specified with the thread ID
  * @param  thread: The thread ID to provide.
  * @retval int: 0 on sucess and nonzero error number on error.

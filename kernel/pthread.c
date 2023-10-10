@@ -53,6 +53,11 @@ NACKED int pthread_join(pthread_t thread, void **retval)
     SYSCALL(PTHREAD_JOIN);
 }
 
+NACKED int pthread_detach(pthread_t thread)
+{
+    SYSCALL(PTHREAD_DETACH);
+}
+
 NACKED int pthread_cancel(pthread_t thread)
 {
     SYSCALL(PTHREAD_CANCEL);
