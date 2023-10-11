@@ -248,29 +248,6 @@ static void stage_temporary_handler(struct thread_info *thread,
     __stack_init((uint32_t **)&thread->stack_top, func, return_handler, args);
 }
 
-static void stage_sigaction_handler(struct thread_info *thread,
-                                    sa_sigaction_t sa_sigaction,
-                                    int sigval,
-                                    siginfo_t *info,
-                                    void *context)
-{
-    uint32_t args[4];
-    args[0] = (uint32_t)sigval;
-    args[1] = (uint32_t)info;
-    args[2] = (uint32_t)context;
-    args[3] = 0;
-    stage_temporary_handler(thread, (uint32_t)sa_sigaction, (uint32_t)sig_return_handler, args);
-}
-
-static void stage_signal_handler(struct thread_info *thread,
-                                 sa_handler_t sa_handler,
-                                 int sigval)
-{
-    uint32_t args[4] = {0};
-    args[0] = (uint32_t)sigval;
-    stage_temporary_handler(thread, (uint32_t)sa_handler, (uint32_t)sig_return_handler, args);
-}
-
 static void thread_suspend(struct thread_info *thread)
 {
     if (thread->status == THREAD_SUSPENDED) {
@@ -1495,10 +1472,17 @@ static void handle_signal(struct thread_info *thread, int signum)
 
     /* stage the signal or sigaction handler */
     if(act->sa_flags & SA_SIGINFO) {
-        stage_sigaction_handler(thread, act->sa_sigaction,
-                                signum, NULL, NULL);
+        uint32_t args[4] = {0};
+        args[0] = (uint32_t)signum;
+        args[1] = (uint32_t)NULL /*info */;
+        args[2] = (uint32_t)NULL /*context*/;
+        stage_temporary_handler(thread, (uint32_t)act->sa_sigaction,
+                                (uint32_t)sig_return_handler, args);
     } else {
-        stage_signal_handler(thread, act->sa_handler, signum);
+        uint32_t args[4] = {0};
+        args[0] = (uint32_t)signum;
+        stage_temporary_handler(thread, (uint32_t)act->sa_handler,
+                                (uint32_t)sig_return_handler, args);
     }
 }
 
@@ -2080,8 +2064,10 @@ static void timers_update(void)
 
         /* stage the signal handler */
         if(timer->sev.sigev_notify == SIGEV_SIGNAL) {
-            sa_handler_t func = (sa_handler_t)timer->sev.sigev_notify_function;
-            stage_signal_handler(timer->thread, func, 0);
+            uint32_t args[4] = {0};
+            sa_handler_t notify_func = (sa_handler_t)timer->sev.sigev_notify_function;
+            stage_temporary_handler(timer->thread, (uint32_t)notify_func,
+                                    (uint32_t)sig_return_handler, args);
         }
     }
 }
