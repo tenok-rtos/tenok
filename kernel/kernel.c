@@ -623,7 +623,7 @@ void sys_close(void)
 
     /* a valid file descriptor number should starts from TASK_CNT_MAX */
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = EBADF;
+        SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
@@ -635,7 +635,7 @@ void sys_close(void)
 
     /* check if the file descriptor is indeed used */
     if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
-        SYSCALL_ARG(long, 0) = EBADF;
+        SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
@@ -779,7 +779,7 @@ void sys_lseek(void)
     int whence = SYSCALL_ARG(int, 2);
 
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = EBADF;
+        SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
@@ -820,7 +820,7 @@ void sys_fstat(void)
     struct task_struct *task = running_thread->task;
 
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = EBADF;
+        SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
