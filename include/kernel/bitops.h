@@ -36,7 +36,7 @@ static inline void bitmap_set_bit(unsigned long *map, unsigned long bit)
 
 static inline unsigned long bitmap_get_bit(unsigned long *map, unsigned long bit)
 {
-    return map[bit % BITS_PER_LONG] >> (bit % BITS_PER_LONG) & 1;
+    return map[bit / BITS_PER_LONG] >> (bit % BITS_PER_LONG) & 1;
 }
 
 static inline unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
