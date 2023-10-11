@@ -50,7 +50,7 @@ NACKED int ioctl(int fd, unsigned int cmd, unsigned long arg)
     SYSCALL(IOCTL);
 }
 
-NACKED long _lseek(int fd, long offset, int whence)
+NACKED off_t _lseek(int fd, long offset, int whence)
 {
     SYSCALL(LSEEK);
 }

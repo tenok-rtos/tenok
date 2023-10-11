@@ -122,11 +122,9 @@ struct thread_info *current_thread_info(void)
 
 static struct task_struct *acquire_task(int pid)
 {
-    struct task_struct *task;
-
     struct list_head *curr;
     list_for_each(curr, &tasks_list) {
-        task = list_entry(curr, struct task_struct, list);
+        struct task_struct *task = list_entry(curr, struct task_struct, list);
         if(task->pid == pid) {
             return task;
         }
@@ -137,11 +135,9 @@ static struct task_struct *acquire_task(int pid)
 
 static struct thread_info *acquire_thread(int tid)
 {
-    struct thread_info *thread;
-
     struct list_head *curr;
     list_for_each(curr, &threads_list) {
-        thread = list_entry(curr, struct thread_info, thread_list);
+        struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
         if(thread->tid == tid) {
             return thread;
         }
@@ -415,7 +411,7 @@ void sys_procstat(void)
         i++;
     }
 
-    /* return task count */
+    /* return thread count */
     SYSCALL_ARG(int, 0) = i;
 }
 
@@ -446,7 +442,7 @@ void sys_delay_ticks(void)
     list_push(&sleep_list, &(running_thread->list));
 
     /* pass the return value with r0 */
-    SYSCALL_ARG(uint32_t, 0) = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_task_create(void)
@@ -457,7 +453,6 @@ void sys_task_create(void)
     int stack_size = SYSCALL_ARG(int, 2);
 
     int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
-
     SYSCALL_ARG(int, 0) = retval;
 }
 
@@ -580,6 +575,9 @@ void sys_open(void)
 
     /* check if the file operation is undefined */
     if(!filp->f_op->open) {
+        /* release the file descriptor */
+        bitmap_clear_bit(task->fd_bitmap, fdesc_idx);
+
         /* return on error */
         SYSCALL_ARG(int, 0)= -ENXIO;
         return;
@@ -600,19 +598,19 @@ void sys_close(void)
 
     /* a valid file descriptor number should starts from TASK_CNT_MAX */
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = -EBADF;
+        SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
-
-    /* calculate the index number of the file descriptor on the table */
-    int fdesc_idx = fd - TASK_CNT_MAX;
 
     /* obtain the task from the thread */
     struct task_struct *task = running_thread->task;
 
+    /* calculate the index number of the file descriptor on the table */
+    int fdesc_idx = fd - TASK_CNT_MAX;
+
     /* check if the file descriptor is indeed used */
     if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
+        SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
@@ -620,7 +618,7 @@ void sys_close(void)
     bitmap_clear_bit(task->fd_bitmap, fdesc_idx);
 
     /* return on success */
-    SYSCALL_ARG(long, 0) = 0;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_read(void)
@@ -633,13 +631,22 @@ void sys_read(void)
     /* get the file pointer */
     struct file *filp;
     if(fd < TASK_CNT_MAX) {
-        /* anonymous pipe hold by each tasks */
+        /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* obtain the task from the thread */
         struct task_struct *task = running_thread->task;
 
+        /* calculate the index number of the file descriptor
+         * on the table */
         int fdesc_idx = fd - TASK_CNT_MAX;
+
+        /* check if the file descriptor is invalid */
+        if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
+            SYSCALL_ARG(ssize_t, 0) = -EBADF;
+            return;
+        }
+
         filp = task->fdtable[fdesc_idx].file;
         filp->f_flags = task->fdtable[fdesc_idx].flags;
     }
@@ -647,7 +654,7 @@ void sys_read(void)
     /* check if the file operation is undefined */
     if(!filp->f_op->read) {
         /* return on error */
-        SYSCALL_ARG(int, 0)= -ENXIO;
+        SYSCALL_ARG(ssize_t, 0)= -ENXIO;
         return;
     }
 
@@ -661,7 +668,7 @@ void sys_read(void)
     } else {
         /* syscall is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
 
@@ -675,13 +682,22 @@ void sys_write(void)
     /* get the file pointer */
     struct file *filp;
     if(fd < TASK_CNT_MAX) {
-        /* anonymous pipe hold by each tasks */
+        /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* obtain the task from the thread */
         struct task_struct *task = running_thread->task;
 
+        /* calculate the index number of the file descriptor
+         * on the table */
         int fdesc_idx = fd - TASK_CNT_MAX;
+
+        /* check if the file descriptor is invalid */
+        if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
+            SYSCALL_ARG(ssize_t, 0) = -EBADF;
+            return;
+        }
+
         filp = task->fdtable[fdesc_idx].file;
         filp->f_flags = task->fdtable[fdesc_idx].flags;
     }
@@ -689,7 +705,7 @@ void sys_write(void)
     /* check if the file operation is undefined */
     if(!filp->f_op->write) {
         /* return on error */
-        SYSCALL_ARG(int, 0)= -ENXIO;
+        SYSCALL_ARG(ssize_t, 0)= -ENXIO;
         return;
     }
 
@@ -703,7 +719,7 @@ void sys_write(void)
     } else {
         /* syscall is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        SYSCALL_ARG(ssize_t, 0) = retval;
     }
 }
 
@@ -717,13 +733,22 @@ void sys_ioctl(void)
     /* get the file pointer */
     struct file *filp;
     if(fd < TASK_CNT_MAX) {
-        /* anonymous pipe hold by each tasks */
+        /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* obtain the task from the thread */
         struct task_struct *task = running_thread->task;
 
+        /* calculate the index number of the file descriptor
+         * on the table */
         int fdesc_idx = fd - TASK_CNT_MAX;
+
+        /* check if the file descriptor is invalid */
+        if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
+            SYSCALL_ARG(int, 0) = -EBADF;
+            return;
+        }
+
         filp = task->fdtable[fdesc_idx].file;
     }
 
@@ -755,22 +780,32 @@ void sys_lseek(void)
     long offset = SYSCALL_ARG(long, 1);
     int whence = SYSCALL_ARG(int, 2);
 
+    /* get the file pointer */
+    struct file *filp;
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = -EBADF;
-        return;
+        /* anonymous pipe held by each tasks */
+        filp = files[fd];
+    } else {
+        /* obtain the task from the thread */
+        struct task_struct *task = running_thread->task;
+
+        /* calculate the index number of the file descriptor
+         * on the table */
+        int fdesc_idx = fd - TASK_CNT_MAX;
+
+        /* check if the file descriptor is invalid */
+        if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
+            SYSCALL_ARG(off_t, 0) = -EBADF;
+            return;
+        }
+
+        filp = task->fdtable[fdesc_idx].file;
     }
-
-    /* obtain the task from the thread */
-    struct task_struct *task = running_thread->task;
-
-    /* get the file pointer from the table */
-    int fdesc_idx = fd - TASK_CNT_MAX;
-    struct file *filp = task->fdtable[fdesc_idx].file;
 
     /* check if the file operation is undefined */
     if(!filp->f_op->lseek) {
         /* return on error */
-        SYSCALL_ARG(int, 0)= -ENXIO;
+        SYSCALL_ARG(off_t, 0)= -ENXIO;
         return;
     }
 
@@ -784,7 +819,7 @@ void sys_lseek(void)
     } else {
         /* syscall is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        SYSCALL_ARG(off_t, 0) = retval;
     }
 }
 
@@ -796,13 +831,25 @@ void sys_fstat(void)
 
     struct task_struct *task = running_thread->task;
 
+    /* TODO: register anonymous pipes of each tasks to the file table
+     * so fstat() can acquire its information
+     */
     if(fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(long, 0) = -EBADF;
+        SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
-    /* read the inode of the given file */
+    /* calculate the index number of the file descriptor
+     * on the table */
     int fdesc_idx = fd - TASK_CNT_MAX;
+
+    /* check if the file descriptor is invalid */
+    if(!bitmap_get_bit(task->fd_bitmap, fdesc_idx)) {
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
+    /* get file inode */
     struct inode *inode = task->fdtable[fdesc_idx].file->f_inode;
 
     /* check if the inode exists */

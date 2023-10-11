@@ -24,7 +24,7 @@ NACKED const char *getprogname(void)
     SYSCALL(GETPROGNAME);
 }
 
-NACKED uint32_t delay_ticks(uint32_t ticks)
+NACKED int delay_ticks(uint32_t ticks)
 {
     SYSCALL(DELAY_TICKS);
 }

@@ -60,7 +60,7 @@ ssize_t write(int fd, const void *buf, size_t count);
  * @param  whence: The start position of the new offset.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-long lseek(int fd, long offset, int whence);
+off_t lseek(int fd, long offset, int whence);
 
 /**
  * @brief  return the ID of the calling task
