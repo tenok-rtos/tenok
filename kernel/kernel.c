@@ -92,7 +92,11 @@ NACKED void thread_once_return_handler(void)
 
 void *kmalloc(size_t size)
 {
-    return memory_pool_alloc(&mem_pool, size);
+    preempt_disable();
+    void *ptr = memory_pool_alloc(&mem_pool, size);
+    preempt_enable();
+
+    return ptr;
 }
 
 void kfree(void *ptr)

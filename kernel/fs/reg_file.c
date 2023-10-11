@@ -23,10 +23,8 @@ static struct file_operations reg_file_ops = {
     .open = reg_file_open
 };
 
-int reg_file_init(struct file **files, struct inode *file_inode, struct memory_pool *mem_pool)
+int reg_file_init(struct file **files, struct inode *file_inode, struct reg_file *reg_file)
 {
-    /* create a new regular file */
-    struct reg_file *reg_file = memory_pool_alloc(mem_pool, sizeof(struct reg_file));
     reg_file->pos = 0;
     reg_file->f_inode = file_inode;
     reg_file->file.f_op = &reg_file_ops;

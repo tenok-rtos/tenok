@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 
 #include <mm/mpool.h>
+#include <mm/mm.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
 #include <kernel/ipc.h>
@@ -25,7 +26,6 @@ ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t rootfs_write(struct file *filp, const char *buf, size_t size, off_t offset);
 
 extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
-extern struct memory_pool mem_pool;
 extern int file_cnt;
 
 struct inode inodes[INODE_CNT_MAX];
@@ -129,7 +129,7 @@ void rootfs_init(void)
     list_init(&inode_root->i_dentry);
 
     /* create new file for the rootfs */
-    struct file *rootfs_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+    struct file *rootfs_file = kmalloc(sizeof(struct file));
     rootfs_file->f_op = &rootfs_file_ops;
 
     int fd = file_cnt + TASK_CNT_MAX;
@@ -366,7 +366,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             break;
         case S_IFCHR: {
             /* create a new character device file */
-            struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+            struct file *dev_file = kmalloc(sizeof(struct file));
             dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 
@@ -379,7 +379,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         }
         case S_IFBLK: {
             /* create a new block device file */
-            struct file *dev_file = memory_pool_alloc(&mem_pool, sizeof(struct file));
+            struct file *dev_file = kmalloc(sizeof(struct file));
             dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 
@@ -390,9 +390,10 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
 
             break;
         }
-        case S_IFREG:
+        case S_IFREG: {
             /* create a new regular file */
-            result = reg_file_init((struct file **)&files, new_inode, &mem_pool);
+            struct reg_file *reg_file = kmalloc(sizeof(struct reg_file));
+            result = reg_file_init((struct file **)&files, new_inode, reg_file);
 
             new_inode->i_mode   = S_IFREG;
             new_inode->i_size   = 0;
@@ -400,6 +401,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_data   = (uint32_t)NULL; //new file without any content
 
             break;
+        }
         case S_IFDIR:
             /* create a new directory */
             new_inode->i_mode   = S_IFDIR;
@@ -507,7 +509,8 @@ static bool fs_sync_file(struct inode *inode)
     file_cnt++;
 
     /* create a new regular file */
-    int result = reg_file_init((struct file **)&files, inode, &mem_pool);
+    struct reg_file *reg_file = kmalloc(sizeof(struct reg_file));
+    int result = reg_file_init((struct file **)&files, inode, reg_file);
 
     /* failed to create a new regular file */
     if(result != 0)
