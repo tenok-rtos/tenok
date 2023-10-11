@@ -37,12 +37,19 @@ struct msg_queue {
 mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr);
 
 /**
+ * @brief  Close the message queue descriptor mqdes
+ * @param  mqdes: The message queue descriptor to provide.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int mq_close(mqd_t mqdes);
+
+/**
  * @brief  Remove the oldest message from the message queue referred to by the message
            queue descriptor mqdes and places it in the buffer pointed to by msg_ptr
  * @param  mqdes: The message queue descriptor to provide.
  * @param  msg_ptr: The buffer to provide for storing the received message.
  * @param  msg_len: The length of the buffer pointed to by msg_ptr.
- * @param  msg_prio: Not used.
+ * @param  msg_prio: Not implemented.
  * @retval ssize_t: The number of bytes in the received message.
  */
 ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio);
@@ -53,7 +60,7 @@ ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg
  * @param  mqdes: The message queue descriptor to provide.
  * @param  msg_ptr: The message to provide for sending to the message queue.
  * @param  msg_len: The length of the message pointed to by msg_ptr.
- * @param  msg_prio: Not used.
+ * @param  msg_prio: Not implemented.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int mq_send(mqd_t mqdes, const char *msg_ptr, size_t msg_len, unsigned int msg_prio);

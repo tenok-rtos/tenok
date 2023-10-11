@@ -24,6 +24,7 @@ syscalls = \
  'mkfifo',
  'poll',
  'mq_open',
+ 'mq_close',
  'mq_receive',
  'mq_send',
  'pthread_create',
