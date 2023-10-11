@@ -41,12 +41,6 @@
 #include "kconfig.h"
 #include "stm32f4xx.h"
 
-#define HANDLER_MSP  0xFFFFFFF1
-#define THREAD_MSP   0xFFFFFFF9
-#define THREAD_PSP   0xFFFFFFFD
-
-#define INITIAL_XPSR 0x01000000
-
 /* global lists */
 struct list_head tasks_list;        /* global list for recording all tasks in the system */
 struct list_head threads_list;      /* global list for recording all threads in the system */
@@ -176,21 +170,14 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
 
     /* allocate stack for the new thread */
     thread->stack = alloc_pages(size_to_page_order(stack_size));
+    thread->stack_top = (struct stack *)(thread->stack + (stack_size / 4) /* words */);
 
-    /* stack design contains three parts:
-     * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setup exception return),
-     * _r7 (for passing system call number), and
-     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
-     */
-    size_t stack_size_word = stack_size / 4;
-    uint32_t *stack_top = thread->stack + stack_size_word - 18;
-    stack_top[17] = INITIAL_XPSR;
-    stack_top[16] = (uint32_t)thread_func;           // pc = task_entry
-    stack_top[15] = (uint32_t)thread_return_handler; // lr
-    stack_top[8]  = THREAD_PSP;                      //_lr = 0xfffffffd
+    /* initialize the thread stack */
+    uint32_t args[4] = {0};
+    __stack_init((uint32_t **)&thread->stack_top, (uint32_t)thread_func,
+                 (uint32_t)thread_return_handler, args);
 
-    thread->stack_top = (struct stack *)stack_top;
-    thread->stack_size = stack_size;
+    thread->stack_size = stack_size; /* bytes */
     thread->status = THREAD_WAIT;
     thread->tid = tid;
     thread->priority = priority;
@@ -258,17 +245,7 @@ static void stage_temporary_handler(struct thread_info *thread,
     thread->stack_top_preserved = (uint32_t)thread->stack_top;
 
     /* prepare a new space on user task's stack for the signal handler */
-    uint32_t *stack_top = (uint32_t *)thread->stack_top - 18;
-    stack_top[17] = INITIAL_XPSR;   //psr
-    stack_top[16] = func;           //pc
-    stack_top[15] = return_handler; //lr
-    stack_top[14] = 0;              //r12 (ip)
-    stack_top[13] = args[3];        //r3
-    stack_top[12] = args[2];        //r2
-    stack_top[11] = args[1];        //r1
-    stack_top[10] = args[0];        //r0
-    stack_top[8]  = THREAD_PSP;
-    thread->stack_top = (struct stack *)stack_top;
+    __stack_init((uint32_t **)&thread->stack_top, func, return_handler, args);
 }
 
 static void stage_sigaction_handler(struct thread_info *thread,

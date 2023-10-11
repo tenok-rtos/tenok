@@ -38,6 +38,23 @@ void os_env_init(uint32_t stack);
  */
 uint32_t *jump_to_thread(uint32_t stack, bool privileged);
 
+/**
+ * @brief  Initialize platform drivers
+ * @param  None
+ * @retval None
+ */
 void __platform_init(void);
+
+/**
+ * @brief  Initialize thread stack
+ * @param  stack_top: The pointer of the stack pointer.
+ * @param  func: The function to execute after context switch.
+ * @param  return_handler: The return handler function after fuc returned.
+ * @param  args[4]: The arguments for func.
+ * @retval None
+ */
+void __stack_init(uint32_t **stack_top, uint32_t func,
+                  uint32_t return_handler, uint32_t args[4]);
+
 
 #endif
