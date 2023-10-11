@@ -11,6 +11,7 @@
 #define EFAULT    14
 #define EINVAL    22
 #define EDEADLK   45
+#define EMSGSIZE  122
 #define EOVERFLOW 139
 
 #endif

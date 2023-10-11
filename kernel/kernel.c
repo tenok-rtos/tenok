@@ -1121,8 +1121,7 @@ void sys_mq_receive(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     char *msg_ptr = SYSCALL_ARG(char *, 1);
-    //size_t msg_len = SYSCALL_ARG(size_t, 2); //TODO: check len?
-    //unsigned int *msg_prio = SYSCALL_ARG(unsigned int *, 3);
+    size_t msg_len = SYSCALL_ARG(size_t, 2);
 
     /* check if the message queue descriptor is invalid */
     if(!bitmap_get_bit(bitmap_mq, mqdes)) {
@@ -1133,6 +1132,12 @@ void sys_mq_receive(void)
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
     pipe_t *pipe = mq->pipe;
+
+    /* check if msg_len exceeds maximum size */
+    if(msg_len > mq->attr.mq_msgsize) {
+        SYSCALL_ARG(int, 0) = -EMSGSIZE;
+        return;
+    }
 
     /* read message */
     ssize_t retval = pipe_read_generic(pipe, msg_ptr, 1);
@@ -1153,18 +1158,23 @@ void sys_mq_send(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     char *msg_ptr = SYSCALL_ARG(char *, 1);
-    //size_t msg_len = SYSCALL_ARG(size_t, 2); //TODO: check len?
-    //unsigned int msg_prio = SYSCALL_ARG(unsigned int, 3);
+    size_t msg_len = SYSCALL_ARG(size_t, 2);
 
     /* check if the message queue descriptor is invalid */
     if(!bitmap_get_bit(bitmap_mq, mqdes)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
+        SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* obtain message queue */
     struct msg_queue *mq = &mq_table[mqdes];
     pipe_t *pipe = mq->pipe;
+
+    /* check if msg_len exceeds maximum size */
+    if(msg_len > mq->attr.mq_msgsize) {
+        SYSCALL_ARG(int, 0) = -EMSGSIZE;
+        return;
+    }
 
     /* send message */
     ssize_t retval = pipe_write_generic(pipe, msg_ptr, 1);
