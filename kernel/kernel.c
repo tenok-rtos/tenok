@@ -1773,8 +1773,8 @@ void sys_kill(void)
         return;
     }
 
-    struct list_head *curr;
-    list_for_each(curr, &task->threads_list) {
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
         handle_signal(thread, sig);
     }
