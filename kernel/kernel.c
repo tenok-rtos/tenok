@@ -1090,8 +1090,8 @@ void sys_poll(void)
         list_init(&running_thread->poll_files_list);
 
         /* remove the thread from the poll list */
-        struct list_head *curr;
-        list_for_each(curr, &poll_timeout_list) {
+        struct list_head *curr, *next;
+        list_for_each_safe(curr, next, &poll_timeout_list) {
             if(curr == &running_thread->poll_list) {
                 list_remove(curr);
                 break;
