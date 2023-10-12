@@ -84,6 +84,14 @@ void kfifo_out(struct kfifo *fifo, void *data, size_t n)
     }
 }
 
+void kfifo_skip(struct kfifo *fifo)
+{
+    if(fifo->count > 0) {
+        fifo->start = kfifo_increase(fifo, fifo->start);
+        fifo->count--;
+    }
+}
+
 size_t kfifo_avail(struct kfifo *fifo)
 {
     return fifo->ring_size - fifo->count;

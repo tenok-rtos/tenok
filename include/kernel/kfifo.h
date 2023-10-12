@@ -34,6 +34,7 @@ struct kfifo {
  * @param  data: The data space for the fifo.
  * @param  type_size: The size of the element managed by the fifo.
  * @param  ring_size: The number of the elements that can fit the fifo.
+ * @retval None
  */
 void kfifo_init(struct kfifo *fifo, void *data, size_t type_size, size_t ring_size);
 
@@ -42,6 +43,7 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t type_size, size_t ring_si
  * @param  nmem: The size of the element managed by the fifo.
  * @param  size: The number of the elements that can fit the fifo.
  * @retval kfifo: The dynamically allocated fifo object.
+ * @retval None
  */
 struct kfifo *kfifo_alloc(size_t nmem, size_t size);
 
@@ -49,6 +51,7 @@ struct kfifo *kfifo_alloc(size_t nmem, size_t size);
  * @brief  Put data into the fifo
  * @param  fifo: The fifo object to provide.
  * @param  data: The pointer of data to put into the fifo.
+ * @retval None
  */
 void kfifo_put(struct kfifo *fifo, const void *data);
 
@@ -56,6 +59,7 @@ void kfifo_put(struct kfifo *fifo, const void *data);
  * @brief  Get data from the fifo
  * @param  fifo: The fifo object to provide.
  * @param  data: For returning the retrieved data.
+ * @retval None
  */
 void kfifo_get(struct kfifo *fifo, void *data);
 
@@ -64,6 +68,7 @@ void kfifo_get(struct kfifo *fifo, void *data);
  * @param  fifo: The fifo object to provide.
  * @param  data: The data to put into the fifo.
  * @param  n: Number of the data to put into the fifo.
+ * @retval None
  */
 void kfifo_in(struct kfifo *fifo, const void *data, size_t n);
 
@@ -72,8 +77,16 @@ void kfifo_in(struct kfifo *fifo, const void *data, size_t n);
  * @param  fifo: The fifo object to provide.
  * @param  data: The memory space for storing retrieved data.
  * @param  n: Number of the data to get from the fifo.
+ * @retval None
  */
 void kfifo_out(struct kfifo *fifo, void *data, size_t n);
+
+/**
+ * @brief  Skip data from the fifo
+ * @param  fifo: The fifo object to provide.
+ * @retval None
+ */
+void kfifo_skip(struct kfifo *fifo);
 
 /**
  * @brief  Return the number of unused elements in the fifo
