@@ -97,7 +97,7 @@ pthread_t pthread_self(void);
 /**
  * @brief  Wait for a thread specified with the thread ID to terminate
  * @param  thread: The thread ID to be provided.
- * @param  retval: Not implemented yet.
+ * @param  retval: The pointer to the return value pointer to provide.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_join(pthread_t thread, void **retval);
@@ -154,7 +154,7 @@ int pthread_kill(pthread_t thread, int sig);
 
 /**
  * @brief  Terminate the calling thread and returns a value via retval
- * @param  retval: Not implemented yet.
+ * @param  retval: The return value pointer to provide.
  * @retval None
  */
 void pthread_exit(void *retval);

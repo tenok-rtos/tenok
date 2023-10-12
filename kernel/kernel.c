@@ -77,7 +77,7 @@ syscall_info_t syscall_table[] = {
 
 NACKED void thread_return_handler(void)
 {
-    SYSCALL(THREAD_JOIN_EVENT);
+    SYSCALL(THREAD_RETURN_EVENT);
 }
 
 NACKED void sig_return_handler(void)
@@ -182,6 +182,7 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->tid = tid;
     thread->priority = priority;
     thread->privilege = privilege;
+    thread->joinable = true;
 
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
@@ -217,6 +218,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     /* allocate a new task */
     struct task_struct *task = &tasks[pid];
     task->pid = pid;
+    task->main_thread = thread;
     list_init(&task->threads_list);
     list_push(&task->threads_list, &thread->task_list);
     list_push(&tasks_list, &task->list);
@@ -346,21 +348,20 @@ static inline void signal_cleanup_handler(void)
 
 static inline void thread_join_handler(void)
 {
-    /* wake up the thread waiting for join */
-    if(!list_is_empty(&running_thread->join_list)) {
-        wake_up(&running_thread->join_list);
+    /* wake up the threads waiting to join */
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, &running_thread->join_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
+
+        /* pass the return value back to the waiting thread */
+        void **retval = (void **)thread->stack_top->r1;
+        if(retval) {
+            *(uint32_t *)retval = (uint32_t)running_thread->retval;
+        }
+
+        list_move(&thread->list, &ready_list[thread->priority]);
+        thread->status = THREAD_READY;
     }
-
-    /* remove the thread from the system */
-    list_remove(&running_thread->thread_list);
-    list_remove(&running_thread->task_list);
-    list_remove(&running_thread->list);
-    running_thread->status = THREAD_TERMINATED;
-    bitmap_clear_bit(bitmap_threads, running_thread->tid);
-
-    /* free the stack memory */
-    free_pages((uint32_t)running_thread->stack,
-               size_to_page_order(running_thread->stack_size));
 
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = running_thread->task;
@@ -368,6 +369,18 @@ static inline void thread_join_handler(void)
         list_remove(&task->list);
         bitmap_clear_bit(bitmap_tasks, task->pid);
     }
+
+    //TODO: release task resources
+
+    /* remove the thread from the system */
+    list_remove(&running_thread->thread_list);
+    list_remove(&running_thread->task_list);
+    running_thread->status = THREAD_TERMINATED;
+    bitmap_clear_bit(bitmap_threads, running_thread->tid);
+
+    /* free the stack memory */
+    free_pages((uint32_t)running_thread->stack,
+               size_to_page_order(running_thread->stack_size));
 }
 
 void sys_procstat(void)
@@ -453,9 +466,6 @@ void sys_exit(void)
     list_for_each_safe(curr, next, &task->threads_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
-        if(thread->detached == true)
-            continue;
-
         /* remove thread from the system */
         list_remove(&thread->thread_list);
         list_remove(&thread->task_list);
@@ -467,11 +477,11 @@ void sys_exit(void)
         free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
     }
 
-    /* remove the task from the system if it contains no thread anymore */
-    if(list_is_empty(&task->threads_list)) {
-        list_remove(&task->list);
-        bitmap_clear_bit(bitmap_tasks, task->pid);
-    }
+    /* remove the task from the system */
+    list_remove(&task->list);
+    bitmap_clear_bit(bitmap_tasks, task->pid);
+
+    //TODO: release task resources
 }
 
 void sys_mount(void)
@@ -1275,15 +1285,7 @@ void sys_pthread_join(void)
         return;
     }
 
-    /* check if another thread is already waiting for join */
-    if(!list_is_empty(&thread->join_list)) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
-    }
-
-    /* check if the thread is joinable */
-    if(thread->detached) {
+    if(thread->detached || !thread->joinable) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
@@ -1530,7 +1532,9 @@ void sys_pthread_kill(void)
 
 void sys_pthread_exit(void)
 {
-    //TODO: handle return value pointer
+    /* read syscall arguments */
+    void *retval = SYSCALL_ARG(void *, 0);
+    running_thread->retval = retval;
 
     thread_join_handler();
 }
@@ -2131,8 +2135,7 @@ static inline bool check_systick_event(void)
 
 static inline void prepare_syscall_args(void)
 {
-    /*
-     * the stack layouts are different according to the fpu is used or not due to the
+    /* the stack layouts are different according to the fpu is used or not due to the
      * lazy context switch mechanism of the arm processor. when lr[4] bit is set as 0,
      * the fpu is used otherwise it is unused.
      */
@@ -2163,12 +2166,24 @@ static void syscall_handler(void)
     }
 }
 
+static void thread_return_event_handler(void)
+{
+    if(running_thread == running_thread->task->main_thread) {
+        /* returned from the main thread, the whole task should
+         * be terminated */
+        sys_exit();
+    } else {
+        running_thread->retval = (void *)running_thread->stack_top->r0;
+        thread_join_handler();
+    }
+}
+
 static void supervisor_request_handler(void)
 {
     if(SUPERVISOR_EVENT(running_thread) == SIGNAL_CLEANUP_EVENT) {
         signal_cleanup_handler();
-    } else if(SUPERVISOR_EVENT(running_thread) == THREAD_JOIN_EVENT) {
-        thread_join_handler();
+    } else if(SUPERVISOR_EVENT(running_thread) == THREAD_RETURN_EVENT) {
+        thread_return_event_handler();
     } else if(SUPERVISOR_EVENT(running_thread) == THREAD_ONCE_EVENT) {
         pthread_once_cleanup_handler();
     } else {

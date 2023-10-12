@@ -22,7 +22,7 @@
 #define THREAD_CNT_MAX 64
 
 #define SIGNAL_CLEANUP_EVENT 100
-#define THREAD_JOIN_EVENT    101
+#define THREAD_RETURN_EVENT  101
 #define THREAD_ONCE_EVENT    102
 
 #define DEF_SYSCALL(func, _num) \
@@ -94,6 +94,8 @@ struct task_struct {
     struct fdtable fdtable[FILE_DESC_CNT_MAX];
     uint32_t fd_bitmap[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
+    struct thread_info *main_thread;
+
     struct list_head threads_list; /* all threads held by the task */
     struct list_head list;
 };
@@ -117,6 +119,8 @@ struct thread_info {
     bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
     bool     detached;
+    bool     joinable;
+    void     *retval;
 
     pthread_once_t *once_control;
 
