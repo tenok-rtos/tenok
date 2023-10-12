@@ -1282,6 +1282,13 @@ void sys_pthread_join(void)
         return;
     }
 
+    /* check if the thread is joinable */
+    if(thread->detached) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
     /* check deadlock (threads should not join on each other) */
     struct list_head *curr;
     list_for_each(curr, &running_thread->join_list) {
