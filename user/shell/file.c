@@ -1,10 +1,9 @@
+#include <stdio.h>
 #include <string.h>
-
-#include <tenok/stdio.h>
-#include <tenok/fcntl.h>
-#include <tenok/dirent.h>
-#include <tenok/unistd.h>
-#include <tenok/sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "shell.h"
 

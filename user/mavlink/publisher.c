@@ -1,8 +1,7 @@
+#include <time.h>
+#include <fcntl.h>
 #include <errno.h>
-
-#include <tenok/time.h>
-#include <tenok/fcntl.h>
-#include <tenok/unistd.h>
+#include <unistd.h>
 
 #include "mavlink.h"
 

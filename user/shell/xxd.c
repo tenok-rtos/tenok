@@ -1,7 +1,6 @@
+#include <stdio.h>
 #include <string.h>
-
-#include <tenok/stdio.h>
-#include <tenok/sys/stat.h>
+#include <sys/stat.h>
 
 #include "shell.h"
 

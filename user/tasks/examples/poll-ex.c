@@ -1,7 +1,7 @@
 #include <tenok.h>
 #include <string.h>
 #include <stdio.h>
-#include <tenok/poll.h> //FIXME
+#include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>

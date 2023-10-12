@@ -5,10 +5,9 @@
 #define __KERNEL_TIME_H__
 
 #include <stdbool.h>
+#include <time.h>
 
 #include <kernel/list.h>
-
-#include <tenok/time.h>
 
 struct timer {
     int  id;

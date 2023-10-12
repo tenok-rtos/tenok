@@ -2,12 +2,11 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <unistd.h>
 
 #include <fs/fs.h>
-
-#include <tenok/fcntl.h>
-#include <tenok/dirent.h>
-#include <tenok/unistd.h>
 
 #include "uart.h"
 #include "shell.h"

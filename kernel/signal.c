@@ -1,10 +1,9 @@
 #include <stdbool.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <arch/port.h>
 #include <kernel/syscall.h>
-
-#include <tenok/signal.h>
 
 #define DEF_SIG_BIT(name, bit) \
     case name: return (1 << bit)

@@ -1,10 +1,9 @@
+#include <stdio.h>
 #include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include <fs/fs.h>
-
-#include <tenok/stdio.h>
-#include <tenok/dirent.h>
-#include <tenok/sys/stat.h>
 
 #include "shell.h"
 
