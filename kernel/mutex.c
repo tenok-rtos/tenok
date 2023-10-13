@@ -46,11 +46,8 @@ int mutex_unlock(struct mutex *mtx)
     /* release the mutex */
     mtx->owner = NULL;
 
-    /* check the mutex waiting list */
-    if(!list_is_empty(&mtx->wait_list)) {
-        /* wake up a thread from the mutex waiting list */
-        wake_up(&mtx->wait_list);
-    }
+    /* wake up a thread from the mutex waiting list */
+    wake_up(&mtx->wait_list);
 
     return 0;
 }

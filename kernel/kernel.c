@@ -323,6 +323,9 @@ void prepare_to_wait(struct list_head *wait_list, struct list_head *wait, int st
 
 void wake_up(struct list_head *wait_list)
 {
+    if(list_is_empty(wait_list))
+        return;
+
     struct thread_info *highest_pri_thread = NULL;
     struct thread_info *thread;
 
@@ -1599,9 +1602,7 @@ void sys_pthread_cond_signal(void)
     pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
 
     /* wake up a thread from the wait list */
-    if(!list_is_empty(&cond->task_wait_list)) {
-        wake_up(&cond->task_wait_list);
-    }
+    wake_up(&cond->task_wait_list);
 
     /* pthread_cond_signal never returns error code */
     SYSCALL_ARG(int, 0) = 0;
