@@ -150,13 +150,29 @@ static struct thread_info *acquire_thread(int tid)
     return NULL;
 }
 
-static struct thread_info *thread_create(thread_func_t thread_func, uint8_t priority,
-        int stack_size, uint32_t privilege)
+static int thread_create(struct thread_info **new_thread,
+                         thread_func_t thread_func,
+                         uint8_t priority,
+                         int stack_size,
+                         int detachstate,
+                         uint32_t privilege)
 {
+    /* invalid detach state setting */
+    if(detachstate != PTHREAD_CREATE_DETACHED &&
+       detachstate != PTHREAD_CREATE_JOINABLE) {
+        return -EINVAL;
+    }
+
+    /* invalid priority setting */
+    if(priority < 0 ||
+       priority > TASK_MAX_PRIORITY) {
+        return -EINVAL;
+    }
+
     /* allocate a new thread id */
     int tid = find_first_zero_bit(bitmap_threads, THREAD_CNT_MAX);
     if(tid >= THREAD_CNT_MAX)
-        return NULL;
+        return -EAGAIN;
     bitmap_set_bit(bitmap_threads, tid);
 
     /* stack size alignment */
@@ -182,7 +198,14 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     thread->tid = tid;
     thread->priority = priority;
     thread->privilege = privilege;
-    thread->joinable = true;
+
+    if(detachstate == PTHREAD_CREATE_DETACHED) {
+        thread->joinable = false;
+        thread->detached = true;
+    } else if(detachstate == PTHREAD_CREATE_JOINABLE) {
+        thread->joinable = true;
+        thread->detached = false;
+    }
 
     /* initialize the list for poll syscall */
     list_init(&thread->poll_files_list);
@@ -196,18 +219,19 @@ static struct thread_info *thread_create(thread_func_t thread_func, uint8_t prio
     /* put the new thread in the sleep list */
     list_push(&sleep_list, &thread->list);
 
-    return thread;
+    *new_thread = thread;
+    return 0;
 }
 
 static int _task_create(thread_func_t task_func, uint8_t priority,
                         int stack_size, uint32_t privilege)
 {
-    /* create a thread for the new task */
-    struct thread_info *thread =
-        thread_create(task_func, priority, stack_size, privilege);
+    struct thread_info *thread;
+    int retval = thread_create(&thread, task_func, priority, stack_size,
+                               PTHREAD_CREATE_JOINABLE, privilege);
 
-    if(!thread)
-        return -1;
+    if(retval != 0)
+        return retval;
 
     /* allocate a new task id */
     int pid = find_first_zero_bit(bitmap_tasks, TASK_CNT_MAX);
@@ -1238,28 +1262,29 @@ void sys_pthread_create(void)
     start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
     //void *arg = XXX; //TODO: read stack to get the fourth argument
 
-    /* invalid priority setting */
-    if(attr->schedparam.sched_priority < 0 ||
-       attr->schedparam.sched_priority > TASK_MAX_PRIORITY) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+    /* use defualt attributes if user did not provide */
+    pthread_attr_t default_attr;
+    if(attr == NULL) {
+        pthread_attr_init(&default_attr);
+        default_attr.schedparam.sched_priority = running_thread->priority;
+        attr = &default_attr;
     }
 
     /* create new thread */
-    struct thread_info *thread =
-        thread_create((thread_func_t)start_routine,
-                      attr->schedparam.sched_priority,
-                      attr->stacksize,
-                      USER_THREAD);
-
-    strcpy(thread->name, running_thread->name);
-
-    if(!thread) {
+    struct thread_info *thread;
+    int retval = thread_create(&thread,
+                               (thread_func_t)start_routine,
+                               attr->schedparam.sched_priority,
+                               attr->stacksize,
+                               attr->detachstate,
+                               USER_THREAD);
+    if(retval != 0) {
         /* failed to create new thread, return on error */
-        SYSCALL_ARG(int, 0) = -EAGAIN;
+        SYSCALL_ARG(int, 0) = retval;
         return;
     }
+
+    strcpy(thread->name, running_thread->name);
 
     /* set the task ownership of the thread */
     thread->task = running_thread->task;

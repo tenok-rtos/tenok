@@ -1,4 +1,5 @@
 #include <tenok.h>
+#include <errno.h>
 #include <pthread.h>
 
 #include <arch/port.h>
@@ -10,6 +11,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     attr->schedparam.sched_priority = 0;
     attr->stacksize = 512;
     attr->stackaddr = NULL;
+    attr->detachstate = PTHREAD_CREATE_JOINABLE;
     return 0;
 }
 
@@ -34,6 +36,23 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 {
     *stacksize = attr->stacksize;
+    return 0;
+}
+
+int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
+{
+    if(attr->detachstate != PTHREAD_CREATE_DETACHED &&
+       attr->detachstate != PTHREAD_CREATE_JOINABLE) {
+        return -EINVAL;
+    }
+
+    attr->detachstate = detachstate;
+    return 0;
+}
+
+int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
+{
+    *detachstate = attr->detachstate;
     return 0;
 }
 

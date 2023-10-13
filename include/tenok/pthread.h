@@ -17,6 +17,9 @@
     {.wq = {.next = NULL, .prev = NULL}, \
      .finished = false}
 
+#define PTHREAD_CREATE_DETACHED 0
+#define PTHREAD_CREATE_JOINABLE 1
+
 typedef uint32_t pthread_t;
 typedef void pthread_mutex_attr_t;   /* no usage */
 typedef uint32_t pthread_condattr_t; /* no usage */
@@ -26,6 +29,7 @@ typedef struct {
     struct sched_param schedparam;
     void *stackaddr;
     size_t stacksize; /* bytes */
+    int detachstate;
 } pthread_attr_t;
 
 typedef struct {
@@ -75,6 +79,22 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
+
+/**
+ * @brief  Set detach state parameter of a thread attriute object
+ * @param  attr: The attribute object to set detach state. 
+ * @param  detachstate: The detach state for setting the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
+
+/**
+ * @brief  Get detach state parameter of a thread attriute object
+ * @param  attr: The attribute object to retrieve detach state.
+ * @param  detachstate: For returning the detach state from the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
 
 /**
  * @brief  Start a new thread in the calling task
