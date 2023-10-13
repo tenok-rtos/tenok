@@ -140,6 +140,15 @@ int pthread_detach(pthread_t thread);
 int pthread_cancel(pthread_t thread);
 
 /**
+ * @brief  Compare thread IDs
+ * @param  t1: The first thread ID to be provided.
+ * @param  t2: The second thread ID to be provided.
+ * @retval int: If the two thread IDs are equal, the function returns a nonzero
+ *              value; otherwise, it returns 0.
+ */
+int pthread_equal(pthread_t t1, pthread_t t2);
+
+/**
  * @brief  Set the scheduling parameters of a thread specified with the thread ID
  * @param  thread: Thread ID to provide.
  * @param  policy: Not used.

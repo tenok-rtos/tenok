@@ -82,6 +82,11 @@ NACKED int pthread_cancel(pthread_t thread)
     SYSCALL(PTHREAD_CANCEL);
 }
 
+int pthread_equal(pthread_t t1, pthread_t t2)
+{
+    return t1 == t2;
+}
+
 NACKED int pthread_setschedparam(pthread_t thread, int policy,
                                  const struct sched_param *param)
 {
