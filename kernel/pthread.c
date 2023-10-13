@@ -11,6 +11,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     attr->schedparam.sched_priority = 0;
     attr->stacksize = 512;
     attr->stackaddr = NULL;
+    attr->schedpolicy = SCHED_RR;
     attr->detachstate = PTHREAD_CREATE_JOINABLE;
     return 0;
 }
@@ -24,6 +25,18 @@ int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *p
 int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param)
 {
     *param = attr->schedparam;
+    return 0;
+}
+
+int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy)
+{
+    attr->schedpolicy = policy;
+    return 0;
+}
+
+int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy)
+{
+    *policy = attr->schedpolicy;
     return 0;
 }
 

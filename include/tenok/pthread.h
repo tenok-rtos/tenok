@@ -29,6 +29,7 @@ typedef struct {
     struct sched_param schedparam;
     void *stackaddr;
     size_t stacksize; /* bytes */
+    int schedpolicy;
     int detachstate;
 } pthread_attr_t;
 
@@ -63,6 +64,22 @@ int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *p
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param);
+
+/**
+ * @brief  Set scheduling policy of a thread attriute object
+ * @param  attr: The attribute object to set.
+ * @param  param: The scheduling policy for setting the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
+
+/**
+ * @brief  Get scheduling parameter of a thread attriute object
+ * @param  attr: The attribute object to retrieve the scheduling policy.
+ * @param  param: For returning the scheduling policy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
 
 /**
  * @brief  Set stack size parameter of a thread attriute object
