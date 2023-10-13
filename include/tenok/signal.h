@@ -85,6 +85,14 @@ int sigaddset(sigset_t *set, int signum);
 int sigdelset(sigset_t *set, int signum);
 
 /**
+ * @brief  Test whether sugnum is a member of set
+ * @param  set: The signal set object to provide.
+ * @param  signum: The signal number to provide.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int sigismember(const sigset_t *set, int signum);
+
+/**
  * @brief  Signal a task to change the action taken by a task on receipt of a specific
            signal
  * @param  signum: The signal set object to provide.

@@ -89,6 +89,12 @@ int sigdelset(sigset_t *set, int signum)
     return 0;
 }
 
+int sigismember(const sigset_t *set, int signum)
+{
+    int mask = sig2bit(signum);
+    return (*set & mask) ? 0 : -EINVAL;
+}
+
 NACKED int sigaction(int signum, const struct sigaction *act,
                      struct sigaction *oldact)
 {
