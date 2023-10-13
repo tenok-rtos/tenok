@@ -40,6 +40,7 @@ syscalls = \
  'pthread_exit',
  'pthread_mutex_unlock',
  'pthread_mutex_lock',
+ 'pthread_mutex_trylock',
  'pthread_cond_signal',
  'pthread_cond_broadcast',
  'pthread_cond_wait',

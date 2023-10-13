@@ -244,6 +244,15 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
 
 /**
+ * @brief  Lock the given mutex. If the mutex object referenced by mutex is
+           currently locked (by any thread, including the current thread),
+           the call shall return immediately
+ * @param  mutex: The mutex object to lock.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_mutex_trylock(pthread_mutex_t *mutex);
+
+/**
  * @brief  Initializes a conditional variable with specified attributes
  * @param  cond: The conditional variable object to be initialized.
  * @param  cond_attr: The attribute object for initializing the conditional variable.

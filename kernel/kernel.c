@@ -1630,6 +1630,23 @@ void sys_pthread_mutex_lock(void)
     }
 }
 
+void sys_pthread_mutex_trylock(void)
+{
+    /* read syscall arguments */
+    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
+
+    int retval = mutex_lock(mutex);
+
+    /* check if the syscall need to be restarted */
+    if(retval == -ERESTARTSYS) {
+        /* failed to lock the mutex */
+        SYSCALL_ARG(int, 0) = -EBUSY;
+    } else {
+        /* return on success */
+        SYSCALL_ARG(int, 0) = retval;
+    }
+}
+
 void sys_pthread_cond_signal(void)
 {
     /* read syscall arguments */

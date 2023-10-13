@@ -155,6 +155,12 @@ NACKED int pthread_mutex_lock(pthread_mutex_t *mutex)
     SYSCALL(PTHREAD_MUTEX_LOCK);
 }
 
+NACKED int pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
+    SYSCALL(PTHREAD_MUTEX_TRYLOCK);
+}
+
+
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr)
 {
     list_init(&cond->task_wait_list);
