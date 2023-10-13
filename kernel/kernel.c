@@ -1135,6 +1135,34 @@ void sys_poll(void)
     }
 }
 
+void sys_mq_getattr(void)
+{
+    /* read syscall arguments */
+    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
+    struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
+
+    *attr = mq_table[mqdes].attr;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_mq_setattr(void)
+{
+    /* read syscall arguments */
+    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
+    struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
+    struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
+
+    //TODO: check new attributes is valid or not
+
+    *oldattr = mq_table[mqdes].attr;
+    mq_table[mqdes].attr = *newattr;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
 void sys_mq_open(void)
 {
     /* read syscall arguments */

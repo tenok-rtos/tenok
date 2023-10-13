@@ -27,6 +27,26 @@ struct msg_queue {
 };
 
 /**
+ * @brief  Retrieve atributes of the message queue referred to by the message queue
+           descriptor mqdes
+ * @param  mqdes: The message queue descriptor to provide.
+ * @param  newattr: The new attributes to provide.
+ * @param  oldattr: The memory space for storing old attributes.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int mq_getattr(mqd_t mqdes, struct mq_attr *attr);
+
+/**
+ * @brief  Modify attributes of the message queue referred to by the message queue
+           descriptor mqdes
+ * @param  mqdes: The message queue descriptor to provide.
+ * @param  attr: The memory space for retrieving message queue attributes.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int mq_setattr(mqd_t mqdes, const struct mq_attr *newattr,
+               struct mq_attr *oldattr);
+
+/**
  * @brief  Create a new POSIX message queue or opens an existing queue
  * @param  name: The name of the message queue.
  * @param  oflag: The flags that specifies the control the operation of the call.

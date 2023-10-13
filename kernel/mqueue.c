@@ -3,6 +3,17 @@
 #include <arch/port.h>
 #include <kernel/syscall.h>
 
+NACKED int mq_getattr(mqd_t mqdes, struct mq_attr *attr)
+{
+    SYSCALL(MQ_GETATTR);
+}
+
+NACKED int mq_setattr(mqd_t mqdes, const struct mq_attr *newattr,
+                      struct mq_attr *oldattr)
+{
+    SYSCALL(MQ_SETATTR);
+}
+
 NACKED mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
     SYSCALL(MQ_OPEN);

@@ -23,6 +23,8 @@ syscalls = \
  'mknod',
  'mkfifo',
  'poll',
+ 'mq_getattr',
+ 'mq_setattr',
  'mq_open',
  'mq_close',
  'mq_receive',
