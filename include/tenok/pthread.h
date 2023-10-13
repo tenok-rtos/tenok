@@ -97,6 +97,22 @@ int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
 
 /**
+ * @brief  Set stack address parameter of a thread attriute object
+ * @param  attr: The attribute object to set stack address.
+ * @param  detachstate: The stack address for setting the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_setstackaddr(pthread_attr_t *attr, void *stackaddr);
+
+/**
+ * @brief  Get stack address parameter of a thread attriute object
+ * @param  attr: The attribute object to retrieve stack address.
+ * @param  detachstate: For returning the stack address from the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr);
+
+/**
  * @brief  Start a new thread in the calling task
  * @param  thread: The thread ID of the new thread to return.
  * @param  attr: The attribute object for configuring the new thread.

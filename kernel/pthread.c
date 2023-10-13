@@ -56,6 +56,18 @@ int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
     return 0;
 }
 
+int pthread_attr_setstackaddr(pthread_attr_t *attr, void *stackaddr)
+{
+    attr->stackaddr = stackaddr;
+    return 0;
+}
+
+int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr)
+{
+    *stackaddr = attr->stackaddr;
+    return 0;
+}
+
 NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                           void *(*start_routine) (void *), void *arg)
 {
