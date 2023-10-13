@@ -152,22 +152,22 @@ static struct thread_info *acquire_thread(int tid)
 
 static int thread_create(struct thread_info **new_thread,
                          thread_func_t thread_func,
-                         uint8_t priority,
-                         int stack_size,
-                         int detachstate,
+                         pthread_attr_t *attr,
                          uint32_t privilege)
 {
-    /* invalid detach state setting */
-    if(detachstate != PTHREAD_CREATE_DETACHED &&
-       detachstate != PTHREAD_CREATE_JOINABLE) {
-        return -EINVAL;
-    }
+    /* check if the detach state setting is invalid */
+    bool bad_detach_state  = attr->detachstate != PTHREAD_CREATE_DETACHED &&
+                             attr->detachstate != PTHREAD_CREATE_JOINABLE;
 
-    /* invalid priority setting */
-    if(priority < 0 ||
-       priority > TASK_MAX_PRIORITY) {
+    /* check if the thread priority is invalid */
+    bool bad_priority = attr->detachstate != PTHREAD_CREATE_DETACHED &&
+                        attr->detachstate != PTHREAD_CREATE_JOINABLE;
+
+    /* check if the scheduling policy is invalid */
+    bool bad_sched_policy = attr->schedpolicy != SCHED_RR;
+
+    if(bad_detach_state || bad_priority || bad_sched_policy)
         return -EINVAL;
-    }
 
     /* allocate a new thread id */
     int tid = find_first_zero_bit(bitmap_threads, THREAD_CNT_MAX);
@@ -176,7 +176,7 @@ static int thread_create(struct thread_info **new_thread,
     bitmap_set_bit(bitmap_threads, tid);
 
     /* stack size alignment */
-    stack_size = align_up(stack_size, 4);
+    size_t stack_size = align_up(attr->stacksize, 4);
 
     /* allocate a new thread */
     struct thread_info *thread = &threads[tid];
@@ -193,16 +193,17 @@ static int thread_create(struct thread_info **new_thread,
     __stack_init((uint32_t **)&thread->stack_top, (uint32_t)thread_func,
                  (uint32_t)thread_return_handler, args);
 
+    /* initialize the thread parameters */
     thread->stack_size = stack_size; /* bytes */
     thread->status = THREAD_WAIT;
     thread->tid = tid;
-    thread->priority = priority;
+    thread->priority = attr->schedparam.sched_priority;
     thread->privilege = privilege;
 
-    if(detachstate == PTHREAD_CREATE_DETACHED) {
+    if(attr->detachstate == PTHREAD_CREATE_DETACHED) {
         thread->joinable = false;
         thread->detached = true;
-    } else if(detachstate == PTHREAD_CREATE_JOINABLE) {
+    } else if(attr->detachstate == PTHREAD_CREATE_JOINABLE) {
         thread->joinable = true;
         thread->detached = false;
     }
@@ -219,16 +220,25 @@ static int thread_create(struct thread_info **new_thread,
     /* put the new thread in the sleep list */
     list_push(&sleep_list, &thread->list);
 
+    /* return address to the new thread */
     *new_thread = thread;
+
     return 0;
 }
 
 static int _task_create(thread_func_t task_func, uint8_t priority,
                         int stack_size, uint32_t privilege)
 {
+    pthread_attr_t attr = {
+        .schedparam.sched_priority = priority,
+        .stackaddr = NULL,
+        .stacksize = stack_size,
+        .schedpolicy = SCHED_RR,
+        .detachstate = PTHREAD_CREATE_JOINABLE
+    };
+
     struct thread_info *thread;
-    int retval = thread_create(&thread, task_func, priority, stack_size,
-                               PTHREAD_CREATE_JOINABLE, privilege);
+    int retval = thread_create(&thread, task_func, &attr, privilege);
 
     if(retval != 0)
         return retval;
@@ -1303,12 +1313,8 @@ void sys_pthread_create(void)
 
     /* create new thread */
     struct thread_info *thread;
-    int retval = thread_create(&thread,
-                               (thread_func_t)start_routine,
-                               attr->schedparam.sched_priority,
-                               attr->stacksize,
-                               attr->detachstate,
-                               USER_THREAD);
+    int retval = thread_create(&thread, (thread_func_t)start_routine,
+                               attr, USER_THREAD);
     if(retval != 0) {
         /* failed to create new thread, return on error */
         SYSCALL_ARG(int, 0) = retval;
