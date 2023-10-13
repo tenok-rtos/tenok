@@ -142,6 +142,11 @@ NACKED int pthread_cond_signal(pthread_cond_t *cond)
     SYSCALL(PTHREAD_COND_SIGNAL);
 }
 
+NACKED int pthread_cond_broadcast(pthread_cond_t *cond)
+{
+    SYSCALL(PTHREAD_COND_BROADCAST);
+}
+
 NACKED int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     SYSCALL(PTHREAD_COND_WAIT);

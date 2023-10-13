@@ -1608,6 +1608,18 @@ void sys_pthread_cond_signal(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_pthread_cond_broadcast(void)
+{
+    /* read syscall arguments */
+    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
+
+    /* wake up all threads from the wait list */
+    wake_up_all(&cond->task_wait_list);
+
+    /* pthread_cond_signal never returns error code */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
 void sys_pthread_cond_wait(void)
 {
     /* read syscall arguments */

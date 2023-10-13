@@ -82,7 +82,7 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
 
 /**
  * @brief  Set detach state parameter of a thread attriute object
- * @param  attr: The attribute object to set detach state. 
+ * @param  attr: The attribute object to set detach state.
  * @param  detachstate: The detach state for setting the attribute object.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
@@ -224,6 +224,13 @@ int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_cond_signal(pthread_cond_t *cond);
+
+/**
+ * @brief  Restart all of the threads that are waiting on the condition variable
+ * @param  cond: The conditional variable object to signal the state change.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_cond_broadcast(pthread_cond_t *cond);
 
 /**
  * @brief  Atomically unlocks the mutex and waits for the condition variable to be signaled
