@@ -1,5 +1,6 @@
 #include <tenok.h>
 #include <stdint.h>
+#include <time.h>
 #include <errno.h>
 #include <sys/types.h>
 
@@ -37,6 +38,14 @@ inline int sched_get_priority_max(int policy)
 
 inline int sched_get_priority_min(int policy)
 {
+    return 0;
+}
+
+int sched_rr_get_interval(pid_t pid, struct timespec *tp)
+{
+    tp->tv_sec = OS_TICK_FREQ / 1000;
+    tp->tv_nsec = (1000000000 / OS_TICK_FREQ) % 1000000000;
+
     return 0;
 }
 
