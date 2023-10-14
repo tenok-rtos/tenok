@@ -79,7 +79,7 @@ void printk(char *format,  ...)
     va_end(args);
 
     printk_obj.len = strlen(printk_obj.buf);
-    kfifo_in(printk_fifo, &printk_obj, 1);
+    kfifo_put(printk_fifo, &printk_obj);
 }
 
 void printk_init(void)
@@ -109,7 +109,7 @@ void printk_handler(void)
     }
 
     if(!kfifo_is_empty(printk_fifo) && console_is_free()) {
-        kfifo_out(printk_fifo, &printk_buf, 1);
+        kfifo_get(printk_fifo, &printk_buf);
         console_write(printk_buf.buf, printk_buf.len);
         printk_state = PRINTK_BUSY;
     }
