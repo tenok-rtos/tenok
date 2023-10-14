@@ -16,12 +16,9 @@ struct kfifo {
     int     end;
     int     count;
     void    *data;
-    size_t  ring_size;
-    size_t  type_size;
-
+    size_t  size;
+    size_t  esize;
     int     flags;
-
-    spinlock_t lock;
 
     struct file file;
     struct list_head r_wait_list;
@@ -32,11 +29,11 @@ struct kfifo {
  * @brief  Initialize a fifo using a preallocated buffer
  * @param  fifo: The fifo object to provide.
  * @param  data: The data space for the fifo.
- * @param  type_size: The size of the element managed by the fifo.
- * @param  ring_size: The number of the elements that can fit the fifo.
+ * @param  esize: The size of the element managed by the fifo.
+ * @param  size: The number of the elements that can fit the fifo.
  * @retval None
  */
-void kfifo_init(struct kfifo *fifo, void *data, size_t type_size, size_t ring_size);
+void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size);
 
 /**
  * @brief  Dynamically allocate a new fifo buffer
@@ -53,7 +50,8 @@ struct kfifo *kfifo_alloc(size_t nmem, size_t size);
  * @param  data: The pointer of data to put into the fifo.
  * @retval None
  */
-void kfifo_put(struct kfifo *fifo, const void *data);
+#define kfifo_put(fifo, data) \
+    kfifo_in((fifo), (data), sizeof(*(data)))
 
 /**
  * @brief  Get data from the fifo
@@ -61,7 +59,8 @@ void kfifo_put(struct kfifo *fifo, const void *data);
  * @param  data: For returning the retrieved data.
  * @retval None
  */
-void kfifo_get(struct kfifo *fifo, void *data);
+#define kfifo_get(fifo, data) \
+    kfifo_out((fifo), (data), sizeof(*(data)))
 
 /**
  * @brief  Put data into the fifo

@@ -92,7 +92,7 @@ void printk_init(void)
     struct printk_struct printk_obj;
     strcpy(printk_obj.buf, "\x1b[H\x1b[2J");
     printk_obj.len = strlen(printk_obj.buf);
-    kfifo_in(printk_fifo, &printk_obj, 1);
+    kfifo_put(printk_fifo, &printk_obj);
 #endif
 }
 
