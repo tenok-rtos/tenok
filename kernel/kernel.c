@@ -2346,7 +2346,9 @@ void first(void)
     }
 
     /* idle loop with lowest thread priority */
-    while(1);
+    while(1) {
+        __idle();
+    }
 }
 
 void sched_start(void)

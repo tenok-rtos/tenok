@@ -56,5 +56,11 @@ void __platform_init(void);
 void __stack_init(uint32_t **stack_top, uint32_t func,
                   uint32_t return_handler, uint32_t args[4]);
 
+/**
+ * @brief  Trigger platform-specific idling
+ * @param  None
+ * @retval None
+ */
+void __idle(void);
 
 #endif

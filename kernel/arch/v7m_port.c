@@ -59,3 +59,8 @@ void __stack_init(uint32_t **stack_top,
     sp[10] = args[0];        //r0
     sp[8]  = THREAD_PSP;     //_lr
 }
+
+void __idle(void)
+{
+    asm volatile("wfi");
+}
