@@ -1188,7 +1188,7 @@ void sys_mq_open(void)
     bitmap_set_bit(bitmap_mq, mqdes);
 
     /* initialize the ring buffer */
-    struct kfifo *pipe = kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
+    pipe_t *pipe = pipe_create_generic(attr->mq_msgsize, attr->mq_maxmsg);
 
     /* register a new message queue */
     mq_table[mqdes].pipe = pipe;

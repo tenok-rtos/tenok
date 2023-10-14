@@ -18,11 +18,6 @@ struct kfifo {
     void    *data;
     size_t  size;
     size_t  esize;
-    int     flags;
-
-    struct file file;
-    struct list_head r_wait_list;
-    struct list_head w_wait_list;
 };
 
 /**

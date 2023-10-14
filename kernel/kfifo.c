@@ -19,8 +19,6 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size)
     fifo->data = data;
     fifo->esize = esize;
     fifo->size = size;
-    list_init(&fifo->r_wait_list);
-    list_init(&fifo->w_wait_list);
 }
 
 struct kfifo *kfifo_alloc(size_t esize, size_t size)

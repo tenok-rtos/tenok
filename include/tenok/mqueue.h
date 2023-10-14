@@ -6,7 +6,7 @@
 
 #include <fs/fs.h>
 #include <mm/mpool.h>
-#include <kernel/kfifo.h>
+#include <kernel/ipc.h>
 
 typedef int mqd_t;
 
@@ -23,7 +23,7 @@ struct msg_queue {
     char name[FILE_NAME_LEN_MAX];
     struct mq_attr attr;
 
-    struct kfifo *pipe;
+    pipe_t *pipe;
 };
 
 /**
