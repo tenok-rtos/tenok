@@ -7,7 +7,7 @@
 #define TASK_MAX_PRIORITY    5
 #define TASK_NAME_LEN_MAX    50
 
-#define MEM_POOL_SIZE        10240
+#define MEM_POOL_SIZE        20480
 
 #define KERNEL_INT_PRI       5    /* isr priority higher than this value *
                                    * will not be disabled                */

@@ -37,7 +37,7 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size);
 
 /**
  * @brief  Dynamically allocate a new fifo buffer
- * @param  nmem: The size of the element managed by the fifo.
+ * @param  esize: The size of the element managed by the fifo.
  * @param  size: The number of the elements that can fit the fifo.
  * @retval kfifo: The dynamically allocated fifo object.
  * @retval None
@@ -107,6 +107,20 @@ size_t kfifo_len(struct kfifo *fifo);
  * @retval size_t: The size of the element managed by the fifo.
  */
 size_t kfifo_esize(struct kfifo *fifo);
+
+/**
+ * @brief  Return the record length of the next element to read
+ * @param  fifo: The fifo object to provide.
+ * @retval size_t: Record length if next element to read.
+ */
+size_t kfifo_recsize(struct kfifo *fifo);
+
+/**
+ * @brief  Return the number of elements can be stored in the fifo
+ * @param  fifo: The fifo object to provide.
+ * @retval size_t: The number of elements can be stored in the fifo.
+ */
+size_t kfifo_size(struct kfifo *fifo);
 
 /**
  * @brief  Return true if the fifo is empty

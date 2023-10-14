@@ -14,6 +14,28 @@
 
 #include "kconfig.h"
 
+void ipc_read_fifo(pipe_t *pipe, char *buf, size_t size)
+{
+    if(pipe->esize == 1) { /* fifo */
+        for(int i = 0; i < size; i++) {
+            kfifo_out(pipe, &buf[i], 1);
+        }
+    } else { /* message queue */
+        kfifo_out(pipe, buf, pipe->esize);
+    }
+}
+
+void ipc_write_fifo(pipe_t *pipe, const char *buf, size_t size)
+{
+    if(pipe->esize == 1) { /* fifo */
+        for(int i = 0; i < size; i++) {
+            kfifo_in(pipe, &buf[i], pipe->esize);
+        }
+    } else { /* message queue */
+        kfifo_in(pipe, buf, pipe->esize);
+    }
+}
+
 pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
     return kfifo_alloc(nmem, size);
@@ -31,9 +53,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     if(size > fifo_len) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_len > 0) {
-                for(int i = 0; i < fifo_len; i++) {
-                    kfifo_get(pipe, &buf[i]);
-                }
+                ipc_read_fifo(pipe, buf, fifo_len);
                 return fifo_len;
             } else {
                 return -EAGAIN;
@@ -48,9 +68,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     }
 
     /* pop data from the pipe */
-    for(int i = 0; i < size; i++) {
-        kfifo_get(pipe, &buf[i]);
-    }
+    ipc_read_fifo(pipe, buf, size);
 
     /* calculate total read bytes */
     size_t type_size = kfifo_esize(pipe);
@@ -84,9 +102,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     if(size > fifo_avail) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_avail > 0) {
-                for(int i = 0; i < fifo_avail; i++) {
-                    kfifo_put(pipe, &buf[i]);
-                }
+                ipc_write_fifo(pipe, buf, fifo_avail);
                 return fifo_avail;
             } else {
                 return -EAGAIN;
@@ -101,9 +117,7 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     }
 
     /* push data into the pipe */
-    for(int i = 0; i < size; i++) {
-        kfifo_put(pipe, &buf[i]);
-    }
+    ipc_write_fifo(pipe, buf, size);
 
     /* calculate total written bytes */
     size_t type_size = kfifo_esize(pipe);
