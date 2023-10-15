@@ -8,9 +8,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include <fs/fs.h>
-#include <kernel/spinlock.h>
-
 struct kfifo {
     int     start;
     int     end;
@@ -42,24 +39,6 @@ struct kfifo *kfifo_alloc(size_t nmem, size_t size);
 /**
  * @brief  Put data into the fifo
  * @param  fifo: The fifo object to provide.
- * @param  data: The pointer of data to put into the fifo.
- * @retval None
- */
-#define kfifo_put(fifo, data) \
-    kfifo_in((fifo), (data), sizeof(*(data)))
-
-/**
- * @brief  Get data from the fifo
- * @param  fifo: The fifo object to provide.
- * @param  data: For returning the retrieved data.
- * @retval None
- */
-#define kfifo_get(fifo, data) \
-    kfifo_out((fifo), (data), sizeof(*(data)))
-
-/**
- * @brief  Put data into the fifo
- * @param  fifo: The fifo object to provide.
  * @param  data: The data to put into the fifo.
  * @param  n: Number of the data to put into the fifo.
  * @retval None
@@ -74,6 +53,37 @@ void kfifo_in(struct kfifo *fifo, const void *data, size_t n);
  * @retval None
  */
 void kfifo_out(struct kfifo *fifo, void *data, size_t n);
+
+/**
+ * @brief  Put data into the fifo
+ * @param  fifo: The fifo object to provide.
+ * @param  data: The pointer of data to put into the fifo.
+ * @retval None
+ */
+void kfifo_put(struct kfifo *fifo, void *data);
+
+/**
+ * @brief  Get data from the fifo
+ * @param  fifo: The fifo object to provide.
+ * @param  data: For returning the retrieved data.
+ * @retval None
+ */
+void kfifo_get(struct kfifo *fifo, void *data);
+
+/**
+ * @brief  Get data from the fifo without removing
+ * @param  fifo: The fifo object to provide.
+ * @param  data: For returning the retrieved data.
+ * @retval None
+ */
+void kfifo_peek(struct kfifo *fifo, void *data);
+
+/**
+ * @brief  Return the record length of the next element to read
+ * @param  fifo: The fifo object to provide.
+ * @retval size_t: Record length if next element to read.
+ */
+size_t kfifo_peek_len(struct kfifo *fifo);
 
 /**
  * @brief  Skip data from the fifo
@@ -102,13 +112,6 @@ size_t kfifo_len(struct kfifo *fifo);
  * @retval size_t: The size of the element managed by the fifo.
  */
 size_t kfifo_esize(struct kfifo *fifo);
-
-/**
- * @brief  Return the record length of the next element to read
- * @param  fifo: The fifo object to provide.
- * @retval size_t: Record length if next element to read.
- */
-size_t kfifo_recsize(struct kfifo *fifo);
 
 /**
  * @brief  Return the number of elements can be stored in the fifo
