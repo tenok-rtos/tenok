@@ -343,22 +343,18 @@ void wake_up(struct list_head *wait_list)
     if(list_is_empty(wait_list))
         return;
 
-    struct thread_info *highest_pri_thread = NULL;
-    struct thread_info *thread;
+    struct thread_info *highest_pri_thread =
+        list_first_entry(wait_list, struct thread_info, list);
 
     /* find the highest priority task in the waiting list */
     struct list_head *curr;
     list_for_each(curr, wait_list) {
-        thread = list_entry(curr, struct thread_info, list);
-        if(thread->priority > highest_pri_thread->priority ||
-           highest_pri_thread == NULL) {
+        struct thread_info *thread =
+            list_entry(curr, struct thread_info, list);
+
+        if(thread->priority > highest_pri_thread->priority) {
             highest_pri_thread = thread;
         }
-    }
-
-    /* no thread is found */
-    if(!highest_pri_thread) {
-        return;
     }
 
     /* wake up the thread by placing it back to the ready list */
