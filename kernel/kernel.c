@@ -377,6 +377,10 @@ void wake_up_all(struct list_head *wait_list)
 void finish_wait(struct list_head *thread_list)
 {
     struct thread_info *thread = list_entry(thread_list, struct thread_info, list);
+
+    if(thread == running_thread)
+        return;
+
     thread->status = THREAD_READY;
     list_move(thread_list, &ready_list[thread->priority]);
 }
