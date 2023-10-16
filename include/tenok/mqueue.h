@@ -7,6 +7,7 @@
 #include <fs/fs.h>
 #include <mm/mpool.h>
 #include <kernel/ipc.h>
+#include <kernel/list.h>
 
 typedef int mqd_t;
 
@@ -15,12 +16,6 @@ struct mq_attr {
     int mq_maxmsg;  /* max number of the messages in the queue */
     int mq_msgsize; /* byte size of the message */
     int mq_curmsgs; /* number of the messages currently in the queue */
-};
-
-struct msg_queue {
-    char name[FILE_NAME_LEN_MAX];
-    struct mq_attr attr;
-    pipe_t *pipe;
 };
 
 /**

@@ -8,6 +8,7 @@
 #include <task.h>
 #include <time.h>
 #include <poll.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <mqueue.h>
 #include <unistd.h>
@@ -68,7 +69,8 @@ struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* message queues */
-struct msg_queue mq_table[MQUEUE_CNT_MAX];
+struct list_head mq_list;
+struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mq[BITMAP_SIZE(MQUEUE_CNT_MAX)] = {0};
 
 /* syscall table */
@@ -1156,7 +1158,7 @@ void sys_mq_getattr(void)
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
 
-    *attr = mq_table[mqdes].attr;
+    *attr = mqd_table[mqdes].mq->attr;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1171,37 +1173,88 @@ void sys_mq_setattr(void)
 
     //TODO: check new attributes is valid or not
 
-    *oldattr = mq_table[mqdes].attr;
-    mq_table[mqdes].attr = *newattr;
+    *oldattr = mqd_table[mqdes].mq->attr;
+    mqd_table[mqdes].mq->attr = *newattr;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
+}
+
+struct mqueue *acquire_mqueue(char *name)
+{
+    /* find the message queue with the given name */
+    struct list_head *curr;
+    list_for_each(curr, &mq_list) {
+        struct mqueue *mq = list_entry(curr, struct mqueue, list);
+
+        if(!strncmp(name, mq->name, FILE_NAME_LEN_MAX)) {
+            /* found */
+            return mq;
+        }
+    }
+
+    /* not found */
+    return NULL;
 }
 
 void sys_mq_open(void)
 {
     /* read syscall arguments */
     char *name = SYSCALL_ARG(char *, 0);
-    //int oflag = SYSCALL_ARG(int, 1);
+    int oflag = SYSCALL_ARG(int, 1);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
+    /* search the message with the given name */
+    struct mqueue *mq = acquire_mqueue(name);
+
+    /* check if new message queue descriptor can be dispatched */
     int mqdes = find_first_zero_bit(bitmap_mq, MQUEUE_CNT_MAX);
     if(mqdes >= MQUEUE_CNT_MAX) {
         SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
         return;
     }
-    bitmap_set_bit(bitmap_mq, mqdes);
 
-    /* initialize the ring buffer */
+    /* message queue with specified name does exist */
+    if(mq) {
+        /* register new message queue descriptor */
+        bitmap_set_bit(bitmap_mq, mqdes);
+        mqd_table[mqdes].mq = mq;
+
+        /* return message queue descriptor */
+        SYSCALL_ARG(mqd_t, 0) = mqdes;
+        return;
+    }
+
+    /* create flag is not set */
+    if(!(oflag & O_CREAT)) {
+        /* return on error */
+        SYSCALL_ARG(mqd_t, 0) = -ENOENT;
+        return;
+    }
+
+    /* allocate new message queue */
     pipe_t *pipe = pipe_create_generic(attr->mq_msgsize, attr->mq_maxmsg);
+    struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
 
-    /* register a new message queue */
-    mq_table[mqdes].pipe = pipe;
-    mq_table[mqdes].attr = *attr;
-    mq_table[mqdes].pipe->flags = attr->mq_flags;
-    strncpy(mq_table[mqdes].name, name, FILE_NAME_LEN_MAX);
+    /* memory allocation failure */
+    if(!pipe || !new_mq) {
+        /* return on error */
+        SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
+        return;
+    }
 
-    /* return the message queue descriptor */
+    /* set up the new message queue */
+    pipe->flags = attr->mq_flags;
+    new_mq->pipe = pipe;
+    new_mq->attr = *attr;
+    strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
+    list_push(&mq_list, &new_mq->list);
+
+    /* register new message queue descriptor */
+    bitmap_set_bit(bitmap_mq, mqdes);
+    mqd_table[mqdes].mq = new_mq;
+
+    /* return message queue descriptor */
     SYSCALL_ARG(mqd_t, 0) = mqdes;
 }
 
@@ -1223,6 +1276,29 @@ void sys_mq_close(void)
     SYSCALL_ARG(long, 0) = 0;
 }
 
+void sys_mq_unlink(void)
+{
+    char *name = SYSCALL_ARG(char *, 0);
+
+    //TODO: string length check
+
+    /* search the message with the given name */
+    struct mqueue *mq = acquire_mqueue(name);
+
+    /* check if the message queue exists */
+    if(mq) {
+        /* remove message queue from the system */
+        list_remove(&mq->list);
+        kfree(mq);
+
+        /* return on success */
+        SYSCALL_ARG(int, 0) = 0;
+    } else {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ENOENT;
+    }
+}
+
 void sys_mq_receive(void)
 {
     /* read syscall arguments */
@@ -1237,7 +1313,7 @@ void sys_mq_receive(void)
     }
 
     /* obtain message queue */
-    struct msg_queue *mq = &mq_table[mqdes];
+    struct mqueue *mq = mqd_table[mqdes].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
@@ -1274,7 +1350,7 @@ void sys_mq_send(void)
     }
 
     /* obtain message queue */
-    struct msg_queue *mq = &mq_table[mqdes];
+    struct mqueue *mq = mqd_table[mqdes].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
@@ -2374,6 +2450,7 @@ void sched_start(void)
     list_init(&timers_list);
     list_init(&signal_wait_list);
     list_init(&poll_timeout_list);
+    list_init(&mq_list);
     for(int i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }

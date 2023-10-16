@@ -2,6 +2,7 @@
 #define __ERRNO_H__
 
 #define EPERM     1
+#define ENOENT    2
 #define ESRCH     3
 #define EIO       5
 #define ENXIO     6

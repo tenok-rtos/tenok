@@ -22,7 +22,7 @@ void my_mqueue_init(void)
         .mq_msgsize = MSG_SIZE_MAX,
         .mq_curmsgs = 0
     };
-    mqdes_print = mq_open("/my_message", 0, &attr);
+    mqdes_print = mq_open("/my_message", O_CREAT | O_RDWR, &attr);
 }
 
 void message_queue_task1(void)

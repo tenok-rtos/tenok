@@ -21,7 +21,7 @@ void mavlink_task_init(void)
         .mq_msgsize = sizeof(mavlink_message_t),
         .mq_curmsgs = 0
     };
-    mqdes_recvd_msg = mq_open("/mavlink_msgs", 0, &attr);
+    mqdes_recvd_msg = mq_open("/mavlink_msgs", O_CREAT | O_RDWR, &attr);
 }
 
 void mavlink_out_task(void)

@@ -24,6 +24,11 @@ NACKED int mq_close(mqd_t mqdes)
     SYSCALL(MQ_CLOSE);
 }
 
+NACKED int mq_unlink(const char *name)
+{
+    SYSCALL(MQ_UNLINK);
+}
+
 NACKED ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio)
 {
     SYSCALL(MQ_RECEIVE);
