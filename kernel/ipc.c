@@ -93,7 +93,6 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    ssize_t retval = 0;
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_len = kfifo_len(fifo);
     struct list_head *w_wait_list = &pipe->w_wait_list;
@@ -102,30 +101,25 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
     if(size > fifo_len) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_len > 0) {
-                for(int i = 0; i < size; i++) {
-                    kfifo_out(fifo, &buf[i], 1);
-                }
-                return fifo_len;
+                /* overwrite the read size */
+                size = fifo_len;
             } else {
                 return -EAGAIN;
             }
         } else { /* block mode */
-            /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            /* save the read request size */
             curr_thread->file_request.size = size;
 
+            /* force the thread to sleep */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
     /* pop data from the pipe */
     for(int i = 0; i < size; i++) {
-        kfifo_out(fifo, &buf[i], 1);
+        kfifo_out(fifo, &buf[i], sizeof(char));
     }
-
-    /* calculate total read bytes */
-    size_t type_size = kfifo_esize(fifo);
-    retval = type_size * size;
 
     /* resume a blocked writting thread if the pipe has enough space to write */
     if(!list_is_empty(w_wait_list)) {
@@ -140,14 +134,13 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
         }
     }
 
-    return retval;
+    return size;
 }
 
 ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    ssize_t retval = 0;
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_avail = kfifo_avail(fifo);
     struct list_head *r_wait_list = &pipe->r_wait_list;
@@ -156,30 +149,25 @@ ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
     if(size > fifo_avail) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_avail > 0) {
-                for(int i = 0; i < size; i++) {
-                    kfifo_in(fifo, &buf[i], fifo->esize);
-                }
-                return fifo_avail;
+                /* overwrite the write size */
+                size = fifo_avail;
             } else {
                 return -EAGAIN;
             }
         } else { /* block mode */
-            /* put the current thread into the write waiting list */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
+            /* save the write request size */
             curr_thread->file_request.size = size;
 
+            /* force the thread to sleep */
+            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
     /* push data into the pipe */
     for(int i = 0; i < size; i++) {
-        kfifo_in(fifo, &buf[i], fifo->esize);
+        kfifo_in(fifo, &buf[i], sizeof(char));
     }
-
-    /* calculate total written bytes */
-    size_t type_size = kfifo_esize(fifo);
-    retval = type_size * size;
 
     /* resume a blocked reading thread if the pipe has enough data to read */
     if(!list_is_empty(r_wait_list)) {
@@ -194,7 +182,7 @@ ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
         }
     }
 
-    return retval;
+    return size;
 }
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
