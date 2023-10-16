@@ -18,11 +18,8 @@ struct mq_attr {
 };
 
 struct msg_queue {
-    spinlock_t lock;
-
     char name[FILE_NAME_LEN_MAX];
     struct mq_attr attr;
-
     pipe_t *pipe;
 };
 

@@ -34,9 +34,10 @@
 #include <kernel/bitops.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
+#include <kernel/mqueue.h>
 #include <kernel/syscall.h>
-#include <kernel/interrupt.h>
 #include <kernel/softirq.h>
+#include <kernel/interrupt.h>
 
 #include "kconfig.h"
 #include "stm32f4xx.h"
@@ -1192,7 +1193,6 @@ void sys_mq_open(void)
 
     /* register a new message queue */
     mq_table[mqdes].pipe = pipe;
-    mq_table[mqdes].lock = 0;
     mq_table[mqdes].attr = *attr;
     mq_table[mqdes].pipe->flags = attr->mq_flags;
     strncpy(mq_table[mqdes].name, name, FILE_NAME_LEN_MAX);
@@ -1243,7 +1243,7 @@ void sys_mq_receive(void)
     }
 
     /* read message */
-    ssize_t retval = pipe_read_generic(pipe, msg_ptr, 1);
+    ssize_t retval = mq_receive_base(pipe, msg_ptr, msg_len, &mq->attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1280,7 +1280,7 @@ void sys_mq_send(void)
     }
 
     /* send message */
-    ssize_t retval = pipe_write_generic(pipe, msg_ptr, 1);
+    ssize_t retval = mq_send_base(pipe, msg_ptr, msg_len, &mq->attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {

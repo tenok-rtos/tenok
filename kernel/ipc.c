@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <poll.h>
 #include <fcntl.h>
+#include <mqueue.h>
 
 #include <fs/fs.h>
 #include <mm/mm.h>
@@ -15,28 +16,6 @@
 
 #include "kconfig.h"
 
-void ipc_read_fifo(struct kfifo *fifo, char *buf, size_t size)
-{
-    if(fifo->esize == 1) { /* fifo */
-        for(int i = 0; i < size; i++) {
-            kfifo_out(fifo, &buf[i], 1);
-        }
-    } else { /* message queue */
-        kfifo_out(fifo, buf, fifo->esize);
-    }
-}
-
-void ipc_write_fifo(struct kfifo *fifo, const char *buf, size_t size)
-{
-    if(fifo->esize == 1) { /* fifo */
-        for(int i = 0; i < size; i++) {
-            kfifo_in(fifo, &buf[i], fifo->esize);
-        }
-    } else { /* message queue */
-        kfifo_in(fifo, buf, fifo->esize);
-    }
-}
-
 pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
     pipe_t *pipe = kmalloc(sizeof(pipe_t));
@@ -47,7 +26,70 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
     return pipe;
 }
 
-ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
+ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len, const struct mq_attr *attr)
+{
+    CURRENT_THREAD_INFO(curr_thread);
+    struct kfifo *fifo = pipe->fifo;
+
+    /* the buffer size must be larger or equal to the max message size */
+    if(msg_len < attr->mq_msgsize) {
+        return -EMSGSIZE;
+    }
+
+    /* no message available in the fifo? */
+    if(kfifo_len(fifo) <= 0) {
+        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+            /* return immediately */
+            return -EAGAIN;
+        } else { /* block mode */
+            /* force the thread to sleep */
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            return -ERESTARTSYS;
+        }
+    }
+
+    /* read data from the fifo */
+    size_t read_size = kfifo_peek_len(fifo);
+    kfifo_out(fifo, buf, read_size);
+
+    /* the fifo has space now, wake up a thread that waiting to write */
+    wake_up(&pipe->w_wait_list);
+
+    return read_size;
+}
+
+ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len, const struct mq_attr *attr)
+{
+    CURRENT_THREAD_INFO(curr_thread);
+
+    struct kfifo *fifo = pipe->fifo;
+
+    if(msg_len > attr->mq_msgsize) {
+        return -EMSGSIZE;
+    }
+
+    /* fifo has no free space to write? */
+    if(kfifo_avail(fifo) <= 0) {
+        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+            /* return immediately */
+            return -EAGAIN;
+        } else { /* block mode */
+            /* force the thread to sleep */
+            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
+            return -ERESTARTSYS;
+        }
+    }
+
+    /* write data to the fifo */
+    kfifo_in(fifo, buf, msg_len);
+
+    /* the fifo has message now, wake up a thread that waiting to read */
+    wake_up(&pipe->r_wait_list);
+
+    return 0;
+}
+
+ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -60,7 +102,9 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     if(size > fifo_len) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_len > 0) {
-                ipc_read_fifo(fifo, buf, fifo_len);
+                for(int i = 0; i < size; i++) {
+                    kfifo_out(fifo, &buf[i], 1);
+                }
                 return fifo_len;
             } else {
                 return -EAGAIN;
@@ -75,7 +119,9 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     }
 
     /* pop data from the pipe */
-    ipc_read_fifo(fifo, buf, size);
+    for(int i = 0; i < size; i++) {
+        kfifo_out(fifo, &buf[i], 1);
+    }
 
     /* calculate total read bytes */
     size_t type_size = kfifo_esize(fifo);
@@ -97,7 +143,7 @@ ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size)
     return retval;
 }
 
-ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
+ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -110,14 +156,16 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     if(size > fifo_avail) {
         if(pipe->flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_avail > 0) {
-                ipc_write_fifo(fifo, buf, fifo_avail);
+                for(int i = 0; i < size; i++) {
+                    kfifo_in(fifo, &buf[i], fifo->esize);
+                }
                 return fifo_avail;
             } else {
                 return -EAGAIN;
             }
         } else { /* block mode */
-            /* put the current thread into the read waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            /* put the current thread into the write waiting list */
+            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
             curr_thread->file_request.size = size;
 
             return -ERESTARTSYS;
@@ -125,7 +173,9 @@ ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size)
     }
 
     /* push data into the pipe */
-    ipc_write_fifo(fifo, buf, size);
+    for(int i = 0; i < size; i++) {
+        kfifo_in(fifo, &buf[i], fifo->esize);
+    }
 
     /* calculate total written bytes */
     size_t type_size = kfifo_esize(fifo);
@@ -180,7 +230,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
     pipe_t *pipe = container_of(filp, pipe_t, file);
     pipe->flags = filp->f_flags;
 
-    ssize_t retval = pipe_read_generic(pipe, buf, size);
+    ssize_t retval = fifo_read_base(pipe, buf, size);
 
     /* update file event */
     if(kfifo_len(pipe->fifo) > 0) {
@@ -198,7 +248,7 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset
     pipe_t *pipe = container_of(filp, pipe_t, file);
     pipe->flags = filp->f_flags;
 
-    ssize_t retval = pipe_write_generic(pipe, buf, size);
+    ssize_t retval = fifo_write_base(pipe, buf, size);
 
     /* update file event */
     if(kfifo_avail(pipe->fifo) > 0) {

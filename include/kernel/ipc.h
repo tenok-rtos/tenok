@@ -18,8 +18,6 @@ typedef struct pipe_t {
 } pipe_t;
 
 pipe_t *pipe_create_generic(size_t nmem, size_t size);
-ssize_t pipe_read_generic(pipe_t *pipe, char *buf, size_t size);
-ssize_t pipe_write_generic(pipe_t *pipe, const char *buf, size_t size);
 
 int fifo_init(int fd, struct file **files, struct inode *file_inode);
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
