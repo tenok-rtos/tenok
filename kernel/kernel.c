@@ -258,6 +258,10 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     list_push(&task->threads_list, &thread->task_list);
     list_push(&tasks_list, &task->list);
 
+    /* initialize anonymous pipe of the task */
+    fifo_init(pid, (struct file **)&files, NULL);
+    //TODO: release the pipe memory after the task is terminated
+
     /* reset file descriptor table */
     memset(task->fd_bitmap, 0, sizeof(task->fd_bitmap));
     memset(task->fdtable, 0, sizeof(task->fdtable));
@@ -2361,11 +2365,6 @@ void sched_start(void)
 
     /* initialize the memory pool */
     memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
-
-    /* initialize fifos for all threads */
-    for(int i = 0; i < TASK_CNT_MAX; i++) {
-        fifo_init(i, (struct file **)&files, NULL);
-    }
 
     /* list initializations */
     list_init(&tasks_list);
