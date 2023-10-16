@@ -26,7 +26,8 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
     return pipe;
 }
 
-ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len, const struct mq_attr *attr)
+ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len,
+                        const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
     struct kfifo *fifo = pipe->fifo;
@@ -43,7 +44,8 @@ ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len, const struct mq
             return -EAGAIN;
         } else { /* block mode */
             /* force the thread to sleep */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -58,7 +60,8 @@ ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len, const struct mq
     return read_size;
 }
 
-ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len, const struct mq_attr *attr)
+ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len,
+                     const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -75,7 +78,8 @@ ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len, const struct
             return -EAGAIN;
         } else { /* block mode */
             /* force the thread to sleep */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -89,13 +93,33 @@ ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len, const struct
     return 0;
 }
 
+static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
+{
+    struct thread_info *highest_pri_thread = NULL;
+
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, wait_list) {
+        struct thread_info *thread =
+            list_entry(curr, struct thread_info, list);
+
+        if(thread->file_request.size <= avail_size &&
+           (highest_pri_thread == NULL ||
+            thread->priority > highest_pri_thread->priority)) {
+            highest_pri_thread = thread;
+        }
+    }
+
+    if(highest_pri_thread) {
+        finish_wait(&highest_pri_thread->list);
+    }
+}
+
 ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_len = kfifo_len(fifo);
-    struct list_head *w_wait_list = &pipe->w_wait_list;
 
     /* check if the request size is larger than the fifo can serve */
     if(size > fifo_len) {
@@ -111,7 +135,8 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
             curr_thread->file_request.size = size;
 
             /* force the thread to sleep */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -121,18 +146,9 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
         kfifo_out(fifo, &buf[i], sizeof(char));
     }
 
-    /* resume a blocked writting thread if the pipe has enough space to write */
-    if(!list_is_empty(w_wait_list)) {
-        /* acquire the thread info */
-        struct thread_info *thread =
-            list_entry(w_wait_list->next, struct thread_info, list);
-
-        /* check if request size of the blocked writting thread can be fulfilled */
-        if(thread->file_request.size <= kfifo_avail(fifo)) {
-            /* yes, wake up the thread from the write waiting list */
-            wake_up(w_wait_list);
-        }
-    }
+    /* wake up the highest priority thread such that its
+     * write request can be served */
+    fifo_wake_up(&pipe->w_wait_list, kfifo_avail(fifo));
 
     return size;
 }
@@ -143,7 +159,6 @@ ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
 
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_avail = kfifo_avail(fifo);
-    struct list_head *r_wait_list = &pipe->r_wait_list;
 
     /* check if the fifo has enough space to write or not */
     if(size > fifo_avail) {
@@ -159,7 +174,8 @@ ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
             curr_thread->file_request.size = size;
 
             /* force the thread to sleep */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -169,18 +185,9 @@ ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
         kfifo_in(fifo, &buf[i], sizeof(char));
     }
 
-    /* resume a blocked reading thread if the pipe has enough data to read */
-    if(!list_is_empty(r_wait_list)) {
-        /* acquire the thread info */
-        struct thread_info *thread =
-            list_entry(r_wait_list->next, struct thread_info, list);
-
-        /* check if request size of the blocked reading thread can be fulfilled */
-        if(thread->file_request.size <= kfifo_len(fifo)) {
-            /* yes, wake up the thread from the read waiting list */
-            wake_up(r_wait_list);
-        }
-    }
+    /* wake up the highest priority thread such that its
+     * read request can be served */
+    fifo_wake_up(&pipe->r_wait_list, kfifo_len(fifo));
 
     return size;
 }
