@@ -32,10 +32,13 @@ ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len,
     CURRENT_THREAD_INFO(curr_thread);
     struct kfifo *fifo = pipe->fifo;
 
+    /* the message queue descriptor is not opened for reading */
+    if((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
+        return -EBADF;
+
     /* the buffer size must be larger or equal to the max message size */
-    if(msg_len < attr->mq_msgsize) {
+    if(msg_len < attr->mq_msgsize)
         return -EMSGSIZE;
-    }
 
     /* no message available in the fifo? */
     if(kfifo_len(fifo) <= 0) {
@@ -67,6 +70,11 @@ ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len,
 
     struct kfifo *fifo = pipe->fifo;
 
+    /* the message queue descriptor is not opened for writing */
+    if((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
+        return -EBADF;
+
+    /* the write size must be smaller or equal to the max message size */
     if(msg_len > attr->mq_msgsize) {
         return -EMSGSIZE;
     }

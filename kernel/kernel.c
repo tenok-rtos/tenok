@@ -1158,7 +1158,11 @@ void sys_mq_getattr(void)
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
 
-    *attr = mqd_table[mqdes].mq->attr;
+    /* return attributes */
+    attr->mq_flags = mqd_table[mqdes].attr.mq_flags;
+    attr->mq_maxmsg = mqd_table[mqdes].attr.mq_maxmsg;
+    attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
+    attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1171,10 +1175,26 @@ void sys_mq_setattr(void)
     struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
     struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
 
-    //TODO: check new attributes is valid or not
+    /* acquire the attributes from the message queue descriptors table */
+    struct mq_attr *curr_attr = &mqd_table[mqdes].attr;
 
-    *oldattr = mqd_table[mqdes].mq->attr;
-    mqd_table[mqdes].mq->attr = *newattr;
+    /* only the O_NONBLOCK bit field of the mq_flags can be changed */
+    if(newattr->mq_flags & ~O_NONBLOCK ||
+       newattr->mq_maxmsg != curr_attr->mq_maxmsg ||
+       newattr->mq_msgsize != curr_attr->mq_msgsize) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    /* preserve old attributes */
+    oldattr->mq_flags = curr_attr->mq_flags;
+    oldattr->mq_maxmsg = curr_attr->mq_maxmsg;
+    oldattr->mq_msgsize = curr_attr->mq_msgsize;
+    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
+
+    /* save new mq_flags attribute */
+    curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1214,11 +1234,29 @@ void sys_mq_open(void)
         return;
     }
 
-    /* message queue with specified name does exist */
+    /* attribute is not provided */
+    struct mq_attr default_attr;
+    if(!attr) {
+        /* use default attributes */
+        default_attr.mq_maxmsg = 16;
+        default_attr.mq_msgsize = 50;
+        attr = &default_attr;
+    }
+
+    /* message queue with specified name exists */
     if(mq) {
+        /* both O_CREAT and O_EXCL flags are set */
+        if(oflag & O_CREAT && oflag & O_EXCL) {
+            /* return on error */
+            SYSCALL_ARG(mqd_t, 0) = -EEXIST;
+            return;
+        }
+
         /* register new message queue descriptor */
         bitmap_set_bit(bitmap_mq, mqdes);
         mqd_table[mqdes].mq = mq;
+        mqd_table[mqdes].attr = *attr;
+        mqd_table[mqdes].attr.mq_flags = oflag;
 
         /* return message queue descriptor */
         SYSCALL_ARG(mqd_t, 0) = mqdes;
@@ -1246,13 +1284,14 @@ void sys_mq_open(void)
     /* set up the new message queue */
     pipe->flags = attr->mq_flags;
     new_mq->pipe = pipe;
-    new_mq->attr = *attr;
     strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
     list_push(&mq_list, &new_mq->list);
 
     /* register new message queue descriptor */
     bitmap_set_bit(bitmap_mq, mqdes);
     mqd_table[mqdes].mq = new_mq;
+    mqd_table[mqdes].attr = *attr;
+    mqd_table[mqdes].attr.mq_flags = oflag;
 
     /* return message queue descriptor */
     SYSCALL_ARG(mqd_t, 0) = mqdes;
@@ -1317,13 +1356,14 @@ void sys_mq_receive(void)
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mq->attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* read message */
-    ssize_t retval = mq_receive_base(pipe, msg_ptr, msg_len, &mq->attr);
+    ssize_t retval = mq_receive_base(pipe, msg_ptr, msg_len,
+                                     &mqd_table[mqdes].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1354,13 +1394,14 @@ void sys_mq_send(void)
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mq->attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* send message */
-    ssize_t retval = mq_send_base(pipe, msg_ptr, msg_len, &mq->attr);
+    ssize_t retval = mq_send_base(pipe, msg_ptr, msg_len,
+                                  &mqd_table[mqdes].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {

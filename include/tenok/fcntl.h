@@ -8,6 +8,7 @@
 #define O_WRONLY   1
 #define O_RDWR     2
 #define O_CREAT    0x0200
+#define O_EXCL     0x0800
 #define O_NONBLOCK 00004000
 
 /**

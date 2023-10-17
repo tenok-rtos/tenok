@@ -11,6 +11,7 @@
 #define ENOMEM    12
 #define EFAULT    14
 #define EBUSY     16
+#define EEXIST    17
 #define EINVAL    22
 #define EDEADLK   45
 #define EMSGSIZE  122

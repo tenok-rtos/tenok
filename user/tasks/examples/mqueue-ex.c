@@ -12,26 +12,17 @@
 
 #define MSG_SIZE_MAX 25
 
-mqd_t mqdes_print;
-
-void my_mqueue_init(void)
-{
-    struct mq_attr attr = {
-        .mq_flags = 0,
-        .mq_maxmsg = 100,
-        .mq_msgsize = MSG_SIZE_MAX,
-        .mq_curmsgs = 0
-    };
-    mqdes_print = mq_open("/my_message", O_CREAT | O_RDWR, &attr);
-}
-
 void message_queue_task1(void)
 {
-    my_mqueue_init();
-
     setprogname("queue1");
 
     char *str = "mqueue: greeting\n\r";
+
+    struct mq_attr attr = {
+        .mq_maxmsg = 100,
+        .mq_msgsize = MSG_SIZE_MAX,
+    };
+    mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_WRONLY, &attr);
 
     while(1) {
         mq_send(mqdes_print, (char *)str, strlen(str), 0);
@@ -44,6 +35,13 @@ void message_queue_task2(void)
     setprogname("queue2");
 
     int serial_fd = open("/dev/serial0", 0);
+
+    struct mq_attr attr = {
+        .mq_maxmsg = 100,
+        .mq_msgsize = MSG_SIZE_MAX,
+    };
+    mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_RDONLY, &attr);
+
     char str[MSG_SIZE_MAX] = {0};
 
     while(1) {
