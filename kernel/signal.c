@@ -125,3 +125,8 @@ int kill(pid_t pid, int sig)
 {
     return _kill(pid, sig);
 }
+
+NACKED void _exit(int status)
+{
+    SYSCALL(EXIT);
+}

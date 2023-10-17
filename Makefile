@@ -95,6 +95,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
        ./kernel/task.c \
+       ./kernel/sched.c \
        ./kernel/fcntl.c \
        ./kernel/mqueue.c \
        ./kernel/mutex.c \
