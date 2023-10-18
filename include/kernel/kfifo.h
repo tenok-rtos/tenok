@@ -15,6 +15,8 @@ struct kfifo {
     void    *data;
     size_t  size;
     size_t  esize;
+    size_t  header_size;
+    size_t  payload_size;
 };
 
 /**
