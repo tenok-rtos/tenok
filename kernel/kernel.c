@@ -1158,11 +1158,28 @@ void sys_mq_getattr(void)
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
 
+    /* unpack the mqd_t object */
+    int mqd_idx = MQD_INDEX(mqdes);
+    uint8_t mqd_owner = MQD_OWNER(mqdes);
+
+    /* check the owner of the message queue descriptor */
+    if(mqd_owner != running_thread->task->pid) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
+    /* check if the message queue descriptor is invalid */
+    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+        SYSCALL_ARG(long, 0) = -EBADF;
+        return;
+    }
+
     /* return attributes */
-    attr->mq_flags = mqd_table[mqdes].attr.mq_flags;
-    attr->mq_maxmsg = mqd_table[mqdes].attr.mq_maxmsg;
-    attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
-    attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
+    attr->mq_flags = mqd_table[mqd_idx].attr.mq_flags;
+    attr->mq_maxmsg = mqd_table[mqd_idx].attr.mq_maxmsg;
+    attr->mq_msgsize = mqd_table[mqd_idx].attr.mq_msgsize;
+    attr->mq_curmsgs = kfifo_len(mqd_table[mqd_idx].mq->pipe->fifo);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1175,8 +1192,25 @@ void sys_mq_setattr(void)
     struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
     struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
 
-    /* acquire the attributes from the message queue descriptors table */
-    struct mq_attr *curr_attr = &mqd_table[mqdes].attr;
+    /* unpack the mqd_t object */
+    int mqd_idx = MQD_INDEX(mqdes);
+    uint8_t mqd_owner = MQD_OWNER(mqdes);
+
+    /* check the owner of the message queue descriptor */
+    if(mqd_owner != running_thread->task->pid) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
+    /* check if the message queue descriptor is invalid */
+    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+        SYSCALL_ARG(long, 0) = -EBADF;
+        return;
+    }
+
+    /* acquire message queue attributes from the table */
+    struct mq_attr *curr_attr = &mqd_table[mqd_idx].attr;
 
     /* only the O_NONBLOCK bit field of the mq_flags can be changed */
     if(newattr->mq_flags & ~O_NONBLOCK ||
@@ -1191,7 +1225,7 @@ void sys_mq_setattr(void)
     oldattr->mq_flags = curr_attr->mq_flags;
     oldattr->mq_maxmsg = curr_attr->mq_maxmsg;
     oldattr->mq_msgsize = curr_attr->mq_msgsize;
-    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
+    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqd_idx].mq->pipe->fifo);
 
     /* save new mq_flags attribute */
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
@@ -1224,12 +1258,15 @@ void sys_mq_open(void)
     int oflag = SYSCALL_ARG(int, 1);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
+    /* acquire the task pid */
+    int pid = running_thread->task->pid;
+
     /* search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
 
     /* check if new message queue descriptor can be dispatched */
-    int mqdes = find_first_zero_bit(bitmap_mq, MQUEUE_CNT_MAX);
-    if(mqdes >= MQUEUE_CNT_MAX) {
+    int mqd_idx = find_first_zero_bit(bitmap_mq, MQUEUE_CNT_MAX);
+    if(mqd_idx >= MQUEUE_CNT_MAX) {
         SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
         return;
     }
@@ -1253,13 +1290,13 @@ void sys_mq_open(void)
         }
 
         /* register new message queue descriptor */
-        bitmap_set_bit(bitmap_mq, mqdes);
-        mqd_table[mqdes].mq = mq;
-        mqd_table[mqdes].attr = *attr;
-        mqd_table[mqdes].attr.mq_flags = oflag;
+        bitmap_set_bit(bitmap_mq, mqd_idx);
+        mqd_table[mqd_idx].mq = mq;
+        mqd_table[mqd_idx].attr = *attr;
+        mqd_table[mqd_idx].attr.mq_flags = oflag;
 
         /* return message queue descriptor */
-        SYSCALL_ARG(mqd_t, 0) = mqdes;
+        SYSCALL_ARG(mqd_t, 0) = MQD_INIT(pid, mqd_idx);
         return;
     }
 
@@ -1288,13 +1325,13 @@ void sys_mq_open(void)
     list_push(&mq_list, &new_mq->list);
 
     /* register new message queue descriptor */
-    bitmap_set_bit(bitmap_mq, mqdes);
-    mqd_table[mqdes].mq = new_mq;
-    mqd_table[mqdes].attr = *attr;
-    mqd_table[mqdes].attr.mq_flags = oflag;
+    bitmap_set_bit(bitmap_mq, mqd_idx);
+    mqd_table[mqd_idx].mq = new_mq;
+    mqd_table[mqd_idx].attr = *attr;
+    mqd_table[mqd_idx].attr.mq_flags = oflag;
 
     /* return message queue descriptor */
-    SYSCALL_ARG(mqd_t, 0) = mqdes;
+    SYSCALL_ARG(mqd_t, 0) = MQD_INIT(pid, mqd_idx);
 }
 
 void sys_mq_close(void)
@@ -1302,14 +1339,25 @@ void sys_mq_close(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
 
+    /* unpack the mqd_t object */
+    int mqd_idx = MQD_INDEX(mqdes);
+    uint8_t mqd_owner = MQD_OWNER(mqdes);
+
+    /* check the owner of the message queue descriptor */
+    if(mqd_owner != running_thread->task->pid) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqdes)) {
+    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* free the message queue descriptor */
-    bitmap_clear_bit(bitmap_mq, mqdes);
+    bitmap_clear_bit(bitmap_mq, mqd_idx);
 
     /* return on success */
     SYSCALL_ARG(long, 0) = 0;
@@ -1345,25 +1393,36 @@ void sys_mq_receive(void)
     char *msg_ptr = SYSCALL_ARG(char *, 1);
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
+    /* unpack the mqd_t object */
+    int mqd_idx = MQD_INDEX(mqdes);
+    uint8_t mqd_owner = MQD_OWNER(mqdes);
+
+    /* check the owner of the message queue descriptor */
+    if(mqd_owner != running_thread->task->pid) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqdes)) {
+    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* obtain message queue */
-    struct mqueue *mq = mqd_table[mqdes].mq;
+    struct mqueue *mq = mqd_table[mqd_idx].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqd_idx].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* read message */
     ssize_t retval = mq_receive_base(pipe, msg_ptr, msg_len,
-                                     &mqd_table[mqdes].attr);
+                                     &mqd_table[mqd_idx].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1383,25 +1442,36 @@ void sys_mq_send(void)
     char *msg_ptr = SYSCALL_ARG(char *, 1);
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
+    /* unpack the mqd_t object */
+    int mqd_idx = MQD_INDEX(mqdes);
+    uint8_t mqd_owner = MQD_OWNER(mqdes);
+
+    /* check the owner of the message queue descriptor */
+    if(mqd_owner != running_thread->task->pid) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqdes)) {
+    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* obtain message queue */
-    struct mqueue *mq = mqd_table[mqdes].mq;
+    struct mqueue *mq = mqd_table[mqd_idx].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqd_idx].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* send message */
     ssize_t retval = mq_send_base(pipe, msg_ptr, msg_len,
-                                  &mqd_table[mqdes].attr);
+                                  &mqd_table[mqd_idx].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
