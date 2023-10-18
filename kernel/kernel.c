@@ -51,6 +51,7 @@ struct list_head suspend_list;      /* list of all thread currently suspended */
 struct list_head timers_list;       /* list of all timers in the system */
 struct list_head signal_wait_list;  /* list of all threads waiting for signals */
 struct list_head poll_timeout_list; /* list for tracking threads that setup timeout for poll() */
+struct list_head mqueue_list;       /* list of all posix message queues in the system */
 struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
 
 /* tasks and threads */
@@ -69,7 +70,6 @@ struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* message queues */
-struct list_head mq_list;
 struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mq[BITMAP_SIZE(MQUEUE_CNT_MAX)] = {0};
 
@@ -1235,7 +1235,7 @@ struct mqueue *acquire_mqueue(char *name)
 {
     /* find the message queue with the given name */
     struct list_head *curr;
-    list_for_each(curr, &mq_list) {
+    list_for_each(curr, &mqueue_list) {
         struct mqueue *mq = list_entry(curr, struct mqueue, list);
 
         if(!strncmp(name, mq->name, FILE_NAME_LEN_MAX)) {
@@ -1319,7 +1319,7 @@ void sys_mq_open(void)
     pipe->flags = attr->mq_flags;
     new_mq->pipe = pipe;
     strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
-    list_push(&mq_list, &new_mq->list);
+    list_push(&mqueue_list, &new_mq->list);
 
     /* register new message queue descriptor */
     bitmap_set_bit(bitmap_mq, mqd_idx);
@@ -2558,7 +2558,7 @@ void sched_start(void)
     list_init(&timers_list);
     list_init(&signal_wait_list);
     list_init(&poll_timeout_list);
-    list_init(&mq_list);
+    list_init(&mqueue_list);
     for(int i = 0; i <= TASK_MAX_PRIORITY; i++) {
         list_init(&ready_list[i]);
     }
