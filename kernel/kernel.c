@@ -254,6 +254,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
 
     /* allocate a new task */
     struct task_struct *task = &tasks[pid];
+    memset(task, 0, sizeof(struct task_struct));
     task->pid = pid;
     task->main_thread = thread;
     list_init(&task->threads_list);
@@ -263,10 +264,6 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     /* initialize anonymous pipe of the task */
     fifo_init(pid, (struct file **)&files, NULL);
     //TODO: release the pipe memory after the task is terminated
-
-    /* reset file descriptor table */
-    memset(task->fd_bitmap, 0, sizeof(task->fd_bitmap));
-    memset(task->fdtable, 0, sizeof(task->fdtable));
 
     /* set the task ownership of the thread */
     thread->task = task;
