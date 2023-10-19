@@ -83,12 +83,12 @@ for i in range(0, syscall_cnt):
     syscall_num = i + 1
     print('#define %s %d' %(id, syscall_num))
 
-print('\n#define SYSCALL_TABLE_INIT \\');
+print('\n#define SYSCALL_TABLE_INIT { \\');
 for i in range(0, syscall_cnt):
     syscall = syscalls[i]
     id = syscalls[i].upper()
     if i == syscall_cnt - 1:
-        print('    DEF_SYSCALL(%s, %s)\n' %(syscall, id))
+        print('    DEF_SYSCALL(%s, %s) \\\n    }\n' %(syscall, id))
     else:
         print('    DEF_SYSCALL(%s, %s), \\' %(syscall, id))
 

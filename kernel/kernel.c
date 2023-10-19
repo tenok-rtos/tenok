@@ -74,9 +74,7 @@ struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mq[BITMAP_SIZE(MQUEUE_CNT_MAX)] = {0};
 
 /* syscall table */
-syscall_info_t syscall_table[] = {
-    SYSCALL_TABLE_INIT
-};
+syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
 
 NACKED void thread_return_handler(void)
 {
