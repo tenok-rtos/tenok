@@ -136,7 +136,7 @@ size_t kfifo_peek_len(struct kfifo *fifo)
 {
     /* kfifo_peek_len() is not supported under the
      * byte stream mode */
-    if(fifo->esize > 1)
+    if(fifo->esize <= 1)
         return 0;
 
     /* read and return the recsize */
