@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 
 struct mqueue {
     char name[FILE_NAME_LEN_MAX];

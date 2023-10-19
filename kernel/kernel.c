@@ -24,7 +24,7 @@
 #include <mm/mpool.h>
 #include <arch/port.h>
 #include <kernel/list.h>
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 #include <kernel/time.h>
 #include <kernel/wait.h>
 #include <kernel/task.h>

@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include <fs/fs.h>
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/errno.h>
 #include <kernel/mutex.h>

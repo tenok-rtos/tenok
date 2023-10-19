@@ -90,13 +90,13 @@ SRC += $(ST_LIB)/src/misc.c \
 
 SRC += ./kernel/arch/v7m_port.c \
        ./kernel/arch/stm32f4_irq.c \
-       ./kernel/ipc.c \
        ./kernel/kfifo.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
        ./kernel/task.c \
        ./kernel/sched.c \
        ./kernel/fcntl.c \
+       ./kernel/pipe.c \
        ./kernel/mqueue.c \
        ./kernel/mutex.c \
        ./kernel/semaphore.c \

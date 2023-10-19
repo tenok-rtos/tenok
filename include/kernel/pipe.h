@@ -1,8 +1,8 @@
 /**
  * @file
  */
-#ifndef __KERNEL_IPC_H__
-#define __KERNEL_IPC_H__
+#ifndef __KERNEL_PIPE_H__
+#define __KERNEL_PIPE_H__
 
 #include <stdio.h>
 

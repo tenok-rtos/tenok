@@ -6,7 +6,7 @@
 
 #include <fs/fs.h>
 #include <mm/mpool.h>
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 #include <kernel/list.h>
 
 typedef uint32_t mqd_t;

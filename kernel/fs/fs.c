@@ -11,7 +11,7 @@
 #include <mm/mm.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
 #include <kernel/bitops.h>

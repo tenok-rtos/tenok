@@ -3,18 +3,25 @@
 #include <errno.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <mqueue.h>
 
 #include <fs/fs.h>
 #include <mm/mm.h>
-#include <kernel/ipc.h>
+#include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/poll.h>
 #include <kernel/errno.h>
 #include <kernel/kfifo.h>
 #include <kernel/kernel.h>
 
-#include "kconfig.h"
+ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
+int fifo_open(struct inode *inode, struct file *file);
+
+static struct file_operations fifo_ops = {
+    .read = fifo_read,
+    .write = fifo_write,
+    .open = fifo_open
+};
 
 pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
@@ -25,78 +32,21 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
     return pipe;
 }
 
-ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len,
-                     const struct mq_attr *attr)
+int fifo_init(int fd, struct file **files, struct inode *file_inode)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-    struct kfifo *fifo = pipe->fifo;
+    /* initialize the pipe */
+    pipe_t *pipe = pipe_create_generic(sizeof(uint8_t), PIPE_DEPTH);
 
-    /* the message queue descriptor is not opened for reading */
-    if((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
-        return -EBADF;
+    /* register fifo to the file table */
+    pipe->file.f_op = &fifo_ops;
+    pipe->file.f_inode = file_inode;
+    files[fd] = &pipe->file;
 
-    /* the buffer size must be larger or equal to the max message size */
-    if(msg_len < attr->mq_msgsize)
-        return -EMSGSIZE;
-
-    /* no message available in the fifo? */
-    if(kfifo_len(fifo) <= 0) {
-        if(attr->mq_flags & O_NONBLOCK) { /* non-block mode */
-            /* return immediately */
-            return -EAGAIN;
-        } else { /* block mode */
-            /* force the thread to sleep */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
-            return -ERESTARTSYS;
-        }
-    }
-
-    /* read data from the fifo */
-    size_t read_size = kfifo_peek_len(fifo);
-    kfifo_out(fifo, buf, read_size);
-
-    /* the fifo has space now, wake up a thread that waiting to write */
-    wake_up(&pipe->w_wait_list);
-
-    return read_size;
+    return 0;
 }
 
-ssize_t __mq_send(pipe_t *pipe, const char *buf, size_t msg_len,
-                  const struct mq_attr *attr)
+int fifo_open(struct inode *inode, struct file *file)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
-    struct kfifo *fifo = pipe->fifo;
-
-    /* the message queue descriptor is not opened for writing */
-    if((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
-        return -EBADF;
-
-    /* the write size must be smaller or equal to the max message size */
-    if(msg_len > attr->mq_msgsize) {
-        return -EMSGSIZE;
-    }
-
-    /* fifo has no free space to write? */
-    if(kfifo_avail(fifo) <= 0) {
-        if(attr->mq_flags & O_NONBLOCK) { /* non-block mode */
-            /* return immediately */
-            return -EAGAIN;
-        } else { /* block mode */
-            /* force the thread to sleep */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
-            return -ERESTARTSYS;
-        }
-    }
-
-    /* write data to the fifo */
-    kfifo_in(fifo, buf, msg_len);
-
-    /* the fifo has message now, wake up a thread that waiting to read */
-    wake_up(&pipe->r_wait_list);
-
     return 0;
 }
 
@@ -121,7 +71,7 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     }
 }
 
-ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
+static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -161,7 +111,7 @@ ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
     return size;
 }
 
-ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
+static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -199,34 +149,6 @@ ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
     fifo_wake_up(&pipe->r_wait_list, kfifo_len(fifo));
 
     return size;
-}
-
-ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
-int fifo_open(struct inode *inode, struct file *file);
-
-static struct file_operations fifo_ops = {
-    .read = fifo_read,
-    .write = fifo_write,
-    .open = fifo_open
-};
-
-int fifo_open(struct inode *inode, struct file *file)
-{
-    return 0;
-}
-
-int fifo_init(int fd, struct file **files, struct inode *file_inode)
-{
-    /* initialize the pipe */
-    pipe_t *pipe = pipe_create_generic(sizeof(uint8_t), PIPE_DEPTH);
-
-    /* register fifo to the file table */
-    pipe->file.f_op = &fifo_ops;
-    pipe->file.f_inode = file_inode;
-    files[fd] = &pipe->file;
-
-    return 0;
 }
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
