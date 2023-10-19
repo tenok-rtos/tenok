@@ -10,7 +10,7 @@
 
 #define print(fd, str) write(fd, str, strlen(str))
 
-int serial_fd;
+static int serial_fd;
 
 void timer_callback(union sigval sv)
 {
@@ -22,7 +22,7 @@ void timer_task(void)
 {
     setprogname("timer");
 
-    serial_fd = open("/dev/serial0", 0);
+    serial_fd = open("/dev/serial0", O_RDWR);
 
     timer_t timerid;
     struct sigevent sev;

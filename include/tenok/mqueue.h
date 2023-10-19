@@ -9,7 +9,7 @@
 #include <kernel/ipc.h>
 #include <kernel/list.h>
 
-typedef uint32_t mqd_t; /* opaque object */
+typedef uint32_t mqd_t;
 
 struct mq_attr {
     int mq_flags;   /* flags: 0 or O_NONBLOCK */

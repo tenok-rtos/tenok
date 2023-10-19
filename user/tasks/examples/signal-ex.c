@@ -24,7 +24,7 @@ void signal_task1(void)
 
     setprogname("signal1");
 
-    serial_fd = open("/dev/serial0", 0);
+    serial_fd = open("/dev/serial0", O_RDWR);
 
     /* register the signal handler function */
     struct sigaction sa;

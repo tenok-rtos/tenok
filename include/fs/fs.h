@@ -19,11 +19,6 @@
 #    error "FILE_DESC_CNT_MAX should not exceed 65535"
 #endif
 
-#define FD_INDEX(fd) (fd & 0xffff)       /* [15:0], fd number */
-#define FD_OWNER(fd) ((fd >> 16) & 0xff) /* [23:16], the owner task pid of the fd */
-#define FD_HAS_ONWER(fd) (FD_INDEX(fd) >= TASK_CNT_MAX)
-#define FD_INIT(pid, fd_idx) (((uint8_t)pid << 16) | ((uint16_t)fd_idx))
-
 #define RDEV_ROOTFS 0
 
 typedef void (*drv_init_func_t)(void);

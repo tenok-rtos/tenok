@@ -89,6 +89,10 @@ struct stack_fpu {
 
 struct task_struct {
     int pid;
+
+    uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
+    uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+
     struct thread_info *main_thread;
 
     struct list_head threads_list; /* all threads held by the task */

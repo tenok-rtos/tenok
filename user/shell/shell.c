@@ -19,11 +19,11 @@ static void shell_reset_history_scrolling(struct shell *shell);
 
 struct inode *shell_dir_curr = NULL;
 
-int serial_fd = 0;
+static int serial_fd = 0;
 
 void shell_serial_init(void)
 {
-    serial_fd = open("/dev/serial0", 0);
+    serial_fd = open("/dev/serial0", O_RDWR);
 }
 
 void shell_path_init(void)

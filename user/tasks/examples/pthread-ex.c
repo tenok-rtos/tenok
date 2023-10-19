@@ -27,7 +27,7 @@ void pthread_task(void)
 {
     setprogname("pthread-ex");
 
-    serial_fd = open("/dev/serial0", 0);
+    serial_fd = open("/dev/serial0", O_RDWR);
 
     char *msg = "a new thread will be created and canceled after 10 seconds.\n\r";
     write(serial_fd, msg, strlen(msg));

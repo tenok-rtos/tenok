@@ -34,7 +34,7 @@ void message_queue_task2(void)
 {
     setprogname("queue2");
 
-    int serial_fd = open("/dev/serial0", 0);
+    int serial_fd = open("/dev/serial0", O_RDWR);
 
     struct mq_attr attr = {
         .mq_maxmsg = 100,

@@ -17,16 +17,16 @@
     sprintf(pbuf, __VA_ARGS__); \
     print(serial_fd, pbuf);
 
-char pbuf[200] = {0};
+static char pbuf[200] = {0};
 
 /* producer and consumer's data */
-int my_buffer[BUFFER_SIZE];
-int my_cnt = 0;
+static int my_buffer[BUFFER_SIZE];
+static int my_cnt = 0;
 
 /* data protection and task signaling */
-pthread_mutex_t mutex;
-pthread_cond_t cond_producer;
-pthread_cond_t cond_consumer;
+static pthread_mutex_t mutex;
+static pthread_cond_t cond_producer;
+static pthread_cond_t cond_consumer;
 
 static void print(int fd, char *str)
 {
@@ -42,7 +42,7 @@ void mutex_task1(void)
     pthread_cond_init(&cond_producer, 0);
     pthread_cond_init(&cond_consumer, 0);
 
-    int serial_fd = open("/dev/serial0", 0);
+    int serial_fd = open("/dev/serial0", O_RDWR);
 
     int item = 1;
 
@@ -75,7 +75,7 @@ void mutex_task2(void)
 {
     setprogname("mutex2");
 
-    int serial_fd = open("/dev/serial0", 0);
+    int serial_fd = open("/dev/serial0", O_RDWR);
 
     while(1) {
         /* start of the critical section */

@@ -4,14 +4,14 @@
 
 #include "shell.h"
 
-extern struct memory_pool mem_pool;
+extern struct memory_pool kmpool;
 
 void shell_cmd_free(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    int total = mem_pool.size;
-    int used = mem_pool.offset;
+    int total = kmpool.size;
+    int used = kmpool.offset;
     int _free = total - used;
 
     snprintf(str, PRINT_SIZE_MAX,

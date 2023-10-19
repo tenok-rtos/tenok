@@ -41,11 +41,10 @@
 #include <kernel/interrupt.h>
 
 #include "kconfig.h"
-#include "stm32f4xx.h"
 
 /* global lists */
-struct list_head tasks_list;        /* global list for recording all tasks in the system */
-struct list_head threads_list;      /* global list for recording all threads in the system */
+struct list_head tasks_list;        /* list for recording all tasks in the system */
+struct list_head threads_list;      /* list for recording all threads in the system */
 struct list_head sleep_list;        /* list of all threads in the sleeping state */
 struct list_head suspend_list;      /* list of all thread currently suspended */
 struct list_head timers_list;       /* list of all timers in the system */
@@ -61,21 +60,21 @@ struct thread_info *running_thread = NULL;
 uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];     /* for dispatching task id */
 uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)]; /* for dispatching thread id */
 
-/* memory pool */
-struct memory_pool mem_pool;
-uint8_t mem_pool_buf[MEM_POOL_SIZE];
-
 /* files */
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* file descriptor table */
 struct fdtable fdtable[FILE_DESC_CNT_MAX];
-uint32_t fd_bitmap[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
+uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
 /* message queue descriptor table */
 struct mq_desc mqd_table[MQUEUE_CNT_MAX];
-uint32_t bitmap_mq[BITMAP_SIZE(MQUEUE_CNT_MAX)] = {0};
+uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+
+/* memory pool */
+struct memory_pool kmpool;
+uint8_t kmpool_buf[MEM_POOL_SIZE];
 
 /* syscall table */
 syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
@@ -98,7 +97,7 @@ NACKED void thread_once_return_handler(void)
 void *kmalloc(size_t size)
 {
     preempt_disable();
-    void *ptr = memory_pool_alloc(&mem_pool, size);
+    void *ptr = memory_pool_alloc(&kmpool, size);
     preempt_enable();
 
     return ptr;
@@ -278,6 +277,20 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
     return _task_create(task_func, priority, stack_size, KERNEL_THREAD);
 }
 
+static void task_delete(struct task_struct *task)
+{
+    list_remove(&task->list);
+    bitmap_clear_bit(bitmap_tasks, task->pid);
+
+    for(int i = 0; i < BITMAP_SIZE(FILE_DESC_CNT_MAX); i++) {
+        bitmap_fds[i] &= ~task->bitmap_fds[i];
+    }
+
+    for(int i = 0; i < BITMAP_SIZE(MQUEUE_CNT_MAX); i++) {
+        bitmap_mqds[i] &= ~task->bitmap_mqds[i];
+    }
+}
+
 static void stage_temporary_handler(struct thread_info *thread,
                                     uint32_t func,
                                     uint32_t return_handler,
@@ -324,8 +337,8 @@ static void thread_delete(struct thread_info *thread)
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = thread->task;
     if(list_is_empty(&task->threads_list)) {
-        list_remove(&task->list);
-        bitmap_clear_bit(bitmap_tasks, task->pid);
+        /* remove the task from the system */
+        task_delete(task);
     }
 }
 
@@ -409,11 +422,9 @@ static inline void thread_join_handler(void)
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = running_thread->task;
     if(list_is_empty(&task->threads_list)) {
-        list_remove(&task->list);
-        bitmap_clear_bit(bitmap_tasks, task->pid);
+        /* remove the task from the system */
+        task_delete(task);
     }
-
-    //TODO: release task resources
 
     /* remove the thread from the system */
     list_remove(&running_thread->thread_list);
@@ -521,10 +532,7 @@ void sys_exit(void)
     }
 
     /* remove the task from the system */
-    list_remove(&task->list);
-    bitmap_clear_bit(bitmap_tasks, task->pid);
-
-    //TODO: release task resources
+    task_delete(task);
 }
 
 void sys_mount(void)
@@ -562,6 +570,10 @@ void sys_open(void)
     char *pathname = SYSCALL_ARG(char *, 0);
     int flags = SYSCALL_ARG(int, 1);
 
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
+
+    /* acquire the thread id */
     int tid = running_thread->tid;
 
     /* send file open request to the file system daemon */
@@ -591,13 +603,14 @@ void sys_open(void)
     }
 
     /* find a free file descriptor entry on the table */
-    int fdesc_idx = find_first_zero_bit(fd_bitmap, FILE_DESC_CNT_MAX);
+    int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
     if(fdesc_idx >= FILE_DESC_CNT_MAX) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -ENOMEM;
         return;
     }
-    bitmap_set_bit(fd_bitmap, fdesc_idx);
+    bitmap_set_bit(bitmap_fds, fdesc_idx);
+    bitmap_set_bit(task->bitmap_fds, fdesc_idx);
 
     struct file *filp = files[file_idx];
 
@@ -609,7 +622,8 @@ void sys_open(void)
     /* check if the file operation is undefined */
     if(!filp->f_op->open) {
         /* release the file descriptor */
-        bitmap_clear_bit(fd_bitmap, fdesc_idx);
+        bitmap_clear_bit(bitmap_fds, fdesc_idx);
+        bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
         /* return on error */
         SYSCALL_ARG(int, 0)= -ENXIO;
@@ -620,9 +634,8 @@ void sys_open(void)
     filp->f_op->open(filp->f_inode, filp);
 
     /* return the file descriptor */
-    int pid = running_thread->task->pid;
     int fd = fdesc_idx + TASK_CNT_MAX;
-    SYSCALL_ARG(int, 0) = FD_INIT(pid, fd);
+    SYSCALL_ARG(int, 0) = fd;
 }
 
 void sys_close(void)
@@ -630,32 +643,28 @@ void sys_close(void)
     /* read syscall arguments */
     int fd = SYSCALL_ARG(int, 0);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* a valid file descriptor number should starts from TASK_CNT_MAX */
-    int _fd = FD_INDEX(fd);
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* calculate the index number of the file descriptor on the table */
-    int fdesc_idx = _fd - TASK_CNT_MAX;
+    int fdesc_idx = fd - TASK_CNT_MAX;
 
     /* check if the file descriptor is indeed used */
-    if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+    if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+       !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* free the file descriptor */
-    bitmap_clear_bit(fd_bitmap, fdesc_idx);
+    bitmap_clear_bit(bitmap_fds, fdesc_idx);
+    bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -668,28 +677,22 @@ void sys_read(void)
     char *buf = SYSCALL_ARG(char *, 1);
     size_t count = SYSCALL_ARG(size_t, 2);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
-
-    int _fd = FD_INDEX(fd);
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* get the file pointer */
     struct file *filp;
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = _fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - TASK_CNT_MAX;
 
         /* check if the file descriptor is invalid */
-        if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+        if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+           !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
             SYSCALL_ARG(ssize_t, 0) = -EBADF;
             return;
         }
@@ -726,28 +729,22 @@ void sys_write(void)
     char *buf = SYSCALL_ARG(char *, 1);
     size_t count = SYSCALL_ARG(size_t, 2);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
-
-    int _fd = FD_INDEX(fd);
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* get the file pointer */
     struct file *filp;
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = _fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - TASK_CNT_MAX;
 
         /* check if the file descriptor is invalid */
-        if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+        if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+           !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
             SYSCALL_ARG(ssize_t, 0) = -EBADF;
             return;
         }
@@ -784,28 +781,22 @@ void sys_ioctl(void)
     unsigned int cmd = SYSCALL_ARG(unsigned int, 1);
     unsigned long arg = SYSCALL_ARG(unsigned long, 2);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
-
-    int _fd = FD_INDEX(fd);
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* get the file pointer */
     struct file *filp;
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = _fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - TASK_CNT_MAX;
 
         /* check if the file descriptor is invalid */
-        if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+        if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+           !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
             SYSCALL_ARG(int, 0) = -EBADF;
             return;
         }
@@ -841,28 +832,22 @@ void sys_lseek(void)
     long offset = SYSCALL_ARG(long, 1);
     int whence = SYSCALL_ARG(int, 2);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
-
-    int _fd = FD_INDEX(fd);
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* get the file pointer */
     struct file *filp;
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         /* anonymous pipe held by each tasks */
         filp = files[fd];
     } else {
         /* calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = _fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - TASK_CNT_MAX;
 
         /* check if the file descriptor is invalid */
-        if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+        if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+           !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
             SYSCALL_ARG(off_t, 0) = -EBADF;
             return;
         }
@@ -897,27 +882,21 @@ void sys_fstat(void)
     int fd = SYSCALL_ARG(int, 0);
     struct stat *statbuf = SYSCALL_ARG(struct stat *, 1);
 
-    /* check ownership of the file descriptor */
-    int pid = running_thread->task->pid;
-    if(FD_HAS_ONWER(fd) && FD_OWNER(fd) != pid) {
-        /* return on error */
-        SYSCALL_ARG(ssize_t, 0)= -EBADF;
-        return;
-    }
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
-    int _fd = FD_INDEX(fd);
-
-    if(_fd < TASK_CNT_MAX) {
+    if(fd < TASK_CNT_MAX) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* calculate the index number of the file descriptor
      * on the table */
-    int fdesc_idx = _fd - TASK_CNT_MAX;
+    int fdesc_idx = fd - TASK_CNT_MAX;
 
     /* check if the file descriptor is invalid */
-    if(!bitmap_get_bit(fd_bitmap, fdesc_idx)) {
+    if(!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
+       !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
@@ -1118,7 +1097,7 @@ void sys_poll(void)
         bool no_event = true;
 
         for(int i = 0; i < nfds; i++) {
-            int fd = FD_INDEX(fds[i].fd) - TASK_CNT_MAX;
+            int fd = fds[i].fd - TASK_CNT_MAX;
             filp = fdtable[fd].file;
 
             uint32_t events = filp->f_events;
@@ -1193,28 +1172,19 @@ void sys_mq_getattr(void)
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
 
-    /* unpack the mqd_t object */
-    int mqd_idx = MQD_INDEX(mqdes);
-    uint8_t mqd_owner = MQD_OWNER(mqdes);
-
-    /* check the owner of the message queue descriptor */
-    if(mqd_owner != running_thread->task->pid) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
-
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+    struct task_struct *task = running_thread->task;
+    if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
+       !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* return attributes */
-    attr->mq_flags = mqd_table[mqd_idx].attr.mq_flags;
-    attr->mq_maxmsg = mqd_table[mqd_idx].attr.mq_maxmsg;
-    attr->mq_msgsize = mqd_table[mqd_idx].attr.mq_msgsize;
-    attr->mq_curmsgs = kfifo_len(mqd_table[mqd_idx].mq->pipe->fifo);
+    attr->mq_flags = mqd_table[mqdes].attr.mq_flags;
+    attr->mq_maxmsg = mqd_table[mqdes].attr.mq_maxmsg;
+    attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
+    attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1227,25 +1197,15 @@ void sys_mq_setattr(void)
     struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
     struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
 
-    /* unpack the mqd_t object */
-    int mqd_idx = MQD_INDEX(mqdes);
-    uint8_t mqd_owner = MQD_OWNER(mqdes);
-
-    /* check the owner of the message queue descriptor */
-    if(mqd_owner != running_thread->task->pid) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
-
-    /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+    struct task_struct *task = running_thread->task;
+    if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
+       !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* acquire message queue attributes from the table */
-    struct mq_attr *curr_attr = &mqd_table[mqd_idx].attr;
+    struct mq_attr *curr_attr = &mqd_table[mqdes].attr;
 
     /* only the O_NONBLOCK bit field of the mq_flags can be changed */
     if(newattr->mq_flags & ~O_NONBLOCK ||
@@ -1260,7 +1220,7 @@ void sys_mq_setattr(void)
     oldattr->mq_flags = curr_attr->mq_flags;
     oldattr->mq_maxmsg = curr_attr->mq_maxmsg;
     oldattr->mq_msgsize = curr_attr->mq_msgsize;
-    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqd_idx].mq->pipe->fifo);
+    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
 
     /* save new mq_flags attribute */
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
@@ -1293,15 +1253,15 @@ void sys_mq_open(void)
     int oflag = SYSCALL_ARG(int, 1);
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
-    /* acquire the task pid */
-    int pid = running_thread->task->pid;
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
 
     /* search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
 
     /* check if new message queue descriptor can be dispatched */
-    int mqd_idx = find_first_zero_bit(bitmap_mq, MQUEUE_CNT_MAX);
-    if(mqd_idx >= MQUEUE_CNT_MAX) {
+    int mqdes = find_first_zero_bit(bitmap_mqds, MQUEUE_CNT_MAX);
+    if(mqdes >= MQUEUE_CNT_MAX) {
         SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
         return;
     }
@@ -1325,13 +1285,14 @@ void sys_mq_open(void)
         }
 
         /* register new message queue descriptor */
-        bitmap_set_bit(bitmap_mq, mqd_idx);
-        mqd_table[mqd_idx].mq = mq;
-        mqd_table[mqd_idx].attr = *attr;
-        mqd_table[mqd_idx].attr.mq_flags = oflag;
+        bitmap_set_bit(bitmap_mqds, mqdes);
+        bitmap_set_bit(task->bitmap_mqds, mqdes);
+        mqd_table[mqdes].mq = mq;
+        mqd_table[mqdes].attr = *attr;
+        mqd_table[mqdes].attr.mq_flags = oflag;
 
         /* return message queue descriptor */
-        SYSCALL_ARG(mqd_t, 0) = MQD_INIT(pid, mqd_idx);
+        SYSCALL_ARG(mqd_t, 0) = mqdes;
         return;
     }
 
@@ -1359,13 +1320,14 @@ void sys_mq_open(void)
     list_push(&mqueue_list, &new_mq->list);
 
     /* register new message queue descriptor */
-    bitmap_set_bit(bitmap_mq, mqd_idx);
-    mqd_table[mqd_idx].mq = new_mq;
-    mqd_table[mqd_idx].attr = *attr;
-    mqd_table[mqd_idx].attr.mq_flags = oflag;
+    bitmap_set_bit(bitmap_mqds, mqdes);
+    bitmap_set_bit(task->bitmap_mqds, mqdes);
+    mqd_table[mqdes].mq = new_mq;
+    mqd_table[mqdes].attr = *attr;
+    mqd_table[mqdes].attr.mq_flags = oflag;
 
     /* return message queue descriptor */
-    SYSCALL_ARG(mqd_t, 0) = MQD_INIT(pid, mqd_idx);
+    SYSCALL_ARG(mqd_t, 0) = mqdes;
 }
 
 void sys_mq_close(void)
@@ -1373,25 +1335,17 @@ void sys_mq_close(void)
     /* read syscall arguments */
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
 
-    /* unpack the mqd_t object */
-    int mqd_idx = MQD_INDEX(mqdes);
-    uint8_t mqd_owner = MQD_OWNER(mqdes);
-
-    /* check the owner of the message queue descriptor */
-    if(mqd_owner != running_thread->task->pid) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
-
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+    struct task_struct *task = running_thread->task;
+    if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
+       !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* free the message queue descriptor */
-    bitmap_clear_bit(bitmap_mq, mqd_idx);
+    bitmap_clear_bit(bitmap_mqds, mqdes);
+    bitmap_clear_bit(task->bitmap_mqds, mqdes);
 
     /* return on success */
     SYSCALL_ARG(long, 0) = 0;
@@ -1427,36 +1381,27 @@ void sys_mq_receive(void)
     char *msg_ptr = SYSCALL_ARG(char *, 1);
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
-    /* unpack the mqd_t object */
-    int mqd_idx = MQD_INDEX(mqdes);
-    uint8_t mqd_owner = MQD_OWNER(mqdes);
-
-    /* check the owner of the message queue descriptor */
-    if(mqd_owner != running_thread->task->pid) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
-
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+    struct task_struct *task = running_thread->task;
+    if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
+       !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
         return;
     }
 
     /* obtain message queue */
-    struct mqueue *mq = mqd_table[mqd_idx].mq;
+    struct mqueue *mq = mqd_table[mqdes].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mqd_table[mqd_idx].attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* read message */
     ssize_t retval = __mq_receive(pipe, msg_ptr, msg_len,
-                                  &mqd_table[mqd_idx].attr);
+                                  &mqd_table[mqdes].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1476,36 +1421,27 @@ void sys_mq_send(void)
     char *msg_ptr = SYSCALL_ARG(char *, 1);
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
-    /* unpack the mqd_t object */
-    int mqd_idx = MQD_INDEX(mqdes);
-    uint8_t mqd_owner = MQD_OWNER(mqdes);
-
-    /* check the owner of the message queue descriptor */
-    if(mqd_owner != running_thread->task->pid) {
-        /* return on error */
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
-
     /* check if the message queue descriptor is invalid */
-    if(!bitmap_get_bit(bitmap_mq, mqd_idx)) {
+    struct task_struct *task = running_thread->task;
+    if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
+       !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(int, 0) = -EBADF;
         return;
     }
 
     /* obtain message queue */
-    struct mqueue *mq = mqd_table[mqd_idx].mq;
+    struct mqueue *mq = mqd_table[mqdes].mq;
     pipe_t *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
-    if(msg_len > mqd_table[mqd_idx].attr.mq_msgsize) {
+    if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         SYSCALL_ARG(int, 0) = -EMSGSIZE;
         return;
     }
 
     /* send message */
     ssize_t retval = __mq_send(pipe, msg_ptr, msg_len,
-                               &mqd_table[mqd_idx].attr);
+                               &mqd_table[mqdes].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -2585,7 +2521,7 @@ void sched_start(void)
     os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
 
     /* initialize the memory pool */
-    memory_pool_init(&mem_pool, mem_pool_buf, MEM_POOL_SIZE);
+    memory_pool_init(&kmpool, kmpool_buf, MEM_POOL_SIZE);
 
     /* list initializations */
     list_init(&tasks_list);

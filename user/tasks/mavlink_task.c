@@ -28,7 +28,7 @@ void mavlink_out_task(void)
 
     setprogname("mavlink out");
 
-    int fd = open("/dev/serial1", 0);
+    int fd = open("/dev/serial1", O_RDWR);
 
     mavlink_message_t recvd_msg;
 
@@ -49,7 +49,7 @@ void mavlink_in_task(void)
 {
     setprogname("mavlink in");
 
-    int fd = open("/dev/serial1", 0);
+    int fd = open("/dev/serial1", O_RDWR);
 
     uint8_t c;
     mavlink_status_t status;

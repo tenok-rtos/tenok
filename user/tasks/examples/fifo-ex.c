@@ -19,7 +19,7 @@ void fifo_task1(void)
 
     mkfifo("/fifo_test", 0);
 
-    int fifo_fd = open("/fifo_test", 0);
+    int fifo_fd = open("/fifo_test", O_RDWR);
 
     while(1) {
         write(fifo_fd, TEST_STR, LEN);
@@ -32,7 +32,7 @@ void fifo_task2(void)
     setprogname("fifo2");
 
     int fifo_fd = open("/fifo_test", 0);
-    int serial_fd = open("/dev/serial0", 0);
+    int serial_fd = open("/dev/serial0", O_RDWR);
 
     while(1) {
         char data[50] = {0};

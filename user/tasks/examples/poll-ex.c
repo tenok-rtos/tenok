@@ -9,14 +9,14 @@
 #include <kernel/task.h>
 #include <kernel/kernel.h>
 
-char buffer[100];
+static char buffer[100];
 
 void poll_task1(void)
 {
     setprogname("poll1");
 
     mkfifo("/poll_test", 0);
-    int fifo_fd = open("/poll_test", 0);
+    int fifo_fd = open("/poll_test", O_RDWR);
 
     char *s = "poll example.\n\r";
 
@@ -30,7 +30,7 @@ void poll_task2(void)
 {
     setprogname("poll2");
 
-    int serial_fd = open("/dev/serial0", 0);
+    int serial_fd = open("/dev/serial0", O_RDWR);
     int fifo_fd = open("/poll_test", O_NONBLOCK);
 
     struct pollfd fds[1];
