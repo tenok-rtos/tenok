@@ -96,7 +96,7 @@ void romfs_init(void)
     inode_root->i_size   = 0;
     inode_root->i_blocks = 0;
     inode_root->i_data   = (uint32_t)NULL;
-    list_init(&inode_root->i_dentry);
+    INIT_LIST_HEAD(&inode_root->i_dentry);
 
     romfs_sb.s_inode_cnt = 1;
     romfs_sb.s_blk_cnt   = 0;
@@ -196,7 +196,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
             new_inode->i_data   = (uint32_t)NULL; //empty directory
-            list_init(&new_inode->i_dentry);
+            INIT_LIST_HEAD(&new_inode->i_dentry);
 
             break;
         }
@@ -207,7 +207,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
     romfs_sb.s_inode_cnt++; //update inode number for the next file
 
     /* currently no files is under the directory */
-    if(list_is_empty(&inode_dir->i_dentry) == true)
+    if(list_empty(&inode_dir->i_dentry) == true)
         inode_dir->i_data = (uint32_t)new_dentry; //add the first dentry
 
     /* insert the new file under the current directory */

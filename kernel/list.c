@@ -2,7 +2,7 @@
 
 #include "list.h"
 
-void list_init(struct list_head *list)
+void INIT_LIST_HEAD(struct list_head *list)
 {
     if(list != NULL) {
         list->prev = list;
@@ -10,16 +10,16 @@ void list_init(struct list_head *list)
     }
 }
 
-int list_is_empty(struct list_head *list)
+int list_empty(struct list_head *head)
 {
-    return list->next == list;
+    return head->next == head;
 }
 
-void list_remove(struct list_head *list)
+void list_del(struct list_head *entry)
 {
-    if(list != NULL) {
-        list->next->prev = list->prev;
-        list->prev->next = list->next;
+    if(entry != NULL) {
+        entry->next->prev = entry->prev;
+        entry->prev->next = entry->next;
     }
 }
 
@@ -51,6 +51,6 @@ struct list_head *list_pop(struct list_head *list)
 
 void list_move(struct list_head *list, struct list_head *new_head)
 {
-    list_remove(list);
+    list_del(list);
     list_push(new_head, list);
 }

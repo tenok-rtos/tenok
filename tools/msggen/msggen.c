@@ -336,7 +336,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     int var_cnt = 0;
 
     struct list_head msg_var_list;
-    list_init(&msg_var_list);
+    INIT_LIST_HEAD(&msg_var_list);
 
     bool error = false;
     int type_len = 0;
@@ -416,7 +416,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             fclose(output_c_header);
             fclose(output_yaml);
 
-            while(!list_is_empty(&msg_var_list)) {
+            while(!list_empty(&msg_var_list)) {
                 struct list_head *curr = list_pop(&msg_var_list);
                 struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 
@@ -587,7 +587,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     fclose(output_c_header);
     fclose(output_yaml);
 
-    while(!list_is_empty(&msg_var_list)) {
+    while(!list_empty(&msg_var_list)) {
         struct list_head *curr = list_pop(&msg_var_list);
         struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
 

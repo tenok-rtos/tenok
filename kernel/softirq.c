@@ -41,7 +41,7 @@ void softirqd(void)
     setprogname("softirqd");
 
     while(1) {
-        if(list_is_empty(&tasklet_list)) {
+        if(list_empty(&tasklet_list)) {
             pause();
         } else {
             /* pick up the tasklet */
@@ -58,7 +58,7 @@ void softirqd(void)
 
 void softirq_init(void)
 {
-    list_init(&tasklet_list);
+    INIT_LIST_HEAD(&tasklet_list);
 
     /* create softirq daemon for handling tasklets  */
     kthread_create(softirqd, KERNEL_INT_PRI, 1024);

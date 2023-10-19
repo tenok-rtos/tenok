@@ -11,7 +11,6 @@
 #include "uart.h"
 #include "shell.h"
 #include "kconfig.h"
-#include "stm32f4xx.h"
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);
@@ -88,7 +87,7 @@ void shell_init(struct shell *shell,
     shell->autocompl = autocompl;
     shell->autocompl_curr = 0;
     shell->autocompl_cnt = 0;
-    list_init(&shell->history_head);
+    INIT_LIST_HEAD(&shell->history_head);
 
     int i;
     for(i = 0; i < cmd_cnt; i++) {
@@ -115,7 +114,7 @@ void shell_init_minimal(struct shell *shell)
     shell->autocompl = NULL;
     shell->autocompl_curr = 0;
     shell->autocompl_cnt = 0;
-    list_init(&shell->history_head);
+    INIT_LIST_HEAD(&shell->history_head);
 }
 
 void shell_set_prompt(struct shell *shell, char *new_prompt)
@@ -404,7 +403,7 @@ static void shell_up_arrow_handler(struct shell *shell)
     }
 
     /* ignore the key pressing if the hisotry list is empty */
-    if(list_is_empty(&shell->history_head) == true)
+    if(list_empty(&shell->history_head) == true)
         return;
 
     if(shell->show_history == false) {

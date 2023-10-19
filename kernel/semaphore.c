@@ -10,7 +10,7 @@
 void sema_init(struct semaphore *sem, int val)
 {
     sem->count = val;
-    list_init(&sem->wait_list);
+    INIT_LIST_HEAD(&sem->wait_list);
 }
 
 int down(struct semaphore *sem)
@@ -52,7 +52,7 @@ int up(struct semaphore *sem)
         sem->count++;
 
         /* wake up a thread from the waiting list */
-        if(sem->count > 0 && !list_is_empty(&sem->wait_list)) {
+        if(sem->count > 0 && !list_empty(&sem->wait_list)) {
             wake_up(&sem->wait_list);
         }
 

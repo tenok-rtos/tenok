@@ -126,7 +126,7 @@ void rootfs_init(void)
     inode_root->i_size   = 0;
     inode_root->i_blocks = 0;
     inode_root->i_data   = (uint32_t)NULL;
-    list_init(&inode_root->i_dentry);
+    INIT_LIST_HEAD(&inode_root->i_dentry);
 
     /* create new file for the rootfs */
     struct file *rootfs_file = kmalloc(sizeof(struct file));
@@ -408,7 +408,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_size   = 0;
             new_inode->i_blocks = 0;
             new_inode->i_data   = (uint32_t)NULL; //new directory without any files
-            list_init(&new_inode->i_dentry);
+            INIT_LIST_HEAD(&new_inode->i_dentry);
 
             break;
         default:
@@ -424,7 +424,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     file_cnt++; //update the file count for generating new file descriptor number
 
     /* currently no files is under the directory */
-    if(list_is_empty(&inode_dir->i_dentry) == true)
+    if(list_empty(&inode_dir->i_dentry) == true)
         inode_dir->i_data = (uint32_t)new_dentry; //add the first dentry
 
     /* insert the new file under the current directory */
@@ -469,7 +469,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
     new_inode->i_blocks = mnt_inode->i_blocks;
     new_inode->i_data   = mnt_inode->i_data;
     new_inode->i_sync   = false; //the content will be synchronized only when the file is opened
-    list_init(&new_inode->i_dentry);
+    INIT_LIST_HEAD(&new_inode->i_dentry);
 
     /* update inode number for the next file */
     mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
@@ -875,7 +875,7 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         inode = &inodes[inode->i_parent];
 
         /* no file is under this directory */
-        if(list_is_empty(&inode->i_dentry) == true)
+        if(list_empty(&inode->i_dentry) == true)
             break;
 
         struct list_head *list_curr;

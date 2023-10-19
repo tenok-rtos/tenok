@@ -29,9 +29,9 @@ struct list_head {
     struct list_head *next, *prev;
 };
 
-void list_init(struct list_head *list);
-int list_is_empty(struct list_head *list);
-void list_remove(struct list_head *list);
+void INIT_LIST_HEAD(struct list_head *list);
+int list_empty(struct list_head *head);
+void list_del(struct list_head *entry);
 void list_push(struct list_head *list, struct list_head *new);
 struct list_head *list_pop(struct list_head *list);
 void list_move(struct list_head *list, struct list_head *new_head);

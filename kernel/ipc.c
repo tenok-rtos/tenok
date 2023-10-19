@@ -20,8 +20,8 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
     pipe_t *pipe = kmalloc(sizeof(pipe_t));
     pipe->fifo = kfifo_alloc(nmem, size);
-    list_init(&pipe->r_wait_list);
-    list_init(&pipe->w_wait_list);
+    INIT_LIST_HEAD(&pipe->r_wait_list);
+    INIT_LIST_HEAD(&pipe->w_wait_list);
     return pipe;
 }
 

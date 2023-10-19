@@ -8,7 +8,7 @@
 void mutex_init(struct mutex *mtx)
 {
     mtx->owner = NULL;
-    list_init(&mtx->wait_list);
+    INIT_LIST_HEAD(&mtx->wait_list);
 }
 
 bool mutex_is_locked(struct mutex *mtx)

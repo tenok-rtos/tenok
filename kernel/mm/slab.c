@@ -10,6 +10,7 @@
 #define OBJS_PER_SLAB(objsize) \
     ((CACHE_PAGE_SIZE - sizeof(struct slab) / objsize))
 
+/* cache of caches */
 static struct kmem_cache cache_caches = {
     .objsize = sizeof(struct kmem_cache),
     .objnum = OBJS_PER_SLAB(sizeof(struct kmem_cache)),
@@ -22,7 +23,8 @@ static struct kmem_cache cache_caches = {
     .opts = CACHE_OPT_NONE
 };
 
-static LIST_HEAD(caches); //list of the caches
+/* caches list */
+static LIST_HEAD(caches);
 
 static inline struct slab *get_slab_from_obj(void *obj, size_t page_size)
 {
@@ -64,9 +66,9 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
     cache->objnum = OBJS_PER_SLAB(size);
     cache->opts = CACHE_OPT_NONE;
     strncpy(cache->name, name, CACHE_NAME_LEN);
-    list_init(&cache->slabs_free);
-    list_init(&cache->slabs_partial);
-    list_init(&cache->slabs_full);
+    INIT_LIST_HEAD(&cache->slabs_free);
+    INIT_LIST_HEAD(&cache->slabs_partial);
+    INIT_LIST_HEAD(&cache->slabs_full);
     list_push(&cache->list, &caches);
 
     return cache;
@@ -97,9 +99,9 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
     void *mem;
 
     /* check if the partial list contains space for new slab */
-    if(list_is_empty(&cache->slabs_partial)) {
+    if(list_empty(&cache->slabs_partial)) {
         /* no, check if the free list contains space for new slab */
-        if(list_is_empty(&cache->slabs_free)) {
+        if(list_empty(&cache->slabs_free)) {
             /* no, grow the cache by allocating new page */
             cache->alloc_fail++;
             slab = kmem_cache_grow(cache);
@@ -145,7 +147,7 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
 static int slab_destroy(struct kmem_cache *cache, struct slab *slab)
 {
     /* remove the slab from its current list and free the page */
-    list_remove(&slab->list);
+    list_del(&slab->list);
     free_pages((unsigned long) slab, 0);
 
     return 0;

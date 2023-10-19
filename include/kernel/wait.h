@@ -8,7 +8,7 @@
 
 #include <kernel/list.h>
 
-#define init_waitqueue_head(wq) list_init(wq)
+#define init_waitqueue_head(wq) INIT_LIST_HEAD(wq)
 
 #define init_wait(wait) \
         do { \

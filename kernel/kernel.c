@@ -43,14 +43,14 @@
 #include "kconfig.h"
 
 /* global lists */
-struct list_head tasks_list;        /* list for recording all tasks in the system */
-struct list_head threads_list;      /* list for recording all threads in the system */
-struct list_head sleep_list;        /* list of all threads in the sleeping state */
-struct list_head suspend_list;      /* list of all thread currently suspended */
-struct list_head timers_list;       /* list of all timers in the system */
-struct list_head signal_wait_list;  /* list of all threads waiting for signals */
-struct list_head poll_timeout_list; /* list for tracking threads that setup timeout for poll() */
-struct list_head mqueue_list;       /* list of all posix message queues in the system */
+LIST_HEAD(tasks_list);        /* list for recording all tasks in the system */
+LIST_HEAD(threads_list);      /* list for recording all threads in the system */
+LIST_HEAD(sleep_list);        /* list of all threads in the sleeping state */
+LIST_HEAD(suspend_list);      /* list of all thread currently suspended */
+LIST_HEAD(timers_list);       /* list of all timers in the system */
+LIST_HEAD(signal_wait_list);  /* list of all threads waiting for signals */
+LIST_HEAD(poll_timeout_list); /* list for tracking threads that setup timeout for poll() */
+LIST_HEAD(mqueue_list);       /* list of all posix message queues in the system */
 struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
 
 /* tasks and threads */
@@ -213,10 +213,10 @@ static int thread_create(struct thread_info **new_thread,
     }
 
     /* initialize the list for poll syscall */
-    list_init(&thread->poll_files_list);
+    INIT_LIST_HEAD(&thread->poll_files_list);
 
     /* initialize the thread join list */
-    list_init(&thread->join_list);
+    INIT_LIST_HEAD(&thread->join_list);
 
     /* record the new thread in the global list */
     list_push(&threads_list, &thread->thread_list);
@@ -258,7 +258,7 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     memset(task, 0, sizeof(struct task_struct));
     task->pid = pid;
     task->main_thread = thread;
-    list_init(&task->threads_list);
+    INIT_LIST_HEAD(&task->threads_list);
     list_push(&task->threads_list, &thread->task_list);
     list_push(&tasks_list, &task->list);
 
@@ -279,7 +279,7 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 
 static void task_delete(struct task_struct *task)
 {
-    list_remove(&task->list);
+    list_del(&task->list);
     bitmap_clear_bit(bitmap_tasks, task->pid);
 
     for(int i = 0; i < BITMAP_SIZE(FILE_DESC_CNT_MAX); i++) {
@@ -325,9 +325,9 @@ static void thread_resume(struct thread_info *thread)
 static void thread_delete(struct thread_info *thread)
 {
     /* remove the thread from the system */
-    list_remove(&thread->task_list);
-    list_remove(&thread->thread_list);
-    list_remove(&thread->list);
+    list_del(&thread->task_list);
+    list_del(&thread->thread_list);
+    list_del(&thread->list);
     thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, thread->tid);
 
@@ -336,7 +336,7 @@ static void thread_delete(struct thread_info *thread)
 
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = thread->task;
-    if(list_is_empty(&task->threads_list)) {
+    if(list_empty(&task->threads_list)) {
         /* remove the task from the system */
         task_delete(task);
     }
@@ -352,7 +352,7 @@ void prepare_to_wait(struct list_head *wait_list, struct list_head *wait, int st
 
 void wake_up(struct list_head *wait_list)
 {
-    if(list_is_empty(wait_list))
+    if(list_empty(wait_list))
         return;
 
     struct thread_info *highest_pri_thread =
@@ -421,14 +421,14 @@ static inline void thread_join_handler(void)
 
     /* remove the task from the system if it contains no thread anymore */
     struct task_struct *task = running_thread->task;
-    if(list_is_empty(&task->threads_list)) {
+    if(list_empty(&task->threads_list)) {
         /* remove the task from the system */
         task_delete(task);
     }
 
     /* remove the thread from the system */
-    list_remove(&running_thread->thread_list);
-    list_remove(&running_thread->task_list);
+    list_del(&running_thread->thread_list);
+    list_del(&running_thread->task_list);
     running_thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, running_thread->tid);
 
@@ -521,9 +521,9 @@ void sys_exit(void)
         struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
 
         /* remove thread from the system */
-        list_remove(&thread->thread_list);
-        list_remove(&thread->task_list);
-        list_remove(&thread->list);
+        list_del(&thread->thread_list);
+        list_del(&thread->task_list);
+        list_del(&thread->list);
         thread->status = THREAD_TERMINATED;
         bitmap_clear_bit(bitmap_threads, thread->tid);
 
@@ -1089,7 +1089,7 @@ void sys_poll(void)
 
         /* initialization */
         init_waitqueue_head(&running_thread->poll_wq);
-        list_init(&running_thread->poll_files_list);
+        INIT_LIST_HEAD(&running_thread->poll_files_list);
         running_thread->poll_failed = false;
 
         /* check file events */
@@ -1145,13 +1145,13 @@ void sys_poll(void)
         reset_syscall_pending(running_thread);
 
         /* clear poll files' list head */
-        list_init(&running_thread->poll_files_list);
+        INIT_LIST_HEAD(&running_thread->poll_files_list);
 
         /* remove the thread from the poll list */
         struct list_head *curr, *next;
         list_for_each_safe(curr, next, &poll_timeout_list) {
             if(curr == &running_thread->poll_list) {
-                list_remove(curr);
+                list_del(curr);
                 break;
             }
         }
@@ -1363,7 +1363,7 @@ void sys_mq_unlink(void)
     /* check if the message queue exists */
     if(mq) {
         /* remove message queue from the system */
-        list_remove(&mq->list);
+        list_del(&mq->list);
         kfree(mq);
 
         /* return on success */
@@ -2119,7 +2119,7 @@ void sys_timer_create(void)
     /* timer list initialization */
     if(running_thread->timer_cnt == 0) {
         /* initialize the timer list head */
-        list_init(&running_thread->timers_list);
+        INIT_LIST_HEAD(&running_thread->timers_list);
     }
 
     /* put the new timer into the list */
@@ -2153,8 +2153,8 @@ void sys_timer_delete(void)
         if(timer->id == timerid) {
             /* remove the timer from the lists and
              * free the memory */
-            list_remove(&timer->g_list);
-            list_remove(&timer->list);
+            list_del(&timer->g_list);
+            list_del(&timer->list);
             kfree(timer);
 
             /* return on success */
@@ -2463,7 +2463,7 @@ static void schedule(void)
     /* find a ready list that contains runnable tasks */
     int pri;
     for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
-        if(list_is_empty(&ready_list[pri]) == false)
+        if(list_empty(&ready_list[pri]) == false)
             break;
     }
 
@@ -2523,17 +2523,9 @@ void sched_start(void)
     /* initialize the memory pool */
     memory_pool_init(&kmpool, kmpool_buf, MEM_POOL_SIZE);
 
-    /* list initializations */
-    list_init(&tasks_list);
-    list_init(&threads_list);
-    list_init(&sleep_list);
-    list_init(&suspend_list);
-    list_init(&timers_list);
-    list_init(&signal_wait_list);
-    list_init(&poll_timeout_list);
-    list_init(&mqueue_list);
+    /* initialize the ready lists */
     for(int i = 0; i <= TASK_MAX_PRIORITY; i++) {
-        list_init(&ready_list[i]);
+        INIT_LIST_HEAD(&ready_list[i]);
     }
 
     rootfs_init();
@@ -2547,7 +2539,7 @@ void sched_start(void)
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
     threads[0].status = THREAD_RUNNING;
-    list_remove(&threads[0].list); //remove from the sleep list
+    list_del(&threads[0].list); //remove from the sleep list
 
     while(1) {
         if(check_systick_event()) {

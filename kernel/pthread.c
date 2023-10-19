@@ -163,7 +163,7 @@ NACKED int pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr)
 {
-    list_init(&cond->task_wait_list);
+    INIT_LIST_HEAD(&cond->task_wait_list);
 
     return 0;
 }
