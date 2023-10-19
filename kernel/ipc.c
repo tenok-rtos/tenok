@@ -20,14 +20,13 @@ pipe_t *pipe_create_generic(size_t nmem, size_t size)
 {
     pipe_t *pipe = kmalloc(sizeof(pipe_t));
     pipe->fifo = kfifo_alloc(nmem, size);
-    pipe->flags = 0;
     list_init(&pipe->r_wait_list);
     list_init(&pipe->w_wait_list);
     return pipe;
 }
 
-ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len,
-                        const struct mq_attr *attr)
+ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len,
+                     const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
     struct kfifo *fifo = pipe->fifo;
@@ -42,7 +41,7 @@ ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len,
 
     /* no message available in the fifo? */
     if(kfifo_len(fifo) <= 0) {
-        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+        if(attr->mq_flags & O_NONBLOCK) { /* non-block mode */
             /* return immediately */
             return -EAGAIN;
         } else { /* block mode */
@@ -63,8 +62,8 @@ ssize_t mq_receive_base(pipe_t *pipe, char *buf, size_t msg_len,
     return read_size;
 }
 
-ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len,
-                     const struct mq_attr *attr)
+ssize_t __mq_send(pipe_t *pipe, const char *buf, size_t msg_len,
+                  const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -81,7 +80,7 @@ ssize_t mq_send_base(pipe_t *pipe, const char *buf, size_t msg_len,
 
     /* fifo has no free space to write? */
     if(kfifo_avail(fifo) <= 0) {
-        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+        if(attr->mq_flags & O_NONBLOCK) { /* non-block mode */
             /* return immediately */
             return -EAGAIN;
         } else { /* block mode */
@@ -122,16 +121,17 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     }
 }
 
-ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
+ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
+    pipe_t *pipe = container_of(filp, pipe_t, file);
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_len = kfifo_len(fifo);
 
     /* check if the request size is larger than the fifo can serve */
     if(size > fifo_len) {
-        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+        if(filp->f_flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_len > 0) {
                 /* overwrite the read size */
                 size = fifo_len;
@@ -161,16 +161,17 @@ ssize_t fifo_read_base(pipe_t *pipe, char *buf, size_t size)
     return size;
 }
 
-ssize_t fifo_write_base(pipe_t *pipe, const char *buf, size_t size)
+ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
+    pipe_t *pipe = container_of(filp, pipe_t, file);
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_avail = kfifo_avail(fifo);
 
     /* check if the fifo has enough space to write or not */
     if(size > fifo_avail) {
-        if(pipe->flags & O_NONBLOCK) { /* non-block mode */
+        if(filp->f_flags & O_NONBLOCK) { /* non-block mode */
             if(fifo_avail > 0) {
                 /* overwrite the write size */
                 size = fifo_avail;
@@ -230,12 +231,10 @@ int fifo_init(int fd, struct file **files, struct inode *file_inode)
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    pipe_t *pipe = container_of(filp, pipe_t, file);
-    pipe->flags = filp->f_flags;
-
-    ssize_t retval = fifo_read_base(pipe, buf, size);
+    ssize_t retval = __fifo_read(filp, buf, size);
 
     /* update file event */
+    pipe_t *pipe = container_of(filp, pipe_t, file);
     if(kfifo_len(pipe->fifo) > 0) {
         filp->f_events |= POLLOUT;
         poll_notify(filp);
@@ -248,12 +247,10 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
-    pipe_t *pipe = container_of(filp, pipe_t, file);
-    pipe->flags = filp->f_flags;
-
-    ssize_t retval = fifo_write_base(pipe, buf, size);
+    ssize_t retval = __fifo_write(filp, buf, size);
 
     /* update file event */
+    pipe_t *pipe = container_of(filp, pipe_t, file);
     if(kfifo_avail(pipe->fifo) > 0) {
         filp->f_events |= POLLIN;
         poll_notify(filp);

@@ -1316,7 +1316,6 @@ void sys_mq_open(void)
     }
 
     /* set up the new message queue */
-    pipe->flags = attr->mq_flags;
     new_mq->pipe = pipe;
     strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
     list_push(&mqueue_list, &new_mq->list);
@@ -1418,8 +1417,8 @@ void sys_mq_receive(void)
     }
 
     /* read message */
-    ssize_t retval = mq_receive_base(pipe, msg_ptr, msg_len,
-                                     &mqd_table[mqd_idx].attr);
+    ssize_t retval = __mq_receive(pipe, msg_ptr, msg_len,
+                                  &mqd_table[mqd_idx].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1467,8 +1466,8 @@ void sys_mq_send(void)
     }
 
     /* send message */
-    ssize_t retval = mq_send_base(pipe, msg_ptr, msg_len,
-                                  &mqd_table[mqd_idx].attr);
+    ssize_t retval = __mq_send(pipe, msg_ptr, msg_len,
+                               &mqd_table[mqd_idx].attr);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {

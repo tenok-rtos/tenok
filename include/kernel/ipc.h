@@ -11,7 +11,6 @@
 
 typedef struct pipe_t {
     struct kfifo *fifo;
-    int flags;
     struct file file;
     struct list_head r_wait_list;
     struct list_head w_wait_list;
