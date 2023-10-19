@@ -89,11 +89,6 @@ struct stack_fpu {
 
 struct task_struct {
     int pid;
-
-    /* file descriptors table */
-    struct fdtable fdtable[FILE_DESC_CNT_MAX];
-    uint32_t fd_bitmap[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
-
     struct thread_info *main_thread;
 
     struct list_head threads_list; /* all threads held by the task */
