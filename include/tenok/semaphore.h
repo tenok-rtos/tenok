@@ -20,6 +20,13 @@ typedef struct semaphore sem_t;
 int sem_init(sem_t *sem, int pshared, unsigned int value);
 
 /**
+ * @brief  Destroy the given semaphore object
+ * @param  sem: The semaphore object to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int sem_destroy(sem_t *sem);
+
+/**
  * @brief  Increments (unlocks) the semaphore pointed to by sem
  * @param  sem: The semaphore object to provide.
  * @retval int: 0 on sucess and nonzero error number on error.

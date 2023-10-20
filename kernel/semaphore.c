@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <string.h>
 #include <semaphore.h>
 
 #include <arch/port.h>
@@ -62,7 +63,19 @@ int up(struct semaphore *sem)
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
 {
+    if(!sem)
+        return -ENOMEM;
+
     sema_init(sem, value);
+    return 0;
+}
+
+int sem_destroy(sem_t *sem)
+{
+    if(!sem)
+        return -ENOMEM;
+
+    memset(sem, 0, sizeof(sem_t));
     return 0;
 }
 
