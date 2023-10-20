@@ -16,8 +16,6 @@ typedef struct pipe_t {
     struct list_head w_wait_list;
 } pipe_t;
 
-pipe_t *pipe_create_generic(size_t nmem, size_t size);
-
 int fifo_init(int fd, struct file **files, struct inode *file_inode);
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);

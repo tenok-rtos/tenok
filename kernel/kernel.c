@@ -1379,7 +1379,7 @@ void sys_mq_open(void)
     }
 
     /* allocate new message queue */
-    pipe_t *pipe = pipe_create_generic(attr->mq_msgsize, attr->mq_maxmsg);
+    pipe_t *pipe = __mq_open(attr);
     struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
 
     /* memory allocation failure */

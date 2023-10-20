@@ -16,6 +16,7 @@ struct mq_desc {
     struct mq_attr attr;
 };
 
+pipe_t *__mq_open(struct mq_attr *attr);
 ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len, const struct mq_attr *attr);
 ssize_t __mq_send(pipe_t *pipe, const char *buf, size_t msg_len, const struct mq_attr *attr);
 

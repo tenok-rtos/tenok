@@ -4,12 +4,32 @@
 #include <mqueue.h>
 
 #include <arch/port.h>
+#include <mm/mm.h>
 #include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
 #include <kernel/syscall.h>
 #include <kernel/errno.h>
+
+pipe_t *__mq_open(struct mq_attr *attr)
+{
+    /* initialize the pipe */
+    pipe_t *pipe = kmalloc(sizeof(pipe_t));
+    struct kfifo *pipe_fifo =
+        kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
+
+    /* failed to allocate the pipe */
+    if(pipe == NULL || pipe_fifo == NULL)
+        return NULL;
+
+    /* initialize the pipe object */
+    pipe->fifo = pipe_fifo;
+    INIT_LIST_HEAD(&pipe->r_wait_list);
+    INIT_LIST_HEAD(&pipe->w_wait_list);
+
+    return pipe;
+}
 
 ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len,
                      const struct mq_attr *attr)

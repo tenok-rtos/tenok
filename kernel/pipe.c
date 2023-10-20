@@ -23,19 +23,20 @@ static struct file_operations fifo_ops = {
     .open = fifo_open
 };
 
-pipe_t *pipe_create_generic(size_t nmem, size_t size)
-{
-    pipe_t *pipe = kmalloc(sizeof(pipe_t));
-    pipe->fifo = kfifo_alloc(nmem, size);
-    INIT_LIST_HEAD(&pipe->r_wait_list);
-    INIT_LIST_HEAD(&pipe->w_wait_list);
-    return pipe;
-}
-
 int fifo_init(int fd, struct file **files, struct inode *file_inode)
 {
     /* initialize the pipe */
-    pipe_t *pipe = pipe_create_generic(sizeof(uint8_t), PIPE_DEPTH);
+    pipe_t *pipe = kmalloc(sizeof(pipe_t));
+    struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_DEPTH);
+
+    /* failed to allocate the pipe */
+    if(pipe == NULL || pipe_fifo == NULL)
+        return -ENOMEM;
+
+    /* initialize the pipe object */
+    pipe->fifo = pipe_fifo;
+    INIT_LIST_HEAD(&pipe->r_wait_list);
+    INIT_LIST_HEAD(&pipe->w_wait_list);
 
     /* register fifo to the file table */
     pipe->file.f_op = &fifo_ops;
