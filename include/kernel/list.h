@@ -12,6 +12,12 @@
 #define list_first_entry(ptr, type, member) \
         list_entry((ptr)->next, type, member)
 
+#define list_last_entry(ptr, type, member) \
+        list_entry((ptr)->prev, type, member)
+
+#define list_entry_is_head(pos, head, member) \
+        (&pos->member == (head))
+
 #define list_for_each(curr, head) \
 	for ((curr) = (head)->next; (curr) != (head); (curr) = (curr)->next)
 
@@ -31,7 +37,9 @@ struct list_head {
 
 void INIT_LIST_HEAD(struct list_head *list);
 int list_empty(struct list_head *head);
+int list_is_last(const struct list_head *list, const struct list_head *head);
 void list_del(struct list_head *entry);
+void list_del_init(struct list_head *entry);
 void list_push(struct list_head *list, struct list_head *new);
 void list_move(struct list_head *list, struct list_head *new_head);
 
