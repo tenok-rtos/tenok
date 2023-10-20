@@ -2574,9 +2574,9 @@ static void schedule(void)
     }
 
     /* select a task from the ready list */
-    struct list_head *new_thread_l = list_pop(&ready_list[pri]);
-    running_thread = list_entry(new_thread_l, struct thread_info, list);
+    running_thread = list_first_entry(&ready_list[pri], struct thread_info, list);
     running_thread->status = THREAD_RUNNING;
+    list_del(&running_thread->list);
 }
 
 static void print_platform_info(void)

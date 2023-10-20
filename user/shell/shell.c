@@ -216,8 +216,9 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
         strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
         list_push(&shell->history_head, history_list);
     } else {
-        /* history list is full, pop the oldest record */
-        history_list = list_pop(&shell->history_head);
+        /* history list is full, remove the oldest record */
+        history_list = shell->history_head.next;
+        list_del(history_list);
 
         /* push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);

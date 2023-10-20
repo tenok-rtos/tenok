@@ -416,9 +416,10 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             fclose(output_c_header);
             fclose(output_yaml);
 
-            while(!list_empty(&msg_var_list)) {
-                struct list_head *curr = list_pop(&msg_var_list);
-                struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+            struct list_head *curr, *next;
+            list_for_each_safe(curr, next, &msg_var_list) {
+                struct msg_var_entry *msg_var = list_first_entry(curr, struct msg_var_entry, list);
+                list_del(curr);
 
                 free(msg_var->c_type);
                 free(msg_var->var_name);
@@ -587,9 +588,10 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     fclose(output_c_header);
     fclose(output_yaml);
 
-    while(!list_empty(&msg_var_list)) {
-        struct list_head *curr = list_pop(&msg_var_list);
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, &msg_var_list) {
         struct msg_var_entry *msg_var = list_entry(curr, struct msg_var_entry, list);
+        list_del(curr);
 
         free(msg_var->c_type);
         free(msg_var->var_name);

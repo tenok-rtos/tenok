@@ -34,21 +34,6 @@ void list_push(struct list_head *list, struct list_head *new)
     }
 }
 
-struct list_head *list_pop(struct list_head *list)
-{
-    //the second position of the list stores the first item
-    struct list_head *first = list->next;
-
-    if(list == first) {
-        return NULL;
-    }
-
-    list->next = first->next;
-    list->next->prev = list;
-
-    return first;
-}
-
 void list_move(struct list_head *list, struct list_head *new_head)
 {
     list_del(list);

@@ -40,17 +40,19 @@ void softirqd(void)
 {
     setprogname("softirqd");
 
+    struct tasklet_struct *t;
+
     while(1) {
         if(list_empty(&tasklet_list)) {
             pause();
         } else {
             /* pick up the tasklet */
             preempt_disable();
-            struct list_head *l = list_pop(&tasklet_list);
+            t = list_first_entry(&tasklet_list, struct tasklet_struct, list);
+            list_del(&t->list);
             preempt_enable();
 
             /* execute the tasklet */
-            struct tasklet_struct *t = list_entry(l, struct tasklet_struct, list);
             t->func(t->data);
         }
     }
