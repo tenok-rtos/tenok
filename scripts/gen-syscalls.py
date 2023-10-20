@@ -55,6 +55,7 @@ syscalls = \
  'sigaction',
  'sigwait',
  'kill',
+ 'raise',
  'clock_gettime',
  'clock_settime',
  'timer_create',

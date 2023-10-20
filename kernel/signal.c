@@ -121,6 +121,11 @@ NACKED int _kill(pid_t pid, int sig)
     SYSCALL(KILL);
 }
 
+NACKED int raise(int sig)
+{
+    SYSCALL(RAISE);
+}
+
 int kill(pid_t pid, int sig)
 {
     return _kill(pid, sig);

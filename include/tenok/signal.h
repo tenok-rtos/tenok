@@ -123,9 +123,17 @@ int pause(void);
 /**
  * @brief  Send a signal sig to the task specified with pid
  * @param  pid: The task ID to provide.
- * @param  signum: The signal number to provide.
+ * @param  sig: The signal number to provide.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int kill(pid_t pid, int sig);
+
+/**
+ * @brief  Send a signal to the calling task
+ * @param  pid: The task ID to provide.
+ * @param  sig: The signal number to provide.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int raise(int sig);
 
 #endif

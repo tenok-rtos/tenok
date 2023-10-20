@@ -2119,6 +2119,37 @@ void sys_kill(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_raise(void)
+{
+    /* read syscall arguments */
+    int sig = SYSCALL_ARG(int, 0);
+
+    struct task_struct *task = running_thread->task;
+
+    /* failed to find the task with the pid */
+    if(!task) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ESRCH;
+        return;
+    }
+
+    /* check if the signal number is defined */
+    if(!is_signal_defined(sig)) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
+    }
+
+    struct list_head *curr, *next;
+    list_for_each_safe(curr, next, &task->threads_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, task_list);
+        handle_signal(thread, sig);
+    }
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
+}
+
 void sys_clock_gettime(void)
 {
     /* read syscall arguments */
