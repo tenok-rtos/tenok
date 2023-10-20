@@ -21,8 +21,8 @@
 #define PTHREAD_CREATE_JOINABLE 1
 
 typedef uint32_t pthread_t;
-typedef void pthread_mutex_attr_t;   /* no usage */
-typedef uint32_t pthread_condattr_t; /* no usage */
+typedef uint32_t pthread_mutexattr_t;
+typedef uint32_t pthread_condattr_t;
 typedef struct mutex pthread_mutex_t;
 
 typedef struct {
@@ -48,6 +48,13 @@ typedef struct {
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_init(pthread_attr_t *attr);
+
+/**
+ * @brief  Destroy the given thread attribute object
+ * @param  attr: The thread attribute object to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_attr_destroy(pthread_attr_t *attr);
 
 /**
  * @brief  Set scheduling parameter of a thread attriute object
@@ -222,12 +229,34 @@ int pthread_kill(pthread_t thread, int sig);
 void pthread_exit(void *retval);
 
 /**
+ * @brief  Initialize the given mutex attribute object with default values
+ * @param  attr: The mutex attribute object to initialize.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_mutexattr_init(pthread_mutexattr_t *attr);
+
+/**
+ * @brief  Destroy the given mutex attribute object
+ * @param  attr: The mutex attribute object to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
+
+
+/**
  * @brief  Initialize a mutex with specified attributes
  * @param  mutex: The mutex object to be initialized.
  * @param  attr: The attribute object for initializing the mutex.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutex_attr_t *attr);
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr);
+
+/**
+ * @brief  Destroy the given mutex object
+ * @param  mutex: The mutex object to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
 
 /**
  * @brief  Unlock the given mutex
@@ -253,12 +282,34 @@ int pthread_mutex_lock(pthread_mutex_t *mutex);
 int pthread_mutex_trylock(pthread_mutex_t *mutex);
 
 /**
+ * @brief  Initialize the given attribute object of conditional variable with default
+ *         values
+ * @param  attr: The attribute object of conditional variable to initialize.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_condattr_init(pthread_condattr_t *attr);
+
+/**
+ * @brief  Destroy the given attribute object of conditional variable
+ * @param  attr: The attribute object of conditional variable to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_condattr_destroy(pthread_condattr_t *attr);
+
+/**
  * @brief  Initializes a conditional variable with specified attributes
  * @param  cond: The conditional variable object to be initialized.
  * @param  cond_attr: The attribute object for initializing the conditional variable.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
+
+/**
+ * @brief  Destroy the given conditional variable object
+ * @param  cond: The conditional variable object to destroy.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int pthread_cond_destroy(pthread_cond_t *cond);
 
 /**
  * @brief  Restart one of the threads that are waiting on the condition variable
