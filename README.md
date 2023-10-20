@@ -1,6 +1,6 @@
 # Tenok
 
-[Tenok](https://github.com/shengwen-tw/tenok) is an experimental real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
+[Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
 
@@ -17,16 +17,17 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 * Event waiting of file descriptors with `poll()`
 * Floating-point Unit (FPU) support
 * Built-in Shell
-* Simple rootfs and romfs
+* rootfs and romfs
 * Real-time plotting and customizable debug messaging using metalanguage
 * Integration with MAVLink communication protocol
 * Software-in-the-loop (SIL) simulation with Gazebo simulator
 
 ## Tools
 
-* **msggen**: convert user-defined metalanguage messages into C codes and YAML files
+* **mkromfs**: Import files into firmware binary with tenok's romfs format
+* **msggen**: Convert user-defined metalanguage messages into C codes and YAML files
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
-* **gazebo_bridge**: Message forwarding between `tenok` (serial) and Gazebo simulator (TCP/IP)
+* **gazebo_bridge**: Message forwarding between tenok (serial) and Gazebo simulator (TCP/IP)
 
 ## Getting Started
 
