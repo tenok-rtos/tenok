@@ -33,6 +33,23 @@ int usleep(useconds_t usec);
 int close(int fd);
 
 /**
+ * @brief  Create a copy of the file descriptor oldfd, using the lowest-numbered
+ *         unused file descriptor for the new descriptor
+ * @param  oldfd: The file descriptor to duplicate.
+ * @retval int: New file descriptor on sucess and nonzero error number on error.
+ */
+int dup(int oldfd);
+
+/**
+ * @brief  Perform the same task as dup(), but use the file descriptor number
+ *         specified by newfd.
+ * @param  oldfd: The file descriptor to duplicate.
+ * @param  newfd: The number to specify the new file descriptor.
+ * @retval int: New file descriptor on sucess and nonzero error number on error.
+ */
+int dup2(int oldfd, int newfd);
+
+/**
  * @brief  Attempt to read up to count bytes from file descriptor fd into
            the buffer starting at buf
  * @param  fd: The file descriptor to provide.

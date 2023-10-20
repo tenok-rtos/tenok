@@ -670,6 +670,81 @@ void sys_close(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+void sys_dup(void)
+{
+    /* read syscall arguments */
+    int oldfd = SYSCALL_ARG(int, 0);
+
+    if(oldfd < TASK_CNT_MAX) {
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
+    /* convert oldfd to the index numbers of the table */
+    int old_fdesc_idx = oldfd - TASK_CNT_MAX;
+
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
+
+    /* check if the file descriptor is invalid */
+    if(!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
+       !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx)) {
+        SYSCALL_ARG(ssize_t, 0) = -EBADF;
+        return;
+    }
+
+    /* find a free file descriptor entry on the table */
+    int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
+    if(fdesc_idx >= FILE_DESC_CNT_MAX) {
+        /* return on error */
+        SYSCALL_ARG(int, 0) = -ENOMEM;
+        return;
+    }
+    bitmap_set_bit(bitmap_fds, fdesc_idx);
+    bitmap_set_bit(task->bitmap_fds, fdesc_idx);
+
+    /* copy the old file descriptor content to the new one */
+    fdtable[fdesc_idx] = fdtable[old_fdesc_idx];
+
+    /* return new file descriptor */
+    int fd = fdesc_idx + TASK_CNT_MAX;
+    SYSCALL_ARG(int, 0) = fd;
+}
+
+void sys_dup2(void)
+{
+    /* read syscall arguments */
+    int oldfd = SYSCALL_ARG(int, 0);
+    int newfd = SYSCALL_ARG(int, 1);
+
+    /* convert fds to the index numbers of the table */
+    int old_fdesc_idx = oldfd - TASK_CNT_MAX;
+    int new_fdesc_idx = newfd - TASK_CNT_MAX;
+
+    if(oldfd < TASK_CNT_MAX || newfd < TASK_CNT_MAX) {
+        SYSCALL_ARG(int, 0) = -EBADF;
+        return;
+    }
+
+    /* acquire the running task */
+    struct task_struct *task = running_thread->task;
+
+    /* check if the file descriptors are invalid */
+    if(!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
+       !bitmap_get_bit(bitmap_fds, new_fdesc_idx) ||
+       !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx) ||
+       !bitmap_get_bit(task->bitmap_fds, new_fdesc_idx)) {
+        SYSCALL_ARG(ssize_t, 0) = -EBADF;
+        return;
+    }
+
+    /* copy the old file descriptor content to the new one */
+    fdtable[new_fdesc_idx] = fdtable[old_fdesc_idx];
+
+    /* return new file descriptor */
+    SYSCALL_ARG(int, 0) = newfd;
+}
+
 void sys_read(void)
 {
     /* read syscall argument */

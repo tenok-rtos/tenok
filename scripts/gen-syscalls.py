@@ -11,6 +11,8 @@ syscalls = \
  'mount',
  'open',
  'close',
+ 'dup',
+ 'dup2',
  'read',
  'write',
  'ioctl',

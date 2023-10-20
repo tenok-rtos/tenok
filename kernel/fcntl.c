@@ -25,6 +25,16 @@ int close(int fd)
     return _close(fd);
 }
 
+NACKED int dup(int oldfd)
+{
+    SYSCALL(DUP);
+}
+
+NACKED int dup2(int oldfd, int newfd)
+{
+    SYSCALL(DUP2);
+}
+
 NACKED ssize_t _read(int fd, void *buf, size_t count)
 {
     SYSCALL(READ);
