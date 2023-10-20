@@ -69,7 +69,7 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
     INIT_LIST_HEAD(&cache->slabs_free);
     INIT_LIST_HEAD(&cache->slabs_partial);
     INIT_LIST_HEAD(&cache->slabs_full);
-    list_push(&cache->list, &caches);
+    list_add(&caches, &cache->list);
 
     return cache;
 }
@@ -87,7 +87,7 @@ static struct slab *kmem_cache_grow(struct kmem_cache *cache)
     /* initialize the new slab */
     slab->free_bitmap[0] = 0;
     slab->free_objects = cache->objnum;
-    list_push(&cache->slabs_free, &slab->list);
+    list_add(&slab->list, &cache->slabs_free);
 
     /* return the address of new slab */
     return slab;
@@ -181,7 +181,7 @@ void kmem_cache_free(struct kmem_cache *cache, void *obj)
 void kmem_cache_init(void)
 {
     /* add the cache-cache into the cache list */
-    list_push(&caches, &cache_caches.list);
+    list_add(&cache_caches.list, &caches);
 
     /* allocate space for the cache-cache */
     kmem_cache_grow(&cache_caches);

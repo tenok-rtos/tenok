@@ -214,7 +214,7 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
         /* push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
         strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
-        list_push(&shell->history_head, history_list);
+        list_add(history_list, &shell->history_head);
     } else {
         /* history list is full, remove the oldest record */
         history_list = shell->history_head.next;
@@ -223,7 +223,7 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
         /* push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
         strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
-        list_push(&shell->history_head, history_list);
+        list_add(history_list, &shell->history_head);
     }
 
     /* initialize the history pointer */

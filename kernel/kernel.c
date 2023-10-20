@@ -219,10 +219,10 @@ static int thread_create(struct thread_info **new_thread,
     INIT_LIST_HEAD(&thread->join_list);
 
     /* record the new thread in the global list */
-    list_push(&threads_list, &thread->thread_list);
+    list_add(&thread->thread_list, &threads_list);
 
     /* put the new thread in the sleep list */
-    list_push(&sleep_list, &thread->list);
+    list_add(&thread->list, &sleep_list);
 
     /* return address to the new thread */
     *new_thread = thread;
@@ -259,8 +259,8 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     task->pid = pid;
     task->main_thread = thread;
     INIT_LIST_HEAD(&task->threads_list);
-    list_push(&task->threads_list, &thread->task_list);
-    list_push(&tasks_list, &task->list);
+    list_add(&thread->task_list, &task->threads_list);
+    list_add(&task->list, &tasks_list);
 
     /* initialize anonymous pipe of the task */
     fifo_init(pid, (struct file **)&files, NULL);
@@ -344,7 +344,7 @@ static void thread_delete(struct thread_info *thread)
 
 void prepare_to_wait(struct list_head *wait_list, struct list_head *wait, int state)
 {
-    list_push(wait_list, wait);
+    list_add(wait, wait_list);
 
     struct thread_info *thread = list_entry(wait, struct thread_info, list);
     thread->status = state;
@@ -487,7 +487,7 @@ void sys_delay_ticks(void)
 
     /* put the thread into the sleep list and change the status */
     running_thread->status = THREAD_WAIT;
-    list_push(&sleep_list, &(running_thread->list));
+    list_add(&(running_thread->list), &sleep_list);
 
     /* pass the return value with r0 */
     SYSCALL_ARG(int, 0) = 0;
@@ -1205,7 +1205,7 @@ void sys_poll(void)
 
         /* put the thread into the poll list for monitoring timeout */
         if(timeout > 0) {
-            list_push(&poll_timeout_list, &running_thread->poll_list);
+            list_add(&running_thread->poll_list, &poll_timeout_list);
         }
 
         /* save all pollfd into the list */
@@ -1213,7 +1213,7 @@ void sys_poll(void)
             int fd = fds[i].fd - TASK_CNT_MAX;
             filp = fdtable[fd].file;
 
-            list_push(&running_thread->poll_files_list, &filp->list);
+            list_add(&filp->list, &running_thread->poll_files_list);
         }
     } else {
         /* turn off the syscall pending flag */
@@ -1392,7 +1392,7 @@ void sys_mq_open(void)
     /* set up the new message queue */
     new_mq->pipe = pipe;
     strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
-    list_push(&mqueue_list, &new_mq->list);
+    list_add(&new_mq->list, &mqueue_list);
 
     /* register new message queue descriptor */
     bitmap_set_bit(bitmap_mqds, mqdes);
@@ -1561,7 +1561,7 @@ void sys_pthread_create(void)
 
     /* set the task ownership of the thread */
     thread->task = running_thread->task;
-    list_push(&running_thread->task->threads_list, &thread->task_list);
+    list_add(&thread->task_list, &running_thread->task->threads_list);
 
     /* return the thread id */
     *pthread = thread->tid;
@@ -1602,7 +1602,7 @@ void sys_pthread_join(void)
         }
     }
 
-    list_push(&thread->join_list, &running_thread->list);
+    list_add(&running_thread->list, &thread->join_list);
     running_thread->status = THREAD_WAIT;
 
     /* return on success after the thread is waken */
@@ -2229,8 +2229,8 @@ void sys_timer_create(void)
     }
 
     /* put the new timer into the list */
-    list_push(&timers_list, &new_tm->g_list);
-    list_push(&running_thread->timers_list, &new_tm->list);
+    list_add(&new_tm->g_list, &timers_list);
+    list_add(&new_tm->list, &running_thread->timers_list);
 
     /* return timer id */
     *timerid = running_thread->timer_cnt;

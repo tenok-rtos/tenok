@@ -448,7 +448,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         new_var->description = calloc(sizeof(char), desc_len + 1);
         strncpy(new_var->description, tokens[2], desc_len);
 
-        list_push(&msg_var_list, &new_var->list);
+        list_add(&new_var->list, &msg_var_list);
 
         var_cnt++;
 

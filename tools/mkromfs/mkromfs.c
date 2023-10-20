@@ -211,7 +211,7 @@ struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int file_typ
         inode_dir->i_data = (uint32_t)new_dentry; //add the first dentry
 
     /* insert the new file under the current directory */
-    list_push(&inode_dir->i_dentry, &new_dentry->d_list);
+    list_add(&new_dentry->d_list, &inode_dir->i_dentry);
 
     /* update size and block information of the inode */
     inode_dir->i_size += sizeof(struct dentry);
