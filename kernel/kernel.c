@@ -118,12 +118,12 @@ static inline void reset_syscall_pending(struct thread_info *thread)
     thread->syscall_pending = false;
 }
 
-struct task_struct *current_task_info(void)
+inline struct task_struct *current_task_info(void)
 {
     return running_thread->task;
 }
 
-struct thread_info *current_thread_info(void)
+inline struct thread_info *current_thread_info(void)
 {
     return running_thread;
 }
@@ -336,7 +336,7 @@ static void thread_delete(struct thread_info *thread)
     free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
 
     /* remove the task from the system if it contains no thread anymore */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(list_empty(&task->threads_list))
         task_delete(task);
 }
@@ -385,15 +385,15 @@ void wake_up_all(struct list_head *wait_list)
     }
 }
 
-void finish_wait(struct list_head *thread_list)
+void finish_wait(struct list_head *wait)
 {
-    struct thread_info *thread = list_entry(thread_list, struct thread_info, list);
+    struct thread_info *thread = list_entry(wait, struct thread_info, list);
 
     if(thread == running_thread)
         return;
 
     thread->status = THREAD_READY;
-    list_move(thread_list, &ready_list[thread->priority]);
+    list_move(wait, &ready_list[thread->priority]);
 }
 
 static inline void signal_cleanup_handler(void)
@@ -419,7 +419,7 @@ static inline void thread_join_handler(void)
     }
 
     /* remove the task from the system if it contains no thread anymore */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(list_empty(&task->threads_list)) {
         /* remove the task from the system */
         task_delete(task);
@@ -512,7 +512,7 @@ void sys_sched_yield(void)
 void sys_exit(void)
 {
     /* obtain the task of the running thread */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* remove all threads of the task from the system */
     struct list_head *curr, *next;
@@ -570,7 +570,7 @@ void sys_open(void)
     int flags = SYSCALL_ARG(int, 1);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* acquire the thread id */
     int tid = running_thread->tid;
@@ -643,7 +643,7 @@ void sys_close(void)
     int fd = SYSCALL_ARG(int, 0);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* a valid file descriptor number should starts from TASK_CNT_MAX */
     if(fd < TASK_CNT_MAX) {
@@ -683,7 +683,7 @@ void sys_dup(void)
     int old_fdesc_idx = oldfd - TASK_CNT_MAX;
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* check if the file descriptor is invalid */
     if(!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
@@ -726,7 +726,7 @@ void sys_dup2(void)
     }
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* check if the file descriptors are invalid */
     if(!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
@@ -752,7 +752,7 @@ void sys_read(void)
     size_t count = SYSCALL_ARG(size_t, 2);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* get the file pointer */
     struct file *filp;
@@ -804,7 +804,7 @@ void sys_write(void)
     size_t count = SYSCALL_ARG(size_t, 2);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* get the file pointer */
     struct file *filp;
@@ -856,7 +856,7 @@ void sys_ioctl(void)
     unsigned long arg = SYSCALL_ARG(unsigned long, 2);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* get the file pointer */
     struct file *filp;
@@ -907,7 +907,7 @@ void sys_lseek(void)
     int whence = SYSCALL_ARG(int, 2);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* get the file pointer */
     struct file *filp;
@@ -957,7 +957,7 @@ void sys_fstat(void)
     struct stat *statbuf = SYSCALL_ARG(struct stat *, 1);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     if(fd < TASK_CNT_MAX) {
         SYSCALL_ARG(int, 0) = -EBADF;
@@ -1044,7 +1044,8 @@ void sys_readdir(void)
 void sys_getpid(void)
 {
     /* return the task pid */
-    SYSCALL_ARG(int, 0) = running_thread->task->pid;
+    struct task_struct *task = current_task_info();
+    SYSCALL_ARG(int, 0) = task->pid;
 }
 
 void sys_gettid(void)
@@ -1247,7 +1248,7 @@ void sys_mq_getattr(void)
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
 
     /* check if the message queue descriptor is invalid */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
        !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
@@ -1271,7 +1272,7 @@ void sys_mq_setattr(void)
     struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
     struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
 
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
        !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
@@ -1328,7 +1329,7 @@ void sys_mq_open(void)
     struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
 
     /* acquire the running task */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
@@ -1410,7 +1411,7 @@ void sys_mq_close(void)
     mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
 
     /* check if the message queue descriptor is invalid */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
        !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
@@ -1456,7 +1457,7 @@ void sys_mq_receive(void)
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
     /* check if the message queue descriptor is invalid */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
        !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(long, 0) = -EBADF;
@@ -1496,7 +1497,7 @@ void sys_mq_send(void)
     size_t msg_len = SYSCALL_ARG(size_t, 2);
 
     /* check if the message queue descriptor is invalid */
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
     if(!bitmap_get_bit(bitmap_mqds, mqdes) ||
        !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         SYSCALL_ARG(int, 0) = -EBADF;
@@ -1559,7 +1560,7 @@ void sys_pthread_create(void)
     strcpy(thread->name, running_thread->name);
 
     /* set the task ownership of the thread */
-    thread->task = running_thread->task;
+    thread->task = current_task_info();
     list_add(&thread->task_list, &running_thread->task->threads_list);
 
     /* return the thread id */
@@ -2123,7 +2124,7 @@ void sys_raise(void)
     /* read syscall arguments */
     int sig = SYSCALL_ARG(int, 0);
 
-    struct task_struct *task = running_thread->task;
+    struct task_struct *task = current_task_info();
 
     /* failed to find the task with the pid */
     if(!task) {
@@ -2523,7 +2524,8 @@ static void syscall_handler(void)
 
 static void thread_return_event_handler(void)
 {
-    if(running_thread == running_thread->task->main_thread) {
+    struct task_struct *task = current_task_info();
+    if(running_thread == task->main_thread) {
         /* returned from the main thread, the whole task should
          * be terminated */
         sys_exit();
