@@ -9,12 +9,12 @@
 #include <fs/fs.h>
 #include <kernel/kfifo.h>
 
-typedef struct pipe_t {
+struct pipe {
     struct kfifo *fifo;
     struct file file;
     struct list_head r_wait_list;
     struct list_head w_wait_list;
-} pipe_t;
+};
 
 int fifo_init(int fd, struct file **files, struct inode *file_inode);
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);

@@ -7,7 +7,7 @@
 
 struct mqueue {
     char name[FILE_NAME_LEN_MAX];
-    pipe_t *pipe;
+    struct pipe *pipe;
     struct list_head list;
 };
 
@@ -16,8 +16,10 @@ struct mq_desc {
     struct mq_attr attr;
 };
 
-pipe_t *__mq_open(struct mq_attr *attr);
-ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len, const struct mq_attr *attr);
-ssize_t __mq_send(pipe_t *pipe, const char *buf, size_t msg_len, const struct mq_attr *attr);
+struct pipe *__mq_open(struct mq_attr *attr);
+ssize_t __mq_receive(struct pipe *pipe, char *buf, size_t msg_len,
+                     const struct mq_attr *attr);
+ssize_t __mq_send(struct pipe *pipe, const char *buf, size_t msg_len,
+                  const struct mq_attr *attr);
 
 #endif

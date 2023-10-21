@@ -1379,7 +1379,7 @@ void sys_mq_open(void)
     }
 
     /* allocate new message queue */
-    pipe_t *pipe = __mq_open(attr);
+    struct pipe *pipe = __mq_open(attr);
     struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
 
     /* memory allocation failure */
@@ -1466,7 +1466,7 @@ void sys_mq_receive(void)
 
     /* obtain message queue */
     struct mqueue *mq = mqd_table[mqdes].mq;
-    pipe_t *pipe = mq->pipe;
+    struct pipe *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
     if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {
@@ -1506,7 +1506,7 @@ void sys_mq_send(void)
 
     /* obtain message queue */
     struct mqueue *mq = mqd_table[mqdes].mq;
-    pipe_t *pipe = mq->pipe;
+    struct pipe *pipe = mq->pipe;
 
     /* check if msg_len exceeds maximum size */
     if(msg_len > mqd_table[mqdes].attr.mq_msgsize) {

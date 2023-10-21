@@ -12,10 +12,10 @@
 #include <kernel/syscall.h>
 #include <kernel/errno.h>
 
-pipe_t *__mq_open(struct mq_attr *attr)
+struct pipe *__mq_open(struct mq_attr *attr)
 {
     /* initialize the pipe */
-    pipe_t *pipe = kmalloc(sizeof(pipe_t));
+    struct pipe *pipe = kmalloc(sizeof(struct pipe));
     struct kfifo *pipe_fifo =
         kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
 
@@ -31,7 +31,7 @@ pipe_t *__mq_open(struct mq_attr *attr)
     return pipe;
 }
 
-ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len,
+ssize_t __mq_receive(struct pipe *pipe, char *buf, size_t msg_len,
                      const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
@@ -68,7 +68,7 @@ ssize_t __mq_receive(pipe_t *pipe, char *buf, size_t msg_len,
     return read_size;
 }
 
-ssize_t __mq_send(pipe_t *pipe, const char *buf, size_t msg_len,
+ssize_t __mq_send(struct pipe *pipe, const char *buf, size_t msg_len,
                   const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);

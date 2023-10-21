@@ -26,7 +26,7 @@ static struct file_operations fifo_ops = {
 int fifo_init(int fd, struct file **files, struct inode *file_inode)
 {
     /* initialize the pipe */
-    pipe_t *pipe = kmalloc(sizeof(pipe_t));
+    struct pipe *pipe = kmalloc(sizeof(struct pipe));
     struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_DEPTH);
 
     /* failed to allocate the pipe */
@@ -76,7 +76,7 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    pipe_t *pipe = container_of(filp, pipe_t, file);
+    struct pipe *pipe = container_of(filp, struct pipe, file);
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_len = kfifo_len(fifo);
 
@@ -116,7 +116,7 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    pipe_t *pipe = container_of(filp, pipe_t, file);
+    struct pipe *pipe = container_of(filp, struct pipe, file);
     struct kfifo *fifo = pipe->fifo;
     size_t fifo_avail = kfifo_avail(fifo);
 
@@ -157,7 +157,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
     ssize_t retval = __fifo_read(filp, buf, size);
 
     /* update file event */
-    pipe_t *pipe = container_of(filp, pipe_t, file);
+    struct pipe *pipe = container_of(filp, struct pipe, file);
     if(kfifo_len(pipe->fifo) > 0) {
         filp->f_events |= POLLOUT;
         poll_notify(filp);
@@ -173,7 +173,7 @@ ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset
     ssize_t retval = __fifo_write(filp, buf, size);
 
     /* update file event */
-    pipe_t *pipe = container_of(filp, pipe_t, file);
+    struct pipe *pipe = container_of(filp, struct pipe, file);
     if(kfifo_avail(pipe->fifo) > 0) {
         filp->f_events |= POLLIN;
         poll_notify(filp);
