@@ -327,7 +327,8 @@ static void thread_delete(struct thread_info *thread)
     /* remove the thread from the system */
     list_del(&thread->task_list);
     list_del(&thread->thread_list);
-    list_del(&thread->list);
+    if(thread != running_thread)
+        list_del(&thread->list);
     thread->status = THREAD_TERMINATED;
     bitmap_clear_bit(bitmap_threads, thread->tid);
 
@@ -335,11 +336,9 @@ static void thread_delete(struct thread_info *thread)
     free_pages((uint32_t)thread->stack, size_to_page_order(thread->stack_size));
 
     /* remove the task from the system if it contains no thread anymore */
-    struct task_struct *task = thread->task;
-    if(list_empty(&task->threads_list)) {
-        /* remove the task from the system */
+    struct task_struct *task = running_thread->task;
+    if(list_empty(&task->threads_list))
         task_delete(task);
-    }
 }
 
 void prepare_to_wait(struct list_head *wait_list, struct list_head *wait, int state)
