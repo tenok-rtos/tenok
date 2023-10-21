@@ -24,10 +24,10 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 
 ## Tools
 
-* **mkromfs**: Import files into firmware binary with tenok's romfs format
+* **mkromfs**: Import files into firmware binary with `Tenok`'s romfs format
 * **msggen**: Convert user-defined metalanguage messages into C codes and YAML files
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
-* **gazebo_bridge**: Message forwarding between tenok (serial) and Gazebo simulator (TCP/IP)
+* **gazebo_bridge**: Message forwarding between `Tenok` (serial) and Gazebo simulator (TCP/IP)
 
 ## Getting Started
 
