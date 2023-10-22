@@ -39,6 +39,13 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size);
 struct kfifo *kfifo_alloc(size_t nmem, size_t size);
 
 /**
+ * @brief  Free the fifo 
+ * @param  fifo: The fifo object to provide.
+ * @retval None
+ */
+void kfifo_free(struct kfifo *fifo);
+
+/**
  * @brief  Put data into the fifo
  * @param  fifo: The fifo object to provide.
  * @param  data: The data to put into the fifo.

@@ -50,6 +50,12 @@ struct kfifo *kfifo_alloc(size_t esize, size_t size)
     return fifo;
 }
 
+void kfifo_free(struct kfifo *fifo)
+{
+    kfree(fifo->data);
+    kfree(fifo);
+}
+
 static int kfifo_increase(struct kfifo *fifo, int ptr)
 {
     ptr++;
