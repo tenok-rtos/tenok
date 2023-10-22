@@ -110,6 +110,56 @@ void kfifo_out(struct kfifo *fifo, void *buf, size_t n)
     fifo->count--;
 }
 
+void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr)
+{
+    if(kfifo_is_full(fifo)) {
+        /* fifo is full, return the address of the oldest data to overwrite */
+        *data_ptr = (char *)((uintptr_t)fifo->data + fifo->header_size +
+                             fifo->start * fifo->payload_size);
+    } else {
+        /* return the next free space of the fifo */
+        *data_ptr = (char *)((uintptr_t)fifo->data + fifo->header_size +
+                             fifo->end * fifo->payload_size);
+    }
+}
+
+void kfifo_dma_in_finish(struct kfifo *fifo, size_t n)
+{
+    if(kfifo_is_full(fifo)) {
+        /* update the start pointer as the oldest data is overwritten */
+        fifo->start = kfifo_increase(fifo, fifo->start);
+    } else {
+        /* increase the element count in the fifo */
+        fifo->count++;
+    }
+
+    /* update the record size */
+    uint16_t *recsize = (uint16_t *)((uintptr_t)fifo->data +
+                                     fifo->start * fifo->payload_size);
+    *recsize= n;
+
+    /* update as the data is written via dma */
+    fifo->end = kfifo_increase(fifo, fifo->end);
+}
+
+void kfifo_dma_out_prepare(struct kfifo *fifo, char **data_ptr, size_t *n)
+{
+    char *data_start = (char *)((uintptr_t)fifo->data +
+                                fifo->start * fifo->payload_size);
+    uint16_t *recsize = (uint16_t *)recsize;
+
+    /* return the address and size of the next data to read */
+    *data_ptr = (char *)((uintptr_t)data_start + fifo->header_size);
+    *n = *recsize;
+}
+
+void kfifo_dma_out_finish(struct kfifo *fifo)
+{
+    /* update the information as the data is read via dma */
+    fifo->start = kfifo_increase(fifo, fifo->start);
+    fifo->count--;
+}
+
 void kfifo_peek(struct kfifo *fifo, void *data)
 {
     /* return if no data to read */
