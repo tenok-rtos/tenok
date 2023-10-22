@@ -9,12 +9,14 @@
 #include <kernel/mutex.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
+#include <kernel/softirq.h>
 #include <kernel/interrupt.h>
 
 #include "uart.h"
 #include "stm32f4xx.h"
 
 #define UART1_RX_BUF_SIZE 100
+#define UART1_TX_FIFO_SIZE 10
 
 static int uart1_dma_puts(const char *data, size_t size);
 
@@ -25,12 +27,17 @@ int serial0_open(struct inode *inode, struct file *file);
 void USART1_IRQHandler(void);
 void DMA2_Stream7_IRQHandler(void);
 
+void uart1_tx_tasklet_handler(unsigned long data);
+
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .tx_state = UART_INITIALIZING
+    .tx_state = UART_TX_IDLE
 };
+
+static struct kfifo *uart1_tx_fifo;
+static struct tasklet_struct uart1_tx_tasklet;
 
 static struct file_operations serial0_file_ops = {
     .read = serial0_read,
@@ -38,10 +45,17 @@ static struct file_operations serial0_file_ops = {
     .open = serial0_open
 };
 
-/* helper function for printk() */
-bool console_is_free(void)
+void tty_init(void)
 {
-    return uart1.tx_state == UART_TX_IDLE;
+    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX,
+                                UART1_TX_FIFO_SIZE);
+    tasklet_init(&uart1_tx_tasklet, uart1_tx_tasklet_handler, 0);
+
+#ifndef BUILD_QEMU
+    /* clean screen */
+    char *cls_str = "\x1b[H\x1b[2J";
+    console_write(cls_str, strlen(cls_str));
+#endif
 }
 
 void uart1_init(uint32_t baudrate)
@@ -118,7 +132,6 @@ void serial0_init(void)
 
     /* initialize uart1 */
     uart1_init(115200);
-    uart1.tx_state = UART_TX_IDLE;
 
     printk("chardev serial0: console");
 }
@@ -141,20 +154,20 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
     }
 }
 
-/* uart1 tx is shared by printk() and stdout (shell) */
 ssize_t console_write(const char *buf, size_t size)
 {
-    //TODO: support tx dma for printk
-    return uart_puts(USART1, buf, size);
+    /* TODO:
+     * place the thread into the waitqueue if kfifo has
+     * no free space
+     */
+    kfifo_in(uart1_tx_fifo, buf, size);
+    tasklet_schedule(&uart1_tx_tasklet);
+    return size;
 }
 
 ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t offset)
 {
-#if (ENABLE_UART1_DMA != 0)
-    return uart1_dma_puts(buf, size);
-#else
-    return uart_puts(USART1, buf, size);
-#endif
+    return console_write(buf, size);
 }
 
 static int uart1_dma_puts(const char *data, size_t size)
@@ -215,6 +228,18 @@ static int uart1_dma_puts(const char *data, size_t size)
         default: {
             return -EIO;
         }
+    }
+}
+
+void uart1_tx_tasklet_handler(unsigned long data)
+{
+    char *buf;
+    size_t size;
+
+    while(!kfifo_is_empty(uart1_tx_fifo)) {
+        kfifo_dma_out_prepare(uart1_tx_fifo, &buf, &size);
+        uart_puts(USART1, buf, size);
+        kfifo_dma_out_finish(uart1_tx_fifo);
     }
 }
 

@@ -23,6 +23,7 @@
 #include <mm/page.h>
 #include <mm/mpool.h>
 #include <arch/port.h>
+#include <kernel/tty.h>
 #include <kernel/list.h>
 #include <kernel/pipe.h>
 #include <kernel/time.h>
@@ -141,7 +142,7 @@ static struct task_struct *acquire_task(int pid)
     return NULL;
 }
 
-static struct thread_info *acquire_thread(int tid)
+struct thread_info *acquire_thread(int tid)
 {
     struct list_head *curr;
     list_for_each(curr, &threads_list) {
@@ -2591,9 +2592,13 @@ void first(void)
     setprogname("idle");
 
     /* platform initialization */
-    print_platform_info();
-    __platform_init();
-    rom_dev_init();
+    preempt_disable();
+    {
+        print_platform_info();
+        __platform_init();
+        rom_dev_init();
+    }
+    preempt_enable();
 
     /* mount rom file system */
     mount("/dev/rom", "/");
@@ -2635,8 +2640,8 @@ void sched_start(void)
         INIT_LIST_HEAD(&ready_list[i]);
     }
 
+    tty_init();
     rootfs_init();
-    printk_init();
 
     /* initialize kernel threads and deamons */
     kthread_create(first, 0, 512);
@@ -2664,8 +2669,6 @@ void sched_start(void)
             syscall_handler();
             schedule();
         }
-
-        printk_handler();
 
         /* jump to the selected thread */
         running_thread->stack_top =

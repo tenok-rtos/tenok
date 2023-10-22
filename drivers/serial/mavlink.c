@@ -25,7 +25,7 @@ uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .tx_state = UART_INITIALIZING
+    .tx_state = UART_TX_IDLE
 };
 
 static struct file_operations serial1_file_ops = {
@@ -87,7 +87,6 @@ void serial1_init(void)
 
     /* initialize uart3 */
     uart2_init(115200);
-    uart2.tx_state = UART_TX_IDLE;
 
     printk("chardev serial1: mavlink");
 }

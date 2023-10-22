@@ -24,17 +24,14 @@ uint32_t get_proc_mode(void)
 
 void preempt_disable(void)
 {
-    /* set base pri */
-    asm volatile ("mov r0,      %0\n"
-                  "msr basepri, r0\n"
-                  :: "i"(KERNEL_INT_PRI << 4));
+    asm volatile ("cpsid i \n"
+                  "cpsid f \n");
 }
 
 void preempt_enable(void)
 {
-    /* reset base pri */
-    asm volatile ("mov r0,      #0\n"
-                  "msr basepri, r0\n");
+    asm volatile ("cpsie i \n"
+                  "cpsie f \n");
 }
 
 void __stack_init(uint32_t **stack_top,

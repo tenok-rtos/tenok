@@ -7,24 +7,6 @@
 
 extern struct inode *shell_dir_curr;
 
-/* print a string by the same time replace \n with \n\r */
-static void shell_print_lf_cr(char *str, int size)
-{
-    int i;
-    for(i = 0; i < size; i++) {
-        /* end of the string */
-        if(str[i] == '\0')
-            return;
-
-        if(str[i] == '\n') {
-            shell_puts("\n\r");
-        } else {
-            char s[2] = {str[i], '\0'};
-            shell_puts(s);
-        }
-    }
-}
-
 void shell_cmd_cat(int argc, char *argv[])
 {
     char path[PATH_LEN_MAX] = {0};
@@ -67,7 +49,7 @@ void shell_cmd_cat(int argc, char *argv[])
         int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, &file);
         str[recvd] = '\0';
 
-        shell_print_lf_cr(str, recvd);
+        shell_puts(str);
     }
 
     fclose(&file);

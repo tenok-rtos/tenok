@@ -3,24 +3,13 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <kernel/tty.h>
 #include <kernel/time.h>
 #include <kernel/kfifo.h>
 #include <kernel/printk.h>
 
 #define PRINTK_BUF_LEN   100
 #define PRINTK_FIFO_SIZE 10
-
-bool console_is_free(void);
-ssize_t console_write(const char *buf, size_t size);
-
-struct printk_struct {
-    char buf[PRINTK_BUF_LEN];
-    size_t len;
-};
-
-static struct kfifo *printk_fifo;
-static struct printk_struct printk_buf;
-static int printk_state;
 
 void ltoa(char *buf, unsigned long i, int base)
 {
@@ -71,46 +60,12 @@ void printk(char *format,  ...)
         zeros[i] = '0';
     }
 
-    struct printk_struct printk_obj;
+    char buf[100] = {0};
 
-    int pos = sprintf(printk_obj.buf, "[%5s.%s%s] ", sec, zeros, rem);
-    pos += vsprintf(&printk_obj.buf[pos], format, args);
-    pos += sprintf(&printk_obj.buf[pos], "\n\r");
+    int pos = sprintf(buf, "[%5s.%s%s] ", sec, zeros, rem);
+    pos += vsprintf(&buf[pos], format, args);
+    pos += sprintf(&buf[pos], "\n\r");
     va_end(args);
 
-    printk_obj.len = strlen(printk_obj.buf);
-    kfifo_put(printk_fifo, &printk_obj);
-}
-
-void printk_init(void)
-{
-    printk_fifo = kfifo_alloc(sizeof(struct printk_struct),
-                              PRINTK_FIFO_SIZE);
-
-#ifndef BUILD_QEMU
-    /* clean screen */
-    struct printk_struct printk_obj;
-    strcpy(printk_obj.buf, "\x1b[H\x1b[2J");
-    printk_obj.len = strlen(printk_obj.buf);
-    kfifo_put(printk_fifo, &printk_obj);
-#endif
-}
-
-void printk_handler(void)
-{
-    switch(printk_state) {
-        case PRINTK_IDLE:
-            break;
-        case PRINTK_BUSY:
-            if(console_is_free())
-                printk_state = PRINTK_IDLE;
-            else
-                return;
-    }
-
-    if(!kfifo_is_empty(printk_fifo) && console_is_free()) {
-        kfifo_get(printk_fifo, &printk_buf);
-        console_write(printk_buf.buf, printk_buf.len);
-        printk_state = PRINTK_BUSY;
-    }
+    console_write(buf, strlen(buf));
 }

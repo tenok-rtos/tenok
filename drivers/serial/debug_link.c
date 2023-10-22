@@ -28,7 +28,7 @@ uart_dev_t uart3 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .tx_state = UART_INITIALIZING
+    .tx_state = UART_TX_IDLE
 };
 
 static struct file_operations serial2_file_ops = {
@@ -106,7 +106,6 @@ void serial2_init(void)
 
     /* initialize uart3 */
     uart3_init(115200);
-    uart3.tx_state = UART_TX_IDLE;
 
     printk("chardev serial2: debug-link");
 }
