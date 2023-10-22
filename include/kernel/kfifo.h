@@ -39,7 +39,7 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size);
 struct kfifo *kfifo_alloc(size_t nmem, size_t size);
 
 /**
- * @brief  Free the fifo 
+ * @brief  Free the fifo
  * @param  fifo: The fifo object to provide.
  * @retval None
  */
@@ -62,6 +62,15 @@ void kfifo_in(struct kfifo *fifo, const void *data, size_t n);
  * @retval None
  */
 void kfifo_out(struct kfifo *fifo, void *data, size_t n);
+
+/**
+ * @brief  Get some data from the fifo without removing
+ * @param  fifo: The fifo object to provide.
+ * @param  data: For returning the retrieved data.
+ * @param  n: Number of the data to get from the fifo.
+ * @retval None
+ */
+void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n);
 
 /**
  * @brief  Put data into the fifo

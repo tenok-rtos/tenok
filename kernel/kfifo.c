@@ -116,6 +116,27 @@ void kfifo_out(struct kfifo *fifo, void *buf, size_t n)
     fifo->count--;
 }
 
+void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n)
+{
+    /* return if no data to read */
+    if(fifo->count <= 0)
+        return;
+
+    /* calculate the start address of the next data */
+    char *data_start = (char *)((uintptr_t)fifo->data +
+                                fifo->start * fifo->payload_size);
+
+    /* copy the data from the fifo */
+    if(fifo->esize > 1) {
+        /* structured content mode */
+        char *src = (char*)((uintptr_t)data_start + sizeof(struct kfifo_hdr));
+        memcpy(data, src, n);
+    } else {
+        /* byte stream mode */
+        *(char *)data = *data_start;
+    }
+}
+
 void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr)
 {
     if(kfifo_is_full(fifo)) {
@@ -166,28 +187,6 @@ void kfifo_dma_out_finish(struct kfifo *fifo)
     fifo->count--;
 }
 
-void kfifo_peek(struct kfifo *fifo, void *data)
-{
-    /* return if no data to read */
-    if(fifo->count <= 0)
-        return;
-
-    /* calculate the start address of the next data */
-    char *data_start = (char *)((uintptr_t)fifo->data +
-                                fifo->start * fifo->payload_size);
-
-    /* copy the data from the fifo */
-    if(fifo->esize > 1) {
-        /* structured content mode */
-        uint16_t recsize = *(uint16_t *)data_start; /* read size */
-        char *src = (char*)((uintptr_t)data_start + sizeof(struct kfifo_hdr));
-        memcpy(data, src, recsize);
-    } else {
-        /* byte stream mode */
-        *(char *)data = *data_start;
-    }
-}
-
 size_t kfifo_peek_len(struct kfifo *fifo)
 {
     /* kfifo_peek_len() is not supported under the
@@ -209,6 +208,11 @@ void kfifo_put(struct kfifo *fifo, void *data)
 void kfifo_get(struct kfifo *fifo, void *data)
 {
     kfifo_out(fifo, data, fifo->esize);
+}
+
+void kfifo_peek(struct kfifo *fifo, void *data)
+{
+    kfifo_out_peek(fifo, data, fifo->esize);
 }
 
 void kfifo_skip(struct kfifo *fifo)
