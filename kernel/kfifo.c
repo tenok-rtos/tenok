@@ -173,7 +173,7 @@ void kfifo_dma_out_prepare(struct kfifo *fifo, char **data_ptr, size_t *n)
 {
     char *data_start = (char *)((uintptr_t)fifo->data +
                                 fifo->start * fifo->payload_size);
-    uint16_t *recsize = (uint16_t *)recsize;
+    uint16_t *recsize = (uint16_t *)data_start;
 
     /* return the address and size of the next data to read */
     *data_ptr = (char *)((uintptr_t)data_start + fifo->header_size);

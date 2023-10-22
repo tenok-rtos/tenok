@@ -72,6 +72,14 @@ void kfifo_out(struct kfifo *fifo, void *data, size_t n);
  */
 void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n);
 
+void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr);
+
+void kfifo_dma_in_finish(struct kfifo *fifo, size_t n);
+
+void kfifo_dma_out_prepare(struct kfifo *fifo, char **data_ptr, size_t *n);
+
+void kfifo_dma_out_finish(struct kfifo *fifo);
+
 /**
  * @brief  Put data into the fifo
  * @param  fifo: The fifo object to provide.
