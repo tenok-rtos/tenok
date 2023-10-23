@@ -40,7 +40,7 @@ void shell_cmd_file(int argc, char *argv[])
 
     /* open the file */
     int fd = open(path, 0);
-    if(fd == -1) {
+    if(fd < 0) {
         /* maybe it is a direcotry */
         DIR dir;
         if(opendir(path, &dir) == 0) {
