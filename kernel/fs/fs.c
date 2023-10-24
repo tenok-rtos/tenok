@@ -353,10 +353,14 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     /* file instantiation */
     int result = 0;
 
+    //TODO: handle malloc failure
     switch(file_type) {
-        case S_IFIFO:
+        case S_IFIFO: {
             /* create new named pipe */
-            result = fifo_init(fd, (struct file **)&files, new_inode);
+            struct pipe *pipe = kmalloc(sizeof(struct pipe));
+            struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_DEPTH);
+            pipe->fifo = pipe_fifo;
+            result = fifo_init(fd, (struct file **)&files, new_inode, pipe);
 
             new_inode->i_mode   = S_IFIFO;
             new_inode->i_size   = 0;
@@ -364,6 +368,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
             new_inode->i_data   = (uint32_t)NULL;
 
             break;
+        }
         case S_IFCHR: {
             /* create a new character device file */
             struct file *dev_file = kmalloc(sizeof(struct file));

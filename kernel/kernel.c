@@ -156,6 +156,27 @@ struct thread_info *acquire_thread(int tid)
     return NULL;
 }
 
+/**
+ * consume the stack memory from the thread and create an unique
+ * anonymous pipe for it.
+ */
+static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
+{
+    size_t pipe_size = align_up(sizeof(struct pipe), 4);
+    size_t kfifo_size = align_up(sizeof(struct kfifo), 4);
+    size_t buf_size = align_up(sizeof(char) * PIPE_DEPTH, 4);
+
+    struct pipe *pipe = (struct pipe *)((uintptr_t)stack_top - pipe_size);
+    struct kfifo *pipe_fifo = (struct kfifo *)((uintptr_t)pipe - kfifo_size);
+    char *buf = (char *)((uintptr_t)pipe_fifo - buf_size);
+
+    kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_DEPTH);
+    pipe->fifo = pipe_fifo;
+    fifo_init(tid, (struct file **)&files, NULL, pipe);
+
+    return (void *)buf;
+}
+
 static int thread_create(struct thread_info **new_thread,
                          thread_func_t thread_func,
                          struct thread_attr *attr,
@@ -193,6 +214,9 @@ static int thread_create(struct thread_info **new_thread,
     /* allocate stack for the new thread */
     thread->stack = alloc_pages(size_to_page_order(stack_size));
     thread->stack_top = (struct stack *)(thread->stack + (stack_size / 4) /* words */);
+
+    /* allocate anonymous pipe for the new thread */
+    thread->stack_top = thread_pipe_alloc(tid, thread->stack_top);
 
     /* initialize the thread stack */
     uint32_t args[4] = {0};
@@ -263,10 +287,6 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
     INIT_LIST_HEAD(&task->threads_list);
     list_add(&thread->task_list, &task->threads_list);
     list_add(&task->list, &tasks_list);
-
-    /* initialize anonymous pipe of the task */
-    fifo_init(pid, (struct file **)&files, NULL);
-    //TODO: release the pipe memory after the task is terminated
 
     /* set the task ownership of the thread */
     thread->task = task;
