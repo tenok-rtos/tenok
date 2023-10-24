@@ -7,15 +7,14 @@
 typedef void (*irq_handler_t)(void);
 
 /**
- * @brief  Disable interrupts with priority lower than KERNEL_INT_PRI. The function
-           is only valid if it is called by kernel space code or in kernel threads
+ * @brief  Disable all interrupts
  * @param  None
  * @retval None
  */
 void preempt_disable(void);
 
 /**
- * @brief  Eisable all interrupts. The function is only valid if it is called by kernel
+ * @brief  Ensable all interrupts. The function is only valid if it is called by kernel
            space code or in kernel threads
  * @param  None
  * @retval None

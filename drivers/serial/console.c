@@ -18,6 +18,8 @@
 #define UART1_RX_BUF_SIZE 100
 #define UART1_TX_FIFO_SIZE 10
 
+#define UART1_ISR_PRIORITY 14
+
 static int uart1_dma_puts(const char *data, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
@@ -96,7 +98,7 @@ void uart1_init(uint32_t baudrate)
     /* initialize interrupt of the uart1 */
     NVIC_InitTypeDef nvic = {
         .NVIC_IRQChannel = USART1_IRQn,
-        .NVIC_IRQChannelPreemptionPriority = KERNEL_INT_PRI + 1,
+        .NVIC_IRQChannelPreemptionPriority = UART1_ISR_PRIORITY,
         .NVIC_IRQChannelSubPriority = 0,
         .NVIC_IRQChannelCmd = ENABLE
     };

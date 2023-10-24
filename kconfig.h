@@ -9,9 +9,6 @@
 
 #define MEM_POOL_SIZE        20480
 
-#define KERNEL_INT_PRI       5    /* isr priority higher than this value *
-                                   * will not be disabled                */
-
 /* message queue */
 #define MQUEUE_CNT_MAX       50
 

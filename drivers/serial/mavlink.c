@@ -15,6 +15,8 @@
 
 #define UART2_RX_BUF_SIZE 100
 
+#define UART2_ISR_PRIORITY 14
+
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
 int serial1_open(struct inode *inode, struct file *file);
@@ -63,7 +65,7 @@ void uart2_init(uint32_t baudrate)
 
     NVIC_InitTypeDef NVIC_InitStruct = {
         .NVIC_IRQChannel = USART2_IRQn,
-        .NVIC_IRQChannelPreemptionPriority = KERNEL_INT_PRI + 1,
+        .NVIC_IRQChannelPreemptionPriority = UART2_ISR_PRIORITY,
         .NVIC_IRQChannelSubPriority = 0,
         .NVIC_IRQChannelCmd = ENABLE
     };
