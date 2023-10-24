@@ -33,8 +33,11 @@ void pthread_task(void)
     write(serial_fd, msg, strlen(msg));
 
     pthread_attr_t attr;
-    attr.schedparam.sched_priority = 3;
-    attr.stacksize = 1024;
+    struct sched_param param;
+    param.sched_priority = 3;
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setschedpolicy(&attr, SCHED_RR);
+    pthread_attr_setstacksize(&attr, 1024);
 
     pthread_t tid;
     pthread_create(&tid, &attr, my_thread, NULL);

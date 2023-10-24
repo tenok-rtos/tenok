@@ -121,7 +121,7 @@ struct thread_info {
     bool     joinable;
     void     *retval;
 
-    pthread_once_t *once_control;
+    struct thread_once *once_control;
 
     struct {
         size_t size;

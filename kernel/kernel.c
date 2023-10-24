@@ -36,6 +36,7 @@
 #include <kernel/bitops.h>
 #include <kernel/kernel.h>
 #include <kernel/signal.h>
+#include <kernel/thread.h>
 #include <kernel/mqueue.h>
 #include <kernel/syscall.h>
 #include <kernel/softirq.h>
@@ -157,7 +158,7 @@ struct thread_info *acquire_thread(int tid)
 
 static int thread_create(struct thread_info **new_thread,
                          thread_func_t thread_func,
-                         pthread_attr_t *attr,
+                         struct thread_attr *attr,
                          uint32_t privilege)
 {
     /* check if the detach state setting is invalid */
@@ -165,8 +166,8 @@ static int thread_create(struct thread_info **new_thread,
                              attr->detachstate != PTHREAD_CREATE_JOINABLE;
 
     /* check if the thread priority is invalid */
-    bool bad_priority = attr->detachstate != PTHREAD_CREATE_DETACHED &&
-                        attr->detachstate != PTHREAD_CREATE_JOINABLE;
+    bool bad_priority = attr->schedparam.sched_priority < 0 ||
+                        attr->schedparam.sched_priority > TASK_MAX_PRIORITY;
 
     /* check if the scheduling policy is invalid */
     bool bad_sched_policy = attr->schedpolicy != SCHED_RR;
@@ -234,7 +235,7 @@ static int thread_create(struct thread_info **new_thread,
 static int _task_create(thread_func_t task_func, uint8_t priority,
                         int stack_size, uint32_t privilege)
 {
-    pthread_attr_t attr = {
+    struct thread_attr attr = {
         .schedparam.sched_priority = priority,
         .stackaddr = NULL,
         .stacksize = stack_size,
@@ -1536,14 +1537,16 @@ void sys_pthread_create(void)
 
     /* read syscall arguments */
     pthread_t *pthread = SYSCALL_ARG(pthread_t *, 0);
-    pthread_attr_t *attr = SYSCALL_ARG(pthread_attr_t *, 1);
+    pthread_attr_t *_attr = SYSCALL_ARG(pthread_attr_t *, 1);
     start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
     //void *arg = XXX; //TODO: read stack to get the fourth argument
 
+    struct thread_attr *attr = (struct thread_attr *)_attr;
+
     /* use defualt attributes if user did not provide */
-    pthread_attr_t default_attr;
+    struct thread_attr default_attr;
     if(attr == NULL) {
-        pthread_attr_init(&default_attr);
+        pthread_attr_init((pthread_attr_t *)&default_attr);
         default_attr.schedparam.sched_priority = running_thread->priority;
         attr = &default_attr;
     }
@@ -1843,7 +1846,7 @@ void sys_pthread_mutex_unlock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    int retval = mutex_unlock(mutex);
+    int retval = mutex_unlock((struct mutex *)mutex);
     SYSCALL_ARG(int, 0) = retval;
 }
 
@@ -1852,7 +1855,7 @@ void sys_pthread_mutex_lock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    int retval = mutex_lock(mutex);
+    int retval = mutex_lock((struct mutex *)mutex);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1872,7 +1875,7 @@ void sys_pthread_mutex_trylock(void)
     /* read syscall arguments */
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    int retval = mutex_lock(mutex);
+    int retval = mutex_lock((struct mutex *)mutex);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -1890,7 +1893,7 @@ void sys_pthread_cond_signal(void)
     pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
 
     /* wake up a thread from the wait list */
-    wake_up(&cond->task_wait_list);
+    wake_up(&((struct cond *)cond)->task_wait_list);
 
     /* pthread_cond_signal never returns error code */
     SYSCALL_ARG(int, 0) = 0;
@@ -1902,7 +1905,7 @@ void sys_pthread_cond_broadcast(void)
     pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t*, 0);
 
     /* wake up all threads from the wait list */
-    wake_up_all(&cond->task_wait_list);
+    wake_up_all(&((struct cond *)cond)->task_wait_list);
 
     /* pthread_cond_signal never returns error code */
     SYSCALL_ARG(int, 0) = 0;
@@ -1914,12 +1917,13 @@ void sys_pthread_cond_wait(void)
     pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
     pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 1);
 
-    if(mutex->owner) {
+    if(((struct mutex *)mutex)->owner) {
         /* release the mutex */
-        mutex->owner = NULL;
+        ((struct mutex *)mutex)->owner = NULL;
 
         /* put the current thread into the read waiting list */
-        prepare_to_wait(&cond->task_wait_list, &running_thread->list, THREAD_WAIT);
+        prepare_to_wait(&((struct cond *)cond)->task_wait_list,
+                        &running_thread->list, THREAD_WAIT);
     }
 
     /* pthread_cond_wait never returns error code */
@@ -1932,7 +1936,7 @@ static void pthread_once_cleanup_handler(void)
     running_thread->stack_top = (struct stack *)running_thread->stack_top_preserved;
 
     /* wakeup all waiting threads and mark once variable as complete */
-    pthread_once_t *once_control = running_thread->once_control;
+    struct thread_once *once_control = running_thread->once_control;
     once_control->finished = true;
     wake_up_all(&once_control->wq);
 }
@@ -1942,8 +1946,10 @@ void sys_pthread_once(void)
     typedef void (*init_routine_t)(void);
 
     /* read syscall arguments */
-    pthread_once_t *once_control = SYSCALL_ARG(pthread_once_t *, 0);
+    pthread_once_t *_once_control = SYSCALL_ARG(pthread_once_t *, 0);
     init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 1);
+
+    struct thread_once *once_control = (struct thread_once *)_once_control;
 
     if(once_control->finished)
         return;
@@ -1970,7 +1976,7 @@ void sys_sem_post(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    int retval = up(sem);
+    int retval = up((struct semaphore *)sem);
     SYSCALL_ARG(int, 0) = retval;
 }
 
@@ -1979,7 +1985,7 @@ void sys_sem_trywait(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    int retval = down_trylock(sem);
+    int retval = down_trylock((struct semaphore *)sem);
     SYSCALL_ARG(int, 0) = retval;
 }
 
@@ -1988,7 +1994,7 @@ void sys_sem_wait(void)
     /* read syscall arguments */
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
 
-    int retval = down(sem);
+    int retval = down((struct semaphore *)sem);
 
     /* check if the syscall need to be restarted */
     if(retval == -ERESTARTSYS) {
@@ -2009,7 +2015,7 @@ void sys_sem_getvalue(void)
     sem_t *sem = SYSCALL_ARG(sem_t *, 0);
     int *sval = SYSCALL_ARG(int *, 0);
 
-    *sval = sem->count;
+    *sval = ((struct semaphore *)sem)->count;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;

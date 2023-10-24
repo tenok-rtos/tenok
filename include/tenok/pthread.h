@@ -11,6 +11,7 @@
 #include <kernel/list.h>
 #include <kernel/wait.h>
 #include <kernel/mutex.h>
+#include <kernel/thread.h>
 #include <kernel/spinlock.h>
 
 #define PTHREAD_ONCE_INIT \
@@ -20,26 +21,33 @@
 #define PTHREAD_CREATE_DETACHED 0
 #define PTHREAD_CREATE_JOINABLE 1
 
+#define __SIZEOF_PTHREAD_MUTEX_T sizeof(struct mutex)
+#define __SIZEOF_PTHREAD_ATTR_T  sizeof(struct thread_attr)
+#define __SIZEOF_PTHREAD_COND_T  sizeof(struct cond)
+#define __SIZEOF_PTHREAD_ONCE_T  sizeof(struct thread_once)
+
 typedef uint32_t pthread_t;
 typedef uint32_t pthread_mutexattr_t;
 typedef uint32_t pthread_condattr_t;
-typedef struct mutex pthread_mutex_t;
 
-typedef struct {
-    struct sched_param schedparam;
-    void *stackaddr;
-    size_t stacksize; /* bytes */
-    int schedpolicy;
-    int detachstate;
+typedef union {
+    char __size[__SIZEOF_PTHREAD_MUTEX_T];
+    uint32_t __align;
+} pthread_mutex_t;
+
+typedef union {
+    char __size[__SIZEOF_PTHREAD_ATTR_T];
+    uint32_t __align;
 } pthread_attr_t;
 
-typedef struct {
-    struct list_head task_wait_list;
+typedef union {
+    char __size[__SIZEOF_PTHREAD_COND_T];
+    uint32_t __align;
 } pthread_cond_t;
 
-typedef struct {
-    wait_queue_head_t wq;
-    bool finished;
+typedef union {
+    char __size[__SIZEOF_PTHREAD_ONCE_T];
+    uint32_t __align;
 } pthread_once_t;
 
 /**

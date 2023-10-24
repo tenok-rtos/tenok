@@ -8,7 +8,12 @@
 #include <kernel/spinlock.h>
 #include <kernel/semaphore.h>
 
-typedef struct semaphore sem_t;
+#define __SIZEOF_SEM_T sizeof(struct semaphore)
+
+typedef union {
+    char __size[__SIZEOF_SEM_T];
+    uint32_t __align;
+} sem_t;
 
 /**
  * @brief  Initialize the semaphore at the address pointed to by sem

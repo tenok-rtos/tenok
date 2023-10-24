@@ -66,7 +66,7 @@ int sem_init(sem_t *sem, int pshared, unsigned int value)
     if(!sem)
         return -ENOMEM;
 
-    sema_init(sem, value);
+    sema_init((struct semaphore *)sem, value);
     return 0;
 }
 

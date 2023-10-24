@@ -13,6 +13,10 @@ struct mutex {
     struct list_head wait_list;
 };
 
+struct cond {
+    struct list_head task_wait_list;
+};
+
 /**
  * @brief  Initialize the given mutex. The function should only
            be called inside the kernel space
