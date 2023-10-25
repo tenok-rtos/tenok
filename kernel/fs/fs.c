@@ -79,7 +79,7 @@ static struct inode *fs_alloc_inode(void)
     if(free_idx < INODE_CNT_MAX) {
         /* allocate a new inode */
         new_inode = &inodes[free_idx];
-        new_inode->i_ino = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
+        new_inode->i_ino = free_idx;
         mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
 
         /* update the inode bitmap */
@@ -330,12 +330,6 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
         return NULL;
 
-    /* configure the new dentry */
-    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-    new_dentry->d_inode  = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-    new_dentry->d_parent = inode_dir->i_ino;                                //save the inode of the parent directory
-    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX);              //copy the file name
-
     /* file table is full */
     if(file_cnt >= FILE_CNT_MAX)
         return NULL;
@@ -349,6 +343,12 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd     = fd;
     new_inode->i_sync   = true;
+
+    /* configure the new dentry */
+    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
+    new_dentry->d_inode  = new_inode->i_ino; //assign new inode number for the file
+    new_dentry->d_parent = inode_dir->i_ino; //save the inode of the parent directory
+    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX); //copy the file name
 
     /* file instantiation */
     int result = 0;
@@ -451,23 +451,14 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
     if(mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
         return NULL;
 
-    /* configure the new dentry */
-    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-    new_dentry->d_inode  = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt; //assign new inode number for the file
-    new_dentry->d_parent = inode_dir->i_ino;                                //save the inode of the parent directory
-    strncpy(new_dentry->d_name, mnt_dentry->d_name, FILE_NAME_LEN_MAX);     //copy the file name
-
-    struct inode *new_inode = NULL;
-
     /* dispatch a new file descriptor number */
     int fd = file_cnt + TASK_CNT_MAX;
     file_cnt++;
 
     /* configure the new file inode */
-    new_inode = &inodes[mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt];
+    struct inode *new_inode = fs_alloc_inode();
     new_inode->i_mode   = mnt_inode->i_mode;
     new_inode->i_rdev   = mnt_inode->i_rdev;
-    new_inode->i_ino    = mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd     = fd;
     new_inode->i_size   = mnt_inode->i_size;
@@ -475,6 +466,12 @@ static struct inode *fs_mount_file(struct inode *inode_dir, struct inode *mnt_in
     new_inode->i_data   = mnt_inode->i_data;
     new_inode->i_sync   = false; //the content will be synchronized only when the file is opened
     INIT_LIST_HEAD(&new_inode->i_dentry);
+
+    /* configure the new dentry */
+    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
+    new_dentry->d_inode  = new_inode->i_ino; //assign new inode number for the file
+    new_dentry->d_parent = inode_dir->i_ino; //save the inode of the parent directory
+    strncpy(new_dentry->d_name, mnt_dentry->d_name, FILE_NAME_LEN_MAX); //copy the file name
 
     /* update inode number for the next file */
     mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
