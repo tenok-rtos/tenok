@@ -47,7 +47,7 @@ void time_add(struct timespec *time, time_t sec, long nsec)
     }
 }
 
-void sys_time_update_handler(void)
+void system_timer_update(void)
 {
     timer_up_count(&sys_time);
 }

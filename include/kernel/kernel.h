@@ -100,51 +100,54 @@ struct thread_info {
     uint32_t *stack;          /* base address to the thread stack */
     size_t stack_size;        /* bytes */
 
-    struct task_struct *task; /* the task of this thread */
-
     struct {
         uint32_t *r0, *r1, *r2, *r3;
     } reg;
 
+    struct task_struct *task; /* the task of this thread */
+
     uint8_t  status;
     uint32_t tid;
-    int      priority;
+    uint8_t  priority;
     char     name[TASK_NAME_LEN_MAX];
     uint32_t privilege;
-    bool     syscall_pending;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
-    bool     detached;
-    bool     joinable;
-    void     *retval;
 
+    /* thread control */
+    bool detached;
+    bool joinable;
+    void *retval;
     struct thread_once *once_control;
 
+    /* syscall */
+    bool syscall_pending;
+    bool syscall_is_timeout;
+    struct timespec syscall_timeout;
+
+    /* file */
     struct {
         size_t size;
     } file_request;
 
-    /* signal table */
+    /* signals */
     int *ret_sig;
-    bool wait_for_signal;
+    bool wait_for_signal;  /* indicates that the thread is waiting for signal */
     sigset_t sig_wait_set; /* the signal set of the thread to wait */
-    uint32_t stack_top_preserved;
+    uint32_t stack_top_preserved; /* original stack address before any event handler is staged */
     struct sigaction *sig_table[SIGNAL_CNT];
 
     /* timers */
     int timer_cnt;
-    struct list_head timers_list;
+    struct list_head timers_list; /* list of timers of the thread */
 
     /* poll */
-    bool poll_failed;
-    wait_queue_head_t poll_wq;
-    struct timespec poll_timeout;
-    struct list_head poll_files_list;
+    struct list_head poll_files_list; /* list of all files the thread is waiting */
 
-    struct list_head task_list;   /* list head for the task to track */
-    struct list_head thread_list; /* global list of threads */
-    struct list_head poll_list;   /* list head for the poll handler to track */
-    struct list_head join_list;   /* list head of other threads to wait for join of the thread */
-    struct list_head list;        /* list head for thread scheduling */
+    struct list_head task_list;    /* connect to the global task list */
+    struct list_head thread_list;  /* connect to the global thread list */
+    struct list_head timeout_list; /* connect to the global timeout list */
+    struct list_head join_list;    /* connect to another thread waiting for join */
+    struct list_head list;         /* connect to a scheduling list (ready list, wait list, etc.) */
 };
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);

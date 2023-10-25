@@ -45,14 +45,15 @@
 #include "kconfig.h"
 
 /* global lists */
-LIST_HEAD(tasks_list);        /* list for recording all tasks in the system */
-LIST_HEAD(threads_list);      /* list for recording all threads in the system */
-LIST_HEAD(sleep_list);        /* list of all threads in the sleeping state */
-LIST_HEAD(suspend_list);      /* list of all threads currently suspended or waiting for event */
-LIST_HEAD(timers_list);       /* list of all timers in the system */
-LIST_HEAD(poll_timeout_list); /* list for tracking threads that setup timeout for poll() */
-LIST_HEAD(mqueue_list);       /* list of all posix message queues in the system */
-struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
+LIST_HEAD(tasks_list);   /* list of all tasks in the system */
+LIST_HEAD(threads_list); /* list of all threads in the system */
+LIST_HEAD(sleep_list);   /* list of all threads in the sleeping state */
+LIST_HEAD(suspend_list); /* list of all threads that are suspended or waiting */
+LIST_HEAD(timeout_list); /* list for tracking syscall timeout of all blocking threads */
+LIST_HEAD(timers_list);  /* list of all timers in the system */
+LIST_HEAD(poll_list);    /* list of all threads that are suspended due to the poll() syscall */
+LIST_HEAD(mqueue_list);  /* list of all posix message queues in the system */
+struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads in the ready state */
 
 /* tasks and threads */
 struct task_struct tasks[TASK_CNT_MAX];
@@ -1150,18 +1151,17 @@ void sys_mkfifo(void)
 
 void poll_notify(struct file *filp)
 {
-    /* iterate through all threads */
-    struct list_head *thread_list;
-    list_for_each(thread_list, &threads_list) {
-        struct thread_info *thread = list_entry(thread_list, struct thread_info, thread_list);
+    /* iterate through all threads that are suspended by poll() syscall */
+    struct list_head *curr_thread_l, *next_thread_l;
+    list_for_each_safe(curr_thread_l, next_thread_l, &poll_list) {
+        struct thread_info *thread = list_entry(curr_thread_l, struct thread_info, list);
 
-        /* find all threads that are waiting for poll notification */
         struct list_head *file_list;
         list_for_each(file_list, &thread->poll_files_list) {
             struct file *file_iter = list_entry(file_list, struct file, list);
 
             if(filp == file_iter) {
-                wake_up(&thread->poll_wq);
+                finish_wait(curr_thread_l);
             }
         }
     }
@@ -1180,13 +1180,12 @@ void sys_poll(void)
             struct timespec tp;
             get_sys_time(&tp);
             time_add(&tp, 0, timeout * 1000000);
-            running_thread->poll_timeout = tp;
+            running_thread->syscall_timeout = tp;
         }
 
         /* initialization */
-        init_waitqueue_head(&running_thread->poll_wq);
         INIT_LIST_HEAD(&running_thread->poll_files_list);
-        running_thread->poll_failed = false;
+        running_thread->syscall_is_timeout = false;
 
         /* check file events */
         struct file * filp;
@@ -1221,38 +1220,31 @@ void sys_poll(void)
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
 
-        /* put current thread into the wait queue */
-        prepare_to_wait(&running_thread->poll_wq, &running_thread->list, THREAD_WAIT);
+        /* suspend the current thread */
+        prepare_to_wait(&poll_list, &running_thread->list, THREAD_WAIT);
 
-        /* put the thread into the poll list for monitoring timeout */
-        if(timeout > 0) {
-            list_add(&running_thread->poll_list, &poll_timeout_list);
-        }
+        /* add current thread into the timeout monitoring list */
+        if(timeout > 0)
+            list_add(&running_thread->timeout_list, &timeout_list);
 
-        /* save all pollfd into the list */
+        /* record all files for polling */
         for(int i = 0; i < nfds; i++) {
             int fd = fds[i].fd - TASK_CNT_MAX;
             filp = fdtable[fd].file;
-
             list_add(&filp->list, &running_thread->poll_files_list);
         }
     } else {
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
-        /* clear poll files' list head */
+        /* clear list of poll files */
         INIT_LIST_HEAD(&running_thread->poll_files_list);
 
         /* remove the thread from the poll list */
-        struct list_head *curr, *next;
-        list_for_each_safe(curr, next, &poll_timeout_list) {
-            if(curr == &running_thread->poll_list) {
-                list_del(curr);
-                break;
-            }
-        }
+        if(timeout > 0)
+            list_del(&running_thread->timeout_list);
 
-        if(running_thread->poll_failed) {
+        if(running_thread->syscall_is_timeout) {
             /* return on error */
             SYSCALL_ARG(int, 0) = -1;
         } else {
@@ -2465,7 +2457,7 @@ static void timers_update(void)
     }
 }
 
-static void poll_timeout_update(void)
+static void syscall_timeout_update(void)
 {
     /* get current time */
     struct timespec tp;
@@ -2473,24 +2465,24 @@ static void poll_timeout_update(void)
 
     /* iterate through all tasks that waiting for poll events */
     struct list_head *curr;
-    list_for_each(curr, &poll_timeout_list) {
-        struct thread_info *thread = list_entry(curr, struct thread_info, poll_list);
+    list_for_each(curr, &timeout_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, timeout_list);
 
         /* wake up the thread if the time is up */
-        if(tp.tv_sec >= thread->poll_timeout.tv_sec &&
-           tp.tv_nsec >= thread->poll_timeout.tv_nsec) {
-            thread->poll_failed = true;
-            wake_up(&thread->poll_wq);
+        if(tp.tv_sec >= thread->syscall_timeout.tv_sec &&
+           tp.tv_nsec >= thread->syscall_timeout.tv_nsec) {
+            thread->syscall_is_timeout = true;
+            finish_wait(&thread->list);
         }
     }
 }
 
 static void system_ticks_update(void)
 {
-    sys_time_update_handler();
+    system_timer_update();
     threads_ticks_update();
     timers_update();
-    poll_timeout_update();
+    syscall_timeout_update();
 }
 
 static void stop_running_thread(void)
