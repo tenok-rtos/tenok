@@ -53,7 +53,7 @@ LIST_HEAD(timeout_list); /* list for tracking syscall timeout of all blocking th
 LIST_HEAD(timers_list);  /* list of all timers in the system */
 LIST_HEAD(poll_list);    /* list of all threads that are suspended due to the poll() syscall */
 LIST_HEAD(mqueue_list);  /* list of all posix message queues in the system */
-struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads in the ready state */
+struct list_head ready_list[THREAD_PRIORITY_MAX + 1]; /* lists of all threads in the ready state */
 
 /* tasks and threads */
 struct task_struct tasks[TASK_CNT_MAX];
@@ -188,7 +188,7 @@ static int thread_create(struct thread_info **new_thread,
 
     /* check if the thread priority is invalid */
     bool bad_priority = attr->schedparam.sched_priority < 0 ||
-                        attr->schedparam.sched_priority > TASK_MAX_PRIORITY;
+                        attr->schedparam.sched_priority > THREAD_PRIORITY_MAX;
 
     /* check if the scheduling policy is invalid */
     bool bad_sched_policy = attr->schedpolicy != SCHED_RR;
@@ -475,7 +475,7 @@ void sys_procstat(void)
         info[i].privileged = thread->privilege == KERNEL_THREAD;
         info[i].stack_usage = (size_t)&thread->stack[stack_size_word] - (size_t)thread->stack_top;
         info[i].stack_size = thread->stack_size;
-        strncpy(info[i].name, thread->name, TASK_NAME_LEN_MAX);
+        strncpy(info[i].name, thread->name, THREAD_NAME_MAX);
 
         i++;
     }
@@ -489,7 +489,7 @@ void sys_setprogname(void)
     /* read syscall arguments */
     char *name = SYSCALL_ARG(char *, 0);
 
-    strncpy(running_thread->name, name, TASK_NAME_LEN_MAX);
+    strncpy(running_thread->name, name, THREAD_NAME_MAX);
 }
 
 void sys_getprogname(void)
@@ -1690,7 +1690,7 @@ void sys_pthread_setschedparam(void)
 
     /* invalid priority parameter */
     if(param->sched_priority < 0 ||
-       param->sched_priority > TASK_MAX_PRIORITY) {
+       param->sched_priority > THREAD_PRIORITY_MAX) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
@@ -2587,7 +2587,7 @@ static void schedule(void)
 
     /* find a ready list that contains runnable tasks */
     int pri;
-    for(pri = TASK_MAX_PRIORITY; pri >= 0; pri--) {
+    for(pri = THREAD_PRIORITY_MAX; pri >= 0; pri--) {
         if(list_empty(&ready_list[pri]) == false)
             break;
     }
@@ -2653,7 +2653,7 @@ void sched_start(void)
     memory_pool_init(&kmpool, kmpool_buf, MEM_POOL_SIZE);
 
     /* initialize the ready lists */
-    for(int i = 0; i <= TASK_MAX_PRIORITY; i++) {
+    for(int i = 0; i <= THREAD_PRIORITY_MAX; i++) {
         INIT_LIST_HEAD(&ready_list[i]);
     }
 

@@ -10,7 +10,7 @@
 
 inline int sched_get_priority_max(int policy)
 {
-    return TASK_MAX_PRIORITY;
+    return THREAD_PRIORITY_MAX;
 }
 
 inline int sched_get_priority_min(int policy)

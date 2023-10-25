@@ -10,10 +10,7 @@
 
 #include "kconfig.h"
 
-#define SOFTIRQD_PID 2
-
-extern struct thread_info threads[TASK_CNT_MAX];
-extern struct list_head ready_list[TASK_MAX_PRIORITY + 1];
+#define SOFTIRQD_ID 2
 
 struct list_head tasklet_list;
 
@@ -30,7 +27,7 @@ void tasklet_schedule(struct tasklet_struct *t)
     list_move(&t->list, &tasklet_list);
 
     /* wake up the softirq daemon */
-    struct thread_info *thread = acquire_thread(SOFTIRQD_PID);
+    struct thread_info *thread = acquire_thread(SOFTIRQD_ID);
     finish_wait(&thread->list);
 }
 
@@ -63,5 +60,5 @@ void softirq_init(void)
     INIT_LIST_HEAD(&tasklet_list);
 
     /* create softirq daemon for handling tasklets  */
-    kthread_create(softirqd, TASK_MAX_PRIORITY, 1024);
+    kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
 }

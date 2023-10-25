@@ -16,7 +16,7 @@ struct procstat_info {
     bool   privileged;
     size_t stack_usage;
     size_t stack_size;
-    char   name[TASK_NAME_LEN_MAX];
+    char   name[THREAD_NAME_MAX];
 };
 
 void sched_start(void);

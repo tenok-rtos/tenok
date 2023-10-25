@@ -109,7 +109,7 @@ struct thread_info {
     uint8_t  status;
     uint32_t tid;
     uint8_t  priority;
-    char     name[TASK_NAME_LEN_MAX];
+    char     name[THREAD_NAME_MAX];
     uint32_t privilege;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
 
