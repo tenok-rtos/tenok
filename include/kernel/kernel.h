@@ -21,10 +21,6 @@
 #define TASK_CNT_MAX   32
 #define THREAD_CNT_MAX 64
 
-#define SIGNAL_CLEANUP_EVENT 100
-#define THREAD_RETURN_EVENT  101
-#define THREAD_ONCE_EVENT    102
-
 #define DEF_SYSCALL(func, _num) \
         {.syscall_handler = sys_ ## func, .num = _num}
 
