@@ -48,9 +48,8 @@
 LIST_HEAD(tasks_list);        /* list for recording all tasks in the system */
 LIST_HEAD(threads_list);      /* list for recording all threads in the system */
 LIST_HEAD(sleep_list);        /* list of all threads in the sleeping state */
-LIST_HEAD(suspend_list);      /* list of all thread currently suspended */
+LIST_HEAD(suspend_list);      /* list of all threads currently suspended or waiting for event */
 LIST_HEAD(timers_list);       /* list of all timers in the system */
-LIST_HEAD(signal_wait_list);  /* list of all threads waiting for signals */
 LIST_HEAD(poll_timeout_list); /* list for tracking threads that setup timeout for poll() */
 LIST_HEAD(mqueue_list);       /* list of all posix message queues in the system */
 struct list_head ready_list[TASK_MAX_PRIORITY + 1]; /* lists of all threads that ready to run */
@@ -2111,7 +2110,7 @@ void sys_sigwait(void)
     running_thread->wait_for_signal = true;
 
     /* put the thread into the signal waiting list */
-    prepare_to_wait(&signal_wait_list, &running_thread->list, THREAD_WAIT);
+    prepare_to_wait(&suspend_list, &running_thread->list, THREAD_WAIT);
 }
 
 void sys_kill(void)
