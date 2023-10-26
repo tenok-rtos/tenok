@@ -69,7 +69,7 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
     INIT_LIST_HEAD(&cache->slabs_free);
     INIT_LIST_HEAD(&cache->slabs_partial);
     INIT_LIST_HEAD(&cache->slabs_full);
-    list_add(&caches, &cache->list);
+    list_add(&cache->list, &caches);
 
     return cache;
 }
@@ -77,7 +77,7 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 static struct slab *kmem_cache_grow(struct kmem_cache *cache)
 {
     /* attempt to allocate a 256-bytes page (order = 0) */
-    struct slab*slab = alloc_pages(0);
+    struct slab* slab = alloc_pages(0);
 
     /* failed to allocate new page */
     if(!slab) {
@@ -113,7 +113,7 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
         } else {
             /* yes, acquire the new slab from the free list */
             cache->alloc_succeed++;
-            slab = list_first_entry(&cache->slabs_partial, struct slab, list);
+            slab = list_first_entry(&cache->slabs_free, struct slab, list);
         }
 
         /* move the slab into the partial list */
@@ -139,7 +139,6 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
     if(!slab->free_objects) {
         list_move(&slab->list, &cache->slabs_full);
     }
-
     /* return the address of the allocated slab memory */
     return mem;
 }
