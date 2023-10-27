@@ -107,8 +107,8 @@ void printk(char *format,  ...)
 
     char buf[100] = {0};
     int pos = sprintf(buf, "[%s.%s%s] ", sec, zeros, rem);
-    pos += vsprintf(&buf[pos], format, args);
-    pos += sprintf(&buf[pos], "\n\r");
+    vsprintf(&buf[pos], format, args);
+    strcat(buf, "\n\r");
     va_end(args);
 
     console_write(buf, strlen(buf));
@@ -184,6 +184,7 @@ int vsnprintf(char *str, size_t size, const char *format, va_list ap)
 int sprintf(char *str, const char *format, ...)
 {
     va_list args;
+
     va_start(args, format);
     int retval = vsprintf(str, format, args);
     va_end(args);
@@ -194,6 +195,7 @@ int sprintf(char *str, const char *format, ...)
 int snprintf(char *str, size_t size, const char *format, ...)
 {
     va_list args;
+
     va_start(args, format);
     int retval = vsnprintf(str, size, format, args);
     va_end(args);
