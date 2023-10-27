@@ -8,7 +8,7 @@ static void stack_usage(char *buf, size_t buf_size, size_t stack_usage, size_t s
 {
     int integer = (stack_usage * 100) / stack_size;
     int fraction = ((stack_usage * 1000) / stack_size) - (integer * 10);
-    snprintf(buf, buf_size, "%2d.%d", integer, fraction);
+    snprintf(buf, buf_size, "%d.%d", integer, fraction);
 }
 
 static void ps(void)
@@ -42,7 +42,7 @@ static void ps(void)
         stack_usage(s_stack_usage, 10, info[i].stack_usage, info[i].stack_size);
 
         if(info[i].privileged) {
-            snprintf(s, 100, "%d\t%d\t%s\t%2s\t  [%s]\n\r",
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r",
                      info[i].pid, info[i].priority,
                      stat, s_stack_usage,
                      info[i].name);

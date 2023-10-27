@@ -106,7 +106,6 @@ void printk(char *format,  ...)
     }
 
     char buf[100] = {0};
-    //int pos = sprintf(buf, "[%5s.%s%s] ", sec, zeros, rem);
     int pos = sprintf(buf, "[%s.%s%s] ", sec, zeros, rem);
     pos += vsprintf(&buf[pos], format, args);
     pos += sprintf(&buf[pos], "\n\r");
@@ -115,13 +114,17 @@ void printk(char *format,  ...)
     console_write(buf, strlen(buf));
 }
 
-int vsprintf(char *str, const char *format, va_list ap)
+static int __vsnprintf(char *str, size_t size, bool check_size,
+                       const char *format, va_list ap)
 {
     str[0] = 0;
     char append_str[2] = {0};
 
     int pos = 0;
     while(format[pos]) {
+        if(check_size && pos >= size)
+            break;
+
         if(format[pos] != '%') {
             append_str[0] = format[pos];
             pos++;
@@ -162,11 +165,31 @@ int vsprintf(char *str, const char *format, va_list ap)
     return strlen(str);
 }
 
+int vsprintf(char *str, const char *format, va_list ap)
+{
+    return __vsnprintf(str, 0, false, format, ap);
+}
+
+int vsnprintf(char *str, size_t size, const char *format, va_list ap)
+{
+    return __vsnprintf(str, size, true, format, ap);
+}
+
 int sprintf(char *str, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
     int retval = vsprintf(str, format, args);
+    va_end(args);
+
+    return retval;
+}
+
+int snprintf(char *str, size_t size, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int retval = vsnprintf(str, size, format, args);
     va_end(args);
 
     return retval;
