@@ -11,7 +11,44 @@
 #define PRINTK_BUF_LTOA_BUF_LEN   100
 #define PRINTK_FIFO_SIZE 10
 
+#define ITOA_BUF_LEN (sizeof(int) * 8)
 #define LTOA_BUF_LEN (sizeof(long) * 8)
+
+char *itoa(int value, char *buffer, int radix)
+{
+    int remainder;
+    char reverse_buffer[LTOA_BUF_LEN + 1] = {0};
+    char *last_digit = &reverse_buffer[LTOA_BUF_LEN - 1];
+
+    if (value < 0) {
+        *last_digit = '-';
+        last_digit--;
+        value *= -1;
+    } else if (value == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return buffer;
+    }
+
+    for(int i = 0; i < LTOA_BUF_LEN && value; i++) {
+        remainder = value % radix;
+
+        if (remainder < 10) {
+            *last_digit = remainder + '0';
+        } else if (radix == 16) {
+            *last_digit = "abcdef"[remainder - 10];
+        }
+
+        last_digit--;
+        value /= radix;
+    }
+
+    char *str = last_digit + 1;
+    size_t size = &reverse_buffer[LTOA_BUF_LEN] - last_digit;
+    strncpy(buffer, str, size);
+
+    return buffer;
+}
 
 char *ltoa(long value, char *buffer, int radix)
 {
