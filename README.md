@@ -7,17 +7,17 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 ## Features
 
 * POSIX interface
-* Dual mode: Kernel mode / User mode
-* Task and Thread (Task resembles UNIX process as a group of threads)
 * Linux-like design: Wait queue, tasklet, kfifo, and printk
+* Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Spinlock, Mutex, and Semaphore
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
+* Buddy system and Slab allocator
 * Asynchronous signals
 * Software timer
 * Event waiting of file descriptors with `poll()`
 * Floating-point Unit (FPU) support
 * Built-in Shell
-* rootfs and romfs
+* Root and ROM file systems
 * Real-time plotting and customizable debug messaging using metalanguage
 * Integration with MAVLink communication protocol
 * Software-in-the-loop (SIL) simulation with Gazebo simulator
