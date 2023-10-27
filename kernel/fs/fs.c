@@ -7,14 +7,16 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 
-#include <mm/mpool.h>
 #include <mm/mm.h>
+#include <mm/slab.h>
+#include <mm/mpool.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
 #include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <kernel/kernel.h>
 #include <kernel/bitops.h>
+#include <kernel/interrupt.h>
 
 #include "uart.h"
 #include "rom_dev.h"
@@ -36,6 +38,8 @@ uint32_t bitmap_blks[FS_BITMAP_BLK] = {0};
 
 struct mount mount_points[MOUNT_CNT_MAX + 1]; //0 is reserved for the rootfs
 int mount_cnt = 0;
+
+struct kmem_cache *file_caches;
 
 static struct file_operations rootfs_file_ops = {
     .read = rootfs_read,
@@ -68,6 +72,15 @@ int register_blkdev(char *name, struct file_operations *fops)
     files[fd]->f_op = fops;
 
     return 0;
+}
+
+struct file *fs_alloc_file(void)
+{
+    preempt_disable();
+    struct file *new_file = kmem_cache_alloc(file_caches, 0);
+    preempt_enable();
+
+    return new_file;
 }
 
 static struct inode *fs_alloc_inode(void)
@@ -109,6 +122,9 @@ static uint8_t *fs_alloc_block(void)
 
 void rootfs_init(void)
 {
+    file_caches =  kmem_cache_create("file_cache", sizeof(struct file),
+                                     sizeof(uint32_t), 0, NULL);
+
     /* configure the rootfs super block */
     struct super_block *rootfs_super_blk = &mount_points[RDEV_ROOTFS].super_blk;
     rootfs_super_blk->s_inode_cnt = 0;
@@ -129,7 +145,7 @@ void rootfs_init(void)
     INIT_LIST_HEAD(&inode_root->i_dentry);
 
     /* create new file for the rootfs */
-    struct file *rootfs_file = kmalloc(sizeof(struct file));
+    struct file *rootfs_file = fs_alloc_file();
     rootfs_file->f_op = &rootfs_file_ops;
 
     int fd = file_cnt + TASK_CNT_MAX;
@@ -371,7 +387,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         }
         case S_IFCHR: {
             /* create a new character device file */
-            struct file *dev_file = kmalloc(sizeof(struct file));
+            struct file *dev_file = fs_alloc_file();
             dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 
@@ -384,7 +400,7 @@ static struct inode *fs_add_file(struct inode *inode_dir, char *file_name, int f
         }
         case S_IFBLK: {
             /* create a new block device file */
-            struct file *dev_file = kmalloc(sizeof(struct file));
+            struct file *dev_file = fs_alloc_file();
             dev_file->f_inode = new_inode;
             files[fd] = dev_file;
 

@@ -21,6 +21,7 @@
 #include <fs/fs.h>
 #include <rom_dev.h>
 #include <mm/page.h>
+#include <mm/slab.h>
 #include <mm/mpool.h>
 #include <arch/port.h>
 #include <kernel/tty.h>
@@ -2656,6 +2657,8 @@ void sched_start(void)
     for(int i = 0; i <= THREAD_PRIORITY_MAX; i++) {
         INIT_LIST_HEAD(&ready_list[i]);
     }
+
+    kmem_cache_init();
 
     tty_init();
     rootfs_init();
