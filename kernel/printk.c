@@ -143,6 +143,12 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                 strcat(str, append_str);
                 break;
             }
+            case 'x': {
+                int x = va_arg(ap, int);
+                char cast[sizeof(int) * 8 + 1];
+                strcat(str, itoa(x, cast, 16));
+                break;
+            }
             case 'd': {
                 int d = va_arg(ap, int);
                 char cast[sizeof(int) * 8 + 1];
