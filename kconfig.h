@@ -45,4 +45,6 @@
 
 #define PRINT_SIZE_MAX       400
 
+#define USE_TENOK_PRINTF     0
+
 #endif

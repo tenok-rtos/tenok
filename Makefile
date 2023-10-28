@@ -102,6 +102,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/pthread.c \
        ./kernel/signal.c \
        ./kernel/time.c \
+       ./kernel/printf.c \
        ./kernel/printk.c \
        ./kernel/softirq.c \
        ./kernel/fs/fs.c \

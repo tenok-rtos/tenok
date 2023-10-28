@@ -12,7 +12,7 @@ extern struct inode *shell_dir_curr;
 static void byte2hex(char byte, char *hex_str)
 {
     hex_str[2] = '\0';
-    snprintf(hex_str, 3, "%02x", byte);
+    snprintf(hex_str, 4, "%02x", byte);
 }
 
 static void byte2char(char byte, char *char_str)

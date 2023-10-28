@@ -8,7 +8,7 @@ static void stack_usage(char *buf, size_t buf_size, size_t stack_usage, size_t s
 {
     int integer = (stack_usage * 100) / stack_size;
     int fraction = ((stack_usage * 1000) / stack_size) - (integer * 10);
-    snprintf(buf, buf_size, "%d.%d", integer, fraction);
+    snprintf(buf, buf_size, "%2d.%d", integer, fraction);
 }
 
 static void ps(void)

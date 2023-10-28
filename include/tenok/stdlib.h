@@ -27,4 +27,13 @@ void *malloc(size_t size);
  */
 void free(void *ptr);
 
+/* non-standard extensions: */
+char *itoa(int value, char *buffer, int radix);
+char *ltoa(long value, char *buffer, int radix);
+
+/* rest of the functions are provided by the compiler: */
+int atoi(const char *nptr);
+long atol(const char *nptr);
+long long atoll(const char *nptr);
+
 #endif

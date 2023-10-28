@@ -19,7 +19,7 @@ void shell_cmd_free(int argc, char *argv[])
      */
     snprintf(str, PRINT_SIZE_MAX,
              "               total    used    free\n\r"
-             "Memory pool: %d %d %d\n\r",
+             "Memory pool: %7d %7d %7d\n\r",
              total, used, _free);
     shell_puts(str);
 }
