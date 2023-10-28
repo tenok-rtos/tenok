@@ -55,9 +55,6 @@ ENTRY(Reset_Handler)
 RAM_ADDR = 0x20000000;
 RAM_SIZE = 192K;
 
-/* Generate a link error if kernel stack doesn't fit into RAM */
-KERNEL_STACK_SIZE_MIN = 0x400; /* required amount of stack */
-
 /* Highest address of the user mode stack */
 _estack = 0x20030000;    /* end of RAM */
 
@@ -205,16 +202,6 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
-  /* kernel_stack section, used to check that there is enough RAM left */
-  .kernel_stack :
-  {
-    . = ALIGN(4);
-    PROVIDE ( end = . );
-    PROVIDE ( _end = . );
-    . = . + KERNEL_STACK_SIZE_MIN;
-    . = ALIGN(4);
-  } >RAM
-
   .sdram (NOLOAD) :
   {
     . = ALIGN(4);
@@ -233,5 +220,3 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
-
-
