@@ -2209,6 +2209,21 @@ void sys_clock_settime(void)
     SYSCALL_ARG(int, 0) = 0;
 }
 
+static struct timer *acquire_timer(int timerid)
+{
+    /* find the timer with the id */
+    struct list_head *curr;
+    list_for_each(curr, &running_thread->timers_list) {
+        struct timer *timer = list_entry(curr, struct timer, list);
+
+        /* check timer id */
+        if(timerid == timer->id)
+            return timer;
+    }
+
+    return NULL;
+}
+
 void sys_timer_create(void)
 {
     /* read syscall arguments */
@@ -2270,30 +2285,24 @@ void sys_timer_delete(void)
     /* read syscall arguments */
     timer_t timerid = SYSCALL_ARG(timer_t, 0);
 
-    struct timer *timer;
+    /* aquire the timer with given id */
+    struct timer *timer = acquire_timer(timerid);
 
-    /* find the timer with the id */
-    struct list_head *curr, *next;
-    list_for_each_safe(curr, next, &running_thread->timers_list) {
-        /* get the timer */
-        timer = list_entry(curr, struct timer, list);
-
-        /* update remained ticks of waiting */
-        if(timer->id == timerid) {
-            /* remove the timer from the lists and
-             * free the memory */
-            list_del(&timer->g_list);
-            list_del(&timer->list);
-            kfree(timer);
-
-            /* return on success */
-            SYSCALL_ARG(int, 0) = 0;
-            return;
-        }
+    /* failed to acquire the timer */
+    if(timer == NULL) {
+        /* invalid timer id, return on error */
+        SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
     }
 
-    /* invalid timer id, return on error */
-    SYSCALL_ARG(int, 0) = -EINVAL;
+    /* remove the timer from the lists and
+     * free the memory */
+    list_del(&timer->g_list);
+    list_del(&timer->list);
+    kfree(timer);
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_timer_settime(void)
@@ -2313,9 +2322,6 @@ void sys_timer_settime(void)
         return;
     }
 
-    struct timer *timer;
-    bool timer_found = false;
-
     /* the task has no timer */
     if(running_thread->timer_cnt == 0) {
         /* return on error */
@@ -2323,40 +2329,31 @@ void sys_timer_settime(void)
         return;
     }
 
-    /* find the timer with the id */
-    struct list_head *curr;
-    list_for_each(curr, &running_thread->timers_list) {
-        /* get the timer */
-        timer = list_entry(curr, struct timer, list);
+    /* acquire the timer with given id */
+    struct timer *timer = acquire_timer(timerid);
 
-        /* update remained ticks of waiting */
-        if(timer->id == timerid) {
-            timer_found = true;
-            break;
-        }
-    }
-
-    if(timer_found) {
-        /* return old timer setting */
-        if(old_value != NULL) {
-            *old_value = timer->setting;
-        }
-
-        /* save timer's setting */
-        timer->flags = flags;
-        timer->setting = *new_value;
-        timer->ret_time = timer->setting;
-
-        /* enable the timer */
-        timer->counter = timer->setting.it_value;
-        timer->enabled = true;
-
-        /* return on success */
-        SYSCALL_ARG(int, 0) = 0;
-    } else {
+    /* failed to acquire the timer */
+    if(timer == NULL) {
         /* return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
     }
+
+    /* return old timer setting */
+    if(old_value != NULL)
+        *old_value = timer->setting;
+
+    /* save timer's setting */
+    timer->flags = flags;
+    timer->setting = *new_value;
+    timer->ret_time = timer->setting;
+
+    /* enable the timer */
+    timer->counter = timer->setting.it_value;
+    timer->enabled = true;
+
+    /* return on success */
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_timer_gettime(void)
@@ -2365,29 +2362,19 @@ void sys_timer_gettime(void)
     timer_t timerid = SYSCALL_ARG(timer_t, 0);
     struct itimerspec *curr_value = SYSCALL_ARG(struct itimerspec *, 1);
 
-    struct timer *timer;
-    bool found = false;
+    /* acquire the timer with given id */
+    struct timer *timer = acquire_timer(timerid);
 
-    /* find the timer with the id */
-    struct list_head *curr;
-    list_for_each(curr, &running_thread->timers_list) {
-        timer = list_entry(curr, struct timer, list);
-
-        /* check timer id */
-        if(timerid == timer->id) {
-            found = true;
-            break;
-        }
-    }
-
-    if(found) {
-        /* return on success */
-        *curr_value = timer->ret_time;
-        SYSCALL_ARG(int, 0) = 0;
-    } else {
-        /* return on error */
+    /* failed to acquire the timer */
+    if(timer == NULL) {
+        /* invalid timer id, return on error */
         SYSCALL_ARG(int, 0) = -EINVAL;
+        return;
     }
+
+    /* return on success */
+    *curr_value = timer->ret_time;
+    SYSCALL_ARG(int, 0) = 0;
 }
 
 void sys_malloc(void)
