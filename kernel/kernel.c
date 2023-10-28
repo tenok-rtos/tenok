@@ -2664,7 +2664,7 @@ void sched_start(void)
     rootfs_init();
 
     /* initialize kernel threads and deamons */
-    kthread_create(first, 0, 512);
+    kthread_create(first, 0, 1024);
     kthread_create(file_system_task, 1, 1024);
     softirq_init();
 
