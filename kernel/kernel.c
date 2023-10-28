@@ -2720,7 +2720,7 @@ void sched_start(void)
     irq_init();
 
     uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
-    os_env_init((uint32_t)(stack_empty + 32) /* point to the top */);
+    os_env_init(&stack_empty[31]);
 
     /* initialize the memory pool */
     memory_pool_init(&kmpool, kmpool_buf, MEM_POOL_SIZE);
@@ -2763,7 +2763,7 @@ void sched_start(void)
 
         /* jump to the selected thread */
         running_thread->stack_top =
-            (struct stack *)jump_to_thread((uint32_t)running_thread->stack_top,
-                                           running_thread->privilege);
+            jump_to_thread(running_thread->stack_top,
+                           running_thread->privilege);
     }
 }

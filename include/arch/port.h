@@ -27,7 +27,7 @@ uint32_t get_proc_mode(void);
  * @brief  Initialze the operating system to split kernel space and user space
  * @param  A dummy stack memory space to provide.
  */
-void os_env_init(uint32_t stack);
+void os_env_init(void *stack);
 
 /**
  * @brief  Jump to the thread given by the stack (context switch)
@@ -36,7 +36,7 @@ void os_env_init(uint32_t stack);
            as user thread.
  * @retval uint32_t*: New stack pointer after returning back to the kernel.
  */
-uint32_t *jump_to_thread(uint32_t stack, bool privileged);
+void *jump_to_thread(void *stack, bool privileged);
 
 /**
  * @brief  Initialize platform drivers
