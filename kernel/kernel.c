@@ -74,10 +74,14 @@ uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 /* message queue descriptor table */
 struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+struct kmem_cache *mq_caches;
 
 /* memory pool */
 struct memory_pool kmpool;
 uint8_t kmpool_buf[MEM_POOL_SIZE];
+
+/* timers */
+struct kmem_cache *timer_caches;
 
 /* syscall table */
 syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
@@ -1394,7 +1398,7 @@ void sys_mq_open(void)
 
     /* allocate new message queue */
     struct pipe *pipe = __mq_open(attr);
-    struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
+    struct mqueue *new_mq = kmem_cache_alloc(mq_caches, 0);
 
     /* memory allocation failure */
     if(!pipe || !new_mq) {
@@ -2227,7 +2231,7 @@ void sys_timer_create(void)
     }
 
     /* allocate memory for the new timer */
-    struct timer *new_tm = kmalloc(sizeof(struct timer));
+    struct timer *new_tm = kmem_cache_alloc(timer_caches, 0);
 
     /* failed to allocate memory */
     if(new_tm == NULL) {
@@ -2605,6 +2609,15 @@ static void print_platform_info(void)
     printk("Machine model: %s", __BOARD_NAME__);
 }
 
+static void slab_init(void)
+{
+    kmem_cache_init();
+    timer_caches = kmem_cache_create("timer_cache", sizeof(struct timer),
+                                     sizeof(uint32_t), 0, NULL);
+    mq_caches = kmem_cache_create("mqueue_cache", sizeof(struct mqueue),
+                                  sizeof(uint32_t), 0, NULL);
+}
+
 void first(void)
 {
     setprogname("idle");
@@ -2658,8 +2671,7 @@ void sched_start(void)
         INIT_LIST_HEAD(&ready_list[i]);
     }
 
-    kmem_cache_init();
-
+    slab_init();
     tty_init();
     rootfs_init();
 
