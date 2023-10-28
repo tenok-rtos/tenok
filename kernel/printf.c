@@ -83,9 +83,9 @@ char *ltoa(long value, char *buffer, int radix)
 
 #if (USE_TENOK_PRINTF != 0)
 
-static void format_integer(char *str, char *format_str,
-                           char *padding_str, int *padding_end,
-                           bool *pad_with_zeros)
+static void format_write(char *str, char *format_str,
+                         char *padding_str, int *padding_end,
+                         bool *pad_with_zeros)
 {
     /* read length setting */
     padding_str[*padding_end] = '\0';
@@ -104,7 +104,6 @@ static void format_integer(char *str, char *format_str,
         return;
     }
 
-
     /* generate paddings */
     size_t padding_size = desired_len - format_str_len;
     for(int i = 0; i < padding_size; i++) {
@@ -121,7 +120,7 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                        const char *format, va_list ap)
 {
     str[0] = 0;
-    char append_str[2] = {0};
+    char c_str[2] = {0};
 
     bool pad_with_zeros = false;
 
@@ -136,9 +135,9 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
 
         if(format[pos] != '%') {
             /* copy */
-            append_str[0] = format[pos];
+            c_str[0] = format[pos];
             pos++;
-            strcat(str, append_str);
+            strcat(str, c_str);
 
             /* reset flags */
             pad_with_zeros = false;
@@ -181,13 +180,15 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                     }
                     case 's': {
                         char *s = va_arg(ap, char *);
-                        strcat(str, s);
+                        format_write(str, s, buf, &buf_pos,
+                                     &pad_with_zeros);
                         leave = true;
                         break;
                     }
                     case 'c': {
-                        append_str[0] = (char)va_arg(ap, int);
-                        strcat(str, append_str);
+                        c_str[0] = (char)va_arg(ap, int);
+                        format_write(str, c_str, buf, &buf_pos,
+                                     &pad_with_zeros);
                         leave = true;
                         break;
                     }
@@ -195,8 +196,8 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                         int x = va_arg(ap, int);
                         char x_str[sizeof(int) * 8 + 1];
                         itoa(x, x_str, 16);
-                        format_integer(str, x_str, buf, &buf_pos,
-                                       &pad_with_zeros);
+                        format_write(str, x_str, buf, &buf_pos,
+                                     &pad_with_zeros);
                         leave = true;
                         break;
                     }
@@ -204,8 +205,8 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                         int d = va_arg(ap, int);
                         char d_str[sizeof(int) * 8 + 1];
                         itoa(d, d_str, 10);
-                        format_integer(str, d_str, buf, &buf_pos,
-                                       &pad_with_zeros);
+                        format_write(str, d_str, buf, &buf_pos,
+                                     &pad_with_zeros);
                         leave = true;
                         break;
                     }
@@ -213,8 +214,8 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                         unsigned int u = va_arg(ap, unsigned int);
                         char u_str[sizeof(unsigned int) * 8 + 1];
                         itoa(u, u_str, 10);
-                        format_integer(str, u_str, buf, &buf_pos,
-                                       &pad_with_zeros);
+                        format_write(str, u_str, buf, &buf_pos,
+                                     &pad_with_zeros);
                         leave = true;
                         break;
                     }
