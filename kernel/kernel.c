@@ -18,11 +18,12 @@
 #include <sys/stat.h>
 #include <sys/mount.h>
 
-#include <fs/fs.h>
-#include <rom_dev.h>
+#include <mm/mm.h>
 #include <mm/page.h>
 #include <mm/slab.h>
 #include <mm/mpool.h>
+#include <fs/fs.h>
+#include <rom_dev.h>
 #include <arch/port.h>
 #include <kernel/tty.h>
 #include <kernel/list.h>
@@ -103,16 +104,85 @@ NACKED void thread_once_return_handler(void)
 
 void *kmalloc(size_t size)
 {
+    /* start of the critcal section */
     preempt_disable();
-    void *ptr = memory_pool_alloc(&kmpool, size);
+
+    /* reserve space for kmalloc header to track allocation size */
+    void *ptr;
+    const size_t header_size = sizeof(struct kmalloc_header);
+    size_t alloc_size = size + header_size;
+    size_t order = size_to_page_order(alloc_size);
+
+    /* allocate a memory region according to its size and order */
+    if(order < 0) {
+        /* end of the critical section */
+        preempt_enable();
+
+        /* the request size is too large */
+        return NULL;
+    } else if(order == 0) {
+        if(alloc_size < PAGE_SIZE_MIN / 2) {
+            /* allocate memory from slab for request with
+             * small size
+             */
+            ptr = memory_pool_alloc(&kmpool, alloc_size);
+            //TODO: allocate from the slab instead
+        } else {
+            /* for request size that is between half and
+             * entire 0-order page, we just allocate a
+             * 0-order page for it.
+             */
+            ptr = alloc_pages(0);
+        }
+    } else {
+        /* allocate an entire page for the request */
+        ptr = alloc_pages(order);
+    }
+
+    /* write the header only if the allocation succeeded */
+    if(ptr) {
+        ((struct kmalloc_header *)ptr)->size = size;
+    }
+
+    /* end of the critical section */
     preempt_enable();
 
-    return ptr;
+    /* return the address of the usable memory region */
+    return (void *)((uintptr_t)ptr + header_size);
 }
 
 void kfree(void *ptr)
 {
-    return;
+    /* start of the critical section */
+    preempt_disable();
+
+    /* get kmalloc header of the memory */
+    const size_t header_size = sizeof(struct kmalloc_header);
+    struct kmalloc_header *addr = (struct kmalloc_header *)
+                                  ((uintptr_t)ptr - header_size);
+
+    /* get allocated memory size and page order */
+    size_t alloc_size = addr->size;
+    size_t order = size_to_page_order(alloc_size);
+
+    /* free the memory region according to its size and order */
+    if(order < 0) {
+        /* unexpected error */
+        return;
+    } else if(order == 0) {
+        if(alloc_size < PAGE_SIZE_MIN / 2) {
+            //TODO: free slab
+        } else {
+            /* free the 0-order page */
+            free_pages((unsigned long)addr, 0);
+        }
+    } else {
+        /* free the page with order greater than 0 */
+        free_pages((unsigned long)addr, order);
+    }
+
+    /* end of the critical section */
+    preempt_enable();
 }
 
 static inline void set_syscall_pending(struct thread_info *thread)
@@ -2382,15 +2452,17 @@ void sys_malloc(void)
     /* read syscall arguments */
     size_t size = SYSCALL_ARG(size_t, 0);
 
-    SYSCALL_ARG(void *, 0) = kmalloc(size);
+    /* allocate memory from the memory pool */
+    size_t alloc_size = align_up(size, 4);
+    void *ptr = memory_pool_alloc(&kmpool, alloc_size);
+
+    SYSCALL_ARG(void *, 0) = ptr;
 }
 
 void sys_free(void)
 {
     /* read syscall arguments */
-    void *ptr = SYSCALL_ARG(void *, 0);
-
-    kfree(ptr);
+    //void *ptr = SYSCALL_ARG(void *, 0);
 }
 
 static void threads_ticks_update(void)

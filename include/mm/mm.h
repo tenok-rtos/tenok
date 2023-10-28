@@ -4,6 +4,10 @@
 #ifndef __MM_H__
 #define __MM_H__
 
+struct kmalloc_header {
+    size_t size;
+};
+
 /**
  * @brief  Allocate size bytes and returns a pointer to the allocated
            memory. The function can be only used in kernel
