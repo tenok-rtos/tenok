@@ -7,78 +7,62 @@
 #include "kconfig.h"
 
 #define ITOA_BUF_LEN (sizeof(int) * 8)
+#define UTOA_BUF_LEN (sizeof(unsigned int) * 8)
 #define LTOA_BUF_LEN (sizeof(long) * 8)
+#define ULTOA_BUF_LEN (sizeof(unsigned long) * 8)
+
+#define XTOA(TYPE, VALUE, BUF, BUF_SIZE, RADIX)        \
+    TYPE remainder;                                    \
+    char reverse_BUF[BUF_SIZE + 1] = {0};              \
+    char *last_digit = &reverse_BUF[BUF_SIZE - 1];     \
+                                                       \
+    if (VALUE < 0) {                                   \
+        *last_digit = '-';                             \
+        last_digit--;                                  \
+        VALUE *= -1;                                   \
+    } else if (VALUE == 0) {                           \
+        BUF[0] = '0';                                  \
+        BUF[1] = '\0';                                 \
+        return BUF;                                    \
+    }                                                  \
+                                                       \
+    for(int i = 0; i < BUF_SIZE && VALUE; i++) {       \
+        remainder = VALUE % RADIX;                     \
+                                                       \
+        if (remainder < 10) {                          \
+            *last_digit = remainder + '0';             \
+        } else if (RADIX == 16) {                      \
+            *last_digit = "abcdef"[remainder - 10];    \
+        }                                              \
+                                                       \
+        last_digit--;                                  \
+        VALUE /= RADIX;                                \
+    }                                                  \
+                                                       \
+    char *str = last_digit + 1;                        \
+    size_t size = &reverse_BUF[BUF_SIZE] - last_digit; \
+    strncpy(BUF, str, size);                           \
+                                                       \
+    return BUF;
 
 char *itoa(int value, char *buffer, int radix)
 {
-    int remainder;
-    char reverse_buffer[LTOA_BUF_LEN + 1] = {0};
-    char *last_digit = &reverse_buffer[LTOA_BUF_LEN - 1];
+    XTOA(int, value, buffer, ITOA_BUF_LEN, radix);
+}
 
-    if (value < 0) {
-        *last_digit = '-';
-        last_digit--;
-        value *= -1;
-    } else if (value == 0) {
-        buffer[0] = '0';
-        buffer[1] = '\0';
-        return buffer;
-    }
-
-    for(int i = 0; i < LTOA_BUF_LEN && value; i++) {
-        remainder = value % radix;
-
-        if (remainder < 10) {
-            *last_digit = remainder + '0';
-        } else if (radix == 16) {
-            *last_digit = "abcdef"[remainder - 10];
-        }
-
-        last_digit--;
-        value /= radix;
-    }
-
-    char *str = last_digit + 1;
-    size_t size = &reverse_buffer[LTOA_BUF_LEN] - last_digit;
-    strncpy(buffer, str, size);
-
-    return buffer;
+char *utoa(unsigned int value, char *buffer, int radix)
+{
+    XTOA(unsigned int, value, buffer, UTOA_BUF_LEN, radix);
 }
 
 char *ltoa(long value, char *buffer, int radix)
 {
-    long remainder;
-    char reverse_buffer[LTOA_BUF_LEN + 1] = {0};
-    char *last_digit = &reverse_buffer[LTOA_BUF_LEN - 1];
+    XTOA(long, value, buffer, LTOA_BUF_LEN, radix);
+}
 
-    if (value < 0) {
-        *last_digit = '-';
-        last_digit--;
-        value *= -1;
-    } else if (value == 0) {
-        buffer[0] = '0';
-        buffer[1] = '\0';
-        return buffer;
-    }
-
-    for(int i = 0; i < LTOA_BUF_LEN && value; i++) {
-        remainder = value % radix;
-
-        if (remainder < 10) {
-            *last_digit = remainder + '0';
-        } else if (radix == 16) {
-            *last_digit = "abcdef"[remainder - 10];
-        }
-
-        last_digit--;
-        value /= radix;
-    }
-
-    char *str = last_digit + 1;
-    size_t size = &reverse_buffer[LTOA_BUF_LEN] - last_digit;
-    strncpy(buffer, str, size);
-
-    return buffer;
+char *ultoa(unsigned long value, char *buffer, int radix)
+{
+    XTOA(unsigned long, value, buffer, ULTOA_BUF_LEN, radix);
 }
 
 #if (USE_TENOK_PRINTF != 0)
@@ -192,11 +176,30 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                         leave = true;
                         break;
                     }
+                    case 'o': {
+                        int o = va_arg(ap, int);
+                        char o_str[sizeof(int) * 8 + 1];
+                        itoa(o, o_str, 8);
+                        format_write(str, o_str, buf, &buf_pos,
+                                     &pad_with_zeros);
+                        leave = true;
+                        break;
+                    }
                     case 'x': {
                         int x = va_arg(ap, int);
                         char x_str[sizeof(int) * 8 + 1];
                         itoa(x, x_str, 16);
                         format_write(str, x_str, buf, &buf_pos,
+                                     &pad_with_zeros);
+                        leave = true;
+                        break;
+                    }
+                    case 'p': {
+                        unsigned long p = (long)va_arg(ap, void *);
+                        char p_str[sizeof(unsigned long) * 8 + 1];
+                        ultoa(p, p_str, 16);
+                        strcat(str, "0x");
+                        format_write(str, p_str, buf, &buf_pos,
                                      &pad_with_zeros);
                         leave = true;
                         break;
@@ -213,7 +216,7 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
                     case 'u': {
                         unsigned int u = va_arg(ap, unsigned int);
                         char u_str[sizeof(unsigned int) * 8 + 1];
-                        itoa(u, u_str, 10);
+                        utoa(u, u_str, 10);
                         format_write(str, u_str, buf, &buf_pos,
                                      &pad_with_zeros);
                         leave = true;
