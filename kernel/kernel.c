@@ -1768,7 +1768,10 @@ void sys_pthread_setschedparam(void)
     }
 
     /* apply settings */
-    thread->priority = param->sched_priority;
+    if(thread->priority_inherited)
+        thread->original_priority = param->sched_priority;
+    else
+        thread->priority = param->sched_priority;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1796,7 +1799,10 @@ void sys_pthread_getschedparam(void)
     }
 
     /* return settings */
-    param->sched_priority = thread->priority;
+    if(thread->priority_inherited)
+        param->sched_priority = thread->original_priority;
+    else
+        param->sched_priority = thread->priority;
 
     /* return on success */
     SYSCALL_ARG(int, 0) = 0;
@@ -1926,24 +1932,48 @@ void sys_pthread_exit(void)
 void sys_pthread_mutex_unlock(void)
 {
     /* read syscall arguments */
-    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
+    pthread_mutex_t *_mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    int retval = mutex_unlock((struct mutex *)mutex);
+    struct mutex *mutex = (struct mutex *)_mutex;
+    int retval = mutex_unlock(mutex);
+
+    /* handle priority inheritance */
+    if(mutex->protocol == PTHREAD_PRIO_INHERIT &&
+       retval == 0 && running_thread->priority_inherited) {
+        /* recover the thread priority */
+        running_thread->priority = running_thread->original_priority;
+    }
+
     SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_pthread_mutex_lock(void)
 {
     /* read syscall arguments */
-    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
+    pthread_mutex_t *_mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
 
-    int retval = mutex_lock((struct mutex *)mutex);
+    struct mutex *mutex = (struct mutex *)_mutex;
+    int retval = mutex_lock(mutex);
 
     /* check if the syscall need to be restarted */
-    if(retval == -ERESTARTSYS) {
+    if(retval == -ERESTARTSYS) { /* failed to acquire the mutex */
+        /* handle priority inheritance */
+        if(mutex->protocol == PTHREAD_PRIO_INHERIT &&
+           mutex->owner->priority < running_thread->priority) {
+            /* raise the priority of current mutex holder */
+            mutex->owner->priority = running_thread->priority;
+            mutex->owner->priority_inherited = true;
+        }
+
         /* turn on the syscall pending flag */
         set_syscall_pending(running_thread);
-    } else {
+    } else { /* succeeded to acquire the mutex */
+        /* handle priority inheritance */
+        if(mutex->protocol == PTHREAD_PRIO_INHERIT) {
+            /* preserve thread priority */
+            running_thread->original_priority = running_thread->priority;
+        }
+
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 

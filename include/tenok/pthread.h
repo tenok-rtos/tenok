@@ -21,14 +21,22 @@
 #define PTHREAD_CREATE_DETACHED 0
 #define PTHREAD_CREATE_JOINABLE 1
 
-#define __SIZEOF_PTHREAD_MUTEX_T sizeof(struct mutex)
-#define __SIZEOF_PTHREAD_ATTR_T  sizeof(struct thread_attr)
-#define __SIZEOF_PTHREAD_COND_T  sizeof(struct cond)
-#define __SIZEOF_PTHREAD_ONCE_T  sizeof(struct thread_once)
+#define PTHREAD_PRIO_NONE    0
+#define PTHREAD_PRIO_INHERIT 1
+
+#define __SIZEOF_PTHREAD_MUTEXATTR_T sizeof(struct mutex_attr)
+#define __SIZEOF_PTHREAD_MUTEX_T     sizeof(struct mutex)
+#define __SIZEOF_PTHREAD_ATTR_T      sizeof(struct thread_attr)
+#define __SIZEOF_PTHREAD_COND_T      sizeof(struct cond)
+#define __SIZEOF_PTHREAD_ONCE_T      sizeof(struct thread_once)
 
 typedef uint32_t pthread_t;
-typedef uint32_t pthread_mutexattr_t;
 typedef uint32_t pthread_condattr_t;
+
+typedef union {
+    char __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
+    uint32_t __align;
+} pthread_mutexattr_t;
 
 typedef union {
     char __size[__SIZEOF_PTHREAD_MUTEX_T];
@@ -95,6 +103,10 @@ int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
+
+int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
+
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol);
 
 /**
  * @brief  Set stack size parameter of a thread attriute object

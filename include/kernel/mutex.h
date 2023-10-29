@@ -8,7 +8,12 @@
 
 #include <kernel/list.h>
 
+struct mutex_attr {
+    int protocol;
+};
+
 struct mutex {
+    int protocol;
     struct thread_info *owner;
     struct list_head wait_list;
 };

@@ -76,6 +76,28 @@ int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy)
     return 0;
 }
 
+int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol)
+{
+    if(!attr)
+        return -ENOMEM;
+
+    struct mutex_attr *mtx_attr = (struct mutex_attr *)attr;
+    mtx_attr->protocol = protocol;
+
+    return 0;
+}
+
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol)
+{
+    if(!attr)
+        return -ENOMEM;
+
+    struct mutex_attr *mtx_attr = (struct mutex_attr *)attr;
+    *protocol = mtx_attr->protocol;
+
+    return 0;
+}
+
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
     if(!attr)
@@ -199,7 +221,8 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr)
     if(!attr)
         return -ENOMEM;
 
-    //no mutex attribute is currently implemented
+    struct mutex_attr *_attr = (struct mutex_attr *)attr;
+    _attr->protocol = PTHREAD_PRIO_NONE;
 
     return 0;
 }
@@ -215,7 +238,17 @@ int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    mutex_init((struct mutex *)mutex);
+    if(!mutex)
+        return -ENOMEM;
+
+    struct mutex *_mutex = (struct mutex *)mutex;
+    mutex_init(_mutex);
+
+    if(attr) {
+        struct mutex_attr *_attr = (struct mutex_attr *)attr;
+        _mutex->protocol = _attr->protocol;
+    }
+
     return 0;
 }
 

@@ -109,6 +109,9 @@ struct thread_info {
     uint8_t  status;
     uint32_t tid;
     uint8_t  priority;
+    uint8_t  original_priority;  /* used by mutex priority inheritance */
+    bool     priority_inherited; /* to mark that if current priority is
+                                  * inherited from another thread */
     char     name[THREAD_NAME_MAX];
     uint32_t privilege;
     uint32_t sleep_ticks; /* remained ticks to sleep before wake up */
