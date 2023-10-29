@@ -1,17 +1,18 @@
 # Tenok
 
-[Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
+[Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
 
 The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
 
 ## Features
 
-* POSIX interface
+* POSIX compliant RTOS
 * Linux-like design: Wait queue, tasklet, kfifo, and printk
 * Task and Thread (Task resembles UNIX process as a group of threads)
-* Synchronization: Spinlock, Mutex, and Semaphore
+* Synchronization: Mutex (supports Priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
-* Buddy system and Slab allocator
+* Kernel-space memory allocation: Buddy system and Slab allocator
+* User-space memory allocation: Memory pool
 * Asynchronous signals
 * Software timer
 * Event waiting of file descriptors with `poll()`
