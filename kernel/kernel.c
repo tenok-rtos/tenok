@@ -2545,14 +2545,6 @@ static void system_ticks_update(void)
     syscall_timeout_update();
 }
 
-static void stop_running_thread(void)
-{
-    /* the function is triggered when the thread time quantum exhausted */
-    if(running_thread->status == THREAD_RUNNING) {
-        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
-    }
-}
-
 static inline bool check_systick_event(void)
 {
     /* if r7 is negative, the kernel is returned from the systick
@@ -2628,9 +2620,9 @@ static void supervisor_request_handler(void)
 
 static void schedule(void)
 {
-    /* the time quantum of the current thread has not exhausted yet */
+    /* stop current thread */
     if(running_thread->status == THREAD_RUNNING)
-        return;
+        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
 
     /* awaken sleep threads if the sleep tick exhausted */
     struct list_head *curr, *next;
@@ -2645,7 +2637,7 @@ static void schedule(void)
         }
     }
 
-    /* find a ready list that contains runnable tasks */
+    /* find a ready list that contains runnable threads */
     int pri;
     for(pri = THREAD_PRIORITY_MAX; pri >= 0; pri--) {
         if(list_empty(&ready_list[pri]) == false)
@@ -2739,7 +2731,6 @@ void sched_start(void)
     while(1) {
         if(check_systick_event()) {
             system_ticks_update();
-            stop_running_thread();
         } else {
             supervisor_request_handler();
         }
