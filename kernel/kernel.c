@@ -1960,8 +1960,22 @@ void sys_pthread_mutex_lock(void)
         /* handle priority inheritance */
         if(mutex->protocol == PTHREAD_PRIO_INHERIT &&
            mutex->owner->priority < running_thread->priority) {
-            /* raise the priority of current mutex holder */
-            mutex->owner->priority = running_thread->priority;
+            /* raise the priority of the owner thread */
+            uint8_t old_priority = mutex->owner->priority;
+            uint8_t new_priority = running_thread->priority;
+
+            /* move the owner thread from the ready list with lower priority to the new
+             * list with raised priority  */
+            struct list_head *curr, *next;
+            list_for_each_safe(curr, next, &ready_list[old_priority]) {
+                struct thread_info *thread = list_entry(curr, struct thread_info, list);
+                if(thread == mutex->owner) {
+                    list_move(&thread->list, &ready_list[new_priority]);
+                }
+            }
+
+            /* set new priority and mark the priority inherited flag */
+            mutex->owner->priority = new_priority;
             mutex->owner->priority_inherited = true;
         }
 
