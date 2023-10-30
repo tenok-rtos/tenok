@@ -8,9 +8,6 @@
 #define THREAD_PRIORITY_MAX  5
 #define THREAD_NAME_MAX      50
 
-/* dynamic memory allocation */
-#define MEM_POOL_SIZE        20480
-
 /* message queue and pipe*/
 #define MQUEUE_CNT_MAX       50
 

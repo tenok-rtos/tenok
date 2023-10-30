@@ -46,6 +46,9 @@
 
 #include "kconfig.h"
 
+extern char _user_stack_start;
+extern char _user_stack_end;
+
 /* global lists */
 LIST_HEAD(tasks_list);   /* list of all tasks in the system */
 LIST_HEAD(threads_list); /* list of all threads in the system */
@@ -78,7 +81,6 @@ uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
 /* memory pool */
 struct memory_pool kmpool;
-uint8_t kmpool_buf[MEM_POOL_SIZE];
 
 /* syscall table */
 syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
@@ -2751,7 +2753,8 @@ void sched_start(void)
     os_env_init(&stack_empty[31]);
 
     /* initialize the memory pool */
-    memory_pool_init(&kmpool, kmpool_buf, MEM_POOL_SIZE);
+    size_t user_stack_size = (uintptr_t)&_user_stack_end - (uintptr_t)&_user_stack_start;
+    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, user_stack_size);
 
     /* initialize the ready lists */
     for(int i = 0; i <= THREAD_PRIORITY_MAX; i++) {

@@ -55,6 +55,8 @@ ENTRY(Reset_Handler)
 RAM_ADDR = 0x20000000;
 RAM_SIZE = 192K;
 
+USER_STACK_SIZE = 10K;
+
 /* Highest address of the user mode stack */
 _estack = 0x20030000;    /* end of RAM */
 
@@ -178,14 +180,6 @@ SECTIONS
     _eccmram = .;       /* create a global symbol at ccmram end */
   } >CCMRAM AT> FLASH
 
-  . = ALIGN(4);
-  .pgmem :
-  {
-    PROVIDE (_page_mem_start = .);
-    . += 32K;
-    PROVIDE (_page_mem_end = .);
-  } >RAM
-  
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
@@ -202,6 +196,22 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
+  . = ALIGN(4);
+  .pgmem :
+  {
+    PROVIDE (_page_mem_start = .);
+    . += 32K;
+    PROVIDE (_page_mem_end = .);
+  } >RAM
+
+  . = ALIGN(4);
+  .user_stack :
+  {
+    PROVIDE (_user_stack_start = .);
+    . += USER_STACK_SIZE;
+    PROVIDE (_user_stack_end = .);
+  } >RAM
+ 
   .sdram (NOLOAD) :
   {
     . = ALIGN(4);
