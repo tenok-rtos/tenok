@@ -79,8 +79,17 @@ uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
-/* memory pool */
+/* memory allocators */
 struct memory_pool kmpool;
+struct kmalloc_slab_info kmalloc_slab_info[] = {
+    DEF_KMALLOC_SLAB(32),
+    DEF_KMALLOC_SLAB(64),
+    DEF_KMALLOC_SLAB(128),
+    DEF_KMALLOC_SLAB(256),
+    DEF_KMALLOC_SLAB(512),
+    DEF_KMALLOC_SLAB(1024),
+};
+struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
 /* syscall table */
 syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
@@ -102,51 +111,42 @@ NACKED void thread_once_return_handler(void)
 
 void *kmalloc(size_t size)
 {
+    void *ptr;
+
     /* start of the critcal section */
     preempt_disable();
 
-    /* reserve space for kmalloc header to track allocation size */
-    void *ptr;
+    /* reserve space for kmalloc header */
     const size_t header_size = sizeof(struct kmalloc_header);
     size_t alloc_size = size + header_size;
-    size_t order = size_to_page_order(alloc_size);
 
-    /* allocate a memory region according to its size and order */
-    if(order < 0) {
-        /* end of the critical section */
-        preempt_enable();
-
-        /* the request size is too large */
-        return NULL;
-    } else if(order == 0) {
-        if(alloc_size < PAGE_SIZE_MIN / 2) {
-            /* allocate memory from slab for request with
-             * small size
-             */
-            ptr = memory_pool_alloc(&kmpool, alloc_size);
-            //TODO: allocate from the slab instead
-        } else {
-            /* for request size that is between half and
-             * entire 0-order page, we just allocate a
-             * 0-order page for it.
-             */
-            ptr = alloc_pages(0);
-        }
-    } else {
-        /* allocate an entire page for the request */
-        ptr = alloc_pages(order);
+    /* find a suitable kmalloc slab for memory allocation */
+    int i;
+    for(i = 0; i < KMALLOC_SLAB_TABLE_SIZE; i++) {
+        if(alloc_size <= kmalloc_slab_info[i].size)
+            break;
     }
 
-    /* write the header only if the allocation succeeded */
-    if(ptr) {
-        ((struct kmalloc_header *)ptr)->size = size;
+    /* check if the kmalloc slab is found for memory allocation */
+    if(i < KMALLOC_SLAB_TABLE_SIZE) {
+        /* allocate new memory */
+        ptr = kmem_cache_alloc(kmalloc_caches[i], 0);
+    } else {
+        /* failed, the reqeust size is too large to handle */
+        ptr = NULL;
     }
 
     /* end of the critical section */
     preempt_enable();
 
-    /* return the address of the usable memory region */
-    return (void *)((uintptr_t)ptr + header_size);
+    if(ptr) {
+        /* record the allocated size and return the start address */
+        ((struct kmalloc_header *)ptr)->size = size;
+        return (void *)((uintptr_t)ptr + header_size);
+    } else {
+        /* return null pointer as error */
+        return NULL;
+    }
 }
 
 void kfree(void *ptr)
@@ -159,24 +159,20 @@ void kfree(void *ptr)
     struct kmalloc_header *addr = (struct kmalloc_header *)
                                   ((uintptr_t)ptr - header_size);
 
-    /* get allocated memory size and page order */
+    /* get allocated memory size */
     size_t alloc_size = addr->size;
-    size_t order = size_to_page_order(alloc_size);
 
-    /* free the memory region according to its size and order */
-    if(order < 0) {
-        /* unexpected error */
-        return;
-    } else if(order == 0) {
-        if(alloc_size < PAGE_SIZE_MIN / 2) {
-            //TODO: free slab
-        } else {
-            /* free the 0-order page */
-            free_pages((unsigned long)addr, 0);
-        }
+    /* find the kmalloc slab of the allocate memory */
+    int i;
+    for(i = 0; i < KMALLOC_SLAB_TABLE_SIZE; i++) {
+        if(alloc_size <= kmalloc_slab_info[i].size)
+            break;
+    }
+
+    if(i < KMALLOC_SLAB_TABLE_SIZE) {
+        kmem_cache_free(kmalloc_caches[i], addr);
     } else {
-        /* free the page with order greater than 0 */
-        free_pages((unsigned long)addr, order);
+        printk("Corrupted kmalloc header (address: %p)", 123);
     }
 
     /* end of the critical section */
@@ -2705,6 +2701,14 @@ static void print_platform_info(void)
 static void slab_init(void)
 {
     kmem_cache_init();
+
+    /* initialize slabs for kmalloc */
+    for(int i = 0; i < KMALLOC_SLAB_TABLE_SIZE; i++) {
+        kmalloc_caches[i] =
+            kmem_cache_create(kmalloc_slab_info[i].name,
+                              kmalloc_slab_info[i].size,
+                              sizeof(uint32_t), 0, NULL);
+    }
 }
 
 void first(void)

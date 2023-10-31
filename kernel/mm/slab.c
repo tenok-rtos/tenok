@@ -43,15 +43,16 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 {
     struct kmem_cache *cache;
 
-    /* find a suitable page order to contain the slab.
-     * one single page should be able to contain at
-     * least 2 slabs */
+    /* find a suitable page order for the slab. one
+     * single page should at least contains 2 slabs */
     int order = size_to_page_order(size);
     int page_size = page_order_to_size(order);
+    int objnum = OBJS_PER_SLAB(page_size, size);
 
-    if(size >= (page_size - sizeof(struct slab)) / 2) {
+    while(objnum < 2 && order <= PAGE_ORDER_MAX) {
         order++;
         page_size = page_order_to_size(order);
+        objnum = OBJS_PER_SLAB(page_size, size);
     }
 
     /* the request size is too large */
@@ -67,7 +68,7 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 
     /* initialize the new cache */
     cache->objsize = size;
-    cache->objnum = OBJS_PER_SLAB(page_size, size);
+    cache->objnum = objnum;
     cache->page_order = order;
     cache->opts = CACHE_OPT_NONE;
     strncpy(cache->name, name, CACHE_NAME_LEN);

@@ -40,7 +40,7 @@
 #define SHELL_CMD_LEN_MAX    50
 #define SHELL_PROMPT_LEN_MAX 50
 
-#define PRINT_SIZE_MAX       400
+#define PRINT_SIZE_MAX       100
 
 #define USE_TENOK_PRINTF     0
 

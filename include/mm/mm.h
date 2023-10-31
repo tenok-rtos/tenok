@@ -4,7 +4,20 @@
 #ifndef __MM_H__
 #define __MM_H__
 
+#define DEF_KMALLOC_SLAB(_size) { \
+        .size = _size, \
+        .name = "kmalloc-" #_size \
+    }
+
+#define KMALLOC_SLAB_TABLE_SIZE \
+    (sizeof(kmalloc_slab_info) / sizeof(struct kmalloc_slab_info))
+
 struct kmalloc_header {
+    size_t size;
+};
+
+struct kmalloc_slab_info {
+    char *name;
     size_t size;
 };
 

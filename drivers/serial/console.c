@@ -49,8 +49,7 @@ static struct file_operations serial0_file_ops = {
 
 void tty_init(void)
 {
-    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX,
-                                UART1_TX_FIFO_SIZE);
+    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX, UART1_TX_FIFO_SIZE);
     tasklet_init(&uart1_tx_tasklet, uart1_tx_tasklet_handler, 0);
 
 #ifndef BUILD_QEMU
