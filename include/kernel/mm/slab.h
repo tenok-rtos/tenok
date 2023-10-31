@@ -15,6 +15,7 @@ struct kmem_cache {
     struct list_head list;
     unsigned short objsize;
     unsigned short objnum;
+    unsigned short page_order;
     int opts;
     int alloc_succeed;
     int alloc_fail;

@@ -7,13 +7,13 @@
 #include <kernel/util.h>
 #include <kernel/bitops.h>
 
-#define OBJS_PER_SLAB(objsize) \
-    ((CACHE_PAGE_SIZE - sizeof(struct slab) / objsize))
+#define OBJS_PER_SLAB(page_size, objsize) \
+    ((page_size - sizeof(struct slab)) / objsize)
 
 /* cache of caches */
 static struct kmem_cache cache_caches = {
     .objsize = sizeof(struct kmem_cache),
-    .objnum = OBJS_PER_SLAB(sizeof(struct kmem_cache)),
+    .objnum = OBJS_PER_SLAB(PAGE_SIZE_MIN, sizeof(struct kmem_cache)),
     .name = "cache-cache",
     .slabs_free = LIST_HEAD_INIT(cache_caches.slabs_free),
     .slabs_partial = LIST_HEAD_INIT(cache_caches.slabs_partial),
@@ -43,27 +43,32 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 {
     struct kmem_cache *cache;
 
-    /* too small */
-    if(size < 8) {
-        return NULL;
+    /* find a suitable page order to contain the slab.
+     * one single page should be able to contain at
+     * least 2 slabs */
+    int order = size_to_page_order(size);
+    int page_size = page_order_to_size(order);
+
+    if(size >= (page_size - sizeof(struct slab)) / 2) {
+        order++;
+        page_size = page_order_to_size(order);
     }
 
-    /* too big */
-    if(size > (256 - sizeof(struct slab) / 2)) {
+    /* the request size is too large */
+    if(order > PAGE_ORDER_MAX)
         return NULL;
-    }
 
-    /* attempt to allocate new cache memory */
+    /* allocate new cache memory */
     cache = kmem_cache_alloc(&cache_caches, 0);
 
     /* failed to allocate cache memory */
-    if(!cache) {
+    if(!cache)
         return NULL;
-    }
 
     /* initialize the new cache */
     cache->objsize = size;
-    cache->objnum = OBJS_PER_SLAB(size);
+    cache->objnum = OBJS_PER_SLAB(page_size, size);
+    cache->page_order = order;
     cache->opts = CACHE_OPT_NONE;
     strncpy(cache->name, name, CACHE_NAME_LEN);
     INIT_LIST_HEAD(&cache->slabs_free);
@@ -76,8 +81,8 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 
 static struct slab *kmem_cache_grow(struct kmem_cache *cache)
 {
-    /* attempt to allocate a 256-bytes page (order = 0) */
-    struct slab* slab = alloc_pages(0);
+    /* allocate a new page for the slab */
+    struct slab* slab = alloc_pages(cache->page_order);
 
     /* failed to allocate new page */
     if(!slab) {

@@ -7,5 +7,6 @@
 void *alloc_pages(unsigned long order);
 void free_pages(unsigned long addr, unsigned long order);
 long size_to_page_order(unsigned long size);
+unsigned long page_order_to_size(long order);
 
 #endif

@@ -3,6 +3,7 @@
 #include <kernel/log2.h>
 
 extern char _page_mem_start;
+extern char _page_mem_end;
 
 /* .pgmem section (32KB):
  *     - 128 pages of 256B require a  16-byte map
@@ -32,6 +33,17 @@ long size_to_page_order(unsigned long size)
     if(size <= 4096) return 4;
 
     return -1;
+}
+
+unsigned long page_order_to_size(long order)
+{
+    if(order == 0) return 256;
+    if(order == 1) return 512;
+    if(order == 2) return 1024;
+    if(order == 3) return 2048;
+    if(order == 4) return 4096;
+
+    return 0;
 }
 
 static long find_first_free_page(unsigned long order)
