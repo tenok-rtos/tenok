@@ -2492,6 +2492,12 @@ void sys_malloc(void)
 
     void *ptr;
 
+    /* return NULL if the size is zerp */
+    if(size == 0) {
+        SYSCALL_ARG(void *, 0) = NULL;
+        return;
+    }
+
 #if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
     /* allocate memory from the memory pool */
     size_t alloc_size = align_up(size, 4);
