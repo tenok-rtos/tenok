@@ -38,4 +38,8 @@ void *kmalloc(size_t size);
  */
 void kfree(void *ptr);
 
+void malloc_heap_init(void);
+void *__malloc(size_t size);
+void __free(void *ptr);
+
 #endif

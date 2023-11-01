@@ -2490,9 +2490,15 @@ void sys_malloc(void)
     /* read syscall arguments */
     size_t size = SYSCALL_ARG(size_t, 0);
 
+    void *ptr;
+
+#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
     /* allocate memory from the memory pool */
     size_t alloc_size = align_up(size, 4);
-    void *ptr = memory_pool_alloc(&kmpool, alloc_size);
+    ptr = memory_pool_alloc(&kmpool, alloc_size);
+#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
+    ptr = __malloc(size);
+#endif
 
     SYSCALL_ARG(void *, 0) = ptr;
 }
@@ -2500,7 +2506,12 @@ void sys_malloc(void)
 void sys_free(void)
 {
     /* read syscall arguments */
-    //void *ptr = SYSCALL_ARG(void *, 0);
+    __attribute__((unused)) void *ptr = SYSCALL_ARG(void *, 0);
+
+#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
+#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
+    __free(ptr);
+#endif
 }
 
 static void threads_ticks_update(void)
@@ -2711,6 +2722,17 @@ static void slab_init(void)
     }
 }
 
+static void heap_init(void)
+{
+#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
+    size_t user_stack_size = (uintptr_t)&_user_stack_end - (uintptr_t)&_user_stack_start;
+    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, user_stack_size);
+#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
+    malloc_heap_init();
+    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, 0);
+#endif
+}
+
 void first(void)
 {
     setprogname("idle");
@@ -2756,18 +2778,15 @@ void sched_start(void)
     uint32_t stack_empty[32]; //a dummy stack for os enviromnent initialization
     os_env_init(&stack_empty[31]);
 
-    /* initialize the memory pool */
-    size_t user_stack_size = (uintptr_t)&_user_stack_end - (uintptr_t)&_user_stack_start;
-    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, user_stack_size);
+    slab_init();
+    heap_init();
+    tty_init();
+    rootfs_init();
 
     /* initialize the ready lists */
     for(int i = 0; i <= THREAD_PRIORITY_MAX; i++) {
         INIT_LIST_HEAD(&ready_list[i]);
     }
-
-    slab_init();
-    tty_init();
-    rootfs_init();
 
     /* initialize kernel threads and deamons */
     kthread_create(first, 0, 1024);
