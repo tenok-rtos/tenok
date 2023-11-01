@@ -9,10 +9,10 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 * POSIX compliant RTOS
 * Linux-like design: Wait queue, tasklet, kfifo, and printk
 * Task and Thread (Task resembles UNIX process as a group of threads)
-* Synchronization: Mutex (supports Priority inheritance), Semaphore, and Spinlock
+* Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
 * Kernel-space memory allocation: Buddy system and Slab allocator
-* User-space memory allocation: Memory pool
+* User-space memory allocation: Memory pool and First-Fit Free List
 * Asynchronous signals
 * Software timer
 * Event waiting of file descriptors with `poll()`
