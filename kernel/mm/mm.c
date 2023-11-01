@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <arch/port.h>
 #include <kernel/list.h>
@@ -150,6 +152,23 @@ void __free(void *ptr)
 NACKED void free(void *ptr)
 {
     SYSCALL(FREE);
+}
+
+void *calloc(size_t nmemb, size_t size)
+{
+    /* calculate the allocation size and detect the overflow */
+    size_t total_size;
+    if(__builtin_mul_overflow(nmemb, size, &total_size))
+        return NULL;
+
+    /* allocate new memory */
+    void *mem = malloc(total_size);
+    if(!mem)
+        return NULL;
+
+    /* reset the memory data */
+    memset(mem, 0, nmemb * size);
+    return mem;
 }
 
 /* not implemented. the function is defined only

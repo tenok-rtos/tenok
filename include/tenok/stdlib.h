@@ -27,6 +27,8 @@ void *malloc(size_t size);
  */
 void free(void *ptr);
 
+void *calloc(size_t nmemb, size_t size);
+
 /* non-standard extensions: */
 char *itoa(int value, char *buffer, int radix);
 char *utoa(unsigned int value, char *buffer, int radix);
