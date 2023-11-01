@@ -14,11 +14,6 @@
 #define PIPE_DEPTH           100   /* notice that if the path depth is too shallow, *
                                     * the file operation request will failed        */
 
-/* memory allocation */
-#define MALLOC_USE_MEM_POOL  0     /* use memory pool to manage malloc() and free() */
-#define MALLOC_USE_FFFL      1     /* use first fit free list to manage malloc() and free() */
-#define MALLOC_SELECT        MALLOC_USE_MEM_POOL
-
 /* file system */
 #define FILE_SYSTEM_FD       1
 
@@ -48,9 +43,5 @@
 #define PRINT_SIZE_MAX       100
 
 #define USE_TENOK_PRINTF     0
-
-#if (MALLOC_SELECT != MALLOC_USE_MEM_POOL) && (MALLOC_SELECT != MALLOC_USE_FFFL)
-#    error "malloc setting is invalid!"
-#endif
 
 #endif

@@ -4,6 +4,9 @@
 #ifndef __MM_H__
 #define __MM_H__
 
+#include <stddef.h>
+#include <stdint.h>
+
 #define DEF_KMALLOC_SLAB(_size) { \
         .size = _size, \
         .name = "kmalloc-" #_size \

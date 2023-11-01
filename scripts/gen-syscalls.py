@@ -8,6 +8,7 @@ syscalls = \
      'getprogname',
      'delay_ticks',
      'task_create',
+     'mpool_alloc',
      'sched_yield',
      'exit',
      'mount',

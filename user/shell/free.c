@@ -4,7 +4,7 @@
 
 #include "shell.h"
 
-extern struct memory_pool kmpool;
+extern struct mpool kmpool;
 
 void shell_cmd_free(int argc, char *argv[])
 {
@@ -14,9 +14,6 @@ void shell_cmd_free(int argc, char *argv[])
     int used = kmpool.offset;
     int _free = total - used;
 
-    /* TODO: replace %d with %7d after a more sophisticated
-     * snprintf is implemented
-     */
     snprintf(str, PRINT_SIZE_MAX,
              "               total    used    free\n\r"
              "Memory pool: %7d %7d %7d\n\r",

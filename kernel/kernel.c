@@ -80,7 +80,7 @@ struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
 /* memory allocators */
-struct memory_pool kmpool;
+struct mpool kmpool;
 struct kmalloc_slab_info kmalloc_slab_info[] = {
     DEF_KMALLOC_SLAB(32),
     DEF_KMALLOC_SLAB(64),
@@ -592,6 +592,24 @@ void sys_task_create(void)
 
     int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
     SYSCALL_ARG(int, 0) = retval;
+}
+
+void sys_mpool_alloc(void)
+{
+    /* read syscall arguments */
+    struct mpool *mpool = SYSCALL_ARG(struct mpool *, 0);
+    size_t size = SYSCALL_ARG(size_t, 1);
+
+    void *ptr = NULL;
+    size_t alloc_size = align_up(size, 4);
+
+    /* test if the memory poll has enough space */
+    if((mpool->offset + alloc_size) <= mpool->size) {
+        ptr = (void *)((uintptr_t)mpool->mem + mpool->offset);
+        mpool->offset += alloc_size;
+    }
+
+    SYSCALL_ARG(void *, 0) = ptr;
 }
 
 void sys_sched_yield(void)
@@ -2498,13 +2516,7 @@ void sys_malloc(void)
         return;
     }
 
-#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
-    /* allocate memory from the memory pool */
-    size_t alloc_size = align_up(size, 4);
-    ptr = memory_pool_alloc(&kmpool, alloc_size);
-#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
     ptr = __malloc(size);
-#endif
 
     SYSCALL_ARG(void *, 0) = ptr;
 }
@@ -2514,10 +2526,7 @@ void sys_free(void)
     /* read syscall arguments */
     __attribute__((unused)) void *ptr = SYSCALL_ARG(void *, 0);
 
-#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
-#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
     __free(ptr);
-#endif
 }
 
 static void threads_ticks_update(void)
@@ -2730,13 +2739,8 @@ static void slab_init(void)
 
 static void heap_init(void)
 {
-#if (MALLOC_SELECT == MALLOC_USE_MEM_POOL)
-    size_t user_stack_size = (uintptr_t)&_user_stack_end - (uintptr_t)&_user_stack_start;
-    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, user_stack_size);
-#elif (MALLOC_SELECT == MALLOC_USE_FFFL)
     malloc_heap_init();
-    memory_pool_init(&kmpool, (uint8_t *)&_user_stack_start, 0);
-#endif
+    mpool_init(&kmpool, (uint8_t *)&_user_stack_start, 0);
 }
 
 void first(void)
