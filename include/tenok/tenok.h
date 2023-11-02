@@ -19,6 +19,13 @@ struct procstat_info {
     char   name[THREAD_NAME_MAX];
 };
 
+enum {
+    PAGE_TOTAL_SIZE = 0,
+    PAGE_FREE_SIZE = 1,
+    HEAP_TOTAL_SIZE = 2,
+    HEAP_FREE_SIZE = 3
+} MINFO_NAMES;
+
 void sched_start(void);
 
 /* non-posix syscalls */
@@ -27,5 +34,6 @@ void setprogname(const char *name);
 const char *getprogname(void);
 int delay_ticks(uint32_t ticks);
 pid_t gettid(void);
+int minfo(int name);
 
 #endif

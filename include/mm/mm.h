@@ -41,6 +41,8 @@ void *kmalloc(size_t size);
  */
 void kfree(void *ptr);
 
+unsigned long heap_get_total_size(void);
+unsigned long heap_get_free_size(void);
 void malloc_heap_init(void);
 void *__malloc(size_t size);
 void __free(void *ptr);

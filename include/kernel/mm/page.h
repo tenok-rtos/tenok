@@ -4,6 +4,8 @@
 #define PAGE_ORDER_MAX 4
 #define PAGE_SIZE_MIN  256
 
+unsigned long get_page_total_size(void);
+unsigned long get_page_total_free_size(void);
 void *alloc_pages(unsigned long order);
 void free_pages(unsigned long addr, unsigned long order);
 long size_to_page_order(unsigned long size);

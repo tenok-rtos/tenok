@@ -49,6 +49,30 @@ static void malloc_set_block_length(struct malloc_info *blk, size_t len)
                       (len & MALLOC_BLK_LEN_MASK);
 }
 
+unsigned long heap_get_total_size(void)
+{
+    return (unsigned long)((uintptr_t)&_user_stack_end -
+                           (uintptr_t)&_user_stack_start);
+}
+
+unsigned long heap_get_free_size(void)
+{
+    unsigned long total_size = 0;
+
+    /* interate through the whole malloc list */
+    struct list_head *curr;
+    list_for_each(curr, &malloc_list) {
+        /* acquire the malloc info */
+        struct malloc_info *blk = list_entry(curr, struct malloc_info, list);
+
+        /* accumuate the size of all free pages */
+        if(malloc_block_is_free(blk))
+            total_size += malloc_get_block_length(blk);
+    }
+
+    return total_size;
+}
+
 void malloc_heap_init(void)
 {
     /* initialize the whole heap memory section as a free block */
@@ -170,6 +194,11 @@ void *calloc(size_t nmemb, size_t size)
     /* reset the memory data */
     memset(mem, 0, nmemb * size);
     return mem;
+}
+
+NACKED int minfo(int name)
+{
+    SYSCALL(MINFO);
 }
 
 /* not implemented. the function is defined only

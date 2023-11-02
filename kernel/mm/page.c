@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include <mm/page.h>
 #include <kernel/bitops.h>
 #include <kernel/log2.h>
@@ -44,6 +46,31 @@ unsigned long page_order_to_size(long order)
     if(order == 4) return 4096;
 
     return 0;
+}
+
+unsigned long get_page_total_size(void)
+{
+    return (unsigned long)((uintptr_t)& _page_mem_end- (uintptr_t)&_page_mem_start);
+}
+
+unsigned long get_page_total_free_size(void)
+{
+    unsigned size = 0;
+
+    /* iterate through all page orders */
+    for(int i = 0; i <= PAGE_ORDER_MAX; i++) {
+        int bit_num = 0;
+
+        /* count the set bit of the bitmap */
+        for(int j = 0; j < (page_bitmap_sz[i] / 8); j++) {
+            bit_num += __builtin_popcount(((uint8_t *)page_bitmap[i])[j]);
+
+            /* use bit count to calculate the free memory */
+            size += bit_num * (PAGE_SIZE_MIN * (i + 1));
+        }
+    }
+
+    return size;
 }
 
 static long find_first_free_page(unsigned long order)

@@ -80,7 +80,6 @@ struct mq_desc mqd_table[MQUEUE_CNT_MAX];
 uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
 /* memory allocators */
-struct mpool kmpool;
 struct kmalloc_slab_info kmalloc_slab_info[] = {
     DEF_KMALLOC_SLAB(32),
     DEF_KMALLOC_SLAB(64),
@@ -610,6 +609,31 @@ void sys_mpool_alloc(void)
     }
 
     SYSCALL_ARG(void *, 0) = ptr;
+}
+
+void sys_minfo(void)
+{
+    /* read syscall arguments */
+    int name = SYSCALL_ARG(int, 0);
+
+    int retval = -1;
+
+    switch(name) {
+        case PAGE_TOTAL_SIZE:
+            retval = get_page_total_size();
+            break;
+        case PAGE_FREE_SIZE:
+            retval = get_page_total_free_size();
+            break;
+        case HEAP_TOTAL_SIZE:
+            retval = heap_get_total_size();
+            break;
+        case HEAP_FREE_SIZE:
+            retval = heap_get_free_size();
+            break;
+    }
+
+    SYSCALL_ARG(int, 0) = retval;
 }
 
 void sys_sched_yield(void)
@@ -2740,7 +2764,6 @@ static void slab_init(void)
 static void heap_init(void)
 {
     malloc_heap_init();
-    mpool_init(&kmpool, (uint8_t *)&_user_stack_start, 0);
 }
 
 void first(void)

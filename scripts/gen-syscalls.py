@@ -9,6 +9,7 @@ syscalls = \
      'delay_ticks',
      'task_create',
      'mpool_alloc',
+     'minfo',
      'sched_yield',
      'exit',
      'mount',
