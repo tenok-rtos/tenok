@@ -4,23 +4,20 @@
 
 The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
 
-## Features
+## Key Features
 
 * POSIX compliant RTOS
 * Linux-like design: Wait queue, tasklet, kfifo, and printk
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
-* Inter-Process Communication (IPC): FIFO (Named pipe) and Message queue
+* Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
 * Kernel-space memory allocation: Buddy system and Slab allocator
 * User-space memory allocation: Memory pool and First-Fit Free List
-* Asynchronous signals
 * Software timer
-* Event waiting of file descriptors with `poll()`
-* Floating-point Unit (FPU) support
-* Built-in Shell
+* Built-in Shell with command completion and history saving
 * Root and ROM file systems
-* Real-time plotting and customizable debug messaging using metalanguage
-* Integration with MAVLink communication protocol
+* Real-time plotting and customizable debug messaging with metalanguage
+* Integrated with MAVLink communication protocol
 * Software-in-the-loop (SIL) simulation with Gazebo simulator
 
 ## Tools
