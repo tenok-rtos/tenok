@@ -53,6 +53,16 @@ unsigned long get_page_total_size(void)
     return (unsigned long)((uintptr_t)& _page_mem_end- (uintptr_t)&_page_mem_start);
 }
 
+static size_t order_to_page_size(int order)
+{
+    size_t size = PAGE_SIZE_MIN;
+
+    for(int i = 0; i < order; i++)
+        size *= 2;
+
+    return size;
+}
+
 unsigned long get_page_total_free_size(void)
 {
     unsigned size = 0;
@@ -62,12 +72,11 @@ unsigned long get_page_total_free_size(void)
         int bit_num = 0;
 
         /* count the set bit of the bitmap */
-        for(int j = 0; j < (page_bitmap_sz[i] / 8); j++) {
+        for(int j = 0; j < (page_bitmap_sz[i] / 8); j++)
             bit_num += __builtin_popcount(((uint8_t *)page_bitmap[i])[j]);
 
-            /* use bit count to calculate the free memory */
-            size += bit_num * (PAGE_SIZE_MIN * (i + 1));
-        }
+        /* use bit count to calculate the free memory */
+        size += bit_num * order_to_page_size(i);
     }
 
     return size;
