@@ -93,7 +93,8 @@ void *__malloc(size_t size)
                 malloc_set_block_length(blk, malloc_get_block_length(blk) - alloc_size);
 
                 /* the splitted part are now ready to use */
-                struct malloc_info * new_blk = blk + malloc_get_block_length(blk);
+                struct malloc_info * new_blk = (struct malloc_info *)
+                                               ((uintptr_t)blk + malloc_get_block_length(blk));
                 malloc_set_block_free(new_blk, false);
                 malloc_set_block_length(new_blk, alloc_size);
                 list_add(&new_blk->list, &malloc_list);
