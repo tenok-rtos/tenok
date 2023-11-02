@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "kconfig.h"
 
@@ -267,3 +268,31 @@ int snprintf(char *str, size_t size, const char *format, ...)
 }
 
 #endif
+
+int vdprintf(int fd, const char *format, va_list ap)
+{
+    char buf[PRINT_SIZE_MAX];
+    vsnprintf(buf, PRINT_SIZE_MAX, format, ap);
+
+    size_t len = strlen(buf);
+    int retval = write(fd, buf, len);
+
+    return retval;
+}
+
+int dprintf(int fd, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+
+    char buf[PRINT_SIZE_MAX];
+    vsnprintf(buf, PRINT_SIZE_MAX, format, args);
+
+    size_t len = strlen(buf);
+    int retval = write(fd, buf, len);
+
+    va_end(args);
+
+    return retval;
+}
