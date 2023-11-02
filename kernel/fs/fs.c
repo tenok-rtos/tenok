@@ -246,10 +246,8 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
         fs_mount_directory(inode_dir, inode_dir);
 
     /* traversal of the dentry list */
-    struct list_head *list_curr;
-    list_for_each(list_curr, &inode_dir->i_dentry) {
-        struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
-
+    struct dentry *dentry;
+    list_for_each_entry(dentry, &inode_dir->i_dentry, d_list) {
         /* compare the file name with the dentry */
         if(strcmp(dentry->d_name, file_name) == 0)
             return &inodes[dentry->d_inode];
@@ -896,10 +894,8 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         if(list_empty(&inode->i_dentry) == true)
             break;
 
-        struct list_head *list_curr;
-        list_for_each(list_curr, &inode->i_dentry) {
-            struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
-
+        struct dentry *dentry;
+        list_for_each_entry(dentry, &inode->i_dentry, d_list) {
             if(dentry->d_inode == inode_prev) {
                 strncpy(old_path, new_path, PATH_LEN_MAX);
                 snprintf(new_path, PATH_LEN_MAX, "%s/%s", dentry->d_name, old_path);

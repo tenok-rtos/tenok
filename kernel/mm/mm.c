@@ -60,11 +60,8 @@ unsigned long heap_get_free_size(void)
     unsigned long total_size = 0;
 
     /* interate through the whole malloc list */
-    struct list_head *curr;
-    list_for_each(curr, &malloc_list) {
-        /* acquire the malloc info */
-        struct malloc_info *blk = list_entry(curr, struct malloc_info, list);
-
+    struct malloc_info *blk;
+    list_for_each_entry(blk, &malloc_list, list) {
         /* accumuate the size of all free pages */
         if(malloc_block_is_free(blk))
             total_size += malloc_get_block_length(blk);
@@ -90,10 +87,8 @@ void *__malloc(size_t size)
     size_t alloc_size = align_up(size + sizeof(struct malloc_info), 4);
 
     /* interate through the block list */
-    struct list_head *curr;
-    list_for_each(curr, &malloc_list) {
-        struct malloc_info *blk = list_entry(curr, struct malloc_info, list);
-
+    struct malloc_info *blk;
+    list_for_each_entry(blk, &malloc_list, list) {
         /* check if the block is free or not */
         if(malloc_block_is_free(blk)) {
             /* acquire the block length */

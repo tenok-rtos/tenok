@@ -6,6 +6,6 @@
 
 #include <fs/fs.h>
 
-void poll_notify(struct file *filp);
+void poll_notify(struct file *notify_file);
 
 #endif

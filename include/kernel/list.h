@@ -29,6 +29,10 @@
             (curr) != (head); \
             (curr) = _next, _next = (curr)->next)
 
+#define list_for_each_entry(curr, head, member) \
+        for(curr = list_first_entry(head, __typeof__(*curr), member); \
+            &curr->member != (head); curr = list_next_entry(curr, member))
+
 #define LIST_HEAD_INIT(name) \
     {.prev = (&name), .next = (&name)}
 

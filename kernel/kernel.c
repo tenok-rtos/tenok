@@ -200,12 +200,10 @@ inline struct thread_info *current_thread_info(void)
 
 static struct task_struct *acquire_task(int pid)
 {
-    struct list_head *curr;
-    list_for_each(curr, &tasks_list) {
-        struct task_struct *task = list_entry(curr, struct task_struct, list);
-        if(task->pid == pid) {
+    struct task_struct *task;
+    list_for_each_entry(task, &tasks_list, list) {
+        if(task->pid == pid)
             return task;
-        }
     }
 
     return NULL;
@@ -213,12 +211,10 @@ static struct task_struct *acquire_task(int pid)
 
 struct thread_info *acquire_thread(int tid)
 {
-    struct list_head *curr;
-    list_for_each(curr, &threads_list) {
-        struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
-        if(thread->tid == tid) {
+    struct thread_info *thread;
+    list_for_each_entry(thread, &threads_list, thread_list) {
+        if(thread->tid == tid)
             return thread;
-        }
     }
 
     return NULL;
@@ -448,14 +444,10 @@ void wake_up(struct list_head *wait_list)
         list_first_entry(wait_list, struct thread_info, list);
 
     /* find the highest priority task in the waiting list */
-    struct list_head *curr;
-    list_for_each(curr, wait_list) {
-        struct thread_info *thread =
-            list_entry(curr, struct thread_info, list);
-
-        if(thread->priority > highest_pri_thread->priority) {
+    struct thread_info *thread;
+    list_for_each_entry(thread, wait_list, list) {
+        if(thread->priority > highest_pri_thread->priority)
             highest_pri_thread = thread;
-        }
     }
 
     /* wake up the thread by placing it back to the ready list */
@@ -532,9 +524,8 @@ void sys_procstat(void)
     struct procstat_info *info = SYSCALL_ARG(struct procstat_info *, 0);
 
     int i = 0;
-    struct list_head *curr;
-    list_for_each(curr, &threads_list) {
-        struct thread_info *thread = list_entry(curr, struct thread_info, thread_list);
+    struct thread_info *thread;
+    list_for_each_entry(thread, &threads_list, thread_list) {
         int stack_size_word = thread->stack_size / 4;
 
         info[i].pid = thread->task->pid;
@@ -1260,20 +1251,17 @@ void sys_mkfifo(void)
     }
 }
 
-void poll_notify(struct file *filp)
+void poll_notify(struct file *notify_file)
 {
     /* iterate through all threads that are suspended by poll() syscall */
     struct list_head *curr_thread_l, *next_thread_l;
     list_for_each_safe(curr_thread_l, next_thread_l, &poll_list) {
         struct thread_info *thread = list_entry(curr_thread_l, struct thread_info, list);
 
-        struct list_head *file_list;
-        list_for_each(file_list, &thread->poll_files_list) {
-            struct file *file_iter = list_entry(file_list, struct file, list);
-
-            if(filp == file_iter) {
+        struct file *file;
+        list_for_each_entry(file, &thread->poll_files_list, list) {
+            if(file == notify_file)
                 finish_wait(curr_thread_l);
-            }
         }
     }
 }
@@ -1431,14 +1419,10 @@ void sys_mq_setattr(void)
 struct mqueue *acquire_mqueue(char *name)
 {
     /* find the message queue with the given name */
-    struct list_head *curr;
-    list_for_each(curr, &mqueue_list) {
-        struct mqueue *mq = list_entry(curr, struct mqueue, list);
-
-        if(!strncmp(name, mq->name, FILE_NAME_LEN_MAX)) {
-            /* found */
-            return mq;
-        }
+    struct mqueue *mq;
+    list_for_each_entry(mq, &mqueue_list, list) {
+        if(!strncmp(name, mq->name, FILE_NAME_LEN_MAX))
+            return mq; /* found */
     }
 
     /* not found */
@@ -1716,10 +1700,8 @@ void sys_pthread_join(void)
     }
 
     /* check deadlock (threads should not join on each other) */
-    struct list_head *curr;
-    list_for_each(curr, &running_thread->join_list) {
-        struct thread_info *check_thread = list_entry(curr, struct thread_info, list);
-
+    struct thread_info *check_thread;
+    list_for_each_entry(check_thread, &running_thread->join_list, list) {
         /* check if the thread is waiting to join the running thread */
         if(check_thread == thread) {
             /* deadlock identified, return on error */
@@ -2362,10 +2344,8 @@ void sys_clock_settime(void)
 static struct timer *acquire_timer(int timerid)
 {
     /* find the timer with the id */
-    struct list_head *curr;
-    list_for_each(curr, &running_thread->timers_list) {
-        struct timer *timer = list_entry(curr, struct timer, list);
-
+    struct timer *timer;
+    list_for_each_entry(timer, &running_thread->timers_list, list) {
         /* check timer id */
         if(timerid == timer->id)
             return timer;
@@ -2556,27 +2536,20 @@ void sys_free(void)
 static void threads_ticks_update(void)
 {
     /* update the sleep timers */
-    struct list_head *curr;
-    list_for_each(curr, &sleep_list) {
-        /* get the thread info */
-        struct thread_info *thread = list_entry(curr, struct thread_info, list);
-
+    struct thread_info *thread;
+    list_for_each_entry(thread, &sleep_list, list) {
         /* update remained ticks of waiting */
-        if(thread->sleep_ticks > 0) {
+        if(thread->sleep_ticks > 0)
             thread->sleep_ticks--;
-        }
     }
 }
 
 static void timers_update(void)
 {
-    struct list_head *curr;
-    list_for_each(curr, &timers_list) {
-        struct timer *timer = list_entry(curr, struct timer, g_list);
-
-        if(!timer->enabled) {
+    struct timer *timer;
+    list_for_each_entry(timer, &timers_list, g_list) {
+        if(!timer->enabled)
             continue;
-        }
 
         /* update the timer */
         timer_down_count(&timer->counter);
@@ -2616,10 +2589,8 @@ static void syscall_timeout_update(void)
     get_sys_time(&tp);
 
     /* iterate through all tasks that waiting for poll events */
-    struct list_head *curr;
-    list_for_each(curr, &timeout_list) {
-        struct thread_info *thread = list_entry(curr, struct thread_info, timeout_list);
-
+    struct thread_info *thread;
+    list_for_each_entry(thread, &timeout_list, timeout_list) {
         /* wake up the thread if the time is up */
         if(tp.tv_sec >= thread->syscall_timeout.tv_sec &&
            tp.tv_nsec >= thread->syscall_timeout.tv_nsec) {
