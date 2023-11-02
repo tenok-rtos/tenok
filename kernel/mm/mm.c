@@ -6,6 +6,7 @@
 #include <arch/port.h>
 #include <kernel/list.h>
 #include <kernel/util.h>
+#include <kernel/printk.h>
 #include <kernel/syscall.h>
 
 #define MALLOC_BLK_FREE_MASK (1 << 30)
@@ -125,6 +126,7 @@ void *__malloc(size_t size)
     }
 
     /* failed to allocate memory */
+    printk("malloc(): failed as no enough heap space");
     return NULL;
 }
 

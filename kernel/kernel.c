@@ -132,6 +132,7 @@ void *kmalloc(size_t size)
         ptr = kmem_cache_alloc(kmalloc_caches[i], 0);
     } else {
         /* failed, the reqeust size is too large to handle */
+        printk("kmalloc(): failed as the request size is too large");
         ptr = NULL;
     }
 
@@ -171,7 +172,7 @@ void kfree(void *ptr)
     if(i < KMALLOC_SLAB_TABLE_SIZE) {
         kmem_cache_free(kmalloc_caches[i], addr);
     } else {
-        printk("Corrupted kmalloc header (address: %p)", 123);
+        printk("kfree(): failed as the header is corrupted (address: %p)", addr);
     }
 
     /* end of the critical section */
@@ -277,6 +278,9 @@ static int thread_create(struct thread_info **new_thread,
 
     /* allocate stack for the new thread */
     thread->stack = alloc_pages(size_to_page_order(stack_size));
+    if(thread->stack == NULL)
+        return -ENOMEM;
+
     thread->stack_top = (struct stack *)(thread->stack + (stack_size / 4) /* words */);
 
     /* allocate anonymous pipe for the new thread */
@@ -333,7 +337,6 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
 
     struct thread_info *thread;
     int retval = thread_create(&thread, task_func, &attr, privilege);
-
     if(retval != 0)
         return retval;
 
@@ -360,7 +363,11 @@ static int _task_create(thread_func_t task_func, uint8_t priority,
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
-    return _task_create(task_func, priority, stack_size, KERNEL_THREAD);
+    int retval = _task_create(task_func, priority, stack_size, KERNEL_THREAD);
+    if(retval < 0)
+        printk("kthread_create(): failed to create new task");
+
+    return retval;
 }
 
 static void task_delete(struct task_struct *task)
@@ -581,6 +588,9 @@ void sys_task_create(void)
     int stack_size = SYSCALL_ARG(int, 2);
 
     int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
+    if(retval < 0)
+        printk("task_create(): failed to create new task");
+
     SYSCALL_ARG(int, 0) = retval;
 }
 
