@@ -25,18 +25,18 @@ void shell_cmd_cat(int argc, char *argv[])
     char str[PRINT_SIZE_MAX] = {0};
 
     /* open the file */
-    FILE file;
-    if(fopen(path, 0, &file)) {
+    FILE *file = fopen(path, 0);
+    if(!file) {
         snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
         shell_puts(str);
         return;
     }
 
     struct stat stat;
-    fstat(fileno(&file), &stat);
+    fstat(fileno(file), &stat);
 
     /* reset the read position of the file */
-    fseek(&file, 0, SEEK_SET);
+    fseek(file, 0, SEEK_SET);
 
     /* calculate the iteration times to print the whole file */
     int size = stat.st_size / PRINT_SIZE_MAX;
@@ -46,13 +46,13 @@ void shell_cmd_cat(int argc, char *argv[])
     /* read and print the file */
     int i;
     for(i = 0; i < size; i++) {
-        int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, &file);
+        int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, file);
         str[recvd] = '\0';
 
         shell_puts(str);
     }
 
-    fclose(&file);
+    fclose(file);
 }
 
 HOOK_SHELL_CMD(cat);

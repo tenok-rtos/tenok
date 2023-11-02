@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/reent.h>
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
@@ -21,9 +22,11 @@
 #define fseek _fseek
 #define fileno _fileno
 
-typedef struct {
-    pthread_mutex_t lock;
-    int fd;
+#define __SIZEOF_FILE sizeof(__FILE)
+
+typedef union {
+    char __size[__SIZEOF_FILE];
+    uint32_t __align;
 } FILE;
 
 /**
@@ -31,10 +34,9 @@ typedef struct {
            associates a stream with it
  * @param  pathname: The pathname of the file to open.
  * @param  mode: Not used.
- * @param  file: For returning the file stream.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval FILE *: File stream object.
  */
-int fopen(const char *pathname, const char *mode, FILE *file);
+FILE *fopen(const char *pathname, const char *mode);
 
 /**
  * @brief  Close the given file stream

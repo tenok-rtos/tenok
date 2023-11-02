@@ -4,6 +4,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,40 +18,45 @@
 #define MAX_READ_SIZE  100
 #define MAX_WRITE_SIZE 100
 
-extern struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
-
-int _fopen(const char *pathname, const char *mode, FILE *stream)
+FILE *_fopen(const char *pathname, const char *mode)
 {
     /* open the file with the system call */
     int fd = open(pathname, 0);
 
     /* failed to open the file */
     if(fd < 0)
-        return -1;
+        return NULL;
 
-    /* check if the file is a regular file */
-    struct stat stat;
-    fstat(fd, &stat);
+    /* allocate new file stream object */
+    FILE *stream = malloc(sizeof(FILE));
+    __FILE *_stream = (__FILE *)stream;
 
-    /* not a regular file */
-    if(stat.st_mode != S_IFREG)
-        return -1;
+    /* failed to allocate new memory */
+    if(!_stream) {
+        close(fd);
+        return NULL;
+    }
 
-    pthread_mutex_init(&stream->lock, NULL);
-    stream->fd = fd;
+    pthread_mutex_init(&_stream->lock, NULL);
+    _stream->fd = fd;
 
-    return 0;
+    return stream;
 }
 
 int _fclose(FILE *stream)
 {
-    return close(stream->fd);
+    __FILE *_stream = (__FILE *)stream;
+    int retval = close(_stream->fd);
+    free(_stream);
+    return retval;
 }
 
 size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
+    __FILE *_stream = (__FILE *)stream;
+
     /* start of the critical section */
-    pthread_mutex_lock(&stream->lock);
+    pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_READ_SIZE + 1;
@@ -59,7 +65,7 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
     int retval;
     for(int i = 0; i < times; i++) {
         int rsize = (nbytes >= MAX_READ_SIZE) ? MAX_READ_SIZE : nbytes;
-        retval = read(stream->fd, (char *)((uintptr_t)ptr + total), rsize);
+        retval = read(_stream->fd, (char *)((uintptr_t)ptr + total), rsize);
 
         total += rsize;
         nbytes -= rsize;
@@ -70,15 +76,17 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
     }
 
     /* end of the critical section */
-    pthread_mutex_unlock(&stream->lock);
+    pthread_mutex_unlock(&_stream->lock);
 
     return total;
 }
 
 size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
+    __FILE *_stream = (__FILE *)stream;
+
     /* start of the critical section */
-    pthread_mutex_lock(&stream->lock);
+    pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_WRITE_SIZE + 1;
@@ -88,7 +96,7 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
     for(int i = 0; i < times; i++) {
         /* write file */
         int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
-        retval = write(stream->fd, (char *)((uintptr_t)ptr + total), wsize);
+        retval = write(_stream->fd, (char *)((uintptr_t)ptr + total), wsize);
 
         total += wsize;
         nbytes -= wsize;
@@ -99,17 +107,19 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
     }
 
     /* end of the critical section */
-    pthread_mutex_unlock(&stream->lock);
+    pthread_mutex_unlock(&_stream->lock);
 
     return total;
 }
 
 int _fseek(FILE *stream, long offset, int whence)
 {
-    return lseek(stream->fd, offset, whence);
+    __FILE *_stream = (__FILE *)stream;
+    return lseek(_stream->fd, offset, whence);
 }
 
 int _fileno(FILE *stream)
 {
-    return stream->fd;
+    __FILE *_stream = (__FILE *)stream;
+    return _stream->fd;
 }

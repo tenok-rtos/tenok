@@ -99,16 +99,16 @@ void shell_cmd_xxd(int argc, char *argv[])
     }
 
     /* open file */
-    FILE file;
-    if(fopen(path, 0, &file)) {
+    FILE *file = fopen(path, 0);
+    if(!file) {
         shell_puts("failed to open the file.\n\r");
         return;
     }
 
     /* get file size */
     struct stat stat;
-    fstat(fileno(&file), &stat);
-    fseek(&file, 0, SEEK_SET);
+    fstat(fileno(file), &stat);
+    fseek(file, 0, SEEK_SET);
     int fsize = stat.st_size;
 
     /* read file */
@@ -130,7 +130,7 @@ void shell_cmd_xxd(int argc, char *argv[])
         }
 
         /* read file */
-        fread(buf, rsize, 1, &file);
+        fread(buf, rsize, 1, file);
 
         /* print one line of xxd message */
         xxd_print_line(addr, buf, rsize);
@@ -156,7 +156,7 @@ void shell_cmd_xxd(int argc, char *argv[])
         }
     }
 
-    fclose(&file);
+    fclose(file);
 }
 
 HOOK_SHELL_CMD(xxd);
