@@ -294,10 +294,12 @@ static int thread_create(struct thread_info **new_thread,
 
     /* allocate stack for the new thread */
     thread->stack = alloc_pages(size_to_page_order(stack_size));
-    if(thread->stack == NULL)
+    if(thread->stack == NULL) {
+        bitmap_clear_bit(bitmap_threads, tid);
         return -ENOMEM;
+    }
 
-    thread->stack_top = (struct stack *)(thread->stack + (stack_size / 4) /* words */);
+    thread->stack_top = (struct stack *)((uintptr_t)thread->stack + stack_size);
 
     /* allocate anonymous pipe for the new thread */
     thread->stack_top = thread_pipe_alloc(tid, thread->stack_top);
