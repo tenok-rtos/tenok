@@ -16,7 +16,7 @@ mqd_t mqdes_recvd_msg;
 void mavlink_task_init(void)
 {
     struct mq_attr attr = {
-        .mq_maxmsg = 100,
+        .mq_maxmsg = 25,
         .mq_msgsize = sizeof(mavlink_message_t),
     };
     mqdes_recvd_msg = mq_open("/mavlink_msgs", O_CREAT | O_RDWR | O_NONBLOCK, &attr);

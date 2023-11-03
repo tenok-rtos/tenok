@@ -134,8 +134,14 @@ void *kmalloc(size_t size)
         /* allocate new memory */
         ptr = kmem_cache_alloc(kmalloc_caches[i], 0);
     } else {
-        /* failed, the reqeust size is too large to handle */
-        printk("kmalloc(): failed as the request size is too large");
+        int page_order = size_to_page_order(size);
+        if(page_order != -1) {
+            /* allocate directly from the page */
+            ptr = alloc_pages(page_order);
+        } else {
+            /* failed, the reqeust size is too large to handle */
+            printk("kmalloc(): failed as the request size %d is too large", size);
+        }
         ptr = NULL;
     }
 
@@ -175,7 +181,14 @@ void kfree(void *ptr)
     if(i < KMALLOC_SLAB_TABLE_SIZE) {
         kmem_cache_free(kmalloc_caches[i], addr);
     } else {
-        printk("kfree(): failed as the header is corrupted (address: %p)", addr);
+        int page_order = size_to_page_order(alloc_size);
+        if(page_order != -1) {
+            /* the memory is allocated directly from the page */
+            free_pages((unsigned long)addr, page_order);
+        } else {
+            /* invalid size */
+            printk("kfree(): failed as the header is corrupted (address: %p)", addr);
+        }
     }
 
     /* end of the critical section */
