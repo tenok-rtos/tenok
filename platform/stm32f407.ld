@@ -29,6 +29,8 @@
 *****************************************************************************
 */
 
+#include "kconfig.h"
+
 /* Entry Point */
 ENTRY(Reset_Handler)
 
@@ -36,6 +38,14 @@ RAM_ADDR = 0x20000000;
 RAM_SIZE = 192K;
 
 USER_STACK_SIZE = 10K;
+
+#if (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
+PAGE_SECTION_SIZE = 64K;
+#elif (PAGE_SIZE_SELECT == PAGE_SIZE_32K)
+PAGE_SECTION_SIZE = 32K;
+#else
+#error "Unknown page size setting"
+#endif
 
 /* Highest address of the user mode stack */
 _estack = 0x20020000;    /* end of 128K RAM on AHB bus*/
@@ -153,7 +163,7 @@ SECTIONS
   .pgmem :
   {
     PROVIDE (_page_mem_start = .);
-    . += 32K;
+    . += PAGE_SECTION_SIZE;
     PROVIDE (_page_mem_end = .);
   } >RAM
 

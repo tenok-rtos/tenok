@@ -5,6 +5,8 @@ include config.mk
 LDFLAGS :=
 CFLAGS :=
 SRC :=
+LD_SCRIPT :=
+LD_GENERATED := generated.ld
 
 ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
 
@@ -24,7 +26,7 @@ CFLAGS += -g -mlittle-endian -mthumb \
           -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
           --specs=nano.specs \
           --specs=nosys.specs
-CFLAGS+=  -Wall \
+CFLAGS += -Wall \
           -Werror=undef \
           -Wno-unused-function \
           -Wno-format-truncation \
@@ -34,6 +36,7 @@ CFLAGS += -D STM32F4xx
 CFLAGS += -D ARM_MATH_CM4 \
           -D __FPU_PRESENT=1 \
           -D __FPU_USED=1
+CFLAGS += -Wl,-T,$(LD_GENERATED)
 
 USER = $(shell whoami)
 CFLAGS += -D__USER_NAME__=\"$(USER)\"
@@ -131,12 +134,13 @@ ASM := ./platform/startup_stm32f4xx.s \
        ./kernel/arch/context_switch.s \
        ./kernel/arch/spinlock.s
 
-all: gen_syscalls msggen $(ELF)
+all: gen_syscalls msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
 	@echo "LD" $@
 	@$(CC) $(CFLAGS) $(OBJS) $(ASM) $(LDFLAGS) -o $@
+	@rm $(LD_GENERATED)
 
 $(BIN): $(ELF)
 	@echo "OBJCPY" $@
@@ -150,6 +154,10 @@ gen_syscalls:
 tools/mkromfs/romfs.o:
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
+$(LD_GENERATED): $(LD_SCRIPT) 
+	@echo "CC" $< ">" $@
+	@$(CC) -E -P -x c $(CFLAGS) $<>$@  
+
 %.o: %.s 
 	@echo "CC" $@
 	@$(CC) $(CFLAGS) $^ $(LDFLAGS) -c $<
@@ -162,6 +170,7 @@ check:
 	$(CPPCHECK) . -i lib/
 
 clean:
+	rm -rf $(LD_GENERATED)
 	rm -rf $(ELF)
 	rm -rf $(OBJS)
 	rm -rf $(DEPEND)

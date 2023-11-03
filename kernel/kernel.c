@@ -87,6 +87,9 @@ struct kmalloc_slab_info kmalloc_slab_info[] = {
     DEF_KMALLOC_SLAB(256),
     DEF_KMALLOC_SLAB(512),
     DEF_KMALLOC_SLAB(1024),
+#if (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
+    DEF_KMALLOC_SLAB(2048),
+#endif
 };
 struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 

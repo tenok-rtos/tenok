@@ -1,16 +1,17 @@
 -include ../config.mk
 
-CFLAGS+=-D STM32F40_41xxx \
-	-D ENABLE_UART1_DMA=0 \
-	-D ENABLE_UART3_DMA=0 \
-	-D BUILD_QEMU
-CFLAGS+=-Wl,-T,platform/stm32f407.ld
+LD_SCRIPT += platform/stm32f407.ld
 
-CFLAGS+=-D__BOARD_NAME__=\"stm32f407\"
+CFLAGS += -D STM32F40_41xxx \
+	  -D ENABLE_UART1_DMA=0 \
+	  -D ENABLE_UART3_DMA=0 \
+	  -D BUILD_QEMU
 
-CFLAGS+=-I./drivers/boards
+CFLAGS += -D__BOARD_NAME__=\"stm32f407\"
 
-SRC+=./drivers/boards/stm32f4disc.c
+CFLAGS += -I./drivers/boards
+
+SRC += ./drivers/boards/stm32f4disc.c
 
 qemu: all
 	$(QEMU) -cpu cortex-m4 \

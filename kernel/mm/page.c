@@ -4,8 +4,12 @@
 #include <kernel/bitops.h>
 #include <kernel/log2.h>
 
+#include "kconfig.h"
+
 extern char _page_mem_start;
 extern char _page_mem_end;
+
+#if (PAGE_SIZE_SELECT == PAGE_SIZE_32K)
 
 /* .pgmem section (32KB):
  *     - 128 pages of 256B require a  16-byte map
@@ -25,27 +29,50 @@ static unsigned long *const page_bitmap[] = {
 };
 
 static const unsigned long page_bitmap_sz[] = {128, 64, 32, 16, 8};
+static const unsigned long page_order_sz[] = {256, 512, 1024, 2048, 4096};
+
+#elif (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
+
+/* .pgmem section (64KB):
+ *     - 256 pages of 256B require an 32-byte map
+ *     - 128 pages of 512B require a  16-byte map
+ *     -  64 pages of  1KB require a   8-byte map
+ *     -  32 pages of  2KB require a   4-byte map
+ *     -  16 pages of  4KB require a   2-byte map
+ *     -   8 pages of  8KB require a   1-byte map
+ *
+ * bit map = 0 means used (allocated) or undefined (i.e, not been allocated yet)
+ * bit map = 1 means free (allocated) */
+static unsigned long *const page_bitmap[] = {
+    (unsigned long []){0, 0, 0, 0, 0, 0, 0, 0}, /* 32 bytes */
+    (unsigned long []){0, 0, 0, 0},             /* 16 bytes */
+    (unsigned long []){0, 0},                   /*  8 bytes */
+    (unsigned long []){0},                      /*  4 bytes */
+    (unsigned long []){0},                      /*  2 bytes */
+    (unsigned long []){0xff},                   /*  1 byte  */
+};
+
+static const unsigned long page_bitmap_sz[] = {256, 128, 64, 32, 16, 8};
+static const unsigned long page_order_sz[] = {256, 512, 1024, 2048, 4096, 8192};
+
+#endif
 
 long size_to_page_order(unsigned long size)
 {
-    if(size <= 256) return 0;
-    if(size <= 512) return 1;
-    if(size <= 1024) return 2;
-    if(size <= 2048) return 3;
-    if(size <= 4096) return 4;
+    for(int i = 0; i <= PAGE_ORDER_MAX; i++) {
+        if(size <= page_order_sz[i])
+            return i;
+    }
 
     return -1;
 }
 
 unsigned long page_order_to_size(long order)
 {
-    if(order == 0) return 256;
-    if(order == 1) return 512;
-    if(order == 2) return 1024;
-    if(order == 3) return 2048;
-    if(order == 4) return 4096;
+    if(order > PAGE_ORDER_MAX)
+        return 0;
 
-    return 0;
+    return page_order_sz[order];
 }
 
 unsigned long get_page_total_size(void)
@@ -55,12 +82,7 @@ unsigned long get_page_total_size(void)
 
 static size_t order_to_page_size(int order)
 {
-    size_t size = PAGE_SIZE_MIN;
-
-    for(int i = 0; i < order; i++)
-        size *= 2;
-
-    return size;
+    return page_order_sz[order];
 }
 
 unsigned long get_page_total_free_size(void)
