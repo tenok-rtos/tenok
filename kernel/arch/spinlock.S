@@ -1,9 +1,9 @@
+#include <kernel/linkage.h>
+
 .syntax unified
 
 /* lock is implemented by the load/store exclusive mechanism */
-.type   spin_lock, %function
-.global spin_lock
-spin_lock:
+ENTRY(spinlock)
 //arguments:
 //r0 (input): address of the lock variable
 loop:   ldrex r2, [r0]     //r2 = *lock
@@ -16,14 +16,14 @@ loop:   ldrex r2, [r0]     //r2 = *lock
         beq   loop         //    goto loop
 
         bx    lr           //function return
+ENDPROC(spinlock)
 
 /* unlock is easier which requires only reseting the lock variable to zero */
-.type   spin_unlock, %function
-.global spin_unlock
+ENTRY(spin_unlock)
 //arguments:
 //r0 (input): address of the lock variable
-spin_unlock:
         mov   r1, #0       //r1 = 0
         str   r1, [r0]     //[r0] = r1
 
         bx    lr           //function return
+ENDPROC(spin_unlock)

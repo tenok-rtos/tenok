@@ -1,8 +1,8 @@
+#include <kernel/linkage.h>
+
 .syntax unified
 
-.type   PendSV_Handler, %function
-.global PendSV_Handler
-PendSV_Handler:
+ENTRY(PendSV_Handler)
     /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
 
     /* disable all interrupts before entering into the kernel */
@@ -31,10 +31,9 @@ PendSV_Handler:
 
     /* exception return */
     bx    lr //jump to the kernel space
+ENDPROC(PendSV_Handler)
 
-.type   SVC_Handler, %function
-.global SVC_Handler
-SVC_Handler:
+ENTRY(SVC_Handler)
     /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
 
     /* disable the interrupt */
@@ -61,10 +60,9 @@ SVC_Handler:
 
     /* exception return */
     bx    lr //jump to the kernel space
+ENDPROC(SVC_Handler)
 
-.type   jump_to_thread, %function
-.global jump_to_thread
-jump_to_thread:
+ENTRY(jump_to_thread)
     //arguments:
     //r0 (input) : stack address of the thread 
     //r1 (input) : run user task with priviledge or not
@@ -92,10 +90,9 @@ jump_to_thread:
     cpsie f
 
     bx    lr //jump to the user task
+ENDPROC(jump_to_thread)
 
-.type   os_env_init, %function
-.global os_env_init
-os_env_init:
+ENTRY(os_env_init)
     //arguments:
     //r0 (input): stack address
 
@@ -120,3 +117,4 @@ os_env_init:
     cpsid f
 
     bx lr //function return
+ENDPROC(os_env_init)
