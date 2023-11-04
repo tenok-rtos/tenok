@@ -1,5 +1,5 @@
-Build and Run
-=============
+Build and Run the Tenok
+=======================
 
 Build:
 

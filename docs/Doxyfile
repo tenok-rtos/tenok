@@ -44,7 +44,7 @@ PROJECT_NUMBER         =
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "A real-time operating system for ARM Cortex-M microcontrollers"
+PROJECT_BRIEF          = "A Linux-like Real-Time Operating System for Robotics and IoT"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
@@ -277,7 +277,7 @@ ALIASES                =
 # members will be omitted, etc.
 # The default value is: NO.
 
-OPTIMIZE_OUTPUT_FOR_C  = NO
+OPTIMIZE_OUTPUT_FOR_C  = YES
 
 # Set the OPTIMIZE_OUTPUT_JAVA tag to YES if your project consists of Java or
 # Python sources only. Doxygen will then generate output that is more tailored
@@ -1794,7 +1794,7 @@ EXTRA_SEARCH_MAPPINGS  =
 # If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
 # The default value is: YES.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = NO
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of

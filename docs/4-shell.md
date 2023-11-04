@@ -1,5 +1,5 @@
-Shell
-=====
+Interact with Tenok Shell
+=========================
 
 * **Backspace**, **Delete**: Delete a single character
 * **Home**, **Ctrl+A**: Move the cursor to the leftmost

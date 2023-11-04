@@ -1,5 +1,5 @@
-Run Tenok with Gazebo
-=====================
+Run Tenok with Gazebo Simulator
+===============================
 
 1. Install Gazebo simulator:
 
