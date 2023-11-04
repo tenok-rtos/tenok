@@ -3,16 +3,6 @@ Tenok API List
 
 ## User-space API
 
-### Task:
-
-* HOOK_USER_TASK()
-
-* task_create()
-
-* getpid()
-
-* exit()
-
 ### Scheduler:
 
 * sleep()
@@ -26,6 +16,16 @@ Tenok API List
 * sched_get_priority_min()
 
 * sched_rr_get_interval()
+
+### Task:
+
+* HOOK_USER_TASK()
+
+* task_create()
+
+* getpid()
+
+* exit()
 
 ### Thread:
 
@@ -77,7 +77,7 @@ Tenok API List
 
 * pthread_self()
 
-### Mutex and Condition Variable:
+### Mutex and Conditional Variable:
 
 * pthread_mutex_init()
 
@@ -209,11 +209,11 @@ Tenok API List
 
 * timer_create()
 
-* timer_delete()
+* timer_settime()
 
 * timer_gettime()
 
-* timer_settime()
+* timer_delete()
 
 * clock_getres()
 
@@ -236,6 +236,18 @@ Tenok API List
 ---
 
 ## Kernel-space API
+
+### Logging:
+
+* printk()
+
+### Interrupt:
+
+* preempt_disable()
+
+* preempt_enable()
+
+* request_irq()
 
 ### Mutex:
 
@@ -263,7 +275,7 @@ Tenok API List
 
 * tasklet_schedule()
 
-### Waitqueue:
+### Wait Queue:
 
 * prepare_to_wait()
 
@@ -275,39 +287,47 @@ Tenok API List
 
 ### kfifo:
 
+* kfifo_init()
+
 * kfifo_alloc()
-
-* kfifo_avail()
-
-* kfifo_esize()
 
 * kfifo_free()
 
-* kfifo_get()
-
 * kfifo_in()
-
-* kfifo_init()
-
-* kfifo_is_empty()
-
-* kfifo_is_full()
-
-* kfifo_len()
 
 * kfifo_out()
 
 * kfifo_out_peek()
 
+* kfifo_dma_in_prepare()
+
+* kfifo_dma_in_finish()
+
+* kfifo_dma_out_prepare()
+
+* kfifo_dma_out_finish()
+
+* kfifo_put()
+
+* kfifo_get()
+
 * kfifo_peek()
 
 * kfifo_peek_len()
 
-* kfifo_put()
+* kfifo_skip()
+
+* kfifo_avail()
+
+* kfifo_len()
+
+* kfifo_esize()
 
 * kfifo_size()
 
-* kfifo_skip()
+* kfifo_is_empty()
+
+* kfifo_is_full()
 
 ### List:
 
@@ -331,19 +351,19 @@ Tenok API List
 
 * list_entry()
 
-* list_entry_is_head()
-
 * list_first_entry()
+
+* list_next_entry()
+
+* list_prev_entry()
+
+* list_entry_is_head()
 
 * list_for_each()
 
 * list_for_each_entry()
 
 * list_for_each_safe()
-
-* list_next_entry()
-
-* list_prev_entry()
 
 ### Memory Allocation:
 
@@ -364,15 +384,3 @@ Tenok API List
 * kmem_cache_create()
 
 * kmem_cache_free()
-
-### Interrupt:
-
-* preempt_disable()
-
-* preempt_enable()
-
-* request_irq()
-
-### Logging:
-
-* printk()
