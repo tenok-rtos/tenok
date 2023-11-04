@@ -13,8 +13,8 @@
 
 /**
  * @brief  Open the file specified by pathname
- * @param  pathname: The pathname of the file to provide.
- * @param  flags: Flags for opening the file. Currently only support O_NONBLOCK.
+ * @param  pathname: The pathname of the file.
+ * @param  flags: Flags for opening the file.
  * @retval int: File descriptor number of the file on success and nonzero error
                 number on error.
  */

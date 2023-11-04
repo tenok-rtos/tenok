@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __LINKAGE_H__
 #define __LINKAGE_H__
 

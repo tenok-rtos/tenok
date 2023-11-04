@@ -104,8 +104,21 @@ int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
  */
 int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
 
+/**
+ * @brief  Set priority inheritance protocol of a mutex attriute object
+ * @param  attr: The attribute object to set.
+ * @param  param: The protocol to set the attribute object.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
 
+/**
+ * @brief  Get priority inheritance protocol of a mutex attriute object
+ * @param  attr: The attribute object to retrieve the priority inheritance
+ *               protocol.
+ * @param  param: For returning the priority inheritance protocol.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
 int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol);
 
 /**

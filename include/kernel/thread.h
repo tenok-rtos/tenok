@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_THREAD_H__
 #define __KERNEL_THREAD_H__
 

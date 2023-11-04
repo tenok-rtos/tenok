@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_TTY_H__
 #define __KERNEL_TTY_H__
 

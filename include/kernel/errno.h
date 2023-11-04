@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_ERRNO_H__
 #define __KERNEL_ERRNO_H__
 

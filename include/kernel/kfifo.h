@@ -72,12 +72,38 @@ void kfifo_out(struct kfifo *fifo, void *data, size_t n);
  */
 void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n);
 
+/**
+ * @brief  Read data pointer of the next element to write
+ * @param  fifo: The fifo object to provide.
+ * @param  data_ptr: For saving the data pointer of the next fifo
+ *                   element to write with dma.
+ * @retval None
+ */
 void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr);
 
+/**
+ * @brief  Complete data writing of the fifo with dma
+ * @param  fifo: The fifo object to provide.
+ * @param  n: Size of the data that written to the fifo.
+ * @retval None
+ */
 void kfifo_dma_in_finish(struct kfifo *fifo, size_t n);
 
+/**
+ * @brief  Read data pointer of the next element to read
+ * @param  fifo: The fifo object to provide.
+ * @param  data_ptr: For saving the data pointer of the next fifo
+ *                   element to read with dma.
+ * @param  n: Size of the data to read from the fifo with dma.
+ * @retval None
+ */
 void kfifo_dma_out_prepare(struct kfifo *fifo, char **data_ptr, size_t *n);
 
+/**
+ * @brief  Complete data reading of the fifo with dma
+ * @param  fifo: The fifo object to provide.
+ * @retval None
+ */
 void kfifo_dma_out_finish(struct kfifo *fifo);
 
 /**

@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __KERNEL_MQUEUE_H__
 #define __KERNEL_MQUEUE_H__
 

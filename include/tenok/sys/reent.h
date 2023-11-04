@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __REENT_H__
 #define __REENT_H__
 
