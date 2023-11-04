@@ -1,8 +1,9 @@
-# Tenok
+Tenok
+=====
 
-[Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) for Robotics and Internet of Things (IoT) inspired by [rtenv+](https://github.com/embedded2014/rtenv-plus) and [Piko/RT](https://github.com/PikoRT/pikoRT).
+This is [Tenok](https://github.com/shengwen-tw/tenok), a real-time operating system (RTOS) for Robotics and the Internet of Things (IoT). It resembles various designs from Linux and maintains a small footprint for ARM Cortex-M processors. Instead of including low-level peripheral drivers as a part of the system like NuttX, Tenok adopts an approach like FreeRTOS, which treats RTOS a third-party library, and the user can choose their own favorite library of hardware abstraction layer (HAL).
 
-The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
+Tenok also offers several utilities for developing Robotic applications, including a debug visualization tool, integration of MAVLink communication protocol, and support of software-in-the-loop simulation with Gazeobo simulator. The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
 
 ## Key Features
 
@@ -37,7 +38,7 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 
 ## Resources 
 
-* [Full API List](https://tenok-rtos.github.io/globals_func.html)
+* [Tenok Full API List](https://tenok-rtos.github.io/md_docs_6_api_list.html)
 * [Doxygen Page](https://tenok-rtos.github.io/index.html)
 * [Presentation at COSCUP 2023](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)
 
@@ -46,6 +47,9 @@ The Amis people are an indigenous tribe that originated in Taiwan, and the term 
 `Tenok` is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
 
 ## Related Projects
+
+`Tenok` is influenced by the following projects during the development:
+
 1. [rtenv](https://github.com/embedded2014/rtenv) / [rtenv+](https://github.com/embedded2014/rtenv-plus)
 2. [mini-arm-os](https://github.com/jserv/mini-arm-os)
 3. [Piko/RT](https://github.com/PikoRT/pikoRT)
