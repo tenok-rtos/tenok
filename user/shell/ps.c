@@ -13,16 +13,18 @@ static void stack_usage(char *buf, size_t buf_size, size_t stack_usage, size_t s
 
 static void ps(void)
 {
-    struct procstat_info info[TASK_CNT_MAX];
-    int task_cnt = procstat(info);
-
     char *stat;
-    char s[100] = {0};
+    char s[PRINT_SIZE_MAX] = {0};
+
+    struct thread_stat info;
+    void *next = NULL;
 
     shell_puts("PID\tPR\tSTAT\tSTACK\%\t  COMMAND\n\r");
 
-    for(int i = 0; i < task_cnt; i++) {
-        switch(info[i].status) {
+    do {
+        next = thread_info(&info, next);
+
+        switch(info.status) {
             case THREAD_WAIT:
                 stat = "S";
                 break;
@@ -39,22 +41,22 @@ static void ps(void)
         }
 
         char s_stack_usage[10] = {0};
-        stack_usage(s_stack_usage, 10, info[i].stack_usage, info[i].stack_size);
+        stack_usage(s_stack_usage, 10, info.stack_usage, info.stack_size);
 
-        if(info[i].privileged) {
+        if(info.privileged) {
             snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r",
-                     info[i].pid, info[i].priority,
+                     info.pid, info.priority,
                      stat, s_stack_usage,
-                     info[i].name);
+                     info.name);
         } else {
             snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r",
-                     info[i].pid, info[i].priority,
+                     info.pid, info.priority,
                      stat, s_stack_usage,
-                     info[i].name);
+                     info.name);
         }
 
         shell_puts(s);
-    }
+    } while(next != NULL);
 
 }
 

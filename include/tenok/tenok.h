@@ -12,8 +12,9 @@
 
 #include "kconfig.h"
 
-struct procstat_info {
+struct thread_stat {
     int    pid;
+    int    tid;
     int    priority;
     int    status;
     bool   privileged;
@@ -32,7 +33,7 @@ enum {
 void sched_start(void);
 
 /* non-posix syscalls */
-int procstat(struct procstat_info info[TASK_CNT_MAX]);
+void *thread_info(struct thread_stat *info, void *next);
 void setprogname(const char *name);
 const char *getprogname(void);
 int delay_ticks(uint32_t ticks);

@@ -3,7 +3,7 @@
 import datetime
 
 syscalls = \
-    ['procstat',
+    ['thread_info',
      'setprogname',
      'getprogname',
      'delay_ticks',

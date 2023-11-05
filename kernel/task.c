@@ -8,9 +8,9 @@
 
 #include "kconfig.h"
 
-NACKED int procstat(struct procstat_info info[TASK_CNT_MAX])
+NACKED void *thread_info(struct thread_stat *info, void *next)
 {
-    SYSCALL(PROCSTAT);
+    SYSCALL(THREAD_INFO);
 }
 
 NACKED void setprogname(const char *name)

@@ -543,29 +543,50 @@ static inline void thread_join_handler(void)
                size_to_page_order(running_thread->stack_size));
 }
 
-void sys_procstat(void)
+void sys_thread_info(void)
 {
     /* read syscall arguments */
-    struct procstat_info *info = SYSCALL_ARG(struct procstat_info *, 0);
+    struct thread_stat *info = SYSCALL_ARG(struct thread_stat *, 0);
+    void *next = SYSCALL_ARG(void *, 1);
 
-    int i = 0;
     struct thread_info *thread;
-    list_for_each_entry(thread, &threads_list, thread_list) {
-        int stack_size_word = thread->stack_size / 4;
 
-        info[i].pid = thread->task->pid;
-        info[i].priority = thread->priority;
-        info[i].status = thread->status;
-        info[i].privileged = thread->privilege == KERNEL_THREAD;
-        info[i].stack_usage = (size_t)&thread->stack[stack_size_word] - (size_t)thread->stack_top;
-        info[i].stack_size = thread->stack_size;
-        strncpy(info[i].name, thread->name, THREAD_NAME_MAX);
+    if(next == NULL) {
+        /* take the first thread from the list */
+        thread = list_first_entry(&threads_list, struct thread_info, thread_list);
+    } else {
+        /* read next thread from the next pointer */
+        thread = (struct thread_info *)next;
 
-        i++;
+        /* validate the thread pointer to prevent user passing next pointer
+         * with garbage content */
+        struct thread_info *thread_prev = list_prev_entry(thread, thread_list);
+        if(list_next_entry(thread_prev, thread_list) != thread) {
+            /* validation failed, return NULL */
+            SYSCALL_ARG(void *, 0) = NULL;
+            return;
+        }
     }
 
-    /* return thread count */
-    SYSCALL_ARG(int, 0) = i;
+    /* return thread information */
+    info->pid = thread->task->pid;
+    info->tid = thread->tid;
+    info->priority = thread->priority;
+    info->status = thread->status;
+    info->privileged = thread->privilege == KERNEL_THREAD;
+    info->stack_usage = (size_t)((uintptr_t)thread->stack +
+                                 thread->stack_size -
+                                 (uintptr_t)thread->stack_top);
+    info->stack_size = thread->stack_size;
+    strncpy(info->name, thread->name, THREAD_NAME_MAX);
+
+    if(list_is_last(&thread->thread_list, &threads_list)) {
+        /* return NULL as more threads to read */
+        SYSCALL_ARG(void *, 0) = NULL;
+    } else {
+        /* return the address of the next thread to read */
+        SYSCALL_ARG(void *, 0) = (void *)list_next_entry(thread, thread_list);
+    }
 }
 
 void sys_setprogname(void)
