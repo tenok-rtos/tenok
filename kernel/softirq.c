@@ -12,7 +12,7 @@
 
 #define SOFTIRQD_ID 2
 
-struct list_head tasklet_list;
+LIST_HEAD(tasklet_list);
 
 void tasklet_init(struct tasklet_struct *t,
                   void (*func)(unsigned long), unsigned long data)
@@ -57,8 +57,6 @@ void softirqd(void)
 
 void softirq_init(void)
 {
-    INIT_LIST_HEAD(&tasklet_list);
-
     /* create softirq daemon for handling tasklets  */
     kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
 }
