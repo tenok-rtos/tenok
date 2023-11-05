@@ -748,7 +748,7 @@ void sys_open(void)
 
     /* file not found */
     if(file_idx == -1) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -1;
         return;
     }
@@ -756,7 +756,7 @@ void sys_open(void)
     /* find a free file descriptor entry on the table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
     if(fdesc_idx >= FILE_DESC_CNT_MAX) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ENOMEM;
         return;
     }
@@ -776,7 +776,7 @@ void sys_open(void)
         bitmap_clear_bit(bitmap_fds, fdesc_idx);
         bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0)= -ENXIO;
         return;
     }
@@ -817,7 +817,7 @@ void sys_close(void)
     bitmap_clear_bit(bitmap_fds, fdesc_idx);
     bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -847,7 +847,7 @@ void sys_dup(void)
     /* find a free file descriptor entry on the table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
     if(fdesc_idx >= FILE_DESC_CNT_MAX) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ENOMEM;
         return;
     }
@@ -929,7 +929,7 @@ void sys_read(void)
 
     /* check if the file operation is undefined */
     if(!filp->f_op->read) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(ssize_t, 0)= -ENXIO;
         return;
     }
@@ -981,7 +981,7 @@ void sys_write(void)
 
     /* check if the file operation is undefined */
     if(!filp->f_op->write) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(ssize_t, 0)= -ENXIO;
         return;
     }
@@ -1032,7 +1032,7 @@ void sys_ioctl(void)
 
     /* check if the file operation is undefined */
     if(!filp->f_op->ioctl) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0)= -ENXIO;
         return;
     }
@@ -1083,7 +1083,7 @@ void sys_lseek(void)
 
     /* check if the file operation is undefined */
     if(!filp->f_op->lseek) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(off_t, 0)= -ENXIO;
         return;
     }
@@ -1175,10 +1175,10 @@ void sys_opendir(void)
 
     /* pass the return value with r0 */
     if(dirp->inode_dir == NULL) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -1;
     } else {
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = 0;
     }
 }
@@ -1235,10 +1235,10 @@ void sys_mknod(void)
     }
 
     if(file_idx == -1) {
-        /* file not found, return on error */
+        /* file not found, return error */
         SYSCALL_ARG(int, 0) = -1;
     } else {
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = 0;
     }
 }
@@ -1271,10 +1271,10 @@ void sys_mkfifo(void)
     }
 
     if(file_idx == -1) {
-        /* file not found, return on error */
+        /* file not found, return error */
         SYSCALL_ARG(int, 0) = -1;
     } else {
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = 0;
     }
 }
@@ -1332,14 +1332,14 @@ void sys_poll(void)
         }
 
         if(!no_event) {
-            /* return on success */
+            /* return sucesss */
             SYSCALL_ARG(int, 0) = 0;
             return;
         }
 
         /* no events and no timeout: return immediately */
         if(timeout == 0) {
-            /* return on error */
+            /* return error */
             SYSCALL_ARG(int, 0) = -1;
             return;
         }
@@ -1372,10 +1372,10 @@ void sys_poll(void)
             list_del(&running_thread->timeout_list);
 
         if(running_thread->syscall_is_timeout) {
-            /* return on error */
+            /* return error */
             SYSCALL_ARG(int, 0) = -1;
         } else {
-            /* return on success */
+            /* return sucesss */
             SYSCALL_ARG(int, 0) = 0;
         }
     }
@@ -1401,7 +1401,7 @@ void sys_mq_getattr(void)
     attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
     attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1426,7 +1426,7 @@ void sys_mq_setattr(void)
     if(newattr->mq_flags & ~O_NONBLOCK ||
        newattr->mq_maxmsg != curr_attr->mq_maxmsg ||
        newattr->mq_msgsize != curr_attr->mq_msgsize) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -1440,7 +1440,7 @@ void sys_mq_setattr(void)
     /* save new mq_flags attribute */
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1490,7 +1490,7 @@ void sys_mq_open(void)
     if(mq) {
         /* both O_CREAT and O_EXCL flags are set */
         if(oflag & O_CREAT && oflag & O_EXCL) {
-            /* return on error */
+            /* return error */
             SYSCALL_ARG(mqd_t, 0) = -EEXIST;
             return;
         }
@@ -1509,7 +1509,7 @@ void sys_mq_open(void)
 
     /* create flag is not set */
     if(!(oflag & O_CREAT)) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(mqd_t, 0) = -ENOENT;
         return;
     }
@@ -1520,7 +1520,7 @@ void sys_mq_open(void)
 
     /* memory allocation failure */
     if(!pipe || !new_mq) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
         return;
     }
@@ -1558,7 +1558,7 @@ void sys_mq_close(void)
     bitmap_clear_bit(bitmap_mqds, mqdes);
     bitmap_clear_bit(task->bitmap_mqds, mqdes);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(long, 0) = 0;
 }
 
@@ -1577,10 +1577,10 @@ void sys_mq_unlink(void)
         list_del(&mq->list);
         kfree(mq);
 
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = 0;
     } else {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ENOENT;
     }
 }
@@ -1690,7 +1690,7 @@ void sys_pthread_create(void)
     int retval = thread_create(&thread, (thread_func_t)start_routine,
                                attr, USER_THREAD);
     if(retval != 0) {
-        /* failed to create new thread, return on error */
+        /* failed to create new thread, return error */
         SYSCALL_ARG(int, 0) = retval;
         return;
     }
@@ -1704,7 +1704,7 @@ void sys_pthread_create(void)
     /* return the thread id */
     *pthread = thread->tid;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1716,13 +1716,13 @@ void sys_pthread_join(void)
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     if(thread->detached || !thread->joinable) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -1732,7 +1732,7 @@ void sys_pthread_join(void)
     list_for_each_entry(check_thread, &running_thread->join_list, list) {
         /* check if the thread is waiting to join the running thread */
         if(check_thread == thread) {
-            /* deadlock identified, return on error */
+            /* deadlock identified, return error */
             SYSCALL_ARG(int, 0) = -EDEADLK;
             return;
         }
@@ -1741,7 +1741,7 @@ void sys_pthread_join(void)
     list_add(&running_thread->list, &thread->join_list);
     running_thread->status = THREAD_WAIT;
 
-    /* return on success after the thread is waken */
+    /* return sucesss after the thread is waken */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1752,21 +1752,21 @@ void sys_pthread_cancel(void)
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* kthread can only be set by the kernel */
     if(thread->privilege == KERNEL_THREAD) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
     }
 
     thread_delete(thread);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1777,14 +1777,14 @@ void sys_pthread_detach(void)
 
     /* check if the thread exists */
     if(!bitmap_get_bit(bitmap_threads, tid)) {
-        /* reurn on error */
+        /* reurn error */
         SYSCALL_ARG(long, 0) = -ESRCH;
         return;
     }
 
     threads[tid].detached = true;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1797,14 +1797,14 @@ void sys_pthread_setschedparam(void)
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* kthread can only be set by the kernel */
     if(thread->privilege == KERNEL_THREAD) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
     }
@@ -1812,7 +1812,7 @@ void sys_pthread_setschedparam(void)
     /* invalid priority parameter */
     if(param->sched_priority < 0 ||
        param->sched_priority > THREAD_PRIORITY_MAX) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -1823,7 +1823,7 @@ void sys_pthread_setschedparam(void)
     else
         thread->priority = param->sched_priority;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1836,14 +1836,14 @@ void sys_pthread_getschedparam(void)
 
     struct thread_info *thread = acquire_thread(tid);
     if(!thread) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* kthread can only be set by the kernel */
     if(thread->privilege == KERNEL_THREAD) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
     }
@@ -1854,7 +1854,7 @@ void sys_pthread_getschedparam(void)
     else
         param->sched_priority = thread->priority;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -1945,28 +1945,28 @@ void sys_pthread_kill(void)
 
     /* failed to find the task with the pid */
     if(!thread) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* kernel thread does not support posix signals */
     if(thread->privilege == KERNEL_THREAD) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EPERM;
         return;
     }
 
     /* check if the signal number is defined */
     if(!is_signal_defined(sig)) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
     handle_signal(thread, sig);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2041,7 +2041,7 @@ void sys_pthread_mutex_lock(void)
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -2058,7 +2058,7 @@ void sys_pthread_mutex_trylock(void)
         /* failed to lock the mutex */
         SYSCALL_ARG(int, 0) = -EBUSY;
     } else {
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -2180,7 +2180,7 @@ void sys_sem_wait(void)
         /* turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
-        /* return on success */
+        /* return sucesss */
         SYSCALL_ARG(int, 0) = retval;
     }
 }
@@ -2193,7 +2193,7 @@ void sys_sem_getvalue(void)
 
     *sval = ((struct semaphore *)sem)->count;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2206,7 +2206,7 @@ void sys_sigaction(void)
 
     /* check if the signal number is defined */
     if(!is_signal_defined(signum)) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2230,7 +2230,7 @@ void sys_sigaction(void)
 
         /* failed to allocate new memory */
         if(new_act == NULL) {
-            /* return on error */
+            /* return error */
             SYSCALL_ARG(int, 0) = -ENOMEM;
             return;
         }
@@ -2240,7 +2240,7 @@ void sys_sigaction(void)
         *new_act = *act;
     }
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2256,7 +2256,7 @@ void sys_sigwait(void)
 
     /* reject request of waiting on undefined signal */
     if(*set & invalid_mask) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2280,14 +2280,14 @@ void sys_kill(void)
 
     /* failed to find the task with the pid */
     if(!task) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* check if the signal number is defined */
     if(!is_signal_defined(sig)) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2298,7 +2298,7 @@ void sys_kill(void)
         handle_signal(thread, sig);
     }
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2311,14 +2311,14 @@ void sys_raise(void)
 
     /* failed to find the task with the pid */
     if(!task) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ESRCH;
         return;
     }
 
     /* check if the signal number is defined */
     if(!is_signal_defined(sig)) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2329,7 +2329,7 @@ void sys_raise(void)
         handle_signal(thread, sig);
     }
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2340,14 +2340,14 @@ void sys_clock_gettime(void)
     struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
 
     if(clockid != CLOCK_MONOTONIC) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
     get_sys_time(tp);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2358,14 +2358,14 @@ void sys_clock_settime(void)
     struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
 
     if(clockid != CLOCK_REALTIME) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
     set_sys_time(tp);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2391,14 +2391,14 @@ void sys_timer_create(void)
 
     /* unsupported clock source */
     if(clockid != CLOCK_MONOTONIC) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
     if(sevp->sigev_notify != SIGEV_NONE &&
        sevp->sigev_notify != SIGEV_SIGNAL) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2408,7 +2408,7 @@ void sys_timer_create(void)
 
     /* failed to allocate memory */
     if(new_tm == NULL) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -ENOMEM;
         return;
     }
@@ -2434,7 +2434,7 @@ void sys_timer_create(void)
     /* increase timer count */
     running_thread->timer_cnt++;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2448,7 +2448,7 @@ void sys_timer_delete(void)
 
     /* failed to acquire the timer */
     if(timer == NULL) {
-        /* invalid timer id, return on error */
+        /* invalid timer id, return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2459,7 +2459,7 @@ void sys_timer_delete(void)
     list_del(&timer->list);
     kfree(timer);
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2475,14 +2475,14 @@ void sys_timer_settime(void)
     if(new_value->it_value.tv_sec < 0 ||
        new_value->it_value.tv_nsec < 0 ||
        new_value->it_value.tv_nsec > 999999999) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
     /* the task has no timer */
     if(running_thread->timer_cnt == 0) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2492,7 +2492,7 @@ void sys_timer_settime(void)
 
     /* failed to acquire the timer */
     if(timer == NULL) {
-        /* return on error */
+        /* return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
@@ -2510,7 +2510,7 @@ void sys_timer_settime(void)
     timer->counter = timer->setting.it_value;
     timer->enabled = true;
 
-    /* return on success */
+    /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
 }
 
@@ -2525,12 +2525,12 @@ void sys_timer_gettime(void)
 
     /* failed to acquire the timer */
     if(timer == NULL) {
-        /* invalid timer id, return on error */
+        /* invalid timer id, return error */
         SYSCALL_ARG(int, 0) = -EINVAL;
         return;
     }
 
-    /* return on success */
+    /* return sucesss */
     *curr_value = timer->ret_time;
     SYSCALL_ARG(int, 0) = 0;
 }
