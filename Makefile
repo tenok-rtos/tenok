@@ -194,4 +194,10 @@ astyle:
 size:
 	$(SIZE) $(ELF)
 
-.PHONY: all check clean gdbauto astyle size msggen gen_syscalls
+doxygen:
+	@tail -n +4 README.md > main_page.md
+	@doxygen docs/Doxyfile
+	@rm -rf main_page.md
+	@echo "doxygen docs/Doxyfile"
+
+.PHONY: all check clean gdbauto astyle size msggen gen_syscalls doxygen
