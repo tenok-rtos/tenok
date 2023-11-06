@@ -28,6 +28,9 @@ void pthread_task(void)
     setprogname("pthread-ex");
 
     serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     char *msg = "a new thread will be created and canceled after 10 seconds.\n\r";
     write(serial_fd, msg, strlen(msg));
@@ -40,7 +43,9 @@ void pthread_task(void)
     pthread_attr_setstacksize(&attr, 1024);
 
     pthread_t tid;
-    pthread_create(&tid, &attr, my_thread, NULL);
+    if(pthread_create(&tid, &attr, my_thread, NULL) < 0) {
+        exit(1);
+    }
 
     pthread_join(tid, NULL);
 

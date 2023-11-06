@@ -1,4 +1,5 @@
 #include <tenok.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
@@ -23,6 +24,9 @@ void timer_task(void)
     setprogname("timer");
 
     serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     timer_t timerid;
     struct sigevent sev;
@@ -37,6 +41,7 @@ void timer_task(void)
     /* create a timer */
     if(timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
         print(serial_fd, "failed to create timer.\n\r");
+        exit(1);
     }
 
     /* set the timer to expire after 2 seconds

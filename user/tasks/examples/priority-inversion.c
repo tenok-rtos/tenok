@@ -1,5 +1,6 @@
 #include <tenok.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -22,14 +23,19 @@ void mutex_task_high(void)
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-#if 1 /* priority inheritance enabled */
+#if 1
+    /* enable priority inheritance */
     pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
-#else /* priority inheritance disabled */
+#else
+    /* disable priority inheritance */
     pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_NONE);
 #endif
     pthread_mutex_init(&mutex, &attr);
 
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     print(serial_fd, "[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
 
@@ -53,7 +59,12 @@ void mutex_task_median(void)
 {
     setprogname("mutex median");
 
+    struct timespec start_time, curr_time;
+
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     /* occupy the cpu to block the lowest-prioiry thread after 3 seconds */
     print(serial_fd, "[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
@@ -62,8 +73,8 @@ void mutex_task_median(void)
     /* occupy the cpu for 20 seconds */
     print(serial_fd, "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
 
-    struct timespec start_time, curr_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
+
     while(1) {
         clock_gettime(CLOCK_MONOTONIC, &curr_time);
 
@@ -82,6 +93,9 @@ void mutex_task_low(void)
     setprogname("mutex low");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     while(1) {
         /* start of the critical section */

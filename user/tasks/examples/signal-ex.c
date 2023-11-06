@@ -1,6 +1,7 @@
 #include <tenok.h>
-#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sched.h>
 #include <signal.h>
 #include <unistd.h>
@@ -25,6 +26,9 @@ void signal_task1(void)
     setprogname("signal1");
 
     serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     /* register the signal handler function */
     struct sigaction sa;

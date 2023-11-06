@@ -1,5 +1,6 @@
 #include <tenok.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -43,6 +44,9 @@ void mutex_task1(void)
     pthread_cond_init(&cond_consumer, 0);
 
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     int item = 1;
 
@@ -76,6 +80,9 @@ void mutex_task2(void)
     setprogname("mutex2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     while(1) {
         /* start of the critical section */

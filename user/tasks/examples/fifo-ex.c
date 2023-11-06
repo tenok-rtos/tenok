@@ -1,5 +1,6 @@
 #include <tenok.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,9 +18,14 @@ void fifo_task1(void)
 {
     setprogname("fifo1");
 
-    mkfifo("/fifo_test", 0);
+    if(mkfifo("/fifo_test", 0) < 0) {
+        exit(1);
+    }
 
     int fifo_fd = open("/fifo_test", O_RDWR);
+    if(fifo_fd < 0) {
+        exit(1);
+    }
 
     while(1) {
         write(fifo_fd, TEST_STR, LEN);
@@ -32,7 +38,14 @@ void fifo_task2(void)
     setprogname("fifo2");
 
     int fifo_fd = open("/fifo_test", 0);
+    if(fifo_fd < 0) {
+        exit(1);
+    }
+
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     while(1) {
         char data[50] = {0};

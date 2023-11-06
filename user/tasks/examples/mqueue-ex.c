@@ -1,5 +1,6 @@
 #include <tenok.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
@@ -22,7 +23,11 @@ void message_queue_task1(void)
         .mq_maxmsg = 100,
         .mq_msgsize = MSG_SIZE_MAX,
     };
+
     mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_WRONLY, &attr);
+    if(mqdes_print < 0) {
+        exit(1);
+    }
 
     while(1) {
         mq_send(mqdes_print, (char *)str, strlen(str), 0);
@@ -35,12 +40,19 @@ void message_queue_task2(void)
     setprogname("queue2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
+    if(serial_fd < 0) {
+        exit(1);
+    }
 
     struct mq_attr attr = {
         .mq_maxmsg = 100,
         .mq_msgsize = MSG_SIZE_MAX,
     };
+
     mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_RDONLY, &attr);
+    if(mqdes_print < 0) {
+        exit(1);
+    }
 
     char str[MSG_SIZE_MAX] = {0};
 
