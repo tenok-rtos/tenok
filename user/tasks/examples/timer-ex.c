@@ -9,14 +9,11 @@
 
 #include <kernel/task.h>
 
-#define print(fd, str) write(fd, str, strlen(str))
-
 static int serial_fd;
 
 void timer_callback(union sigval sv)
 {
-    char *s = "timer: time's up.\n\r";
-    write(serial_fd, s, strlen(s));
+    dprintf(serial_fd, "timer: time's up.\n\r");
 }
 
 void timer_task(void)
@@ -40,7 +37,7 @@ void timer_task(void)
 
     /* create a timer */
     if(timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
-        print(serial_fd, "failed to create timer.\n\r");
+        dprintf(serial_fd, "failed to create timer.\n\r");
         exit(1);
     }
 
@@ -54,7 +51,7 @@ void timer_task(void)
 
     /* arm the timer */
     if(timer_settime(timerid, 0, &its, NULL) == -1) {
-        print(serial_fd, "failed to set the timer.\n\r");
+        dprintf(serial_fd, "failed to set the timer.\n\r");
     }
 
     /* sleep */

@@ -11,12 +11,6 @@
 
 static pthread_mutex_t mutex;
 
-static void print(int fd, char *str)
-{
-    int len = strlen(str);
-    write(fd, str, len);
-}
-
 void mutex_task_high(void)
 {
     setprogname("mutex high");
@@ -37,7 +31,7 @@ void mutex_task_high(void)
         exit(1);
     }
 
-    print(serial_fd, "[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
+    dprintf(serial_fd, "[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
 
     sleep(5);
 
@@ -45,7 +39,7 @@ void mutex_task_high(void)
         /* start of the critical section */
         pthread_mutex_lock(&mutex);
 
-        print(serial_fd, "[mutex high] highest-priority thread locked the mutex successfully.\n\r");
+        dprintf(serial_fd, "[mutex high] highest-priority thread locked the mutex successfully.\n\r");
 
         /* end of the critical section */
         pthread_mutex_unlock(&mutex);
@@ -67,11 +61,11 @@ void mutex_task_median(void)
     }
 
     /* occupy the cpu to block the lowest-prioiry thread after 3 seconds */
-    print(serial_fd, "[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
+    dprintf(serial_fd, "[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
     sleep(3);
 
     /* occupy the cpu for 20 seconds */
-    print(serial_fd, "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
+    dprintf(serial_fd, "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
@@ -101,7 +95,7 @@ void mutex_task_low(void)
         /* start of the critical section */
         pthread_mutex_lock(&mutex);
 
-        print(serial_fd, "[mutex low] lowest-priority thread locked the mutex successfully.\n\r");
+        dprintf(serial_fd, "[mutex low] lowest-priority thread locked the mutex successfully.\n\r");
 
         /* simulate some works */
         sleep(2);
@@ -111,6 +105,6 @@ void mutex_task_low(void)
     }
 }
 
-HOOK_USER_TASK(mutex_task_high, 3, 512);
-HOOK_USER_TASK(mutex_task_median, 2, 512);
-HOOK_USER_TASK(mutex_task_low, 1, 512);
+HOOK_USER_TASK(mutex_task_high, 3, 1024);
+HOOK_USER_TASK(mutex_task_median, 2, 1024);
+HOOK_USER_TASK(mutex_task_low, 1, 1024);

@@ -13,13 +13,6 @@
 
 #define BUFFER_SIZE 10
 
-/* costomized printf */
-#define printf(...) \
-    sprintf(pbuf, __VA_ARGS__); \
-    print(serial_fd, pbuf);
-
-static char pbuf[200] = {0};
-
 /* producer and consumer's data */
 static int my_buffer[BUFFER_SIZE];
 static int my_cnt = 0;
@@ -55,13 +48,13 @@ void mutex_task1(void)
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == BUFFER_SIZE) {
-            printf("[task 1] buffer is full. producer is waiting...\n\r");
+            dprintf(serial_fd, "[task 1] buffer is full. producer is waiting...\n\r");
             pthread_cond_wait(&cond_producer, &mutex);
         }
 
         /* produce an item and add it to the buffer */
         my_buffer[my_cnt++] = item;
-        printf("[task 1] produced item %d\n\r", item);
+        dprintf(serial_fd, "[task 1] produced item %d\n\r", item);
         item++;
 
         /* signal to consumers that an item is available */
@@ -89,13 +82,13 @@ void mutex_task2(void)
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == 0) {
-            printf("[task 2] buffer is empty. consumer is waiting...\n\r");
+            dprintf(serial_fd, "[task 2] buffer is empty. consumer is waiting...\n\r");
             pthread_cond_wait(&cond_consumer, &mutex);
         }
 
         /* consume an item from the buffer */
         int item = my_buffer[--my_cnt];
-        printf("[task 2] consumed item %d\n\r", item);
+        dprintf(serial_fd, "[task 2] consumed item %d\n\r", item);
 
         /* signal to producers that there is space in the buffer */
         pthread_cond_signal(&cond_producer);
@@ -108,5 +101,5 @@ void mutex_task2(void)
     }
 }
 
-HOOK_USER_TASK(mutex_task1, 0, 512);
-HOOK_USER_TASK(mutex_task2, 0, 512);
+HOOK_USER_TASK(mutex_task1, 0, 1024);
+HOOK_USER_TASK(mutex_task2, 0, 1024);

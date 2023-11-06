@@ -37,8 +37,6 @@ void poll_task2(void)
 {
     setprogname("poll2");
 
-    char s[100] = {0};
-
     int serial_fd = open("/dev/serial0", O_RDWR);
     if(serial_fd < 0) {
         exit(1);
@@ -62,8 +60,7 @@ void poll_task2(void)
             ssize_t rbytes = read(fifo_fd, buffer, sizeof(buffer) - 1);
             buffer[rbytes] = '\0';
 
-            sprintf(s, "received %d bytes\n\r", rbytes);
-            write(serial_fd, s, strlen(s));
+            dprintf(serial_fd, "received %d bytes\n\r", rbytes);
 
             fds[0].revents = 0;
         }

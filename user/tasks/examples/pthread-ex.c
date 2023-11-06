@@ -13,10 +13,8 @@ static int serial_fd;
 
 void *my_thread(void *arg)
 {
-    char *msg = "hello new thread.\n\r";
-
     for(int i = 0; i < 10; i++) {
-        write(serial_fd, msg, strlen(msg));
+        dprintf(serial_fd, "hello new thread.\n\r");
         sleep(1);
     }
 
@@ -32,8 +30,8 @@ void pthread_task(void)
         exit(1);
     }
 
-    char *msg = "a new thread will be created and canceled after 10 seconds.\n\r";
-    write(serial_fd, msg, strlen(msg));
+    dprintf(serial_fd, "a new thread will be created and"
+            " canceled after 10 seconds.\n\r");
 
     pthread_attr_t attr;
     struct sched_param param;

@@ -14,9 +14,7 @@ static int serial_fd;
 
 void sig_handler(int signum)
 {
-    char s[100] = {0};
-    sprintf(s, "received signal %d.\n\r", signum);
-    write(serial_fd, s, strlen(s));
+    dprintf(serial_fd, "received signal %d.\n\r", signum);
 }
 
 void signal_task1(void)
@@ -45,9 +43,7 @@ void signal_task1(void)
     sigwait(&set, &sig);
 
     /* print after the signal arrived */
-    char s[100] = {0};
-    sprintf(s, "signal %d is captured.\n\r", sig);
-    write(serial_fd, s, strlen(s));
+    dprintf(serial_fd, "signal %d is captured.\n\r", sig);
 
     /* sleep */
     while(1) {
