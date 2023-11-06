@@ -31,9 +31,9 @@ void printk(char *format,  ...)
         zeros[i] = '0';
     }
 
-    char buf[100] = {0};
-    int pos = sprintf(buf, "[%5s.%s%s] ", sec, zeros, rem);
-    vsprintf(&buf[pos], format, args);
+    char buf[100] = {'\r', 0};
+    int pos = sprintf(&buf[1], "[%5s.%s%s] ", sec, zeros, rem);
+    vsprintf(&buf[pos + 1], format, args);
     strcat(buf, "\n\r");
     va_end(args);
 
