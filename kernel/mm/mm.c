@@ -7,6 +7,7 @@
 #include <kernel/list.h>
 #include <kernel/util.h>
 #include <kernel/printk.h>
+#include <kernel/kernel.h>
 #include <kernel/syscall.h>
 
 #define MALLOC_BLK_FREE_MASK (1 << 30)
@@ -84,6 +85,8 @@ void malloc_heap_init(void)
 
 void *__malloc(size_t size)
 {
+    CURRENT_THREAD_INFO(curr_thread);
+
     /* calculate the allocation size */
     size_t alloc_size = align_up(size + sizeof(struct malloc_info), 4);
 
@@ -126,7 +129,9 @@ void *__malloc(size_t size)
     }
 
     /* failed to allocate memory */
-    printk("malloc(): failed as no enough heap space");
+    printk("malloc(): not enough heap space (name: %s, pid: %d)",
+           curr_thread->name, curr_thread->task->pid);
+
     return NULL;
 }
 
