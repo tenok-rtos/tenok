@@ -684,8 +684,14 @@ void sys_sched_yield(void)
 
 void sys_exit(void)
 {
-    /* obtain the task of the running thread */
+    /* acquire the task of the running thread */
     struct task_struct *task = current_task_info();
+
+    /* read syscall arguments */
+    int status = SYSCALL_ARG(int, 0);
+
+    printk("exit(): task terminated (name: %s, pid: %d, status: %d)",
+           task->main_thread->name, task->pid, status);
 
     /* remove all threads of the task from the system */
     struct list_head *curr, *next;
