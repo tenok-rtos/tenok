@@ -140,9 +140,9 @@ void *kmalloc(size_t size)
             ptr = alloc_pages(page_order);
         } else {
             /* failed, the reqeust size is too large to handle */
+            ptr = NULL;
             printk("kmalloc(): failed as the request size %d is too large", size);
         }
-        ptr = NULL;
     }
 
     /* end of the critical section */
