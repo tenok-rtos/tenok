@@ -2787,11 +2787,6 @@ static void slab_init(void)
     }
 }
 
-static void heap_init(void)
-{
-    malloc_heap_init();
-}
-
 void first(void)
 {
     setprogname("idle");
@@ -2850,7 +2845,7 @@ void sched_start(void)
     /* initialize kernel threads and deamons */
     kthread_create(first, 0, 1024);
     kthread_create(file_system_task, 1, 1024);
-    softirq_init();
+    kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];

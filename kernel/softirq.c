@@ -54,9 +54,3 @@ void softirqd(void)
         }
     }
 }
-
-void softirq_init(void)
-{
-    /* create softirq daemon for handling tasklets  */
-    kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
-}

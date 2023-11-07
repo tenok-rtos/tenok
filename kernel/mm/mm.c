@@ -72,7 +72,7 @@ unsigned long heap_get_free_size(void)
     return total_size;
 }
 
-void malloc_heap_init(void)
+void heap_init(void)
 {
     /* initialize the whole heap memory section as a free block */
     struct malloc_info *first_blk = (struct malloc_info *)&_user_stack_start;

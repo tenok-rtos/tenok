@@ -27,11 +27,6 @@ void tasklet_init(struct tasklet_struct *t,
  */
 void tasklet_schedule(struct tasklet_struct *t);
 
-/**
- * @brief  Initialize the softirq daemon
- * @param  None
- * @retval None
- */
-void softirq_init(void);
+void softirqd(void);
 
 #endif
