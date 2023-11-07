@@ -14,9 +14,11 @@ CFLAGS += -I./drivers/boards
 SRC += ./drivers/boards/stm32f4disc.c
 
 qemu: all
-	$(QEMU) -cpu cortex-m4 \
+	$(QEMU) \
+	-nographic \
+	-cpu cortex-m4 \
 	-M netduinoplus2 \
-	-serial stdio \
+	-serial mon:stdio \
 	-serial pty \
 	-serial pty \
 	-gdb tcp::3333 \
