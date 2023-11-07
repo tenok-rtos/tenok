@@ -3,12 +3,12 @@
 
 #include "shell.h"
 
+extern struct shell_cmd _shell_cmds_start[];
+extern struct shell_cmd _shell_cmds_end[];
+
 void shell_cmd_help(int argc, char *argv[])
 {
-    extern char _shell_cmds_start;
-    extern char _shell_cmds_end;
-
-    struct shell_cmd *shell_cmds = (struct shell_cmd *)&_shell_cmds_start;
+    struct shell_cmd *shell_cmds = _shell_cmds_start;
     int shell_cmd_cnt = SHELL_CMDS_CNT(_shell_cmds_start, _shell_cmds_end);
 
     char s[SHELL_PROMPT_LEN_MAX + 2] = {'\0'}; //reserved 2 for new line
