@@ -171,6 +171,11 @@ ssize_t serial0_write(struct file *filp, const char *buf, size_t size, off_t off
     return console_write(buf, size);
 }
 
+void early_tty_print(char *buf, size_t size)
+{
+    uart_puts(USART1, buf, size);
+}
+
 static int uart1_dma_puts(const char *data, size_t size)
 {
     switch(uart1.tx_state) {
