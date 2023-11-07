@@ -183,7 +183,7 @@ void irq_handler(void)
 void irq_init(void)
 {
     for(int i = IRQ_START; i < IRQ_CNT; i++) {
-        irq_table[IRQ_START + i] = Default_Handler;
+        irq_table[i] = Default_Handler;
     }
 
     /* priority range of group 4 is 0-15 */

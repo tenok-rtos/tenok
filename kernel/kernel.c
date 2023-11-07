@@ -2807,7 +2807,7 @@ void first(void)
     extern char _tasks_start;
     extern char _tasks_end;
 
-    int func_list_size = ((uint8_t *)&_tasks_end - (uint8_t *)&_tasks_start);
+    int func_list_size = ((uintptr_t)&_tasks_end - (uintptr_t)&_tasks_start);
     int hook_task_cnt = func_list_size / sizeof(struct task_hook);
 
     struct task_hook *hook_task = (struct task_hook *)&_tasks_start;

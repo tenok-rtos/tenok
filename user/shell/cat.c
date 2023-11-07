@@ -25,7 +25,7 @@ void shell_cmd_cat(int argc, char *argv[])
     char str[PRINT_SIZE_MAX] = {0};
 
     /* open the file */
-    FILE *file = fopen(path, 0);
+    FILE *file = fopen(path, "");
     if(!file) {
         snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
         shell_puts(str);

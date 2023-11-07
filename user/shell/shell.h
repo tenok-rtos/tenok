@@ -8,7 +8,7 @@
 #define SHELL_ARG_CNT 10
 
 #define SHELL_CMDS_SIZE(sect_start, sect_end) \
-    ((uint8_t *)&sect_end - (uint8_t *)&sect_start)
+    ((uintptr_t)&sect_end - (uintptr_t)&sect_start)
 
 #define SHELL_CMDS_CNT(sect_start, sect_end) \
     (SHELL_CMDS_SIZE(sect_start, sect_end) / sizeof(struct shell_cmd))

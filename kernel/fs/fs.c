@@ -933,7 +933,7 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
     /* load the device file */
     struct file *dev_file = mount_points[inode->i_rdev].dev_file;
 
-    uint32_t blk_addr;
+    uint32_t blk_addr = (uint32_t) NULL;
     struct block_header blk_head = {.b_next = inode->i_data}; //first block address = inode->i_data
 
     int i;

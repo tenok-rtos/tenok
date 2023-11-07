@@ -99,7 +99,7 @@ void shell_cmd_xxd(int argc, char *argv[])
     }
 
     /* open file */
-    FILE *file = fopen(path, 0);
+    FILE *file = fopen(path, "");
     if(!file) {
         shell_puts("failed to open the file.\n\r");
         return;
