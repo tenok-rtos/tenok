@@ -32,13 +32,14 @@ Tenok also offers several utilities for developing Robotic applications, includi
 
 * [Developement Tools Setup](./docs/1-environment_setup.md)
 * [Build and Run the Tenok](./docs/2-build_and_run.md)
-* [Run Tenok with Gazebo Simulator](./docs/3-gazebo.md)
-* [Interact with Tenok Shell](./docs/4-shell.md)
-* [Supported Platforms](./docs/5-platforms.md)
+* [Interact with Tenok Shell](./docs/3-shell.md)
+* [Run Tenok with Gazebo Simulator](./docs/4-gazebo.md)
+* [Real-time Visualization with RTPlot and Debug-Link](./docs/5-debug_link.md)
 
 ## Resources 
 
 * [Tenok Full API List](https://tenok-rtos.github.io/md_docs_6_api_list.html)
+* [Supported Platforms](./docs/7-platforms.md)
 * [Doxygen Page](https://tenok-rtos.github.io/index.html)
 * [Presentation at COSCUP 2023](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)
 
