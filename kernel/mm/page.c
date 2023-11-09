@@ -136,7 +136,7 @@ static void split_first_free_page(unsigned long order)
 
 static inline unsigned long get_buddy_index(unsigned long idx)
 {
-    return idx % 2 ? idx - 1 : idx + 1;
+    return (idx % 2) ? (idx - 1) : (idx + 1);
 }
 
 static inline void *page_idx_to_addr(unsigned long idx, unsigned long order)
@@ -144,7 +144,8 @@ static inline void *page_idx_to_addr(unsigned long idx, unsigned long order)
     /* page size = 2^(order + base)
      * address = page_start_address + index * page_size
      */
-    return &_page_mem_start + idx * (1 << (order + ilog2(PAGE_SIZE_MIN)));
+    unsigned long offset = idx * (1 << (order + ilog2(PAGE_SIZE_MIN)));
+    return (void *)((uintptr_t)&_page_mem_start + offset);
 }
 
 static inline unsigned long addr_to_page_idx(unsigned long addr, unsigned long order)
