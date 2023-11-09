@@ -149,7 +149,7 @@ Tenok API List
 
 * write()
 
-* ioctl():
+* ioctl()
 
 * poll()
 
