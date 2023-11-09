@@ -29,7 +29,7 @@ static LIST_HEAD(caches);
 static inline struct slab *get_slab_from_obj(void *obj, size_t page_size)
 {
     /* calculate the slab address from object by doing round-down alignment */
-    return (struct slab *)align((unsigned long)obj, page_size);
+    return (struct slab *)ALIGN((unsigned long)obj, page_size);
 }
 
 static inline int obj_index_in_slab(void *obj, struct kmem_cache *cache)
