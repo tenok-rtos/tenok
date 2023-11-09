@@ -543,28 +543,52 @@ static inline void thread_join_handler(void)
                size_to_page_order(running_thread->stack_size));
 }
 
+static struct thread_info *thread_info_find_next(struct thread_info *curr)
+{
+    struct thread_info *thread = NULL;
+    int tid = ((uintptr_t)curr - (uintptr_t)&threads[0]) / sizeof(struct thread_info);
+
+    /* find the next thread */
+    for(int i = tid + 1; i < THREAD_CNT_MAX; i++) {
+        if(bitmap_get_bit(bitmap_threads, i)) {
+            thread = &threads[i];
+            break;
+        }
+    }
+
+    return thread;
+}
+
 void sys_thread_info(void)
 {
     /* read syscall arguments */
     struct thread_stat *info = SYSCALL_ARG(struct thread_stat *, 0);
     void *next = SYSCALL_ARG(void *, 1);
 
-    struct thread_info *thread;
+    int tid;
+    struct thread_info *thread = NULL;
 
     if(next == NULL) {
-        /* take the first thread from the list */
-        thread = list_first_entry(&threads_list, struct thread_info, thread_list);
+        /* assign the first thread */
+        tid = find_first_bit(bitmap_threads, THREAD_CNT_MAX);
+        thread = &threads[tid];
     } else {
-        /* read next thread from the next pointer */
-        thread = (struct thread_info *)next;
+        /* don't use thread->tid as the thread may be terminated */
+        tid = ((uintptr_t)next - (uintptr_t)&threads[0]) / sizeof(struct thread_info);
 
-        /* validate the thread pointer to prevent user passing next pointer
-         * with garbage content */
-        struct thread_info *thread_prev = list_prev_entry(thread, thread_list);
-        if(list_next_entry(thread_prev, thread_list) != thread) {
-            /* validation failed, return NULL */
-            SYSCALL_ARG(void *, 0) = NULL;
-            return;
+        /* check if the thread is alive */
+        if(bitmap_get_bit(bitmap_threads, tid)) {
+            /* the thread is still alive */
+            thread = (struct thread_info *)next;
+        } else {
+            /* the thread is not alive, find the next alive one */
+            thread = thread_info_find_next(next);
+
+            /* no more alive threads */
+            if(!thread) {
+                SYSCALL_ARG(void *, 0) = NULL;
+                return;
+            }
         }
     }
 
@@ -580,13 +604,8 @@ void sys_thread_info(void)
     info->stack_size = thread->stack_size;
     strncpy(info->name, thread->name, THREAD_NAME_MAX);
 
-    if(list_is_last(&thread->thread_list, &threads_list)) {
-        /* return NULL as more threads to read */
-        SYSCALL_ARG(void *, 0) = NULL;
-    } else {
-        /* return the address of the next thread to read */
-        SYSCALL_ARG(void *, 0) = (void *)list_next_entry(thread, thread_list);
-    }
+    /* return next thread's address */
+    SYSCALL_ARG(void *, 0) = thread_info_find_next(thread);
 }
 
 void sys_setprogname(void)
