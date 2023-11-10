@@ -187,10 +187,6 @@ msggen:
 gdbauto:
 	cgdb -d $(GDB) -x ./gdb/openocd_gdb.gdb
 
-astyle:
-	astyle --style=linux --indent=spaces=4 --indent-switches \
-		--suffix=none  --exclude=lib --recursive "*.c,*.h"
-
 FORMAT_EXCLUDE = -path ./lib -o -path ./platform
 FORMAT_FILES = ".*\.\(c\|h\)"
 
@@ -209,4 +205,4 @@ doxygen:
 	@rm -rf main_page.md
 	@echo "doxygen docs/Doxyfile"
 
-.PHONY: all check clean gdbauto astyle size msggen gen_syscalls doxygen
+.PHONY: all check clean gdbauto size msggen gen_syscalls doxygen

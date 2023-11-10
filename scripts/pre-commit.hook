@@ -1,30 +1,29 @@
 #!/bin/bash
 
 # Options
-ASTYLE_OPTS="--style=linux --indent=spaces=4 --indent-switches --suffix=none --exclude=lib --recursive"
 CPPCHECK_OPTS=". -i lib/ --error-exitcode=1 --force"
 
-# Check installation of the astyle
-ASTYLE=$(which astyle)
+# Check installation of the clang-format
+CLANG_FORMAT=$(which clang-format)
 if [ $? -ne 0 ]; then
-	echo "[!] astyle not installed. Unable to check source file format policy." >&2
+	echo "[!] clang-format not installed. Unable to check source file format policy." >&2
 	exit 1
 fi
 
 # Check formatting
-ASTYLE_RESULT=0
+CLANG_FORMAT_RESULT=0
 FILES=`git diff --cached --name-only --diff-filter=ACMR | grep -E "\.(c|cpp|h)$"`
 for FILE in $FILES; do
-    $ASTYLE $ASTYLE_OPTS < $FILE | cmp -s $FILE -
+    $CLANG_FORMAT < $FILE | cmp -s $FILE -
     if [ $? -ne 0 ]; then
        echo "[!] $FILE does not respect the agreed coding style." >&2
-       ASTYLE_RESULT=1
+       CLANG_FORMAT_RESULT=1
     fi
 done
 
-if [ $ASTYLE_RESULT -eq 1 ]; then
+if [ $CLANG_FORMAT_RESULT -eq 1 ]; then
 	echo "" >&2
-	echo "Make sure you have run astyle with 'make astyle'" >&2
+	echo "Make sure you have run clang-format with 'make clang-format'" >&2
 	exit 1
 fi
 
