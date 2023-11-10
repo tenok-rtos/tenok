@@ -1,14 +1,14 @@
-#include <tenok.h>
+#include <fcntl.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <poll.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <tenok.h>
+#include <unistd.h>
 
-#include <kernel/task.h>
 #include <kernel/kernel.h>
+#include <kernel/task.h>
 
 static char buffer[100];
 
@@ -18,16 +18,16 @@ void poll_task1(void)
 
     char *s = "poll example.\n\r";
 
-    if(mkfifo("/poll_test", 0) < 0) {
+    if (mkfifo("/poll_test", 0) < 0) {
         exit(1);
     }
 
     int fifo_fd = open("/poll_test", O_RDWR);
-    if(fifo_fd < 0) {
+    if (fifo_fd < 0) {
         exit(1);
     }
 
-    while(1) {
+    while (1) {
         write(fifo_fd, s, strlen(s));
         sleep(1);
     }
@@ -38,12 +38,12 @@ void poll_task2(void)
     setprogname("poll2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
     int fifo_fd = open("/poll_test", O_NONBLOCK);
-    if(fifo_fd < 0) {
+    if (fifo_fd < 0) {
         exit(1);
     }
 
@@ -53,7 +53,7 @@ void poll_task2(void)
 
     sleep(3);
 
-    while(1) {
+    while (1) {
         poll(fds, 1, -1);
 
         if (fds[0].revents & POLLIN) {

@@ -4,14 +4,14 @@
 #include <stdbool.h>
 
 #include <kernel/kfifo.h>
-#include <kernel/wait.h>
 #include <kernel/mutex.h>
+#include <kernel/wait.h>
 
 #include "stm32f4xx.h"
 
 enum {
     UART_TX_IDLE,
-    UART_TX_DMA_BUSY
+    UART_TX_DMA_BUSY,
 } UART_TX_STATE;
 
 typedef struct {

@@ -5,8 +5,8 @@
 #define __SEMAPHORE_H__
 
 #include <kernel/list.h>
-#include <kernel/spinlock.h>
 #include <kernel/semaphore.h>
+#include <kernel/spinlock.h>
 
 #define __SIZEOF_SEM_T sizeof(struct semaphore)
 

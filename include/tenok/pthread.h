@@ -4,31 +4,32 @@
 #ifndef __PTHREAD_H__
 #define __PTHREAD_H__
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/sched.h>
 
 #include <kernel/list.h>
-#include <kernel/wait.h>
 #include <kernel/mutex.h>
-#include <kernel/thread.h>
 #include <kernel/spinlock.h>
+#include <kernel/thread.h>
+#include <kernel/wait.h>
 
-#define PTHREAD_ONCE_INIT \
-    {.wq = {.next = NULL, .prev = NULL}, \
-     .finished = false}
+#define PTHREAD_ONCE_INIT                                     \
+    {                                                         \
+        .wq = {.next = NULL, .prev = NULL}, .finished = false \
+    }
 
 #define PTHREAD_CREATE_DETACHED 0
 #define PTHREAD_CREATE_JOINABLE 1
 
-#define PTHREAD_PRIO_NONE    0
+#define PTHREAD_PRIO_NONE 0
 #define PTHREAD_PRIO_INHERIT 1
 
 #define __SIZEOF_PTHREAD_MUTEXATTR_T sizeof(struct mutex_attr)
-#define __SIZEOF_PTHREAD_MUTEX_T     sizeof(struct mutex)
-#define __SIZEOF_PTHREAD_ATTR_T      sizeof(struct thread_attr)
-#define __SIZEOF_PTHREAD_COND_T      sizeof(struct cond)
-#define __SIZEOF_PTHREAD_ONCE_T      sizeof(struct thread_once)
+#define __SIZEOF_PTHREAD_MUTEX_T sizeof(struct mutex)
+#define __SIZEOF_PTHREAD_ATTR_T sizeof(struct thread_attr)
+#define __SIZEOF_PTHREAD_COND_T sizeof(struct cond)
+#define __SIZEOF_PTHREAD_ONCE_T sizeof(struct thread_once)
 
 typedef uint32_t pthread_t;
 typedef uint32_t pthread_condattr_t;
@@ -78,7 +79,8 @@ int pthread_attr_destroy(pthread_attr_t *attr);
  * @param  param: The scheduling parameter for setting the attribute object.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param);
+int pthread_attr_setschedparam(pthread_attr_t *attr,
+                               const struct sched_param *param);
 
 /**
  * @brief  Get scheduling parameter of a thread attriute object
@@ -86,7 +88,8 @@ int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *p
  * @param  param: For returning the scheduling parameter.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param);
+int pthread_attr_getschedparam(const pthread_attr_t *attr,
+                               struct sched_param *param);
 
 /**
  * @brief  Set scheduling policy of a thread attriute object
@@ -119,7 +122,8 @@ int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
  * @param  param: For returning the priority inheritance protocol.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol);
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
+                                  int *protocol);
 
 /**
  * @brief  Set stack size parameter of a thread attriute object
@@ -148,7 +152,8 @@ int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
 /**
  * @brief  Get detach state parameter of a thread attriute object
  * @param  attr: The attribute object to retrieve detach state.
- * @param  detachstate: For returning the detach state from the attribute object.
+ * @param  detachstate: For returning the detach state from the attribute
+ *          object.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
@@ -164,7 +169,8 @@ int pthread_attr_setstackaddr(pthread_attr_t *attr, void *stackaddr);
 /**
  * @brief  Get stack address parameter of a thread attriute object
  * @param  attr: The attribute object to retrieve stack address.
- * @param  detachstate: For returning the stack address from the attribute object.
+ * @param  detachstate: For returning the stack address from the attribute
+ *         object.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr);
@@ -173,12 +179,16 @@ int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr);
  * @brief  Start a new thread in the calling task
  * @param  thread: The thread ID of the new thread to return.
  * @param  attr: The attribute object for configuring the new thread.
- * @param  start_routine: The function to be called after the thread is launched.
- * @param  arg: The sole argument of the start_routine to be provided (Not implemented yet).
+ * @param  start_routine: The function to be called after the thread is
+ *         launched.
+ * @param  arg: The sole argument of the start_routine to be provided (Not
+ * implemented yet).
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine) (void *), void *arg);
+int pthread_create(pthread_t *thread,
+                   const pthread_attr_t *attr,
+                   void *(*start_routine)(void *),
+                   void *arg);
 
 /**
  * @brief  Return the thread ID of the calling thread
@@ -222,22 +232,28 @@ int pthread_cancel(pthread_t thread);
 int pthread_equal(pthread_t t1, pthread_t t2);
 
 /**
- * @brief  Set the scheduling parameters of a thread specified with the thread ID
+ * @brief  Set the scheduling parameters of a thread specified with the thread
+ *         ID
  * @param  thread: Thread ID to provide.
  * @param  policy: Not used.
  * @param  param: The scheduling parameter to set the thread.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_setschedparam(pthread_t thread, int policy, const struct sched_param *param);
+int pthread_setschedparam(pthread_t thread,
+                          int policy,
+                          const struct sched_param *param);
 
 /**
- * @brief  Get the scheduling parameters of a thread specified with the thread ID
+ * @brief  Get the scheduling parameters of a thread specified with the thread
+ *         ID
  * @param  thread: The hread ID to provide.
  * @param  policy: Not used.
  * @param  param: For returning the scheduling parameter from the thread.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int pthread_getschedparam(pthread_t thread, int *policy, struct sched_param *param);
+int pthread_getschedparam(pthread_t thread,
+                          int *policy,
+                          struct sched_param *param);
 
 /**
  * @brief  Cause the calling thread to relinquish the CPU
@@ -315,8 +331,8 @@ int pthread_mutex_lock(pthread_mutex_t *mutex);
 int pthread_mutex_trylock(pthread_mutex_t *mutex);
 
 /**
- * @brief  Initialize the given attribute object of conditional variable with default
- *         values
+ * @brief  Initialize the given attribute object of conditional variable with
+ *         default values
  * @param  attr: The attribute object of conditional variable to initialize.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
@@ -332,7 +348,8 @@ int pthread_condattr_destroy(pthread_condattr_t *attr);
 /**
  * @brief  Initializes a conditional variable with specified attributes
  * @param  cond: The conditional variable object to be initialized.
- * @param  cond_attr: The attribute object for initializing the conditional variable.
+ * @param  cond_attr: The attribute object for initializing the conditional
+ *         variable.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
@@ -359,15 +376,18 @@ int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 
 /**
- * @brief  Atomically unlocks the mutex and waits for the condition variable to be signaled
+ * @brief  Atomically unlocks the mutex and waits for the condition variable to
+ *         be signaled
  * @param  cond: The sonditional variable object for waiting the state change.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 
 /**
- * @brief  To ensure that a piece of initialization code is executed at most once
- * @param  once_control: The object to track the execution state of the init_routine.
+ * @brief  To ensure that a piece of initialization code is executed at most
+ *         once
+ * @param  once_control: The object to track the execution state of the
+ * init_routine.
  * @param  init_routine: The function to be called for once.
  * @retval int: 0 on sucess and nonzero error number on error.
  */

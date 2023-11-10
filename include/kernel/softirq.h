@@ -18,7 +18,8 @@ struct tasklet_struct {
  * @retval None
  */
 void tasklet_init(struct tasklet_struct *t,
-                  void (*func)(unsigned long), unsigned long data);
+                  void (*func)(unsigned long),
+                  unsigned long data);
 
 /**
  * @brief  Schedule the given tasklet to execute by softirqd

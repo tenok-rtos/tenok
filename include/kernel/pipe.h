@@ -16,9 +16,14 @@ struct pipe {
     struct list_head w_wait_list;
 };
 
-int fifo_init(int fd, struct file **files,
-              struct inode *file_inode, struct pipe *pipe);
+int fifo_init(int fd,
+              struct file **files,
+              struct inode *file_inode,
+              struct pipe *pipe);
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
+ssize_t fifo_write(struct file *filp,
+                   const char *buf,
+                   size_t size,
+                   off_t offset);
 
 #endif

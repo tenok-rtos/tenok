@@ -1,12 +1,12 @@
+#include <sched.h>
 #include <tenok.h>
 #include <unistd.h>
-#include <sched.h>
 
-#include <kernel/kernel.h>
-#include <kernel/softirq.h>
-#include <kernel/list.h>
-#include <kernel/wait.h>
 #include <kernel/interrupt.h>
+#include <kernel/kernel.h>
+#include <kernel/list.h>
+#include <kernel/softirq.h>
+#include <kernel/wait.h>
 
 #include "kconfig.h"
 
@@ -15,7 +15,8 @@
 static LIST_HEAD(tasklet_list);
 
 void tasklet_init(struct tasklet_struct *t,
-                  void (*func)(unsigned long), unsigned long data)
+                  void (*func)(unsigned long),
+                  unsigned long data)
 {
     t->func = func;
     t->data = data;
@@ -37,8 +38,8 @@ void softirqd(void)
 
     struct tasklet_struct *t;
 
-    while(1) {
-        if(list_empty(&tasklet_list)) {
+    while (1) {
+        if (list_empty(&tasklet_list)) {
             pause();
         } else {
             preempt_disable();

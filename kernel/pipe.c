@@ -1,29 +1,35 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <errno.h>
-#include <poll.h>
-#include <fcntl.h>
 
 #include <fs/fs.h>
-#include <mm/mm.h>
-#include <kernel/pipe.h>
-#include <kernel/wait.h>
-#include <kernel/poll.h>
 #include <kernel/errno.h>
-#include <kernel/kfifo.h>
 #include <kernel/kernel.h>
+#include <kernel/kfifo.h>
+#include <kernel/pipe.h>
+#include <kernel/poll.h>
+#include <kernel/wait.h>
+#include <mm/mm.h>
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset);
+ssize_t fifo_write(struct file *filp,
+                   const char *buf,
+                   size_t size,
+                   off_t offset);
 int fifo_open(struct inode *inode, struct file *file);
 
 static struct file_operations fifo_ops = {
     .read = fifo_read,
     .write = fifo_write,
-    .open = fifo_open
+    .open = fifo_open,
 };
 
-int fifo_init(int fd, struct file **files, struct inode *file_inode, struct pipe *pipe)
+int fifo_init(int fd,
+              struct file **files,
+              struct inode *file_inode,
+              struct pipe *pipe)
 {
     /* initialize the pipe object */
     INIT_LIST_HEAD(&pipe->r_wait_list);
@@ -47,20 +53,18 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     struct thread_info *highest_pri_thread = NULL;
 
     struct list_head *curr, *next;
-    list_for_each_safe(curr, next, wait_list) {
-        struct thread_info *thread =
-            list_entry(curr, struct thread_info, list);
+    list_for_each_safe (curr, next, wait_list) {
+        struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
-        if(thread->file_request.size <= avail_size &&
-           (highest_pri_thread == NULL ||
-            thread->priority > highest_pri_thread->priority)) {
+        if (thread->file_request.size <= avail_size &&
+            (highest_pri_thread == NULL ||
+             thread->priority > highest_pri_thread->priority)) {
             highest_pri_thread = thread;
         }
     }
 
-    if(highest_pri_thread) {
+    if (highest_pri_thread)
         finish_wait(&highest_pri_thread->list);
-    }
 }
 
 static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
@@ -72,9 +76,9 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
     size_t fifo_len = kfifo_len(fifo);
 
     /* check if the request size is larger than the fifo can serve */
-    if(size > fifo_len) {
-        if(filp->f_flags & O_NONBLOCK) { /* non-block mode */
-            if(fifo_len > 0) {
+    if (size > fifo_len) {
+        if (filp->f_flags & O_NONBLOCK) { /* non-block mode */
+            if (fifo_len > 0) {
                 /* overwrite the read size */
                 size = fifo_len;
             } else {
@@ -92,9 +96,8 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
     }
 
     /* pop data from the pipe */
-    for(int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
         kfifo_out(fifo, &buf[i], sizeof(char));
-    }
 
     /* wake up the highest priority thread such that its
      * write request can be served */
@@ -112,9 +115,9 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
     size_t fifo_avail = kfifo_avail(fifo);
 
     /* check if the fifo has enough space to write or not */
-    if(size > fifo_avail) {
-        if(filp->f_flags & O_NONBLOCK) { /* non-block mode */
-            if(fifo_avail > 0) {
+    if (size > fifo_avail) {
+        if (filp->f_flags & O_NONBLOCK) { /* non-block mode */
+            if (fifo_avail > 0) {
                 /* overwrite the write size */
                 size = fifo_avail;
             } else {
@@ -132,9 +135,8 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
     }
 
     /* push data into the pipe */
-    for(int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
         kfifo_in(fifo, &buf[i], sizeof(char));
-    }
 
     /* wake up the highest priority thread such that its
      * read request can be served */
@@ -149,7 +151,7 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 
     /* update file event */
     struct pipe *pipe = container_of(filp, struct pipe, file);
-    if(kfifo_len(pipe->fifo) > 0) {
+    if (kfifo_len(pipe->fifo) > 0) {
         filp->f_events |= POLLOUT;
         poll_notify(filp);
     } else {
@@ -159,13 +161,16 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
     return retval;
 }
 
-ssize_t fifo_write(struct file *filp, const char *buf, size_t size, off_t offset)
+ssize_t fifo_write(struct file *filp,
+                   const char *buf,
+                   size_t size,
+                   off_t offset)
 {
     ssize_t retval = __fifo_write(filp, buf, size);
 
     /* update file event */
     struct pipe *pipe = container_of(filp, struct pipe, file);
-    if(kfifo_avail(pipe->fifo) > 0) {
+    if (kfifo_avail(pipe->fifo) > 0) {
         filp->f_events |= POLLIN;
         poll_notify(filp);
     } else {

@@ -5,6 +5,8 @@
 #define __KERNEL_THREAD_H__
 
 #include <stddef.h>
+
+#include <kernel/wait.h>
 #include <sys/sched.h>
 
 struct thread_attr {

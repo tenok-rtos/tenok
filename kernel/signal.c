@@ -1,23 +1,24 @@
-#include <stdbool.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #include <arch/port.h>
 #include <kernel/syscall.h>
 
 #define DEF_SIG_BIT(name, bit) \
-    case name: return (1 << bit)
+    case name:                 \
+        return (1 << bit)
 
 bool is_signal_defined(int signum)
 {
-    switch(signum) {
-        case SIGUSR1:
-        case SIGUSR2:
-        case SIGPOLL:
-        case SIGSTOP:
-        case SIGCONT:
-        case SIGKILL:
-            return true;
+    switch (signum) {
+    case SIGUSR1:
+    case SIGUSR2:
+    case SIGPOLL:
+    case SIGSTOP:
+    case SIGCONT:
+    case SIGKILL:
+        return true;
     }
 
     return false;
@@ -25,33 +26,33 @@ bool is_signal_defined(int signum)
 
 uint32_t sig2bit(int signum)
 {
-    switch(signum) {
-            DEF_SIG_BIT(SIGUSR1, 0);
-            DEF_SIG_BIT(SIGUSR2, 1);
-            DEF_SIG_BIT(SIGPOLL, 2);
-            DEF_SIG_BIT(SIGSTOP, 3);
-            DEF_SIG_BIT(SIGCONT, 4);
-            DEF_SIG_BIT(SIGKILL, 5);
-        default:
-            return 0; /* should not happened */
+    switch (signum) {
+        DEF_SIG_BIT(SIGUSR1, 0);
+        DEF_SIG_BIT(SIGUSR2, 1);
+        DEF_SIG_BIT(SIGPOLL, 2);
+        DEF_SIG_BIT(SIGSTOP, 3);
+        DEF_SIG_BIT(SIGCONT, 4);
+        DEF_SIG_BIT(SIGKILL, 5);
+    default:
+        return 0; /* should not happened */
     }
 }
 
 int get_signal_index(int signum)
 {
-    switch(signum) {
-        case SIGUSR1:
-            return 0;
-        case SIGUSR2:
-            return 1;
-        case SIGPOLL:
-            return 2;
-        case SIGSTOP:
-            return 3;
-        case SIGCONT:
-            return 4;
-        case SIGKILL:
-            return 5;
+    switch (signum) {
+    case SIGUSR1:
+        return 0;
+    case SIGUSR2:
+        return 1;
+    case SIGPOLL:
+        return 2;
+    case SIGSTOP:
+        return 3;
+    case SIGCONT:
+        return 4;
+    case SIGKILL:
+        return 5;
     }
 
     return 0; /* should not happened */
@@ -71,7 +72,7 @@ int sigfillset(sigset_t *set)
 
 int sigaddset(sigset_t *set, int signum)
 {
-    if(!is_signal_defined(signum)) {
+    if (!is_signal_defined(signum)) {
         return -EINVAL;
     }
 
@@ -81,7 +82,7 @@ int sigaddset(sigset_t *set, int signum)
 
 int sigdelset(sigset_t *set, int signum)
 {
-    if(!is_signal_defined(signum)) {
+    if (!is_signal_defined(signum)) {
         return -EINVAL;
     }
 
@@ -95,7 +96,8 @@ int sigismember(const sigset_t *set, int signum)
     return (*set & mask) ? 0 : -EINVAL;
 }
 
-NACKED int sigaction(int signum, const struct sigaction *act,
+NACKED int sigaction(int signum,
+                     const struct sigaction *act,
                      struct sigaction *oldact)
 {
     SYSCALL(SIGACTION);
@@ -109,9 +111,8 @@ NACKED int sigwait(const sigset_t *set, int *sig)
 int pause(void)
 {
     int sig;
-    sigset_t set = sig2bit(SIGUSR1) | sig2bit(SIGUSR2) |
-                   sig2bit(SIGPOLL) | sig2bit(SIGSTOP) |
-                   sig2bit(SIGCONT) | sig2bit(SIGKILL);
+    sigset_t set = sig2bit(SIGUSR1) | sig2bit(SIGUSR2) | sig2bit(SIGPOLL) |
+                   sig2bit(SIGSTOP) | sig2bit(SIGCONT) | sig2bit(SIGKILL);
     sigwait(&set, &sig);
     return 0;
 }

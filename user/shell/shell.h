@@ -2,63 +2,63 @@
 #define __SHELL_H__
 
 #include <stdbool.h>
-#include "list.h"
 #include "kconfig.h"
+#include "list.h"
 
 #define SHELL_ARG_CNT 10
 
 #define SHELL_CMDS_SIZE(sect_start, sect_end) \
-    ((uintptr_t)&sect_end - (uintptr_t)&sect_start)
+    ((uintptr_t) &sect_end - (uintptr_t) &sect_start)
 
 #define SHELL_CMDS_CNT(sect_start, sect_end) \
     (SHELL_CMDS_SIZE(sect_start, sect_end) / sizeof(struct shell_cmd))
 
-#define HOOK_SHELL_CMD(cmd_name) \
-    static struct shell_cmd _ ## shell_cmd_ ## cmd_name \
-        __attribute__((section(".shell_cmds"), used)) = \
-        {.handler = shell_cmd_ ## cmd_name, .name = #cmd_name}
+#define HOOK_SHELL_CMD(cmd_name)                          \
+    static struct shell_cmd _##shell_cmd_##cmd_name       \
+        __attribute__((section(".shell_cmds"), used)) = { \
+            .handler = shell_cmd_##cmd_name, .name = #cmd_name}
 
 enum {
-    NULL_CH = 0,       /* null character */
-    CTRL_A = 1,        /* ctrl + a */
-    CTRL_B = 2,        /* ctrl + b */
-    CTRL_C = 3,        /* ctrl + c */
-    CTRL_D = 4,        /* ctrl + d */
-    CTRL_E = 5,        /* ctrl + e */
-    CTRL_F = 6,        /* ctrl + f */
-    CTRL_G = 7,        /* ctrl + g */
-    CTRL_H = 8,        /* ctrl + h */
-    TAB = 9,           /* tab */
-    CTRL_J = 10,       /* ctrl + j */
-    CTRL_K = 11,       /* ctrl + k */
-    CTRL_L = 12,       /* ctrl + l */
-    ENTER = 13,        /* enter */
-    CTRL_N = 14,       /* ctrl + n */
-    CTRL_O = 15,       /* ctrl + o */
-    CTRL_P = 16,       /* ctrl + p */
-    CTRL_Q = 17,       /* ctrl + r */
-    CTRL_R = 18,       /* ctrl + r */
-    CTRL_S = 19,       /* ctrl + s */
-    CTRL_T = 20,       /* ctrl + t */
-    CTRL_U = 21,       /* ctrl + u */
-    CTRL_W = 23,       /* ctrl + w */
-    CTRL_X = 24,       /* ctrl + x */
-    CTRL_Y = 25,       /* ctrl + y */
-    CTRL_Z = 26,       /* ctrl + z */
-    ESC_SEQ1 = 27,     /* first byte of the vt100/xterm escape sequence */
-    SPACE = 32,        /* space */
-    DELETE = 51,       /* delete, third byte of the xterm escape sequence */
-    UP_ARROW = 65,     /* up arrow, third byte of the xterm escape sequence */
-    DOWN_ARROW = 66,   /* down arrow, third byte of the xterm escape sequence */
-    RIGHT_ARROW = 67,  /* right arrow, third byte of the xterm escape sequence */
-    LEFT_ARROW = 68,   /* left arrow, third byte of the xterm escape sequence */
-    END_XTERM = 70,    /* end, third byte of the xterm escape sequence */
-    END_VT100 = 52,    /* end, third byte of the vt100 escape sequence */
-    HOME_XTERM = 72,   /* home, third byte of the escape sequence */
-    HOME_VT100 = 49,   /* home, third byte of the vt100 escape sequence */
-    ESC_SEQ2 = 91,     /* second byte of the escape sequence */
-    ESC_SEQ4 = 126,    /* fourth byte of the vt100 escape sequence */
-    BACKSPACE = 127,   /* backspace */
+    NULL_CH = 0,      /* null character */
+    CTRL_A = 1,       /* ctrl + a */
+    CTRL_B = 2,       /* ctrl + b */
+    CTRL_C = 3,       /* ctrl + c */
+    CTRL_D = 4,       /* ctrl + d */
+    CTRL_E = 5,       /* ctrl + e */
+    CTRL_F = 6,       /* ctrl + f */
+    CTRL_G = 7,       /* ctrl + g */
+    CTRL_H = 8,       /* ctrl + h */
+    TAB = 9,          /* tab */
+    CTRL_J = 10,      /* ctrl + j */
+    CTRL_K = 11,      /* ctrl + k */
+    CTRL_L = 12,      /* ctrl + l */
+    ENTER = 13,       /* enter */
+    CTRL_N = 14,      /* ctrl + n */
+    CTRL_O = 15,      /* ctrl + o */
+    CTRL_P = 16,      /* ctrl + p */
+    CTRL_Q = 17,      /* ctrl + r */
+    CTRL_R = 18,      /* ctrl + r */
+    CTRL_S = 19,      /* ctrl + s */
+    CTRL_T = 20,      /* ctrl + t */
+    CTRL_U = 21,      /* ctrl + u */
+    CTRL_W = 23,      /* ctrl + w */
+    CTRL_X = 24,      /* ctrl + x */
+    CTRL_Y = 25,      /* ctrl + y */
+    CTRL_Z = 26,      /* ctrl + z */
+    ESC_SEQ1 = 27,    /* first byte of the vt100/xterm escape sequence */
+    SPACE = 32,       /* space */
+    DELETE = 51,      /* delete, third byte of the xterm escape sequence */
+    UP_ARROW = 65,    /* up arrow, third byte of the xterm escape sequence */
+    DOWN_ARROW = 66,  /* down arrow, third byte of the xterm escape sequence */
+    RIGHT_ARROW = 67, /* right arrow, third byte of the xterm escape sequence */
+    LEFT_ARROW = 68,  /* left arrow, third byte of the xterm escape sequence */
+    END_XTERM = 70,   /* end, third byte of the xterm escape sequence */
+    END_VT100 = 52,   /* end, third byte of the vt100 escape sequence */
+    HOME_XTERM = 72,  /* home, third byte of the escape sequence */
+    HOME_VT100 = 49,  /* home, third byte of the vt100 escape sequence */
+    ESC_SEQ2 = 91,    /* second byte of the escape sequence */
+    ESC_SEQ4 = 126,   /* fourth byte of the vt100 escape sequence */
+    BACKSPACE = 127,  /* backspace */
 } KEYS;
 
 struct shell_history {
@@ -81,16 +81,17 @@ struct shell {
 
     /* autocomplete */
     bool show_autocompl;
-    int  autocompl_cursor_pos;
-    int  autocompl_cnt;
-    int  autocompl_curr;
-    struct shell_autocompl *autocompl; //allocate the amount of the commands you have
+    int autocompl_cursor_pos;
+    int autocompl_cnt;
+    int autocompl_curr;
+    struct shell_autocompl
+        *autocompl;  // allocate the amount of the commands you have
 
     /* history */
-    int  history_max_cnt;
-    int  history_cnt;
+    int history_max_cnt;
+    int history_cnt;
     bool show_history;
-    struct shell_history *history; //memory for storing the history
+    struct shell_history *history;  // memory for storing the history
     struct list_head history_head;
     struct list_head *history_curr;
 
@@ -112,8 +113,10 @@ void shell_cls(void);
 
 /* shell functions */
 void shell_init(struct shell *shell,
-                struct shell_cmd *shell_cmds, int cmd_cnt,
-                struct shell_history *history, int history_max_cnt,
+                struct shell_cmd *shell_cmds,
+                int cmd_cnt,
+                struct shell_history *history,
+                int history_max_cnt,
                 struct shell_autocompl *autocompl);
 void shell_init_minimal(struct shell *shell);
 void shell_path_init(void);

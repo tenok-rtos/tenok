@@ -10,15 +10,15 @@
 #include <kernel/list.h>
 
 struct timer {
-    int  id;
-    int  flags;
+    int id;
+    int flags;
     bool enabled;
     struct sigevent sev;
     struct itimerspec setting;
     struct itimerspec ret_time; /* for returning to the getter */
     struct timespec counter;    /* internal down counter */
     struct thread_info *thread; /* backlink to the thread */
-    struct list_head g_list;    /* linked to the global list of timers in the system */
+    struct list_head g_list;    /* linked to the global list of all timers */
     struct list_head list;      /* linked to the timer list of the thread */
 };
 

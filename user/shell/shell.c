@@ -1,16 +1,16 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <fs/fs.h>
 
-#include "uart.h"
-#include "shell.h"
 #include "kconfig.h"
+#include "shell.h"
+#include "uart.h"
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);
@@ -57,8 +57,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
 static void shell_unknown_cmd_handler(int argc, char *argv[])
 {
     char s[50 + SHELL_CMD_LEN_MAX];
-    snprintf(s, 50 + SHELL_CMD_LEN_MAX,
-             "unknown command: %s\n\r", argv[0]);
+    snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
     shell_puts(s);
 }
 
@@ -68,8 +67,10 @@ void shell_cls(void)
 }
 
 void shell_init(struct shell *shell,
-                struct shell_cmd *shell_cmds, int cmd_cnt,
-                struct shell_history *history, int history_max_cnt,
+                struct shell_cmd *shell_cmds,
+                int cmd_cnt,
+                struct shell_history *history,
+                int history_max_cnt,
                 struct shell_autocompl *autocompl)
 {
     shell->prompt[0] = '\0';
@@ -90,7 +91,7 @@ void shell_init(struct shell *shell,
     INIT_LIST_HEAD(&shell->history_head);
 
     int i;
-    for(i = 0; i < cmd_cnt; i++) {
+    for (i = 0; i < cmd_cnt; i++) {
         shell->autocompl[i].cmd[0] = '\0';
     }
 }
@@ -132,7 +133,7 @@ static void shell_reset_line(struct shell *shell)
 static void shell_remove_char(struct shell *shell, int remove_pos)
 {
     int i;
-    for(i = (remove_pos - 1); i < (shell->char_cnt); i++) {
+    for (i = (remove_pos - 1); i < (shell->char_cnt); i++) {
         shell->buf[i] = shell->buf[i + 1];
     }
 
@@ -140,7 +141,7 @@ static void shell_remove_char(struct shell *shell, int remove_pos)
     shell->char_cnt--;
     shell->cursor_pos--;
 
-    if(shell->cursor_pos > shell->char_cnt) {
+    if (shell->cursor_pos > shell->char_cnt) {
         shell->cursor_pos = shell->char_cnt;
     }
 }
@@ -148,7 +149,7 @@ static void shell_remove_char(struct shell *shell, int remove_pos)
 static void shell_insert_char(struct shell *shell, char c)
 {
     int i;
-    for(i = shell->char_cnt; i > (shell->cursor_pos - 1); i--) {
+    for (i = shell->char_cnt; i > (shell->cursor_pos - 1); i--) {
         shell->buf[i] = shell->buf[i - 1];
     }
     shell->char_cnt++;
@@ -162,18 +163,16 @@ static void shell_refresh_line(struct shell *shell)
 {
     char s[SHELL_PROMPT_LEN_MAX * 5];
     snprintf(s, SHELL_PROMPT_LEN_MAX * 5,
-             "\33[2K\r"   /* clear current line */
-             "%s%s\r"     /* show prompt */
-             "\033[%dC",  /* move cursor */
-             shell->prompt,
-             shell->buf,
-             shell->prompt_len + shell->cursor_pos);
+             "\33[2K\r"  /* clear current line */
+             "%s%s\r"    /* show prompt */
+             "\033[%dC", /* move cursor */
+             shell->prompt, shell->buf, shell->prompt_len + shell->cursor_pos);
     shell_puts(s);
 }
 
 static void shell_cursor_shift_one_left(struct shell *shell)
 {
-    if(shell->cursor_pos <= 0)
+    if (shell->cursor_pos <= 0)
         return;
 
     shell->cursor_pos--;
@@ -182,7 +181,7 @@ static void shell_cursor_shift_one_left(struct shell *shell)
 
 static void shell_cursor_shift_one_right(struct shell *shell)
 {
-    if(shell->cursor_pos >= shell->char_cnt)
+    if (shell->cursor_pos >= shell->char_cnt)
         return;
 
     shell->cursor_pos++;
@@ -196,7 +195,7 @@ static void shell_reset_history_scrolling(struct shell *shell)
 
 static void shell_push_new_history(struct shell *shell, char *cmd)
 {
-    if(shell->history == NULL) {
+    if (shell->history == NULL) {
         return;
     }
 
@@ -204,11 +203,11 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
     struct shell_history *history_new;
 
     /* check the size of the history list */
-    if(shell->history_cnt < shell->history_max_cnt) {
+    if (shell->history_cnt < shell->history_max_cnt) {
         /* history list is not full, allocate new memory space */
         history_list =
-            &shell->history[shell->history_max_cnt -
-                                                   shell->history_cnt - 1].list;
+            &shell->history[shell->history_max_cnt - shell->history_cnt - 1]
+                 .list;
         shell->history_cnt++;
 
         /* push new history record into the list */
@@ -238,7 +237,9 @@ static void shell_reset_autocomplete(struct shell *shell)
     shell->show_autocompl = false;
 }
 
-static void shell_generate_suggest_words(struct shell *shell, int argv0_start, int argv0_end)
+static void shell_generate_suggest_words(struct shell *shell,
+                                         int argv0_start,
+                                         int argv0_end)
 {
     /* reset the suggestion candidate count of the autocomplete */
     shell->autocompl_cnt = 0;
@@ -253,15 +254,16 @@ static void shell_generate_suggest_words(struct shell *shell, int argv0_start, i
     char *user_cmd = &shell->buf[argv0_start];
 
     int i;
-    for(i = 0; i < shell->cmd_cnt; i++) {
+    for (i = 0; i < shell->cmd_cnt; i++) {
         /* load the shell command from the command list for comparing */
         char *shell_cmd = shell->shell_cmds[i].name;
 
         /* if the user input matches the shell command */
-        if(strncmp(user_cmd, shell_cmd, argv0_len) == 0) {
+        if (strncmp(user_cmd, shell_cmd, argv0_len) == 0) {
             char *suggest_candidate;
 
-            /* copy string from the beginning to the character before the firt argument */
+            /* copy string from the beginning to the character before the firt
+             * argument */
             suggest_candidate = shell->autocompl[shell->autocompl_cnt].cmd;
             memcpy(suggest_candidate, &shell->buf[0], argv0_start);
 
@@ -269,7 +271,8 @@ static void shell_generate_suggest_words(struct shell *shell, int argv0_start, i
             suggest_candidate += argv0_start;
             memcpy(suggest_candidate, shell_cmd, strlen(shell_cmd));
 
-            /* copy the string from the insertion tail to the end of the first argument */
+            /* copy the string from the insertion tail to the end of the first
+             * argument */
             suggest_candidate += strlen(shell_cmd);
             int cnt = &shell->buf[argv0_end] - &shell->buf[shell->cursor_pos];
             memcpy(suggest_candidate, &shell->buf[shell->cursor_pos], cnt);
@@ -290,38 +293,38 @@ static void shell_generate_suggest_words(struct shell *shell, int argv0_start, i
 
 static void shell_autocomplete(struct shell *shell)
 {
-    if(shell->autocompl == NULL) {
+    if (shell->autocompl == NULL) {
         return;
     }
 
     /* find the start position of the first argument */
     int argv0_start = 0;
-    while((shell->buf[argv0_start] == ' ') && (argv0_start < shell->char_cnt))
+    while ((shell->buf[argv0_start] == ' ') && (argv0_start < shell->char_cnt))
         argv0_start++;
 
     /* find the end position of the first argument */
     int argv0_end = argv0_start;
-    while((shell->buf[argv0_end] != ' ') && (argv0_end < shell->char_cnt))
+    while ((shell->buf[argv0_end] != ' ') && (argv0_end < shell->char_cnt))
         argv0_end++;
 
 
     /* autocomplete is disabled after the first argument */
-    if(shell->cursor_pos > argv0_end)
+    if (shell->cursor_pos > argv0_end)
         return;
 
     /* autocomplete is triggered before the first argument (i.e., spaces) */
-    if(shell->cursor_pos < argv0_start) {
+    if (shell->cursor_pos < argv0_start) {
         argv0_start = shell->cursor_pos;
         argv0_end = shell->cursor_pos;
     }
 
     /* reset the autocomplete if the cursor position changed */
-    if(shell->autocompl_cursor_pos != shell->cursor_pos) {
+    if (shell->autocompl_cursor_pos != shell->cursor_pos) {
         shell_reset_autocomplete(shell);
     }
 
     /* check if the autocomple has been initialized */
-    if(shell->show_autocompl == false) {
+    if (shell->show_autocompl == false) {
         /* backup the user input */
         strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
 
@@ -336,7 +339,7 @@ static void shell_autocomplete(struct shell *shell)
     }
 
     /* is there any more candidate words? */
-    if(shell->autocompl_curr == shell->autocompl_cnt) {
+    if (shell->autocompl_curr == shell->autocompl_cnt) {
         /* restore the user input */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell_reset_autocomplete(shell);
@@ -350,13 +353,13 @@ static void shell_autocomplete(struct shell *shell)
     shell->autocompl_curr++;
 
     /* refresh the line */
-    shell->char_cnt   = strlen(shell->buf);
+    shell->char_cnt = strlen(shell->buf);
     shell_refresh_line(shell);
 }
 
 void shell_print_history(struct shell *shell)
 {
-    if(shell->history == NULL) {
+    if (shell->history == NULL) {
         return;
     }
 
@@ -366,7 +369,7 @@ void shell_print_history(struct shell *shell)
     struct shell_history *history;
 
     int i = 0;
-    list_for_each(list_curr, &shell->history_head) {
+    list_for_each (list_curr, &shell->history_head) {
         history = list_entry(list_curr, struct shell_history, list);
 
         snprintf(s, SHELL_CMD_LEN_MAX * 3, "%d %s\n\r", ++i, history->cmd);
@@ -382,7 +385,7 @@ static void shell_ctrl_a_handler(struct shell *shell)
 
 static void shell_ctrl_e_handler(struct shell *shell)
 {
-    if(shell->char_cnt == 0)
+    if (shell->char_cnt == 0)
         return;
 
     shell->cursor_pos = shell->char_cnt;
@@ -399,15 +402,15 @@ static void shell_ctrl_u_handler(struct shell *shell)
 
 static void shell_up_arrow_handler(struct shell *shell)
 {
-    if(shell->history == NULL) {
+    if (shell->history == NULL) {
         return;
     }
 
     /* ignore the key pressing if the hisotry list is empty */
-    if(list_empty(&shell->history_head) == true)
+    if (list_empty(&shell->history_head) == true)
         return;
 
-    if(shell->show_history == false) {
+    if (shell->show_history == false) {
         /* create a backup of the user input */
         strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
 
@@ -419,8 +422,9 @@ static void shell_up_arrow_handler(struct shell *shell)
     shell->history_curr = shell->history_curr->prev;
 
     /* check if there is more hisotry to present */
-    if(shell->history_curr == &shell->history_head) {
-        /* restore the user input if the traversal of the history list is done */
+    if (shell->history_curr == &shell->history_head) {
+        /* restore the user input if the traversal of the history list is done
+         */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell->show_history = false;
     } else {
@@ -431,26 +435,26 @@ static void shell_up_arrow_handler(struct shell *shell)
     }
 
     /* refresh the line */
-    shell->char_cnt   = strlen(shell->buf);
+    shell->char_cnt = strlen(shell->buf);
     shell->cursor_pos = shell->char_cnt;
     shell_refresh_line(shell);
 }
 
 static void shell_down_arrow_handler(struct shell *shell)
 {
-    if(shell->history == NULL) {
+    if (shell->history == NULL) {
         return;
     }
 
     /* user did not trigger the history reading */
-    if(shell->show_history == false)
+    if (shell->show_history == false)
         return;
 
     /* load the previos history */
     shell->history_curr = shell->history_curr->next;
 
     /* is the the traversal of the history list done? */
-    if(shell->history_curr == &shell->history_head) {
+    if (shell->history_curr == &shell->history_head) {
         /* restore the user input */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell->show_history = false;
@@ -462,7 +466,7 @@ static void shell_down_arrow_handler(struct shell *shell)
     }
 
     /* refresh the line */
-    shell->char_cnt   = strlen(shell->buf);
+    shell->char_cnt = strlen(shell->buf);
     shell->cursor_pos = shell->char_cnt;
     shell_refresh_line(shell);
 }
@@ -485,7 +489,7 @@ static void shell_home_handler(struct shell *shell)
 
 static void shell_end_handler(struct shell *shell)
 {
-    if(shell->char_cnt == 0)
+    if (shell->char_cnt == 0)
         return;
 
     shell->cursor_pos = shell->char_cnt;
@@ -494,7 +498,7 @@ static void shell_end_handler(struct shell *shell)
 
 static void shell_delete_handler(struct shell *shell)
 {
-    if(shell->char_cnt == 0 || shell->cursor_pos == shell->char_cnt)
+    if (shell->char_cnt == 0 || shell->cursor_pos == shell->char_cnt)
         return;
 
     shell_reset_autocomplete(shell);
@@ -506,7 +510,7 @@ static void shell_delete_handler(struct shell *shell)
 
 static void shell_backspace_handler(struct shell *shell)
 {
-    if(shell->char_cnt == 0 || shell->cursor_pos == 0)
+    if (shell->char_cnt == 0 || shell->cursor_pos == 0)
         return;
 
     shell_reset_autocomplete(shell);
@@ -521,129 +525,129 @@ void shell_listen(struct shell *shell)
 
     int c;
     char seq[2];
-    while(1) {
+    while (1) {
         c = shell_getc();
 
-        switch(c) {
-            case NULL_CH:
-                break;
-            case CTRL_A:
-                shell_ctrl_a_handler(shell);
-                break;
-            case CTRL_B:
-                shell_left_arrow_handler(shell);
-                break;
-            case CTRL_C:
-                shell_ctrl_c_handler(shell);
-                break;
-            case CTRL_D:
-                break;
-            case CTRL_E:
-                shell_ctrl_e_handler(shell);
-                break;
-            case CTRL_F:
-                shell_right_arrow_handler(shell);
-                break;
-            case CTRL_G:
-                break;
-            case CTRL_H:
-                break;
-            case TAB:
-                shell_autocomplete(shell);
-                break;
-            case CTRL_J:
-                break;
-            case ENTER:
-                shell_reset_history_scrolling(shell);
-                shell_reset_autocomplete(shell);
-                if(shell->char_cnt > 0) {
-                    shell_puts("\n\r");
-                    shell_reset_line(shell);
-                    shell_push_new_history(shell, shell->buf);
-                    return;
-                } else {
-                    shell_puts("\n\r");
-                    shell_puts(shell->prompt);
-                }
-                break;
-            case CTRL_K:
-                break;
-            case CTRL_L:
-                break;
-            case CTRL_N:
-                break;
-            case CTRL_O:
-                break;
-            case CTRL_P:
-                break;
-            case CTRL_Q:
-                break;
-            case CTRL_R:
-                break;
-            case CTRL_S:
-                break;
-            case CTRL_T:
-                break;
-            case CTRL_U:
-                shell_ctrl_u_handler(shell);
-                break;
-            case CTRL_W:
-                break;
-            case CTRL_X:
-                break;
-            case CTRL_Y:
-                break;
-            case CTRL_Z:
-                break;
-            case ESC_SEQ1:
-                seq[0] = shell_getc();
-                seq[1] = shell_getc();
-                if(seq[0] == ESC_SEQ2) {
-                    if(seq[1] == UP_ARROW) {
-                        shell_up_arrow_handler(shell);
-                        break;
-                    } else if(seq[1] == DOWN_ARROW) {
-                        shell_down_arrow_handler(shell);
-                        break;
-                    } else if(seq[1] == RIGHT_ARROW) {
-                        shell_right_arrow_handler(shell);
-                        break;
-                    } else if(seq[1] == LEFT_ARROW) {
-                        shell_left_arrow_handler(shell);
-                        break;
-                    } else if(seq[1] == HOME_XTERM) {
-                        shell_home_handler(shell);
-                        break;
-                    } else if(seq[1] == HOME_VT100) {
-                        shell_home_handler(shell);
-                        shell_getc();
-                        break;
-                    } else if(seq[1] == END_XTERM) {
-                        shell_end_handler(shell);
-                        break;
-                    } else if(seq[1] == END_VT100) {
-                        shell_end_handler(shell);
-                        shell_getc();
-                        break;
-                    } else if(seq[1] == DELETE && shell_getc() == ESC_SEQ4) {
-                        shell_delete_handler(shell);
-                        break;
-                    }
-                }
-                break;
-            case BACKSPACE:
-                shell_backspace_handler(shell);
-                break;
-            case SPACE:
-            default: {
-                if(shell->char_cnt != (SHELL_CMD_LEN_MAX - 1)) {
-                    shell_reset_autocomplete(shell);
-                    shell_reset_history_scrolling(shell);
-                    shell_insert_char(shell, c);
-                    shell_refresh_line(shell);
-                }
-                break;
+        switch (c) {
+        case NULL_CH:
+            break;
+        case CTRL_A:
+            shell_ctrl_a_handler(shell);
+            break;
+        case CTRL_B:
+            shell_left_arrow_handler(shell);
+            break;
+        case CTRL_C:
+            shell_ctrl_c_handler(shell);
+            break;
+        case CTRL_D:
+            break;
+        case CTRL_E:
+            shell_ctrl_e_handler(shell);
+            break;
+        case CTRL_F:
+            shell_right_arrow_handler(shell);
+            break;
+        case CTRL_G:
+            break;
+        case CTRL_H:
+            break;
+        case TAB:
+            shell_autocomplete(shell);
+            break;
+        case CTRL_J:
+            break;
+        case ENTER:
+            shell_reset_history_scrolling(shell);
+            shell_reset_autocomplete(shell);
+            if (shell->char_cnt > 0) {
+                shell_puts("\n\r");
+                shell_reset_line(shell);
+                shell_push_new_history(shell, shell->buf);
+                return;
+            } else {
+                shell_puts("\n\r");
+                shell_puts(shell->prompt);
             }
+            break;
+        case CTRL_K:
+            break;
+        case CTRL_L:
+            break;
+        case CTRL_N:
+            break;
+        case CTRL_O:
+            break;
+        case CTRL_P:
+            break;
+        case CTRL_Q:
+            break;
+        case CTRL_R:
+            break;
+        case CTRL_S:
+            break;
+        case CTRL_T:
+            break;
+        case CTRL_U:
+            shell_ctrl_u_handler(shell);
+            break;
+        case CTRL_W:
+            break;
+        case CTRL_X:
+            break;
+        case CTRL_Y:
+            break;
+        case CTRL_Z:
+            break;
+        case ESC_SEQ1:
+            seq[0] = shell_getc();
+            seq[1] = shell_getc();
+            if (seq[0] == ESC_SEQ2) {
+                if (seq[1] == UP_ARROW) {
+                    shell_up_arrow_handler(shell);
+                    break;
+                } else if (seq[1] == DOWN_ARROW) {
+                    shell_down_arrow_handler(shell);
+                    break;
+                } else if (seq[1] == RIGHT_ARROW) {
+                    shell_right_arrow_handler(shell);
+                    break;
+                } else if (seq[1] == LEFT_ARROW) {
+                    shell_left_arrow_handler(shell);
+                    break;
+                } else if (seq[1] == HOME_XTERM) {
+                    shell_home_handler(shell);
+                    break;
+                } else if (seq[1] == HOME_VT100) {
+                    shell_home_handler(shell);
+                    shell_getc();
+                    break;
+                } else if (seq[1] == END_XTERM) {
+                    shell_end_handler(shell);
+                    break;
+                } else if (seq[1] == END_VT100) {
+                    shell_end_handler(shell);
+                    shell_getc();
+                    break;
+                } else if (seq[1] == DELETE && shell_getc() == ESC_SEQ4) {
+                    shell_delete_handler(shell);
+                    break;
+                }
+            }
+            break;
+        case BACKSPACE:
+            shell_backspace_handler(shell);
+            break;
+        case SPACE:
+        default: {
+            if (shell->char_cnt != (SHELL_CMD_LEN_MAX - 1)) {
+                shell_reset_autocomplete(shell);
+                shell_reset_history_scrolling(shell);
+                shell_insert_char(shell, c);
+                shell_refresh_line(shell);
+            }
+            break;
+        }
         }
     }
 }
@@ -654,7 +658,7 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
     int len = strlen(cmd);
 
     /* skip spaces before first parameter */
-    while(i < len && cmd[i] == ' ') {
+    while (i < len && cmd[i] == ' ') {
         i++;
     }
 
@@ -662,23 +666,23 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
     argv[0] = &cmd[i];
     int argc = 1;
 
-    for(; i < len; i++) {
-        if(cmd[i] == ' ') {
+    for (; i < len; i++) {
+        if (cmd[i] == ' ') {
             /* split the token by inserting a null character */
             cmd[i] = '\0';
             i++;
 
             /* skip repeated spaces */
-            while(cmd[i] == ' ')
+            while (cmd[i] == ' ')
                 i++;
 
             /* no more characters to read */
-            if(i == len)
+            if (i == len)
                 break;
 
             /* check the count of the argument */
-            if(argc <= (SHELL_ARG_CNT - 1)) {
-                argv[argc] = &cmd[i]; //record the start address for the token
+            if (argc <= (SHELL_ARG_CNT - 1)) {
+                argv[argc] = &cmd[i];  // record the start address for the token
                 argc++;
             }
         }
@@ -689,7 +693,7 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
 
 void shell_execute(struct shell *shell)
 {
-    if(shell->shell_cmds == NULL) {
+    if (shell->shell_cmds == NULL) {
         return;
     }
 
@@ -697,8 +701,8 @@ void shell_execute(struct shell *shell)
     int argc = shell_split_cmd_token(shell->buf, argv);
 
     int i;
-    for(i = 0; i < shell->cmd_cnt; i++) {
-        if(strcmp(argv[0], shell->shell_cmds[i].name) == 0) {
+    for (i = 0; i < shell->cmd_cnt; i++) {
+        if (strcmp(argv[0], shell->shell_cmds[i].name) == 0) {
             shell->shell_cmds[i].handler(argc, argv);
             shell->buf[0] = '\0';
             shell_reset_line(shell);

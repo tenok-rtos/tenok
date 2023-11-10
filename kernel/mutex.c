@@ -1,9 +1,9 @@
-#include <stdbool.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include <kernel/errno.h>
-#include <kernel/mutex.h>
 #include <kernel/kernel.h>
+#include <kernel/mutex.h>
 
 void mutex_init(struct mutex *mtx)
 {
@@ -21,7 +21,7 @@ int mutex_lock(struct mutex *mtx)
     CURRENT_THREAD_INFO(curr_thread);
 
     /* check if the mutex is occupied */
-    if(mtx->owner != NULL) {
+    if (mtx->owner != NULL) {
         /* put the current thread into the mutex waiting list */
         prepare_to_wait(&mtx->wait_list, &curr_thread->list, THREAD_WAIT);
 
@@ -39,9 +39,8 @@ int mutex_unlock(struct mutex *mtx)
     CURRENT_THREAD_INFO(curr_thread);
 
     /* only the owner thread can unlock the mutex */
-    if(mtx->owner != curr_thread) {
+    if (mtx->owner != curr_thread)
         return -EPERM;
-    }
 
     /* release the mutex */
     mtx->owner = NULL;

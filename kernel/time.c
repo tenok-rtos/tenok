@@ -1,6 +1,6 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <time.h>
 
 #include <arch/port.h>
@@ -17,7 +17,7 @@ void timer_up_count(struct timespec *time)
 {
     time->tv_nsec += NANOSECOND_TICKS;
 
-    if(time->tv_nsec >= 1000000000) {
+    if (time->tv_nsec >= 1000000000) {
         time->tv_sec++;
         time->tv_nsec -= 1000000000;
     }
@@ -27,10 +27,10 @@ void timer_down_count(struct timespec *time)
 {
     time->tv_nsec -= NANOSECOND_TICKS;
 
-    if(time->tv_nsec < 0 && time->tv_sec > 0) {
+    if (time->tv_nsec < 0 && time->tv_sec > 0) {
         time->tv_sec--;
         time->tv_nsec += 1000000000;
-    } else if(time->tv_nsec <= 0 && time->tv_sec <= 0) {
+    } else if (time->tv_nsec <= 0 && time->tv_sec <= 0) {
         time->tv_sec = 0;
         time->tv_nsec = 0;
     }
@@ -41,7 +41,7 @@ void time_add(struct timespec *time, time_t sec, long nsec)
     time->tv_sec += sec;
     time->tv_nsec += nsec;
 
-    if(time->tv_nsec >= 1000000000) {
+    if (time->tv_nsec >= 1000000000) {
         time->tv_sec++;
         time->tv_nsec -= 1000000000;
     }
@@ -64,7 +64,7 @@ void set_sys_time(struct timespec *tp)
 
 int clock_getres(clockid_t clk_id, struct timespec *res)
 {
-    //TODO: check clock id
+    // TODO: check clock id
 
     res->tv_sec = 0;
     res->tv_nsec = NANOSECOND_TICKS;
@@ -82,7 +82,8 @@ NACKED int clock_settime(clockid_t clk_id, const struct timespec *tp)
     SYSCALL(CLOCK_SETTIME);
 }
 
-NACKED int timer_create(clockid_t clockid, struct sigevent *sevp,
+NACKED int timer_create(clockid_t clockid,
+                        struct sigevent *sevp,
                         timer_t *timerid)
 {
     SYSCALL(TIMER_CREATE);
@@ -93,7 +94,8 @@ NACKED int timer_delete(timer_t timerid)
     SYSCALL(TIMER_DELETE);
 }
 
-NACKED int timer_settime(timer_t timerid, int flags,
+NACKED int timer_settime(timer_t timerid,
+                         int flags,
                          const struct itimerspec *new_value,
                          struct itimerspec *old_value)
 {

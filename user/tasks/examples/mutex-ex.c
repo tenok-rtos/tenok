@@ -1,11 +1,11 @@
-#include <tenok.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
+#include <tenok.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include <kernel/task.h>
 
@@ -37,18 +37,19 @@ void mutex_task1(void)
     pthread_cond_init(&cond_consumer, 0);
 
     int serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
     int item = 1;
 
-    while(1) {
+    while (1) {
         /* start of the critical section */
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == BUFFER_SIZE) {
-            dprintf(serial_fd, "[task 1] buffer is full. producer is waiting...\n\r");
+            dprintf(serial_fd,
+                    "[task 1] buffer is full. producer is waiting...\n\r");
             pthread_cond_wait(&cond_producer, &mutex);
         }
 
@@ -73,16 +74,17 @@ void mutex_task2(void)
     setprogname("mutex2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
-    while(1) {
+    while (1) {
         /* start of the critical section */
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == 0) {
-            dprintf(serial_fd, "[task 2] buffer is empty. consumer is waiting...\n\r");
+            dprintf(serial_fd,
+                    "[task 2] buffer is empty. consumer is waiting...\n\r");
             pthread_cond_wait(&cond_consumer, &mutex);
         }
 
@@ -97,7 +99,7 @@ void mutex_task2(void)
         pthread_mutex_unlock(&mutex);
 
         /* simulate some work */
-        usleep(100000); //100ms
+        usleep(100000);  // 100ms
     }
 }
 

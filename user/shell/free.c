@@ -1,5 +1,5 @@
-#include <tenok.h>
 #include <stdio.h>
+#include <tenok.h>
 
 #include "shell.h"
 
@@ -17,14 +17,12 @@ void shell_cmd_free(int argc, char *argv[])
 
     shell_puts("               total    used    free\n\r");
 
-    snprintf(str, PRINT_SIZE_MAX,
-             "Page memory: %7d %7d %7d\n\r",
-             stack_total, stack_used, stack_free);
+    snprintf(str, PRINT_SIZE_MAX, "Page memory: %7d %7d %7d\n\r", stack_total,
+             stack_used, stack_free);
     shell_puts(str);
 
-    snprintf(str, PRINT_SIZE_MAX,
-             "User heap:   %7d %7d %7d\n\r",
-             heap_total, heap_used, heap_free);
+    snprintf(str, PRINT_SIZE_MAX, "User heap:   %7d %7d %7d\n\r", heap_total,
+             heap_used, heap_free);
     shell_puts(str);
 }
 

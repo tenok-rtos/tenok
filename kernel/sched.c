@@ -1,6 +1,6 @@
+#include <errno.h>
 #include <tenok.h>
 #include <time.h>
-#include <errno.h>
 
 #include <arch/port.h>
 #include <kernel/kernel.h>
@@ -49,7 +49,7 @@ int usleep(useconds_t usec)
     int usec_tick = OS_TICK_FREQ * usec / 1000000;
     long granularity_us = 1000000 / OS_TICK_FREQ;
 
-    if((usec >= 1000000) || (usec < granularity_us)) {
+    if ((usec >= 1000000) || (usec < granularity_us)) {
         return -EINVAL;
     } else {
         delay_ticks(usec_tick);

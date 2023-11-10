@@ -14,8 +14,8 @@ typedef void (*irq_handler_t)(void);
 void preempt_disable(void);
 
 /**
- * @brief  Ensable all interrupts. The function is only valid if it is called by kernel
-           space code or in kernel threads
+ * @brief  Ensable all interrupts. The function is only valid if it is called by
+ *         kernel space code or in kernel threads
  * @param  None
  * @retval None
  */
@@ -37,8 +37,10 @@ void irq_init(void);
  * @param  dev: Not used.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
-int request_irq(unsigned int irq, irq_handler_t handler,
-                unsigned long flags, const char *name,
+int request_irq(unsigned int irq,
+                irq_handler_t handler,
+                unsigned long flags,
+                const char *name,
                 void *dev);
 
 #endif

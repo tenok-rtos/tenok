@@ -1,6 +1,6 @@
-#include <tenok.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <tenok.h>
 
 #include <arch/port.h>
 #include <kernel/kernel.h>

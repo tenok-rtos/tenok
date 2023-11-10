@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <stddef.h>
-#include <string.h>
 #include <errno.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <fs/fs.h>
 #include <mm/mpool.h>
@@ -11,7 +11,10 @@
 
 off_t reg_file_lseek(struct file *filp, off_t offset, int whence);
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset);
+ssize_t reg_file_write(struct file *filp,
+                       const char *buf,
+                       size_t size,
+                       off_t offset);
 int reg_file_open(struct inode *inode, struct file *file);
 
 extern struct mount mount_points[MOUNT_CNT_MAX + 1];
@@ -20,10 +23,12 @@ static struct file_operations reg_file_ops = {
     .lseek = reg_file_lseek,
     .read = reg_file_read,
     .write = reg_file_write,
-    .open = reg_file_open
+    .open = reg_file_open,
 };
 
-int reg_file_init(struct file **files, struct inode *file_inode, struct reg_file *reg_file)
+int reg_file_init(struct file **files,
+                  struct inode *file_inode,
+                  struct reg_file *reg_file)
 {
     reg_file->pos = 0;
     reg_file->f_inode = file_inode;
@@ -40,7 +45,10 @@ int reg_file_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /* not used */)
+ssize_t reg_file_read(struct file *filp,
+                      char *buf,
+                      size_t size,
+                      off_t offset /* not used */)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -56,8 +64,9 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
     size_t remained_size = size;
     size_t read_size = 0;
 
-    while(remained_size) {
-        /* calculate the block index corresponding to the current file read position */
+    while (remained_size) {
+        /* calculate the block index corresponding to the current file read
+         * position */
         int blk_i = reg_file->pos / blk_free_size;
 
         /* get the start address of the block */
@@ -71,7 +80,7 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
 
         /* calculate the max size to read from the current block */
         uint32_t max_read_size = blk_free_size - blk_pos;
-        if(remained_size > max_read_size) {
+        if (remained_size > max_read_size) {
             read_size = max_read_size;
         } else {
             read_size = remained_size;
@@ -79,10 +88,11 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
 
         /* read data */
         int buf_pos = size - remained_size;
-        int retval = driver_file->f_op->read(NULL, (char *)&buf[buf_pos], read_size, read_addr);
+        int retval = driver_file->f_op->read(NULL, (char *) &buf[buf_pos],
+                                             read_size, read_addr);
 
         /* read failure */
-        if(retval < 0)
+        if (retval < 0)
             break;
 
         /* update the remained size */
@@ -95,14 +105,17 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset /*
     return size - remained_size;
 }
 
-ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t offset)
+ssize_t reg_file_write(struct file *filp,
+                       const char *buf,
+                       size_t size,
+                       off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
     /* get the inode of the regular file */
     struct inode *inode = reg_file->f_inode;
 
-    if(inode->i_rdev != RDEV_ROOTFS) {
+    if (inode->i_rdev != RDEV_ROOTFS) {
         return 0;
     }
 
@@ -115,17 +128,18 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
     size_t remained_size = size;
     size_t write_size = 0;
 
-    while(remained_size) {
-        /* calculate the block index corresponding to the current file read position */
+    while (remained_size) {
+        /* calculate the block index corresponding to the current file read
+         * position */
         int blk_i = reg_file->pos / blk_free_size;
 
         /* get the start address of the block */
-        uint32_t blk_start_addr = (blk_i >= filp->f_inode->i_blocks) ?
-                                  fs_file_append_block(inode) :
-                                  fs_get_block_addr(inode, blk_i);
+        uint32_t blk_start_addr = (blk_i >= filp->f_inode->i_blocks)
+                                      ? fs_file_append_block(inode)
+                                      : fs_get_block_addr(inode, blk_i);
 
         /* check if the block address is valid */
-        if(blk_start_addr == (uint32_t)NULL) {
+        if (blk_start_addr == (uint32_t) NULL) {
             break;
         }
 
@@ -137,7 +151,7 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
 
         /* calculate the max size to read from the current block */
         uint32_t max_write_size = blk_free_size - blk_pos;
-        if(remained_size > max_write_size) {
+        if (remained_size > max_write_size) {
             write_size = max_write_size;
         } else {
             write_size = remained_size;
@@ -145,10 +159,11 @@ ssize_t reg_file_write(struct file *filp, const char *buf, size_t size, off_t of
 
         /* write data */
         int buf_pos = size - remained_size;
-        int retval = driver_file->f_op->write(NULL, (char *)&buf[buf_pos], write_size, write_addr);
+        int retval = driver_file->f_op->write(NULL, (char *) &buf[buf_pos],
+                                              write_size, write_addr);
 
         /* write failure */
-        if(retval < 0)
+        if (retval < 0)
             break;
 
         /* update the remained size */
@@ -173,24 +188,23 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
 
     char new_pos;
 
-    switch(whence) {
-        case SEEK_SET:
-            new_pos = offset;
-            break;
-        case SEEK_END:
-            new_pos = inode->i_size + offset;
-            break;
-        case SEEK_CUR:
-            new_pos = reg_file->pos + offset;
-            break;
-        default:
-            return -1;
+    switch (whence) {
+    case SEEK_SET:
+        new_pos = offset;
+        break;
+    case SEEK_END:
+        new_pos = inode->i_size + offset;
+        break;
+    case SEEK_CUR:
+        new_pos = reg_file->pos + offset;
+        break;
+    default:
+        return -1;
     }
 
     /* check if the new position is valid or not */
-    if((new_pos >= 0) && (new_pos < inode->i_size)) {
+    if ((new_pos >= 0) && (new_pos < inode->i_size)) {
         reg_file->pos = new_pos;
-
         return new_pos;
     } else {
         return -1;

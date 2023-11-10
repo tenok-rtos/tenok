@@ -1,11 +1,11 @@
-#include <tenok.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <mqueue.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-#include <fcntl.h>
+#include <tenok.h>
 #include <unistd.h>
-#include <mqueue.h>
 
 #include <kernel/task.h>
 
@@ -25,12 +25,12 @@ void message_queue_task1(void)
     };
 
     mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_WRONLY, &attr);
-    if(mqdes_print < 0) {
+    if (mqdes_print < 0) {
         exit(1);
     }
 
-    while(1) {
-        mq_send(mqdes_print, (char *)str, strlen(str), 0);
+    while (1) {
+        mq_send(mqdes_print, (char *) str, strlen(str), 0);
         sleep(1);
     }
 }
@@ -40,7 +40,7 @@ void message_queue_task2(void)
     setprogname("queue2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
@@ -50,13 +50,13 @@ void message_queue_task2(void)
     };
 
     mqd_t mqdes_print = mq_open("/my_message", O_CREAT | O_RDONLY, &attr);
-    if(mqdes_print < 0) {
+    if (mqdes_print < 0) {
         exit(1);
     }
 
     char str[MSG_SIZE_MAX] = {0};
 
-    while(1) {
+    while (1) {
         /* read message queue */
         mq_receive(mqdes_print, str, MSG_SIZE_MAX, 0);
 

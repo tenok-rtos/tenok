@@ -7,9 +7,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEF_KMALLOC_SLAB(_size) { \
-        .size = _size, \
-        .name = "kmalloc-" #_size \
+#define DEF_KMALLOC_SLAB(_size)                  \
+    {                                            \
+        .size = _size, .name = "kmalloc-" #_size \
     }
 
 #define KMALLOC_SLAB_TABLE_SIZE \

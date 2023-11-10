@@ -1,59 +1,59 @@
+#include <fcntl.h>
+#include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <inttypes.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 static int get_baudrate_cflag(int baudrate)
 {
-    switch(baudrate) {
-        case 9600:
-            return B9600;
-        case 19200:
-            return B19200;
-        case 38400:
-            return B38400;
-        case 57600:
-            return B57600;
-        case 115200:
-            return B115200;
-        case 230400:
-            return B230400;
-        case 460800:
-            return B460800;
-        case 500000:
-            return B500000;
-        case 576000:
-            return B576000;
-        case 216000:
-            return B921600;
-        case 1000000:
-            return B1000000;
-        case 1152000:
-            return B1152000;
-        case 1500000:
-            return B1500000;
-        case 2000000:
-            return B2000000;
-        default:
-            printf("Unsupported baudrate.\n");
-            exit(1);
+    switch (baudrate) {
+    case 9600:
+        return B9600;
+    case 19200:
+        return B19200;
+    case 38400:
+        return B38400;
+    case 57600:
+        return B57600;
+    case 115200:
+        return B115200;
+    case 230400:
+        return B230400;
+    case 460800:
+        return B460800;
+    case 500000:
+        return B500000;
+    case 576000:
+        return B576000;
+    case 216000:
+        return B921600;
+    case 1000000:
+        return B1000000;
+    case 1152000:
+        return B1152000;
+    case 1500000:
+        return B1500000;
+    case 2000000:
+        return B2000000;
+    default:
+        printf("Unsupported baudrate.\n");
+        exit(1);
     }
 }
 
 int serial_init(char *port_name, int baudrate)
 {
-    //open the port
+    /* open the port */
     int serial_fd = open(port_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-    if(serial_fd == -1) {
+    if (serial_fd == -1) {
         return -1;
     }
 
-    //config the port
+    /* config the port */
     struct termios options;
 
     tcgetattr(serial_fd, &options);
@@ -80,8 +80,8 @@ char serial_getc(int serial_fd)
     int received_len = 0;
 
     do {
-        received_len = read(serial_fd, (void *)&c, 1);
-    } while(received_len <= 0);
+        received_len = read(serial_fd, (void *) &c, 1);
+    } while (received_len <= 0);
 
     return c;
 }

@@ -4,6 +4,9 @@
 #ifndef __SCHED_H__
 #define __SCHED_H__
 
+#include <sys/types.h>
+#include <time.h>
+
 /**
  * @brief  Return the maximum priority of the thread can be set
  * @param  policy: The scheduling policy to provided. Currently,

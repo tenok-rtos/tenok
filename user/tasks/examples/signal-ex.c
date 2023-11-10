@@ -1,11 +1,11 @@
-#include <tenok.h>
+#include <fcntl.h>
+#include <sched.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sched.h>
-#include <signal.h>
+#include <tenok.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include <kernel/task.h>
 
@@ -24,7 +24,7 @@ void signal_task1(void)
     setprogname("signal1");
 
     serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
@@ -46,7 +46,7 @@ void signal_task1(void)
     dprintf(serial_fd, "signal %d is captured.\n\r", sig);
 
     /* sleep */
-    while(1) {
+    while (1) {
         sleep(1);
     }
 }
@@ -61,7 +61,7 @@ void signal_task2(void)
     kill(task1_pid, SIGUSR1);
 
     /* sleep */
-    while(1) {
+    while (1) {
         sleep(1);
     }
 }

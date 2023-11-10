@@ -10,11 +10,11 @@
 
 #define init_waitqueue_head(wq) INIT_LIST_HEAD(wq)
 
-#define init_wait(wait) \
-        do { \
-            CURRENT_THREAD_INFO(__curr_thread__); \
-            wait = &__curr_thread__->list; \
-        } while(0)
+#define init_wait(wait)                       \
+    do {                                      \
+        CURRENT_THREAD_INFO(__curr_thread__); \
+        wait = &__curr_thread__->list;        \
+    } while (0)
 
 typedef struct list_head wait_queue_head_t;
 typedef struct list_head wait_queue_t;

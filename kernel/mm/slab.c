@@ -1,11 +1,11 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <mm/page.h>
-#include <mm/slab.h>
+#include <kernel/bitops.h>
 #include <kernel/list.h>
 #include <kernel/util.h>
-#include <kernel/bitops.h>
+#include <mm/page.h>
+#include <mm/slab.h>
 
 #define OBJS_PER_SLAB(page_size, objsize) \
     ((page_size - sizeof(struct slab)) / objsize)
@@ -20,7 +20,7 @@ static struct kmem_cache cache_caches = {
     .slabs_full = LIST_HEAD_INIT(cache_caches.slabs_full),
     .alloc_succeed = 0,
     .alloc_fail = 0,
-    .opts = CACHE_OPT_NONE
+    .opts = CACHE_OPT_NONE,
 };
 
 /* caches list */
@@ -29,17 +29,21 @@ static LIST_HEAD(caches);
 static inline struct slab *get_slab_from_obj(void *obj, size_t page_size)
 {
     /* calculate the slab address from object by doing round-down alignment */
-    return (struct slab *)ALIGN((unsigned long)obj, page_size);
+    return (struct slab *) ALIGN((unsigned long) obj, page_size);
 }
 
 static inline int obj_index_in_slab(void *obj, struct kmem_cache *cache)
 {
     /* mask out the base address and divide it by the object size */
-    return (((unsigned long)obj & ((1 << 8) - 1)) - sizeof(struct slab)) / cache->objsize;
+    return (((unsigned long) obj & ((1 << 8) - 1)) - sizeof(struct slab)) /
+           cache->objsize;
 }
 
-struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
-                                     unsigned long flags, void (*ctor)(void *))
+struct kmem_cache *kmem_cache_create(const char *name,
+                                     size_t size,
+                                     size_t align,
+                                     unsigned long flags,
+                                     void (*ctor)(void *))
 {
     struct kmem_cache *cache;
 
@@ -49,21 +53,21 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
     int page_size = page_order_to_size(order);
     int objnum = OBJS_PER_SLAB(page_size, size);
 
-    while(objnum < 2 && order <= PAGE_ORDER_MAX) {
+    while (objnum < 2 && order <= PAGE_ORDER_MAX) {
         order++;
         page_size = page_order_to_size(order);
         objnum = OBJS_PER_SLAB(page_size, size);
     }
 
     /* the request size is too large */
-    if(order > PAGE_ORDER_MAX)
+    if (order > PAGE_ORDER_MAX)
         return NULL;
 
     /* allocate new cache memory */
     cache = kmem_cache_alloc(&cache_caches, 0);
 
     /* failed to allocate cache memory */
-    if(!cache)
+    if (!cache)
         return NULL;
 
     /* initialize the new cache */
@@ -83,10 +87,10 @@ struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align
 static struct slab *kmem_cache_grow(struct kmem_cache *cache)
 {
     /* allocate a new page for the slab */
-    struct slab* slab = alloc_pages(cache->page_order);
+    struct slab *slab = alloc_pages(cache->page_order);
 
     /* failed to allocate new page */
-    if(!slab) {
+    if (!slab) {
         return NULL;
     }
 
@@ -105,15 +109,15 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
     void *mem;
 
     /* check if the partial list contains space for new slab */
-    if(list_empty(&cache->slabs_partial)) {
+    if (list_empty(&cache->slabs_partial)) {
         /* no, check if the free list contains space for new slab */
-        if(list_empty(&cache->slabs_free)) {
+        if (list_empty(&cache->slabs_free)) {
             /* no, grow the cache by allocating new page */
             cache->alloc_fail++;
             slab = kmem_cache_grow(cache);
 
             /* failed to grow the cache by allocating new page */
-            if(!slab) {
+            if (!slab) {
                 return NULL;
             }
         } else {
@@ -142,7 +146,7 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
 
     /* move the slab into the full list if the page has no space for
      * more new slabs */
-    if(!slab->free_objects) {
+    if (!slab->free_objects) {
         list_move(&slab->list, &cache->slabs_full);
     }
     /* return the address of the allocated slab memory */
@@ -174,10 +178,10 @@ void kmem_cache_free(struct kmem_cache *cache, void *obj)
     slab->free_objects++;
 
     /* check the free object count of the slab */
-    if(slab->free_objects == cache->objnum) {
+    if (slab->free_objects == cache->objnum) {
         /* free the whole page since it contains no more slab */
         slab_destroy(cache, slab);
-    } else if(slab->free_objects == 1) {
+    } else if (slab->free_objects == 1) {
         /* move the slab from full list into the partial list */
         list_move(&slab->list, &cache->slabs_partial);
     }

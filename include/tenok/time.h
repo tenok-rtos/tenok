@@ -4,16 +4,16 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
-#include <stdint.h>
 #include <signal.h>
+#include <stdint.h>
 #include <sys/types.h>
 
-#define CLOCK_REALTIME  0
+#define CLOCK_REALTIME 0
 #define CLOCK_MONOTONIC 1
 
 struct timespec {
-    time_t tv_sec;  /* seconds */
-    long   tv_nsec; /* nanoseconds */
+    time_t tv_sec; /* seconds */
+    long tv_nsec;  /* nanoseconds */
 };
 
 struct itimerspec {
@@ -52,8 +52,7 @@ int clock_settime(clockid_t clk_id, const struct timespec *tp);
  * @param  timerid: For returning the new created timer's ID.
  * @retval int: The write number on sucess and nonzero error number on error.
  */
-int timer_create(clockid_t clockid, struct sigevent *sevp,
-                 timer_t *timerid);
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid);
 
 /**
  * @brief  Delete the timer whose ID is given in timerid
@@ -70,13 +69,14 @@ int timer_delete(timer_t timerid);
  * @param  old_value: The timer object for storing the old timer setting.
  * @retval int: The write number on sucess and nonzero error number on error.
  */
-int timer_settime(timer_t timerid, int flags,
+int timer_settime(timer_t timerid,
+                  int flags,
                   const struct itimerspec *new_value,
                   struct itimerspec *old_value);
 
 /**
- * @brief  Return the time until next expiration, and the  interval, for the timer
-           specified by timerid
+ * @brief  Return the time until next expiration, and the  interval, for the
+ *         timer specified by timerid
  * @param  timerid:  The timer ID to provide.
  * @param  curr_value: The timer object for returning the timer time.
  * @retval int: The write number on sucess and nonzero error number on error.

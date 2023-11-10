@@ -1,7 +1,7 @@
+#include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -27,7 +27,7 @@
         return BUF;                                    \
     }                                                  \
                                                        \
-    for(int i = 0; i < BUF_SIZE && VALUE; i++) {       \
+    for (int i = 0; i < BUF_SIZE && VALUE; i++) {      \
         remainder = VALUE % RADIX;                     \
                                                        \
         if (remainder < 10) {                          \
@@ -68,8 +68,10 @@ char *ultoa(unsigned long value, char *buffer, int radix)
 
 #if (USE_TENOK_PRINTF != 0)
 
-static void format_write(char *str, char *format_str,
-                         char *padding_str, int *padding_end,
+static void format_write(char *str,
+                         char *format_str,
+                         char *padding_str,
+                         int *padding_end,
                          bool *pad_with_zeros)
 {
     /* read length setting */
@@ -83,7 +85,7 @@ static void format_write(char *str, char *format_str,
 
     /* check if the format string requires paddings */
     size_t format_str_len = strlen(format_str);
-    if(format_str_len >= desired_len) {
+    if (format_str_len >= desired_len) {
         /* no, output without padding */
         strcat(str, format_str);
         return;
@@ -91,7 +93,7 @@ static void format_write(char *str, char *format_str,
 
     /* generate paddings */
     size_t padding_size = desired_len - format_str_len;
-    for(int i = 0; i < padding_size; i++) {
+    for (int i = 0; i < padding_size; i++) {
         padding_str[i] = symbol;
     }
     padding_str[padding_size] = '\0';
@@ -101,24 +103,27 @@ static void format_write(char *str, char *format_str,
     strcat(str, format_str);
 }
 
-static int __vsnprintf(char *str, size_t size, bool check_size,
-                       const char *format, va_list ap)
+static int __vsnprintf(char *str,
+                       size_t size,
+                       bool check_size,
+                       const char *format,
+                       va_list ap)
 {
     str[0] = 0;
     char c_str[2] = {0};
 
     bool pad_with_zeros = false;
 
-    char buf[100]; //XXX
+    char buf[100];  // XXX
     int buf_pos = 0;
 
     int pos = 0;
-    while(format[pos]) {
+    while (format[pos]) {
         /* boundary check */
-        if(check_size && pos >= size)
+        if (check_size && pos >= size)
             return strlen(str);
 
-        if(format[pos] != '%') {
+        if (format[pos] != '%') {
             /* copy */
             c_str[0] = format[pos];
             pos++;
@@ -131,100 +136,93 @@ static int __vsnprintf(char *str, size_t size, bool check_size,
             pos++;
 
             bool leave = false;
-            while(!leave && format[pos] != '\0') {
+            while (!leave && format[pos] != '\0') {
                 /* boundary check */
-                if(check_size && pos >= size)
+                if (check_size && pos >= size)
                     return strlen(str);
 
                 /* handle specifiers */
-                switch(format[pos]) {
-                    case '0': {
-                        if(buf_pos == 0) {
-                            pad_with_zeros = true;
-                        } else {
-                            buf[buf_pos] = format[pos];
-                            buf_pos++;
-                        }
-                        break;
-                    }
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9': {
+                switch (format[pos]) {
+                case '0': {
+                    if (buf_pos == 0) {
+                        pad_with_zeros = true;
+                    } else {
                         buf[buf_pos] = format[pos];
                         buf_pos++;
-                        break;
                     }
-                    case '.': {
-                        break;
-                    }
-                    case 's': {
-                        char *s = va_arg(ap, char *);
-                        format_write(str, s, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'c': {
-                        c_str[0] = (char)va_arg(ap, int);
-                        format_write(str, c_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'o': {
-                        int o = va_arg(ap, int);
-                        char o_str[sizeof(int) * 8 + 1];
-                        itoa(o, o_str, 8);
-                        format_write(str, o_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'x': {
-                        int x = va_arg(ap, int);
-                        char x_str[sizeof(int) * 8 + 1];
-                        itoa(x, x_str, 16);
-                        format_write(str, x_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'p': {
-                        unsigned long p = (long)va_arg(ap, void *);
-                        char p_str[sizeof(unsigned long) * 8 + 1];
-                        ultoa(p, p_str, 16);
-                        strcat(str, "0x");
-                        format_write(str, p_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'd': {
-                        int d = va_arg(ap, int);
-                        char d_str[sizeof(int) * 8 + 1];
-                        itoa(d, d_str, 10);
-                        format_write(str, d_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    case 'u': {
-                        unsigned int u = va_arg(ap, unsigned int);
-                        char u_str[sizeof(unsigned int) * 8 + 1];
-                        utoa(u, u_str, 10);
-                        format_write(str, u_str, buf, &buf_pos,
-                                     &pad_with_zeros);
-                        leave = true;
-                        break;
-                    }
-                    default:
-                        break;
+                    break;
+                }
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9': {
+                    buf[buf_pos] = format[pos];
+                    buf_pos++;
+                    break;
+                }
+                case '.': {
+                    break;
+                }
+                case 's': {
+                    char *s = va_arg(ap, char *);
+                    format_write(str, s, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'c': {
+                    c_str[0] = (char) va_arg(ap, int);
+                    format_write(str, c_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'o': {
+                    int o = va_arg(ap, int);
+                    char o_str[sizeof(int) * 8 + 1];
+                    itoa(o, o_str, 8);
+                    format_write(str, o_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'x': {
+                    int x = va_arg(ap, int);
+                    char x_str[sizeof(int) * 8 + 1];
+                    itoa(x, x_str, 16);
+                    format_write(str, x_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'p': {
+                    unsigned long p = (long) va_arg(ap, void *);
+                    char p_str[sizeof(unsigned long) * 8 + 1];
+                    ultoa(p, p_str, 16);
+                    strcat(str, "0x");
+                    format_write(str, p_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'd': {
+                    int d = va_arg(ap, int);
+                    char d_str[sizeof(int) * 8 + 1];
+                    itoa(d, d_str, 10);
+                    format_write(str, d_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                case 'u': {
+                    unsigned int u = va_arg(ap, unsigned int);
+                    char u_str[sizeof(unsigned int) * 8 + 1];
+                    utoa(u, u_str, 10);
+                    format_write(str, u_str, buf, &buf_pos, &pad_with_zeros);
+                    leave = true;
+                    break;
+                }
+                default:
+                    break;
                 }
 
                 pos++;

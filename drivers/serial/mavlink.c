@@ -1,24 +1,27 @@
-#include <stdbool.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <fs/fs.h>
-#include <kernel/pipe.h>
-#include <kernel/wait.h>
 #include <kernel/errno.h>
-#include <kernel/kernel.h>
-#include <kernel/printk.h>
 #include <kernel/interrupt.h>
+#include <kernel/kernel.h>
+#include <kernel/pipe.h>
+#include <kernel/printk.h>
+#include <kernel/wait.h>
 
-#include "uart.h"
 #include "stm32f4xx.h"
+#include "uart.h"
 
 #define UART2_RX_BUF_SIZE 100
 
 #define UART2_ISR_PRIORITY 14
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset);
+ssize_t serial1_write(struct file *filp,
+                      const char *buf,
+                      size_t size,
+                      off_t offset);
 int serial1_open(struct inode *inode, struct file *file);
 
 void USART2_IRQHandler(void);
@@ -27,13 +30,13 @@ uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
-    .tx_state = UART_TX_IDLE
+    .tx_state = UART_TX_IDLE,
 };
 
 static struct file_operations serial1_file_ops = {
     .read = serial1_read,
     .write = serial1_write,
-    .open = serial1_open
+    .open = serial1_open,
 };
 
 void uart2_init(uint32_t baudrate)
@@ -48,7 +51,7 @@ void uart2_init(uint32_t baudrate)
         .GPIO_Mode = GPIO_Mode_AF,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_OType = GPIO_OType_PP,
-        .GPIO_PuPd = GPIO_PuPd_UP
+        .GPIO_PuPd = GPIO_PuPd_UP,
     };
     GPIO_Init(GPIOD, &GPIO_InitStruct);
 
@@ -58,7 +61,7 @@ void uart2_init(uint32_t baudrate)
         .USART_WordLength = USART_WordLength_8b,
         .USART_StopBits = USART_StopBits_2,
         .USART_Parity = USART_Parity_Even,
-        .USART_HardwareFlowControl = USART_HardwareFlowControl_None
+        .USART_HardwareFlowControl = USART_HardwareFlowControl_None,
     };
     USART_Init(USART2, &USART_InitStruct);
     USART_Cmd(USART2, ENABLE);
@@ -67,7 +70,7 @@ void uart2_init(uint32_t baudrate)
         .NVIC_IRQChannel = USART2_IRQn,
         .NVIC_IRQChannelPreemptionPriority = UART2_ISR_PRIORITY,
         .NVIC_IRQChannelSubPriority = 0,
-        .NVIC_IRQChannelCmd = ENABLE
+        .NVIC_IRQChannelCmd = ENABLE,
     };
     NVIC_Init(&NVIC_InitStruct);
 
@@ -100,7 +103,7 @@ int serial1_open(struct inode *inode, struct file *file)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    if(kfifo_len(uart2.rx_fifo) >= size) {
+    if (kfifo_len(uart2.rx_fifo) >= size) {
         kfifo_out(uart2.rx_fifo, buf, size);
         return size;
     } else {
@@ -111,18 +114,21 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
     }
 }
 
-ssize_t serial1_write(struct file *filp, const char *buf, size_t size, off_t offset)
+ssize_t serial1_write(struct file *filp,
+                      const char *buf,
+                      size_t size,
+                      off_t offset)
 {
     return uart_puts(USART2, buf, size);
 }
 
 void USART2_IRQHandler(void)
 {
-    if(USART_GetITStatus(USART2, USART_IT_RXNE) == SET) {
+    if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART2);
         kfifo_put(uart2.rx_fifo, &c);
 
-        if(kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
+        if (kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
             finish_wait(uart2.rx_wait);
             uart2.rx_wait_size = 0;
         }

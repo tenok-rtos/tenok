@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "shell.h"
 
@@ -11,7 +11,7 @@ void shell_cmd_cat(int argc, char *argv[])
 {
     char path[PATH_LEN_MAX] = {0};
 
-    if(argv[1][0] != '/') {
+    if (argv[1][0] != '/') {
         /* input is a relative path */
         char pwd[PATH_LEN_MAX] = {0};
         fs_get_pwd(pwd, shell_dir_curr);
@@ -26,7 +26,7 @@ void shell_cmd_cat(int argc, char *argv[])
 
     /* open the file */
     FILE *file = fopen(path, "");
-    if(!file) {
+    if (!file) {
         snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
         shell_puts(str);
         return;
@@ -40,12 +40,11 @@ void shell_cmd_cat(int argc, char *argv[])
 
     /* calculate the iteration times to print the whole file */
     int size = stat.st_size / PRINT_SIZE_MAX;
-    if((stat.st_size % PRINT_SIZE_MAX) > 0)
+    if ((stat.st_size % PRINT_SIZE_MAX) > 0)
         size++;
 
     /* read and print the file */
-    int i;
-    for(i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, file);
         str[recvd] = '\0';
 

@@ -8,8 +8,8 @@
 #include <stdint.h>
 
 struct mpool {
-    int     offset;
-    size_t  size;
+    int offset;
+    size_t size;
     uint8_t *mem;
 };
 

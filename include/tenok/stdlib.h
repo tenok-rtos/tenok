@@ -86,11 +86,13 @@ long long atoll(const char *nptr);
 long a64l(const char *str64);
 int abs(int j);
 double atof(const char *nptr);
-void *bsearch(const void *key, const void *base,
-              size_t nmemb, size_t size,
+void *bsearch(const void *key,
+              const void *base,
+              size_t nmemb,
+              size_t size,
               int (*compar)(const void *, const void *));
 div_t div(int numerator, int denominator);
-int getsubopt(char **optionp, char * const *tokens, char **valuep);
+int getsubopt(char **optionp, char *const *tokens, char **valuep);
 char *l64a(long value);
 long labs(long j);
 ldiv_t ldiv(long numerator, long denominator);
@@ -99,7 +101,9 @@ lldiv_t lldiv(long long numerator, long long denominator);
 int mblen(const char *s, size_t n);
 size_t mbstowcs(wchar_t *dest, const char *src, size_t n);
 int mbtowc(wchar_t *pwc, const char *s, size_t n);
-void qsort(void *base, size_t nmemb, size_t size,
+void qsort(void *base,
+           size_t nmemb,
+           size_t size,
            int (*compar)(const void *, const void *));
 char *realpath(const char *path, char *resolved_path);
 double strtod(const char *nptr, char **endptr);

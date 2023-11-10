@@ -1,3 +1,4 @@
+/* clang-format off */
 #ifndef __KCONFIG_H__
 #define __KCONFIG_H__
 
@@ -9,9 +10,9 @@
 #define PAGE_SIZE_64K        1
 #define PAGE_SIZE_SELECT     PAGE_SIZE_64K
 
-/* the minimum stack size recommended for task and thread creation. since every   *
- * thread consumes a part of it own stack as overhead, stack size lower than this *
- * value may cause the system to be instable.                                     */
+/* the minimum stack size recommended for task and thread creation. since *
+ * every thread consumes a part of it own stack as overhead, stack size   *
+ * lower than this value may cause the system to be instable.             */
 #define STACK_SIZE_MIN       1024  /* bytes */
 
 /* thread */
@@ -21,28 +22,26 @@
 /* message queue and pipe*/
 #define MQUEUE_CNT_MAX       50
 
-#define PIPE_DEPTH           100   /* notice that if the path depth is too shallow, *
-                                    * the file operation request will failed        */
+/* thread anonymous pipe size. if the depth is too small, the file server * 
+ * may not handle the request properly                                    */
+#define PIPE_DEPTH           100   /* bytes */
 
 /* signals */
 #define SIGNAL_QUEUE_SIZE    5
 
 /* file system */
 #define FILE_SYSTEM_FD       1
-
-#define FILE_CNT_MAX         100   /* maximal size of the file can be created, *
-                                    * including the directory                  */
+#define FILE_CNT_MAX         100   /* the maximum number of the files can be *
+                                    * created, which includes directories.   */
 #define FILE_NAME_LEN_MAX    30
-
-#define FILE_DESC_CNT_MAX    20    /* numbers of file descriptors that one *
-                                    * task can have                        */
+#define FILE_DESC_CNT_MAX    20    /* the size of the task file descriptor */
 
 #define PATH_LEN_MAX         128
 
 #define MOUNT_CNT_MAX        5
 #define INODE_CNT_MAX        100
 
-#define FS_BLK_SIZE          128   /* bytes, block size of the file system */
+#define FS_BLK_SIZE          128   /* bytes. block size of the file system */
 #define FS_BLK_CNT           100   /* block count of the file system       */
 
 #define FS_BITMAP_INODE      50    /* word */
@@ -58,3 +57,4 @@
 #define USE_TENOK_PRINTF     0
 
 #endif
+/* clang-format on */

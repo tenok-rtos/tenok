@@ -1,15 +1,15 @@
+#include <arpa/inet.h>
+#include <errno.h>
+#include <getopt.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <signal.h>
-#include <semaphore.h>
-#include <getopt.h>
-#include <errno.h>
 #include "serial.h"
 
 pthread_t thread1, thread2;
@@ -21,7 +21,7 @@ void *thread_gazebo_to_hil(void *arg)
 {
     /* sil / hil to gazebo forwarding */
     char c;
-    while(1) {
+    while (1) {
         c = serial_getc(serial_fd);
         write(socket_fd, &c, 1);
     }
@@ -31,7 +31,7 @@ void *thread_hil_to_gazebo(void *arg)
 {
     /* gazebo to sil / hil forwarding */
     char c;
-    while(1) {
+    while (1) {
         read(socket_fd, &c, 1);
         serial_puts(serial_fd, &c, 1);
     }
@@ -50,8 +50,10 @@ void sig_handler(int signum)
 
 static void usage(const char *execpath)
 {
-    printf("Usage: %s -i gazebo-ip -p port-number "
-           "-s serial-name [-b baudrate]\n", execpath);
+    printf(
+        "Usage: %s -i gazebo-ip -p port-number "
+        "-s serial-name [-b baudrate]\n",
+        execpath);
 }
 
 static bool parse_long_from_str(char *str, long *value)
@@ -76,6 +78,8 @@ static void handle_options(int argc,
     *gazebo_ip = *port_number = *serial_name = *baudrate = NULL;
 
     int optidx = 0;
+
+    /* clang-format off */
     struct option opts[] = {
         {"ip", 1, NULL, 'i'},
         {"port", 1, NULL, 'p'},
@@ -83,27 +87,28 @@ static void handle_options(int argc,
         {"baudrate", 1, NULL, 'b'},
         {"help", 0, NULL, 'h'},
     };
+    /* clang-format on */
 
     int c;
     while ((c = getopt_long(argc, argv, "i:p:s:b:h", opts, &optidx)) != -1) {
         switch (c) {
-            case 'i':
-                *gazebo_ip = optarg;
-                break;
-            case 'p':
-                *port_number = optarg;
-                break;
-            case 's':
-                *serial_name = optarg;
-                break;
-            case 'b':
-                *baudrate = optarg;
-                break;
-            case 'h':
-                usage(argv[0]);
-                exit(1);
-            default:
-                break;
+        case 'i':
+            *gazebo_ip = optarg;
+            break;
+        case 'p':
+            *port_number = optarg;
+            break;
+        case 's':
+            *serial_name = optarg;
+            break;
+        case 'b':
+            *baudrate = optarg;
+            break;
+        case 'h':
+            usage(argv[0]);
+            exit(1);
+        default:
+            break;
         }
     }
 
@@ -130,12 +135,12 @@ static void handle_options(int argc,
 
     /* check port number and baudrate value are valid integers */
     long val;
-    if(!parse_long_from_str(*port_number, &val)) {
+    if (!parse_long_from_str(*port_number, &val)) {
         printf("Bad port number.\n");
         exit(1);
     }
 
-    if(!parse_long_from_str(*baudrate, &val)) {
+    if (!parse_long_from_str(*baudrate, &val)) {
         printf("Bad serial baudrate value.\n");
         exit(1);
     }
@@ -149,15 +154,15 @@ int main(int argc, char **argv)
     char *serial_name;
     char *baudrate;
 
-    handle_options(argc, argv, &gazebo_ip, &port_number,
-                   &serial_name, &baudrate);
+    handle_options(argc, argv, &gazebo_ip, &port_number, &serial_name,
+                   &baudrate);
 
-    printf("Gazebo IP: %s, port: %d\nSerial: %s, baudrate: %d\n",
-           gazebo_ip, atoi(port_number), serial_name, atoi(baudrate));
+    printf("Gazebo IP: %s, port: %d\nSerial: %s, baudrate: %d\n", gazebo_ip,
+           atoi(port_number), serial_name, atoi(baudrate));
 
     /* serial port initialization */
     serial_fd = serial_init(serial_name, atoi(baudrate));
-    if(serial_fd == -1) {
+    if (serial_fd == -1) {
         printf("Failed to connect to the serial.\n");
         exit(1);
     }
@@ -169,14 +174,12 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    struct sockaddr_in serv_addr = {
-        .sin_family = AF_INET,
-        .sin_addr.s_addr = inet_addr(gazebo_ip),
-        .sin_port = htons(atoi(port_number))
-    };
+    struct sockaddr_in serv_addr = {.sin_family = AF_INET,
+                                    .sin_addr.s_addr = inet_addr(gazebo_ip),
+                                    .sin_port = htons(atoi(port_number))};
 
     /* attempt to connect to the gazebo server */
-    if(connect(socket_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) {
+    if (connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) {
         printf("Failed to connect to the Gazeobo.\n");
         exit(1);
     }

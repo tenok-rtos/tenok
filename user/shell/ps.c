@@ -1,10 +1,13 @@
-#include <tenok.h>
 #include <stdio.h>
 #include <string.h>
+#include <tenok.h>
 
 #include "shell.h"
 
-static void stack_usage(char *buf, size_t buf_size, size_t stack_usage, size_t stack_size)
+static void stack_usage(char *buf,
+                        size_t buf_size,
+                        size_t stack_usage,
+                        size_t stack_size)
 {
     int integer = (stack_usage * 100) / stack_size;
     int fraction = ((stack_usage * 1000) / stack_size) - (integer * 10);
@@ -24,54 +27,49 @@ static void ps(void)
     do {
         next = thread_info(&info, next);
 
-        switch(info.status) {
-            case THREAD_WAIT:
-                stat = "S";
-                break;
-            case THREAD_SUSPENDED:
-                stat = "T";
-                break;
-            case THREAD_READY:
-            case THREAD_RUNNING:
-                stat = "R";
-                break;
-            default:
-                stat = "?";
-                break;
+        switch (info.status) {
+        case THREAD_WAIT:
+            stat = "S";
+            break;
+        case THREAD_SUSPENDED:
+            stat = "T";
+            break;
+        case THREAD_READY:
+        case THREAD_RUNNING:
+            stat = "R";
+            break;
+        default:
+            stat = "?";
+            break;
         }
 
         char s_stack_usage[10] = {0};
         stack_usage(s_stack_usage, 10, info.stack_usage, info.stack_size);
 
-        if(info.privileged) {
-            snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r",
-                     info.pid, info.priority,
-                     stat, s_stack_usage,
-                     info.name);
+        if (info.privileged) {
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r", info.pid,
+                     info.priority, stat, s_stack_usage, info.name);
         } else {
-            snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r",
-                     info.pid, info.priority,
-                     stat, s_stack_usage,
-                     info.name);
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r", info.pid,
+                     info.priority, stat, s_stack_usage, info.name);
         }
 
         shell_puts(s);
-    } while(next != NULL);
-
+    } while (next != NULL);
 }
 
 void shell_cmd_ps(int argc, char *argv[])
 {
-    if(argc == 1) {
+    if (argc == 1) {
         ps();
         return;
-    } else if(argc == 2 &&
-              (!strcmp("-h", argv[1]) ||
-               !strcmp("--help", argv[1]))) {
-        shell_puts("process state codes:\n\r"
-                   "  R    running or runnable\n\r"
-                   "  T    stopped (suspended)\n\r"
-                   "  S    sleep\n\r");
+    } else if (argc == 2 &&
+               (!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))) {
+        shell_puts(
+            "process state codes:\n\r"
+            "  R    running or runnable\n\r"
+            "  T    stopped (suspended)\n\r"
+            "  S    sleep\n\r");
         return;
     }
 

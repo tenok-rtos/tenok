@@ -14,7 +14,7 @@
  * @retval &obj: Adress pointing to the object.
  */
 #define container_of(ptr, type, member) \
-        ((type *)((void *)ptr - offsetof(type, member)))
+    ((type *) ((void *) ptr - offsetof(type, member)))
 
 /**
  * @brief  Get the object entry
@@ -23,8 +23,7 @@
  * @param  member: Structure member name of the list item.
  * @retval &obj: Adress pointing to the object.
  */
-#define list_entry(ptr, type, member) \
-	container_of(ptr, type, member)
+#define list_entry(ptr, type, member) container_of(ptr, type, member)
 
 /**
  * @brief  Get the first object entry
@@ -34,7 +33,7 @@
  * @retval &obj: Adress pointing to the first object.
  */
 #define list_first_entry(ptr, type, member) \
-        list_entry((ptr)->next, type, member)
+    list_entry((ptr)->next, type, member)
 
 /**
  * @brief  Get the previous object entry
@@ -43,7 +42,7 @@
  * @retval &obj: Adress pointing to the previous object.
  */
 #define list_prev_entry(pos, member) \
-        list_entry((pos)->member.prev, typeof(*(pos)), member)
+    list_entry((pos)->member.prev, typeof(*(pos)), member)
 
 /**
  * @brief  Get the next object entry
@@ -52,7 +51,7 @@
  * @retval &obj: Adress pointing to the next object.
  */
 #define list_next_entry(pos, member) \
-        list_entry((pos)->member.next, typeof(*(pos)), member)
+    list_entry((pos)->member.next, typeof(*(pos)), member)
 
 /**
  * @brief  Check if the list entry is the list head
@@ -60,8 +59,7 @@
  * @param  member: Structure member name of the list item.
  * @retval bool: true or false.
  */
-#define list_entry_is_head(pos, head, member) \
-        (&pos->member == (head))
+#define list_entry_is_head(pos, head, member) (&pos->member == (head))
 
 /**
  * @brief  Iterate the list item through the whole list
@@ -70,7 +68,7 @@
  * @retval None
  */
 #define list_for_each(pos, head) \
-	for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
+    for ((pos) = (head)->next; (pos) != (head); (pos) = (pos)->next)
 
 /**
  * @brief  Iterate the list item through the whole list safely.
@@ -78,10 +76,9 @@
  * @param  head: Head of the list.
  * @retval None
  */
-#define list_for_each_safe(pos, _next, head) \
-        for(pos = (head)->next, _next = (pos)->next; \
-            (pos) != (head); \
-            (pos) = _next, _next = (pos)->next)
+#define list_for_each_safe(pos, _next, head)                       \
+    for (pos = (head)->next, _next = (pos)->next; (pos) != (head); \
+         (pos) = _next, _next = (pos)->next)
 
 /**
  * @brief  Iterate the object entry through the whole list
@@ -90,17 +87,19 @@
  * @param  member: Structure member name of the list item.
  * @retval None
  */
-#define list_for_each_entry(pos, head, member) \
-        for(pos = list_first_entry(head, __typeof__(*pos), member); \
-            &pos->member != (head); pos = list_next_entry(pos, member))
+#define list_for_each_entry(pos, head, member)                   \
+    for (pos = list_first_entry(head, __typeof__(*pos), member); \
+         &pos->member != (head); pos = list_next_entry(pos, member))
 
 /**
  * @brief  Initialize the list head statically
  * @param  name: List head to initialize.
  * @retval None
  */
-#define LIST_HEAD_INIT(name) \
-    {.prev = (&name), .next = (&name)}
+#define LIST_HEAD_INIT(name)             \
+    {                                    \
+        .prev = (&name), .next = (&name) \
+    }
 
 /**
  * @brief  Declare and initialize a new list head

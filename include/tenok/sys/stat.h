@@ -14,7 +14,7 @@
 
 /* return type of the fstat() syscall */
 struct stat {
-    uint8_t  st_mode;   /* file type */
+    uint8_t st_mode;    /* file type */
     uint32_t st_ino;    /* inode number */
     uint32_t st_rdev;   /* device number */
     uint32_t st_size;   /* total size in bytes */
@@ -29,8 +29,8 @@ struct stat {
 int fstat(int fd, struct stat *statbuf);
 
 /**
- * @brief  Create a filesystem node (file, device special file, or named pipe) named
-           pathname, with attributes specified by  mode and dev
+ * @brief  Create a filesystem node (file, device special file, or named pipe)
+ *         named pathname, with attributes specified by mode and dev
  * @param  pathname: The pathname to create the new file.
  * @param  mode: Not used.
  * @param  dev: The file type to provide (S_IFIFO, S_IFCHR, ...).

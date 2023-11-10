@@ -6,25 +6,26 @@
 
 #include <stdint.h>
 
-#define POLLIN   1
-#define POLLOUT  4
+#define POLLIN 1
+#define POLLOUT 4
 #define POLLNVAL 32
 
 typedef uint32_t nfds_t;
 
 struct pollfd {
-    int   fd;      /* file descriptor */
+    int fd;        /* file descriptor */
     short events;  /* requested events */
     short revents; /* returned events */
 };
 
 /**
- * @brief  Wait for one of a set of file descriptors to become ready to perform I/O
+ * @brief  Wait for one of a set of file descriptors to become ready to perform
+ *         I/O
  * @param  fds: A set of file descriptors with events to wait.
  * @param  nfds: Number of the provided fds.
- * @param  timeout: The number of milliseconds that poll() should block waiting for a file
-           descriptor to become ready. Negative value means an infinite timeout and zero
-           causes poll() to return immediately.
+ * @param  timeout: The number of milliseconds that poll() should block waiting
+ *         for a file descriptor to become ready. Negative value means an
+ * infinite timeout and zero causes poll() to return immediately.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int poll(struct pollfd *fds, nfds_t nfds, int timeout);

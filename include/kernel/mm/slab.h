@@ -7,9 +7,9 @@
 #include <kernel/list.h>
 
 #define CACHE_PAGE_SIZE 256
-#define CACHE_NAME_LEN  16
+#define CACHE_NAME_LEN 16
 
-#define CACHE_OPT_NONE  0
+#define CACHE_OPT_NONE 0
 
 struct kmem_cache {
     struct list_head slabs_free;
@@ -42,8 +42,11 @@ struct slab {
  * @param  ctor: Not used.
  * @retval struct kmem_cache *: Pointer to the new created cache.
  */
-struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align,
-                                     unsigned long flags, void (*ctor)(void *));
+struct kmem_cache *kmem_cache_create(const char *name,
+                                     size_t size,
+                                     size_t align,
+                                     unsigned long flags,
+                                     void (*ctor)(void *));
 
 /**
  * @brief  Allocate a new slab memory. The function should only

@@ -4,19 +4,19 @@
 #ifndef __KFIFO_H__
 #define __KFIFO_H__
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 struct kfifo {
-    int     start;
-    int     end;
-    int     count;
-    void    *data;
-    size_t  size;
-    size_t  esize;
-    size_t  header_size;
-    size_t  payload_size;
+    int start;
+    int end;
+    int count;
+    void *data;
+    size_t size;
+    size_t esize;
+    size_t header_size;
+    size_t payload_size;
 };
 
 /**

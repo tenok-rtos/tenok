@@ -4,8 +4,8 @@
 #ifndef __TENOK_H__
 #define __TENOK_H__
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include <kernel/kernel.h>
@@ -13,14 +13,14 @@
 #include "kconfig.h"
 
 struct thread_stat {
-    int    pid;
-    int    tid;
-    int    priority;
-    int    status;
-    bool   privileged;
+    int pid;
+    int tid;
+    int priority;
+    int status;
+    bool privileged;
     size_t stack_usage;
     size_t stack_size;
-    char   name[THREAD_NAME_MAX];
+    char name[THREAD_NAME_MAX];
 };
 
 enum {

@@ -4,18 +4,18 @@
 #ifndef __PORT_H__
 #define __PORT_H__
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
-#define NACKED __attribute__ ((naked))
+#define NACKED __attribute__((naked))
 
-#define SYSCALL(num) \
-    asm volatile ("push {r7}   \n" \
-                  "mov  r7, %0 \n" \
-                  "svc  0      \n" \
-                  "pop  {r7}   \n" \
-                  "bx lr       \n" \
-                  :: "i"(num))
+#define SYSCALL(num)     \
+    asm volatile(        \
+        "push {r7}   \n" \
+        "mov  r7, %0 \n" \
+        "svc  0      \n" \
+        "pop  {r7}   \n" \
+        "bx lr       \n" ::"i"(num))
 
 /**
  * @brief  Get the current ARM processor mode
@@ -53,8 +53,10 @@ void __platform_init(void);
  * @param  args[4]: The arguments for func.
  * @retval None
  */
-void __stack_init(uint32_t **stack_top, uint32_t func,
-                  uint32_t return_handler, uint32_t args[4]);
+void __stack_init(uint32_t **stack_top,
+                  uint32_t func,
+                  uint32_t return_handler,
+                  uint32_t args[4]);
 
 /**
  * @brief  Trigger platform-specific idling

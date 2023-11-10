@@ -1,7 +1,7 @@
-#include <tenok.h>
 #include <errno.h>
-#include <string.h>
 #include <pthread.h>
+#include <string.h>
+#include <tenok.h>
 
 #include <arch/port.h>
 #include <kernel/mutex.h>
@@ -9,10 +9,10 @@
 
 int pthread_attr_init(pthread_attr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->schedparam.sched_priority = 0;
     _attr->stacksize = 512;
     _attr->stackaddr = NULL;
@@ -23,32 +23,34 @@ int pthread_attr_init(pthread_attr_t *attr)
 
 int pthread_attr_destroy(pthread_attr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     memset(_attr, 0, sizeof(struct thread_attr));
 
     return 0;
 }
 
-int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *param)
+int pthread_attr_setschedparam(pthread_attr_t *attr,
+                               const struct sched_param *param)
 {
-    if(!attr || !param)
+    if (!attr || !param)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->schedparam = *param;
 
     return 0;
 }
 
-int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *param)
+int pthread_attr_getschedparam(const pthread_attr_t *attr,
+                               struct sched_param *param)
 {
-    if(!attr || !param)
+    if (!attr || !param)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     *param = _attr->schedparam;
 
     return 0;
@@ -56,10 +58,10 @@ int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *p
 
 int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->schedpolicy = policy;
 
     return 0;
@@ -67,10 +69,10 @@ int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy)
 
 int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy)
 {
-    if(!attr | !policy)
+    if (!attr | !policy)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     *policy = _attr->schedpolicy;
 
     return 0;
@@ -78,21 +80,22 @@ int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy)
 
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct mutex_attr *mtx_attr = (struct mutex_attr *)attr;
+    struct mutex_attr *mtx_attr = (struct mutex_attr *) attr;
     mtx_attr->protocol = protocol;
 
     return 0;
 }
 
-int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol)
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
+                                  int *protocol)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct mutex_attr *mtx_attr = (struct mutex_attr *)attr;
+    struct mutex_attr *mtx_attr = (struct mutex_attr *) attr;
     *protocol = mtx_attr->protocol;
 
     return 0;
@@ -100,10 +103,10 @@ int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol
 
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->stacksize = stacksize;
 
     return 0;
@@ -111,10 +114,10 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 {
-    if(!attr | !stacksize)
+    if (!attr | !stacksize)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     *stacksize = _attr->stacksize;
 
     return 0;
@@ -122,13 +125,13 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 
 int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
 
-    if(_attr->detachstate != PTHREAD_CREATE_DETACHED &&
-       _attr->detachstate != PTHREAD_CREATE_JOINABLE) {
+    if (_attr->detachstate != PTHREAD_CREATE_DETACHED &&
+        _attr->detachstate != PTHREAD_CREATE_JOINABLE) {
         return -EINVAL;
     }
 
@@ -139,10 +142,10 @@ int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
 
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
 {
-    if(!attr | !detachstate)
+    if (!attr | !detachstate)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     *detachstate = _attr->detachstate;
 
     return 0;
@@ -150,13 +153,13 @@ int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
 
 int pthread_attr_setstackaddr(pthread_attr_t *attr, void *stackaddr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    if(!stackaddr)
+    if (!stackaddr)
         return -EINVAL;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->stackaddr = stackaddr;
 
     return 0;
@@ -164,17 +167,19 @@ int pthread_attr_setstackaddr(pthread_attr_t *attr, void *stackaddr)
 
 int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr)
 {
-    if(!attr | !stackaddr)
+    if (!attr | !stackaddr)
         return -ENOMEM;
 
-    struct thread_attr *_attr = (struct thread_attr *)attr;
+    struct thread_attr *_attr = (struct thread_attr *) attr;
     *stackaddr = _attr->stackaddr;
 
     return 0;
 }
 
-NACKED int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                          void *(*start_routine) (void *), void *arg)
+NACKED int pthread_create(pthread_t *thread,
+                          const pthread_attr_t *attr,
+                          void *(*start_routine)(void *),
+                          void *arg)
 {
     SYSCALL(PTHREAD_CREATE);
 }
@@ -204,13 +209,15 @@ int pthread_equal(pthread_t t1, pthread_t t2)
     return t1 == t2;
 }
 
-NACKED int pthread_setschedparam(pthread_t thread, int policy,
+NACKED int pthread_setschedparam(pthread_t thread,
+                                 int policy,
                                  const struct sched_param *param)
 {
     SYSCALL(PTHREAD_SETSCHEDPARAM);
 }
 
-NACKED int pthread_getschedparam(pthread_t thread, int *policy,
+NACKED int pthread_getschedparam(pthread_t thread,
+                                 int *policy,
                                  struct sched_param *param)
 {
     SYSCALL(PTHREAD_GETSCHEDPARAM);
@@ -218,10 +225,10 @@ NACKED int pthread_getschedparam(pthread_t thread, int *policy,
 
 int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    struct mutex_attr *_attr = (struct mutex_attr *)attr;
+    struct mutex_attr *_attr = (struct mutex_attr *) attr;
     _attr->protocol = PTHREAD_PRIO_NONE;
 
     return 0;
@@ -229,7 +236,7 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
     memset(attr, 0, sizeof(pthread_mutexattr_t));
@@ -238,14 +245,14 @@ int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    if(!mutex)
+    if (!mutex)
         return -ENOMEM;
 
-    struct mutex *_mutex = (struct mutex *)mutex;
+    struct mutex *_mutex = (struct mutex *) mutex;
     mutex_init(_mutex);
 
-    if(attr) {
-        struct mutex_attr *_attr = (struct mutex_attr *)attr;
+    if (attr) {
+        struct mutex_attr *_attr = (struct mutex_attr *) attr;
         _mutex->protocol = _attr->protocol;
     }
 
@@ -254,7 +261,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
-    if(!mutex)
+    if (!mutex)
         return -ENOMEM;
 
     memset(mutex, 0, sizeof(pthread_mutex_t));
@@ -293,17 +300,17 @@ NACKED int pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 int pthread_condattr_init(pthread_condattr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
-    //no attribute is currently implemented
+    // no attribute is currently implemented
 
     return 0;
 }
 
 int pthread_condattr_destroy(pthread_condattr_t *attr)
 {
-    if(!attr)
+    if (!attr)
         return -ENOMEM;
 
     memset(attr, 0, sizeof(pthread_condattr_t));
@@ -312,16 +319,16 @@ int pthread_condattr_destroy(pthread_condattr_t *attr)
 
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr)
 {
-    if(!cond)
+    if (!cond)
         return -ENOMEM;
 
-    INIT_LIST_HEAD(&((struct cond *)cond)->task_wait_list);
+    INIT_LIST_HEAD(&((struct cond *) cond)->task_wait_list);
     return 0;
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
-    if(!cond)
+    if (!cond)
         return -ENOMEM;
 
     memset(cond, 0, sizeof(pthread_cond_t));
@@ -343,7 +350,8 @@ NACKED int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     SYSCALL(PTHREAD_COND_WAIT);
 }
 
-NACKED int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+NACKED int pthread_once(pthread_once_t *once_control,
+                        void (*init_routine)(void))
 {
     SYSCALL(PTHREAD_ONCE);
 }

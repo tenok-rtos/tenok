@@ -12,6 +12,6 @@
                                formatting specifiers.
  * @retval None
  */
-void printk(char *format,  ...);
+void printk(char *format, ...);
 
 #endif

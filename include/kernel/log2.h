@@ -6,6 +6,7 @@
 
 #include <kernel/bitops.h>
 
+/* clang-format off */
 #define ilog2(x)                  \
 (                                 \
     __builtin_constant_p(x) ? (   \
@@ -46,15 +47,17 @@
         ) :                       \
         __ilog2(x)                \
 )
+/* clang-format on */
 
 static inline unsigned long __ilog2(unsigned long x)
 {
     return _flsl(x) - 1;
 }
 
-static inline /*__atrribute__(noreturn)*/  unsigned long __ilog2_NaN(void)
+static inline /*__atrribute__(noreturn)*/ unsigned long __ilog2_NaN(void)
 {
-    while(1);
+    while (1)
+        ;
     return 0;
 }
 

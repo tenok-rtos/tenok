@@ -1,11 +1,11 @@
-#include <tenok.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <fcntl.h>
 #include <sched.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <tenok.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <kernel/task.h>
@@ -22,7 +22,7 @@ void timer_task(void)
     setprogname("timer");
 
     serial_fd = open("/dev/serial0", O_RDWR);
-    if(serial_fd < 0) {
+    if (serial_fd < 0) {
         exit(1);
     }
 
@@ -37,7 +37,7 @@ void timer_task(void)
     sev.sigev_value.sival_ptr = &timerid;
 
     /* create a timer */
-    if(timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
+    if (timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
         dprintf(serial_fd, "failed to create timer.\n\r");
         exit(1);
     }
@@ -51,12 +51,12 @@ void timer_task(void)
     its.it_interval.tv_nsec = 0;
 
     /* arm the timer */
-    if(timer_settime(timerid, 0, &its, NULL) == -1) {
+    if (timer_settime(timerid, 0, &its, NULL) == -1) {
         dprintf(serial_fd, "failed to set the timer.\n\r");
     }
 
     /* sleep */
-    while(1) {
+    while (1) {
         sleep(1);
     }
 }

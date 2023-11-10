@@ -5,8 +5,10 @@
 
 #include "mavlink.h"
 
-#define DEF_MAVLINK_CMD(handler_function, id) \
-    {.handler = handler_function, .msg_id = id}
+#define DEF_MAVLINK_CMD(handler_function, id)     \
+    {                                             \
+        .handler = handler_function, .msg_id = id \
+    }
 
 #define CMD_LEN(list) (sizeof(list) / sizeof(struct mavlink_cmd))
 

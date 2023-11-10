@@ -20,9 +20,13 @@ struct mq_desc {
 };
 
 struct pipe *__mq_open(struct mq_attr *attr);
-ssize_t __mq_receive(struct pipe *pipe, char *buf, size_t msg_len,
+ssize_t __mq_receive(struct pipe *pipe,
+                     char *buf,
+                     size_t msg_len,
                      const struct mq_attr *attr);
-ssize_t __mq_send(struct pipe *pipe, const char *buf, size_t msg_len,
+ssize_t __mq_send(struct pipe *pipe,
+                  const char *buf,
+                  size_t msg_len,
                   const struct mq_attr *attr);
 
 #endif

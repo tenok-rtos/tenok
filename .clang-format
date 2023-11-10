@@ -5,6 +5,7 @@ IndentCaseLabels: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
 DerivePointerAlignment: false
 PointerAlignment: Right
 SpaceAfterCStyleCast: true 

@@ -1,6 +1,6 @@
-#include <time.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "mavlink.h"
@@ -25,7 +25,8 @@ void mavlink_send_heartbeat(int fd)
     uint8_t sys_status = 0;
 
     mavlink_message_t msg;
-    mavlink_msg_heartbeat_pack(sys_id, 1, &msg, type, autopilot, base_mode, custom_mode, sys_status);
+    mavlink_msg_heartbeat_pack(sys_id, 1, &msg, type, autopilot, base_mode,
+                               custom_mode, sys_status);
 
     mavlink_send_msg(&msg, fd);
 }
@@ -34,8 +35,7 @@ void mavlink_send_hil_actuator_controls(int fd)
 {
     uint8_t sys_id = 1;
     float ctrls[16] = {0.1, 0.1, 0.1, 0.1};
-    uint8_t mode = MAV_MODE_FLAG_HIL_ENABLED |
-                   MAV_MODE_FLAG_SAFETY_ARMED |
+    uint8_t mode = MAV_MODE_FLAG_HIL_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED |
                    MAV_MODE_FLAG_AUTO_ENABLED;
 
     /* get current time */
@@ -44,7 +44,8 @@ void mavlink_send_hil_actuator_controls(int fd)
     uint64_t time_usec = (tp.tv_sec * 1000000) + (tp.tv_nsec / 1000);
 
     mavlink_message_t msg;
-    mavlink_msg_hil_actuator_controls_pack(sys_id, 1, &msg, time_usec, ctrls, mode, 0);
+    mavlink_msg_hil_actuator_controls_pack(sys_id, 1, &msg, time_usec, ctrls,
+                                           mode, 0);
 
     mavlink_send_msg(&msg, fd);
 }

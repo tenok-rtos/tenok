@@ -7,12 +7,12 @@
 #include "kconfig.h"
 
 #if PAGE_SIZE_SELECT == PAGE_SIZE_32K
-#    define PAGE_ORDER_MAX 4
+#define PAGE_ORDER_MAX 4
 #elif PAGE_SIZE_SELECT == PAGE_SIZE_64K
-#    define PAGE_ORDER_MAX 5
+#define PAGE_ORDER_MAX 5
 #endif
 
-#define PAGE_SIZE_MIN  256
+#define PAGE_SIZE_MIN 256
 
 
 unsigned long get_page_total_size(void);

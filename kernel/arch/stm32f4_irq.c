@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include <arch/port.h>
-#include <kernel/tty.h>
 #include <kernel/kernel.h>
+#include <kernel/tty.h>
 
 #include "stm32f4xx.h"
 
@@ -31,9 +31,8 @@ extern uint32_t _estack;
 
 typedef void (*irq_handler_t)(void);
 
-__attribute__((section(".isr_vector")))
-irq_handler_t isr_vectors[IRQ_CNT] = {
-    (irq_handler_t)&_estack,
+__attribute__((section(".isr_vector"))) irq_handler_t isr_vectors[IRQ_CNT] = {
+    (irq_handler_t) &_estack,
     /* exceptions */
     Reset_Handler,
     NMI_Handler,
@@ -132,14 +131,15 @@ irq_handler_t isr_vectors[IRQ_CNT] = {
     irq_handler,
     irq_handler,
     irq_handler,
-    irq_handler
+    irq_handler,
 };
 
 irq_handler_t irq_table[IRQ_CNT];
 
 void Default_Handler(void)
 {
-    while(1);
+    while (1)
+        ;
 }
 
 void SysTick_Handler(void)
@@ -150,7 +150,8 @@ void SysTick_Handler(void)
 
 void NMI_Handler(void)
 {
-    while(1);
+    while (1)
+        ;
 }
 
 void HardFault_Handler(void)
@@ -158,31 +159,34 @@ void HardFault_Handler(void)
     CURRENT_THREAD_INFO(curr_thread);
 
     char s[150] = {0};
-    sprintf(s, "***** HARD FAULT *****\n\r"
+    sprintf(s,
+            "***** HARD FAULT *****\n\r"
             "Current thread: %s (PID: %d, TID: %d)\n\r"
             "Fatal fault encountered. Aborting!",
-            curr_thread->name,
-            curr_thread->task->pid,
-            (int)curr_thread->tid);
+            curr_thread->name, curr_thread->task->pid, (int) curr_thread->tid);
 
     early_tty_print(s, strlen(s));
 
-    while(1);
+    while (1)
+        ;
 }
 
 void MemManage_Handler(void)
 {
-    while(1);
+    while (1)
+        ;
 }
 
 void BusFault_Handler(void)
 {
-    while(1);
+    while (1)
+        ;
 }
 
 void UsageFault_Handler(void)
 {
-    while(1);
+    while (1)
+        ;
 }
 
 void DebugMon_Handler(void)
@@ -197,7 +201,7 @@ void irq_handler(void)
 
 void irq_init(void)
 {
-    for(int i = IRQ_START; i < IRQ_CNT; i++) {
+    for (int i = IRQ_START; i < IRQ_CNT; i++) {
         irq_table[i] = Default_Handler;
     }
 
@@ -214,8 +218,10 @@ void irq_init(void)
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 }
 
-int request_irq(unsigned int irq, irq_handler_t handler,
-                unsigned long flags, const char *name,
+int request_irq(unsigned int irq,
+                irq_handler_t handler,
+                unsigned long flags,
+                const char *name,
                 void *dev)
 {
     irq_table[IRQ_START + irq] = handler;
