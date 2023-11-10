@@ -11,7 +11,7 @@
 
 #define NANOSECOND_TICKS (1000000000 / OS_TICK_FREQ)
 
-struct timespec sys_time;
+static struct timespec sys_time;
 
 void timer_up_count(struct timespec *time)
 {

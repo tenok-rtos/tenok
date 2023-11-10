@@ -12,7 +12,7 @@
 
 #define SOFTIRQD_ID 2
 
-LIST_HEAD(tasklet_list);
+static LIST_HEAD(tasklet_list);
 
 void tasklet_init(struct tasklet_struct *t,
                   void (*func)(unsigned long), unsigned long data)

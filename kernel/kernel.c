@@ -49,38 +49,41 @@
 extern char _user_stack_start;
 extern char _user_stack_end;
 
-/* global lists */
-LIST_HEAD(tasks_list);   /* list of all tasks in the system */
-LIST_HEAD(threads_list); /* list of all threads in the system */
-LIST_HEAD(sleep_list);   /* list of all threads in the sleeping state */
-LIST_HEAD(suspend_list); /* list of all threads that are suspended or waiting */
-LIST_HEAD(timeout_list); /* list for tracking syscall timeout of all blocking threads */
-LIST_HEAD(timers_list);  /* list of all timers in the system */
-LIST_HEAD(poll_list);    /* list of all threads that are suspended due to the poll() syscall */
-LIST_HEAD(mqueue_list);  /* list of all posix message queues in the system */
-struct list_head ready_list[THREAD_PRIORITY_MAX + 1]; /* lists of all threads in the ready state */
+static LIST_HEAD(tasks_list);   /* list of all tasks in the system */
+static LIST_HEAD(threads_list); /* list of all threads in the system */
+static LIST_HEAD(sleep_list);   /* list of all threads in the sleeping state */
+static LIST_HEAD(suspend_list); /* list of all threads that are suspended */
+static LIST_HEAD(timeout_list); /* list of all blocked threads with timeout */
+static LIST_HEAD(timers_list);  /* list of all timers in the system */
+static LIST_HEAD(poll_list);    /* list of all threads suspended by poll() */
+static LIST_HEAD(mqueue_list);  /* list of all posix message queues in the system */
+
+/* lists of all threads in ready state */
+struct list_head ready_list[THREAD_PRIORITY_MAX + 1];
 
 /* tasks and threads */
-struct task_struct tasks[TASK_CNT_MAX];
-struct thread_info threads[THREAD_CNT_MAX];
-struct thread_info *running_thread = NULL;
-uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];     /* for dispatching task id */
-uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)]; /* for dispatching thread id */
+static struct task_struct tasks[TASK_CNT_MAX];
+
+static struct thread_info threads[THREAD_CNT_MAX];
+static struct thread_info *running_thread = NULL;
+
+static uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];
+static uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)];
 
 /* files */
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* file descriptor table */
-struct fdtable fdtable[FILE_DESC_CNT_MAX];
-uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
+static struct fdtable fdtable[FILE_DESC_CNT_MAX];
+static uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
 /* message queue descriptor table */
-struct mq_desc mqd_table[MQUEUE_CNT_MAX];
-uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+static struct mq_desc mqd_table[MQUEUE_CNT_MAX];
+static uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
 /* memory allocators */
-struct kmalloc_slab_info kmalloc_slab_info[] = {
+static struct kmalloc_slab_info kmalloc_slab_info[] = {
     DEF_KMALLOC_SLAB(32),
     DEF_KMALLOC_SLAB(64),
     DEF_KMALLOC_SLAB(128),
@@ -91,10 +94,11 @@ struct kmalloc_slab_info kmalloc_slab_info[] = {
     DEF_KMALLOC_SLAB(2048),
 #endif
 };
-struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
+
+static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
 /* syscall table */
-syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
+static syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
 
 NACKED void thread_return_handler(void)
 {
