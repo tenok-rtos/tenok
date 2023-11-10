@@ -24,6 +24,9 @@
 #define PIPE_DEPTH           100   /* notice that if the path depth is too shallow, *
                                     * the file operation request will failed        */
 
+/* signals */
+#define SIGNAL_QUEUE_SIZE    5
+
 /* file system */
 #define FILE_SYSTEM_FD       1
 

@@ -15,6 +15,7 @@
 #include <kernel/time.h>
 #include <kernel/wait.h>
 #include <kernel/util.h>
+#include <kernel/kfifo.h>
 
 #include "kconfig.h"
 
@@ -39,6 +40,11 @@ typedef struct {
     void (* syscall_handler)(void);
     uint32_t num;
 } syscall_info_t;
+
+struct staged_handler_info {
+    uint32_t func;
+    uint32_t args[4];
+};
 
 enum {
     THREAD_WAIT,
@@ -138,6 +144,7 @@ struct thread_info {
     sigset_t sig_wait_set; /* the signal set of the thread to wait */
     uint32_t stack_top_preserved; /* original stack address before any event handler is staged */
     struct sigaction *sig_table[SIGNAL_CNT];
+    struct kfifo signal_queue;
 
     /* timers */
     int timer_cnt;
