@@ -191,6 +191,15 @@ astyle:
 	astyle --style=linux --indent=spaces=4 --indent-switches \
 		--suffix=none  --exclude=lib --recursive "*.c,*.h"
 
+FORMAT_EXCLUDE = -path ./lib -o -path ./platform
+FORMAT_FILES = ".*\.\(c\|h\)"
+
+clang-format:
+	@echo "Execute clang-format"
+	@find . -type d \( $(FORMAT_EXCLUDE) \) -prune -o \
+                -regex $(FORMAT_FILES) -print \
+                -exec clang-format -style=file -i {} \;
+
 size:
 	$(SIZE) $(ELF)
 
