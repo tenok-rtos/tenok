@@ -243,9 +243,9 @@ struct thread_info *acquire_thread(int tid)
  */
 static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 {
-    size_t pipe_size = ALIGN(sizeof(struct pipe), 4);
-    size_t kfifo_size = ALIGN(sizeof(struct kfifo), 4);
-    size_t buf_size = ALIGN(sizeof(char) * PIPE_DEPTH, 4);
+    size_t pipe_size = ALIGN(sizeof(struct pipe), sizeof(long));
+    size_t kfifo_size = ALIGN(sizeof(struct kfifo), sizeof(long));
+    size_t buf_size = ALIGN(sizeof(char) * PIPE_DEPTH, sizeof(long));
 
     struct pipe *pipe = (struct pipe *)((uintptr_t)stack_top - pipe_size);
     struct kfifo *pipe_fifo = (struct kfifo *)((uintptr_t)pipe - kfifo_size);
@@ -261,7 +261,7 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 static void *thread_signal_queue_alloc(struct kfifo *signal_queue, void *stack_top)
 {
     size_t payload_size = kfifo_header_size() + sizeof(struct staged_handler_info);
-    size_t queue_size = ALIGN(payload_size * SIGNAL_QUEUE_SIZE, 4);
+    size_t queue_size = ALIGN(payload_size * SIGNAL_QUEUE_SIZE, sizeof(long));
     char *buf = (char *)((uintptr_t)stack_top - queue_size);
     kfifo_init(signal_queue, buf, payload_size, SIGNAL_QUEUE_SIZE);
     return (void *)buf;
@@ -293,7 +293,7 @@ static int thread_create(struct thread_info **new_thread,
     bitmap_set_bit(bitmap_threads, tid);
 
     /* stack size alignment */
-    size_t stack_size = ALIGN(attr->stacksize, 4);
+    size_t stack_size = ALIGN(attr->stacksize, sizeof(long));
 
     /* allocate a new thread */
     struct thread_info *thread = &threads[tid];
@@ -713,7 +713,7 @@ void sys_mpool_alloc(void)
     size_t size = SYSCALL_ARG(size_t, 1);
 
     void *ptr = NULL;
-    size_t alloc_size = ALIGN(size, 4);
+    size_t alloc_size = ALIGN(size, sizeof(long));
 
     /* test if the memory poll has enough space */
     if((mpool->offset + alloc_size) <= mpool->size) {

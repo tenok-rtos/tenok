@@ -88,7 +88,7 @@ void *__malloc(size_t size)
     CURRENT_THREAD_INFO(curr_thread);
 
     /* calculate the allocation size */
-    size_t alloc_size = ALIGN(size + sizeof(struct malloc_info), 4);
+    size_t alloc_size = ALIGN(size + sizeof(struct malloc_info), sizeof(long));
 
     /* interate through the block list */
     struct malloc_info *blk = NULL;
