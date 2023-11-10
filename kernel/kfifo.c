@@ -244,6 +244,11 @@ size_t kfifo_size(struct kfifo *fifo)
     return fifo->size;
 }
 
+size_t kfifo_header_size(void)
+{
+    return sizeof(struct kfifo_hdr);
+}
+
 bool kfifo_is_empty(struct kfifo *fifo)
 {
     return fifo->count == 0;

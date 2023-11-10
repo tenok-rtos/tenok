@@ -140,11 +140,12 @@ struct thread_info {
 
     /* signals */
     int *ret_sig;
-    bool wait_for_signal;  /* indicates that the thread is waiting for signal */
-    sigset_t sig_wait_set; /* the signal set of the thread to wait */
-    uint32_t stack_top_preserved; /* original stack address before any event handler is staged */
+    bool wait_for_signal;         /* indicates that the thread is waiting for signal */
+    sigset_t sig_wait_set;        /* the signal set to wait */
+    uint32_t signal_cnt;          /* the number of pending signals in the queue */
+    uint32_t stack_top_preserved; /* original stack address before an event handler is staged */
+    struct kfifo signal_queue;    /* the queue for pending signals */
     struct sigaction *sig_table[SIGNAL_CNT];
-    struct kfifo signal_queue;
 
     /* timers */
     int timer_cnt;

@@ -260,9 +260,10 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 
 static void *thread_signal_queue_alloc(struct kfifo *signal_queue, void *stack_top)
 {
-    size_t queue_size = ALIGN(sizeof(struct staged_handler_info) * SIGNAL_QUEUE_SIZE, 4);
+    size_t payload_size = kfifo_header_size() + sizeof(struct staged_handler_info);
+    size_t queue_size = ALIGN(payload_size * SIGNAL_QUEUE_SIZE, 4);
     char *buf = (char *)((uintptr_t)stack_top - queue_size);
-    kfifo_init(signal_queue, buf, sizeof(char), queue_size);
+    kfifo_init(signal_queue, buf, payload_size, SIGNAL_QUEUE_SIZE);
     return (void *)buf;
 }
 
@@ -429,47 +430,41 @@ static void stage_signal_handler(struct thread_info *thread,
                                  uint32_t return_handler, /* XXX: unused */
                                  uint32_t args[4])
 {
-    /* FIXME */
-    int signal_cnt = (kfifo_len(&thread->signal_queue) /
-                      sizeof(struct staged_handler_info));
-
-    if(signal_cnt >= SIGNAL_QUEUE_SIZE)
+    if(thread->signal_cnt >= SIGNAL_QUEUE_SIZE)
         printk("Warning: the oldest pending signal is overwritten");
 
+    /* push new signal into the pending queue */
     struct staged_handler_info info;
     info.func = func;
     info.args[0] = args[0];
     info.args[1] = args[1];
     info.args[2] = args[2];
     info.args[3] = args[3];
+    kfifo_in(&thread->signal_queue, &info, sizeof(struct staged_handler_info));
 
-    /* FIXME */
-    for(int i = 0; i < sizeof(struct staged_handler_info); i++) {
-        kfifo_in(&thread->signal_queue, &((char *)&info)[i], 1 /* XXX */);
-    }
+    /* update the number of pending signals in the queue */
+    thread->signal_cnt = kfifo_len(&thread->signal_queue);
 }
 
 static void check_pending_signals(void)
 {
-    /* FIXME */
-    int signal_num = kfifo_len(&running_thread->signal_queue) /
-                     sizeof(struct staged_handler_info);
-
-    if(signal_num <= 0 || running_thread->stack_top_preserved)
+    if(running_thread->signal_cnt == 0 ||
+       running_thread->stack_top_preserved) {
         return;
-
-    struct staged_handler_info info;
-
-    /* FIXME */
-    for(int i = 0; i < sizeof(struct staged_handler_info); i++) {
-        kfifo_out(&running_thread->signal_queue, &((char *)&info)[i], 1 /* XXX */);
     }
 
-    /* preserve the original stack pointer of the thread */
-    running_thread->stack_top_preserved = (uint32_t)running_thread->stack_top;
+    /* retrieve pending signal staging request from the queue */
+    struct staged_handler_info info;
+    kfifo_out(&running_thread->signal_queue, &info, sizeof(struct staged_handler_info));
 
-    /* prepare a new space on user task's stack for the signal handler */
-    __stack_init((uint32_t **)&running_thread->stack_top, info.func, (uint32_t)sig_return_handler, info.args);
+    /* stage the signal handle into the thread stack */
+    stage_temporary_handler(running_thread,
+                            info.func,
+                            (uint32_t)sig_return_handler,
+                            info.args);
+
+    /* update the number of pending signals in the queue */
+    running_thread->signal_cnt = kfifo_len(&running_thread->signal_queue);
 }
 
 static void thread_suspend(struct thread_info *thread)

@@ -173,6 +173,13 @@ size_t kfifo_esize(struct kfifo *fifo);
 size_t kfifo_size(struct kfifo *fifo);
 
 /**
+ * @brief  Return the size of the kfifo header
+ * @param  None
+ * @retval size_t: The size of the kfifo header.
+ */
+size_t kfifo_header_size(void);
+
+/**
  * @brief  Return true if the fifo is empty
  * @param  fifo: The fifo object to provide.
  * @retval bool: True or false.

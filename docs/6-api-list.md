@@ -325,6 +325,8 @@ Tenok API List
 
 * kfifo_size()
 
+* kfifo_header_size()
+
 * kfifo_is_empty()
 
 * kfifo_is_full()
