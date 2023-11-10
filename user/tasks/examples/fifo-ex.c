@@ -58,5 +58,5 @@ void fifo_task2(void)
     }
 }
 
-HOOK_USER_TASK(fifo_task1, 0, 512);
-HOOK_USER_TASK(fifo_task2, 0, 512);
+HOOK_USER_TASK(fifo_task1, 0, STACK_SIZE_MIN);
+HOOK_USER_TASK(fifo_task2, 0, STACK_SIZE_MIN);

@@ -67,5 +67,5 @@ void poll_task2(void)
     }
 }
 
-HOOK_USER_TASK(poll_task1, 0, 1024);
-HOOK_USER_TASK(poll_task2, 0, 1024);
+HOOK_USER_TASK(poll_task1, 0, STACK_SIZE_MIN);
+HOOK_USER_TASK(poll_task2, 0, STACK_SIZE_MIN);

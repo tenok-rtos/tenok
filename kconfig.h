@@ -1,13 +1,18 @@
 #ifndef __KCONFIG_H__
 #define __KCONFIG_H__
 
+/* scheduler */
+#define OS_TICK_FREQ         1000  /* Hz */
+
 /* page memory */
 #define PAGE_SIZE_32K        0
 #define PAGE_SIZE_64K        1
 #define PAGE_SIZE_SELECT     PAGE_SIZE_64K
 
-/* scheduler */
-#define OS_TICK_FREQ         1000  /* Hz */
+/* the minimum stack size recommended for task and thread creation. since every   *
+ * thread consumes a part of it own stack as overhead, stack size lower than this *
+ * value may cause the system to be instable.                                     */
+#define STACK_SIZE_MIN       1024  /* bytes */
 
 /* thread */
 #define THREAD_PRIORITY_MAX  5

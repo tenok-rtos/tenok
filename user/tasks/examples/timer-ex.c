@@ -61,4 +61,4 @@ void timer_task(void)
     }
 }
 
-HOOK_USER_TASK(timer_task, 0, 512);
+HOOK_USER_TASK(timer_task, 0, 1024);
