@@ -119,7 +119,7 @@ void request_open_file(int reply_fd, char *path);
 void request_open_directory(int reply_fd, char *path);
 void request_mount(int reply_fd, char *source, char *path);
 
-void file_system_task(void);
+void filesysd(void);
 
 void fs_print_inode_bitmap(void);
 void fs_print_block_bitmap(void);

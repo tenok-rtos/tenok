@@ -1116,9 +1116,9 @@ void request_mount(int reply_fd, char *source, char *target)
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
-void file_system_task(void)
+void filesysd(void)
 {
-    setprogname("file system");
+    setprogname("filesysd");
 
     while (1) {
         int file_cmd;

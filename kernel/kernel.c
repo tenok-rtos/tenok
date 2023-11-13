@@ -55,9 +55,7 @@ static LIST_HEAD(suspend_list); /* list of all threads that are suspended */
 static LIST_HEAD(timeout_list); /* list of all blocked threads with timeout */
 static LIST_HEAD(timers_list);  /* list of all timers in the system */
 static LIST_HEAD(poll_list);    /* list of all threads suspended by poll() */
-
-/* list of all posix message queues in the system */
-static LIST_HEAD(mqueue_list);
+static LIST_HEAD(mqueue_list);  /* list of all posix message queues */
 
 /* lists of all threads in ready state */
 struct list_head ready_list[THREAD_PRIORITY_MAX + 1];
@@ -95,7 +93,7 @@ static struct kmalloc_slab_info kmalloc_slab_info[] = {
 static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
 /* syscall table */
-static syscall_info_t syscall_table[] = SYSCALL_TABLE_INIT;
+static struct syscall_info syscall_table[] = SYSCALL_TABLE_INIT;
 
 NACKED void thread_return_handler(void)
 {
@@ -242,7 +240,7 @@ struct thread_info *acquire_thread(int tid)
 
 /**
  * consume the stack memory from the thread and create an unique
- * anonymous pipe for it.
+ * anonymous pipe for it
  */
 static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 {
@@ -261,6 +259,10 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
     return (void *) buf;
 }
 
+/**
+ * consume the stack memory from the thread and create a signal
+ * handler queue
+ */
 static void *thread_signal_queue_alloc(struct kfifo *signal_queue,
                                        void *stack_top)
 {
@@ -436,7 +438,6 @@ static void stage_temporary_handler(struct thread_info *thread,
 
 static void stage_signal_handler(struct thread_info *thread,
                                  uint32_t func,
-                                 uint32_t return_handler, /* XXX: unused */
                                  uint32_t args[4])
 {
     if (thread->signal_cnt >= SIGNAL_QUEUE_SIZE)
@@ -1791,7 +1792,7 @@ void sys_pthread_create(void)
     pthread_t *pthread = SYSCALL_ARG(pthread_t *, 0);
     pthread_attr_t *_attr = SYSCALL_ARG(pthread_attr_t *, 1);
     start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
-    // void *arg = XXX; //TODO: read stack to get the fourth argument
+    // void *arg = SYSCALL_ARG(void *, 3); //TODO
 
     struct thread_attr *attr = (struct thread_attr *) _attr;
 
@@ -2043,13 +2044,11 @@ static void handle_signal(struct thread_info *thread, int signum)
         args[0] = (uint32_t) signum;
         args[1] = (uint32_t) NULL /*info */;
         args[2] = (uint32_t) NULL /*context*/;
-        stage_signal_handler(thread, (uint32_t) act->sa_sigaction,
-                             (uint32_t) sig_return_handler, args);
+        stage_signal_handler(thread, (uint32_t) act->sa_sigaction, args);
     } else {
         uint32_t args[4] = {0};
         args[0] = (uint32_t) signum;
-        stage_signal_handler(thread, (uint32_t) act->sa_handler,
-                             (uint32_t) sig_return_handler, args);
+        stage_signal_handler(thread, (uint32_t) act->sa_handler, args);
     }
 }
 
@@ -2723,8 +2722,7 @@ static void timers_update(void)
             uint32_t args[4] = {0};
             sa_handler_t notify_func =
                 (sa_handler_t) timer->sev.sigev_notify_function;
-            stage_signal_handler(timer->thread, (uint32_t) notify_func,
-                                 (uint32_t) sig_return_handler, args);
+            stage_signal_handler(timer->thread, (uint32_t) notify_func, args);
         }
     }
 }
@@ -2880,7 +2878,7 @@ static void slab_init(void)
     }
 }
 
-void first(void)
+void init(void)
 {
     setprogname("idle");
 
@@ -2936,8 +2934,8 @@ void sched_start(void)
     }
 
     /* initialize kernel threads and deamons */
-    kthread_create(first, 0, 1024);
-    kthread_create(file_system_task, 1, 1024);
+    kthread_create(init, 0, 1024);
+    kthread_create(filesysd, 1, 1024);
     kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
 
     /* manually set task 0 as the first thread to run */

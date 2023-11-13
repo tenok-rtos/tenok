@@ -37,10 +37,10 @@
 typedef void (*task_func_t)(void);
 typedef void (*thread_func_t)(void);
 
-typedef struct {
+struct syscall_info {
     void (*syscall_handler)(void);
     uint32_t num;
-} syscall_info_t;
+};
 
 struct staged_handler_info {
     uint32_t func;
