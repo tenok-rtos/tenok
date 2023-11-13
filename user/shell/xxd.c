@@ -29,8 +29,8 @@ static void byte2char(char byte, char *char_str)
 static void xxd_print_line(unsigned int addr, char *buf, int nbytes)
 {
     /* append address */
-    char s[200] = {0};
-    sprintf(s, "%08x: ", addr);
+    char s[PRINT_SIZE_MAX] = {0};
+    snprintf(s, PRINT_SIZE_MAX, "%08x: ", addr);
 
     /* hex code */
     for (int i = 0; i < XXD_N_BYTES; i++) {

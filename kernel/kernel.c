@@ -1813,7 +1813,7 @@ void sys_pthread_create(void)
         return;
     }
 
-    strcpy(thread->name, running_thread->name);
+    strncpy(thread->name, running_thread->name, THREAD_NAME_MAX);
 
     /* set the task ownership of the thread */
     thread->task = current_task_info();

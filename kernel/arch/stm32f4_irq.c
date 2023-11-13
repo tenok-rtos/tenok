@@ -159,11 +159,11 @@ void HardFault_Handler(void)
     CURRENT_THREAD_INFO(curr_thread);
 
     char s[150] = {0};
-    sprintf(s,
-            "***** HARD FAULT *****\n\r"
-            "Current thread: %s (PID: %d, TID: %d)\n\r"
-            "Fatal fault encountered. Aborting!",
-            curr_thread->name, curr_thread->task->pid, (int) curr_thread->tid);
+    snprintf(s, PRINT_SIZE_MAX,
+             "***** HARD FAULT *****\n\r"
+             "Current thread: %s (PID: %d, TID: %d)\n\r"
+             "Fatal fault encountered. Aborting!",
+             curr_thread->name, curr_thread->task->pid, (int) curr_thread->tid);
 
     early_tty_print(s, strlen(s));
 

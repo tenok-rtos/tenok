@@ -9,8 +9,7 @@
 #include <kernel/time.h>
 #include <kernel/tty.h>
 
-#define PRINTK_BUF_LEN 100
-#define PRINTK_FIFO_SIZE 10
+#include "kconfig.h"
 
 void printk(char *format, ...)
 {
@@ -31,11 +30,12 @@ void printk(char *format, ...)
         zeros[i] = '0';
     }
 
-    char buf[100] = {'\r', 0};
-    int pos = sprintf(&buf[1], "[%5s.%s%s] ", sec, zeros, rem);
-    vsprintf(&buf[pos + 1], format, args);
+    char buf[PRINT_SIZE_MAX] = {'\r', 0};
+    int pos = snprintf(&buf[1], PRINT_SIZE_MAX, "[%5s.%s%s] ", sec, zeros, rem);
+    vsnprintf(&buf[pos + 1], PRINT_SIZE_MAX, format, args);
     strcat(buf, "\n\r");
-    va_end(args);
 
     console_write(buf, strlen(buf));
+
+    va_end(args);
 }
