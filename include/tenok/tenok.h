@@ -30,6 +30,11 @@ enum {
     HEAP_FREE_SIZE = 3
 } MINFO_NAMES;
 
+/**
+ * @brief  Start the operating system
+ * @param  None
+ * @retval None
+ */
 void sched_start(void);
 
 /* non-posix syscalls */

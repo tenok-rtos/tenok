@@ -5,9 +5,7 @@ Tenok API List
 
 ### Scheduler:
 
-* sleep()
-
-* usleep()
+* sched_start()
 
 * sched_yield()
 
@@ -16,6 +14,10 @@ Tenok API List
 * sched_get_priority_min()
 
 * sched_rr_get_interval()
+
+* sleep()
+
+* usleep()
 
 ### Task:
 
