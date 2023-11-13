@@ -2955,11 +2955,10 @@ void sched_start(void)
         /* select new thread */
         schedule();
 
-        /* a thread is awakened to complete the pending syscall */
-        if (running_thread->syscall_pending) {
-            syscall_handler();
-            schedule();
-        }
+        /* jump to the syscall handler as a thread with pending
+         * syscall is selected */
+        if (running_thread->syscall_pending)
+            continue;
 
         /* check if the selected thread has pending signals */
         check_pending_signals();
