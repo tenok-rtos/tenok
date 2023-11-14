@@ -16,7 +16,7 @@
 #define STACK_SIZE_MIN       1024  /* bytes */
 
 /* thread */
-#define THREAD_PRIORITY_MAX  5
+#define THREAD_PRIORITY_MAX  8     /* max priority for user threads */
 #define THREAD_NAME_MAX      50
 
 /* message queue and pipe*/
@@ -30,7 +30,7 @@
 #define SIGNAL_QUEUE_SIZE    5
 
 /* file system */
-#define FILE_SYSTEM_FD       1
+#define FILE_SYSTEM_FD       2
 #define FILE_CNT_MAX         100   /* the maximum number of the files can be *
                                     * created, which includes directories.   */
 #define FILE_NAME_LEN_MAX    30

@@ -10,7 +10,7 @@
 
 #include "kconfig.h"
 
-#define SOFTIRQD_ID 2
+#define SOFTIRQD_ID 1
 
 static LIST_HEAD(tasklet_list);
 

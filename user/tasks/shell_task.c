@@ -47,4 +47,4 @@ void shell_task(void)
     }
 }
 
-HOOK_USER_TASK(shell_task, 2, 2048);
+HOOK_USER_TASK(shell_task, 3, 2048);

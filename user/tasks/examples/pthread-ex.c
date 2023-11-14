@@ -36,7 +36,7 @@ void pthread_task(void)
 
     pthread_attr_t attr;
     struct sched_param param;
-    param.sched_priority = 3;
+    param.sched_priority = 1;
     pthread_attr_init(&attr);
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setschedpolicy(&attr, SCHED_RR);

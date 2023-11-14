@@ -45,6 +45,9 @@
 
 #include "kconfig.h"
 
+#define PRI_RESERVED 2
+#define KTHREAD_PRI_MAX (THREAD_PRIORITY_MAX + PRI_RESERVED)
+
 extern char _user_stack_start;
 extern char _user_stack_end;
 
@@ -58,7 +61,7 @@ static LIST_HEAD(poll_list);    /* list of all threads suspended by poll() */
 static LIST_HEAD(mqueue_list);  /* list of all posix message queues */
 
 /* lists of all threads in ready state */
-struct list_head ready_list[THREAD_PRIORITY_MAX + 1];
+struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 
 /* tasks and threads */
 static struct task_struct tasks[TASK_CNT_MAX];
@@ -284,8 +287,14 @@ static int thread_create(struct thread_info **new_thread,
                             attr->detachstate != PTHREAD_CREATE_JOINABLE;
 
     /* check if the thread priority is invalid */
-    bool bad_priority = attr->schedparam.sched_priority < 0 ||
-                        attr->schedparam.sched_priority > THREAD_PRIORITY_MAX;
+    bool bad_priority;
+    if (privilege == KERNEL_THREAD) {
+        bad_priority = attr->schedparam.sched_priority < 0 ||
+                       attr->schedparam.sched_priority > KTHREAD_PRI_MAX;
+    } else {
+        bad_priority = attr->schedparam.sched_priority < 0 ||
+                       attr->schedparam.sched_priority > THREAD_PRIORITY_MAX;
+    }
 
     /* check if the scheduling policy is invalid */
     bool bad_sched_policy = attr->schedpolicy != SCHED_RR;
@@ -2848,7 +2857,7 @@ static void schedule(void)
 
     /* find a ready list that contains runnable threads */
     int pri;
-    for (pri = THREAD_PRIORITY_MAX; pri >= 0; pri--) {
+    for (pri = KTHREAD_PRI_MAX; pri >= 0; pri--) {
         if (list_empty(&ready_list[pri]) == false)
             break;
     }
@@ -2929,14 +2938,15 @@ void sched_start(void)
     rootfs_init();
 
     /* initialize the ready lists */
-    for (int i = 0; i <= THREAD_PRIORITY_MAX; i++) {
+    for (int i = 0; i <= KTHREAD_PRI_MAX; i++) {
         INIT_LIST_HEAD(&ready_list[i]);
     }
 
+
     /* initialize kernel threads and deamons */
     kthread_create(init, 0, 1024);
-    kthread_create(filesysd, 1, 1024);
-    kthread_create(softirqd, THREAD_PRIORITY_MAX, 1024);
+    kthread_create(softirqd, KTHREAD_PRI_MAX, 1024);
+    kthread_create(filesysd, KTHREAD_PRI_MAX - 1, 1024);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];

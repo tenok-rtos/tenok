@@ -114,6 +114,6 @@ void mutex_task_low(void)
     }
 }
 
-HOOK_USER_TASK(mutex_task_high, 3, STACK_SIZE_MIN);
-HOOK_USER_TASK(mutex_task_median, 2, STACK_SIZE_MIN);
-HOOK_USER_TASK(mutex_task_low, 1, STACK_SIZE_MIN);
+HOOK_USER_TASK(mutex_task_high, 2, STACK_SIZE_MIN);
+HOOK_USER_TASK(mutex_task_median, 1, STACK_SIZE_MIN);
+HOOK_USER_TASK(mutex_task_low, 0, STACK_SIZE_MIN);
