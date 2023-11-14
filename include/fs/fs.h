@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <kernel/list.h>
+#include <common/list.h>
 #include <kernel/wait.h>
 
 #include "kconfig.h"

@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-#include <kernel/bitops.h>
-#include <kernel/log2.h>
+#include <common/bitops.h>
+#include <common/log2.h>
 #include <mm/page.h>
 
 #include "kconfig.h"

@@ -18,12 +18,13 @@
 #include <unistd.h>
 
 #include <arch/port.h>
+#include <common/bitops.h>
+#include <common/list.h>
+#include <common/util.h>
 #include <fs/fs.h>
-#include <kernel/bitops.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/list.h>
 #include <kernel/mqueue.h>
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
@@ -34,7 +35,6 @@
 #include <kernel/thread.h>
 #include <kernel/time.h>
 #include <kernel/tty.h>
-#include <kernel/util.h>
 #include <kernel/wait.h>
 #include <mm/mm.h>
 #include <mm/mpool.h>

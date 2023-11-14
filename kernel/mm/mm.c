@@ -4,11 +4,11 @@
 #include <string.h>
 
 #include <arch/port.h>
+#include <common/list.h>
+#include <common/util.h>
 #include <kernel/kernel.h>
-#include <kernel/list.h>
 #include <kernel/printk.h>
 #include <kernel/syscall.h>
-#include <kernel/util.h>
 
 #define MALLOC_BLK_FREE_MASK (1 << 30)
 #define MALLOC_BLK_LEN_MASK (~(1 << 30))

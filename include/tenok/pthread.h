@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <sys/sched.h>
 
-#include <kernel/list.h>
+#include <common/list.h>
 #include <kernel/mutex.h>
 #include <kernel/spinlock.h>
 #include <kernel/thread.h>

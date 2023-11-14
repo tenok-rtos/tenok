@@ -7,9 +7,9 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include <common/bitops.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
-#include <kernel/bitops.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/pipe.h>

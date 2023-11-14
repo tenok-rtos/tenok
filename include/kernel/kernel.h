@@ -11,11 +11,11 @@
 #include <sys/resource.h>
 #include <task.h>
 
+#include <common/list.h>
+#include <common/util.h>
 #include <fs/fs.h>
 #include <kernel/kfifo.h>
-#include <kernel/list.h>
 #include <kernel/time.h>
-#include <kernel/util.h>
 #include <kernel/wait.h>
 
 #include "kconfig.h"

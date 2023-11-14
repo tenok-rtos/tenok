@@ -4,7 +4,7 @@
 #ifndef __LOG2_H__
 #define __LOG2_H__
 
-#include <kernel/bitops.h>
+#include <common/bitops.h>
 
 /* clang-format off */
 #define ilog2(x)                  \

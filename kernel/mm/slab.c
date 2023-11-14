@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <kernel/bitops.h>
-#include <kernel/list.h>
-#include <kernel/util.h>
+#include <common/bitops.h>
+#include <common/list.h>
+#include <common/util.h>
 #include <mm/page.h>
 #include <mm/slab.h>
 

@@ -6,7 +6,7 @@
 
 #include <stdbool.h>
 
-#include <kernel/list.h>
+#include <common/list.h>
 
 struct mutex_attr {
     int protocol;

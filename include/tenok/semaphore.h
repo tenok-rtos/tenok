@@ -4,7 +4,7 @@
 #ifndef __SEMAPHORE_H__
 #define __SEMAPHORE_H__
 
-#include <kernel/list.h>
+#include <common/list.h>
 #include <kernel/semaphore.h>
 #include <kernel/spinlock.h>
 

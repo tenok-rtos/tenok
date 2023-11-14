@@ -4,7 +4,7 @@
 #ifndef __SLAB_H__
 #define __SLAB_H__
 
-#include <kernel/list.h>
+#include <common/list.h>
 
 #define CACHE_PAGE_SIZE 256
 #define CACHE_NAME_LEN 16

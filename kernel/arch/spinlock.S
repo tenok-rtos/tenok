@@ -1,4 +1,4 @@
-#include <kernel/linkage.h>
+#include <common/linkage.h>
 
 .syntax unified
 

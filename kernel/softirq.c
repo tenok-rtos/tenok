@@ -3,9 +3,9 @@
 #include <unistd.h>
 
 #include <arch/port.h>
+#include <common/list.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/list.h>
 #include <kernel/softirq.h>
 #include <kernel/wait.h>
 

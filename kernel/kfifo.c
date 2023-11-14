@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <common/list.h>
 #include <kernel/kfifo.h>
-#include <kernel/list.h>
 #include <mm/mm.h>
 
 struct kfifo_hdr {

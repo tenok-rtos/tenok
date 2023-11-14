@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-#include <kernel/list.h>
+#include <common/list.h>
 
 struct semaphore {
     int32_t count;
