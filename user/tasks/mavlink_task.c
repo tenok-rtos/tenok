@@ -2,10 +2,9 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <sys/resource.h>
+#include <task.h>
 #include <tenok.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 #include "mavlink.h"
 #include "mavlink/parser.h"

@@ -1,7 +1,6 @@
+#include <task.h>
 #include <tenok.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 #include "bsp_drv.h"
 

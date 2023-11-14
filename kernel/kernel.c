@@ -31,7 +31,6 @@
 #include <kernel/signal.h>
 #include <kernel/softirq.h>
 #include <kernel/syscall.h>
-#include <kernel/task.h>
 #include <kernel/thread.h>
 #include <kernel/time.h>
 #include <kernel/tty.h>

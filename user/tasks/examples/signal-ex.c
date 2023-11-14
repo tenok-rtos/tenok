@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <task.h>
 #include <tenok.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 static int task1_pid;
 static int serial_fd;

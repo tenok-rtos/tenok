@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/resource.h>
+#include <task.h>
 
 #include <fs/fs.h>
 #include <kernel/kfifo.h>
@@ -33,9 +34,6 @@
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
 
 #define SUPERVISOR_EVENT(thread) thread->stack_top->_r7
-
-typedef void (*task_func_t)(void);
-typedef void (*thread_func_t)(void);
 
 struct syscall_info {
     void (*syscall_handler)(void);

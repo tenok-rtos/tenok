@@ -1,10 +1,9 @@
 #include <fcntl.h>
 #include <stddef.h>
 #include <sys/resource.h>
+#include <task.h>
 #include <tenok.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 #include "tenok_test_msg.h"
 #include "uart.h"

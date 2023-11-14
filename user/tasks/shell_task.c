@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <sys/resource.h>
+#include <task.h>
 #include <tenok.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 #include "fs.h"
 #include "shell.h"

@@ -4,11 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <task.h>
 #include <tenok.h>
 #include <unistd.h>
-
-#include <kernel/kernel.h>
-#include <kernel/task.h>
 
 static char buffer[100];
 

@@ -4,11 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <task.h>
 #include <tenok.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <kernel/task.h>
 
 static int serial_fd;
 
