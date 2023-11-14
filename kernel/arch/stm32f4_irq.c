@@ -144,8 +144,7 @@ void Default_Handler(void)
 
 void SysTick_Handler(void)
 {
-    /* set nvic pendsv bit */
-    SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
+    jump_to_kernel();
 }
 
 void NMI_Handler(void)

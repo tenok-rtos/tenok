@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "kconfig.h"
+#include "stm32f4xx.h"
 
 #define HANDLER_MSP 0xFFFFFFF1
 #define THREAD_MSP 0xFFFFFFF9
@@ -33,6 +34,11 @@ void preempt_enable(void)
     asm volatile(
         "cpsie i \n"
         "cpsie f \n");
+}
+
+void jump_to_kernel(void)
+{
+    SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 }
 
 void __stack_init(uint32_t **stack_top,

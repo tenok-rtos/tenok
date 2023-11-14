@@ -2,6 +2,7 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include <arch/port.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/list.h>
@@ -13,6 +14,7 @@
 #define SOFTIRQD_ID 1
 
 static LIST_HEAD(tasklet_list);
+static LIST_HEAD(softirqd_wait);
 
 void tasklet_init(struct tasklet_struct *t,
                   void (*func)(unsigned long),
@@ -32,6 +34,16 @@ void tasklet_schedule(struct tasklet_struct *t)
     finish_wait(&thread->list);
 }
 
+static void softirqd_sleep(void)
+{
+    CURRENT_THREAD_INFO(curr_thread);
+
+    preempt_disable();
+    prepare_to_wait(&softirqd_wait, &curr_thread->list, THREAD_WAIT);
+    jump_to_kernel();
+    preempt_enable();
+}
+
 void softirqd(void)
 {
     setprogname("softirqd");
@@ -40,7 +52,7 @@ void softirqd(void)
 
     while (1) {
         if (list_empty(&tasklet_list)) {
-            pause();
+            softirqd_sleep();
         } else {
             preempt_disable();
 

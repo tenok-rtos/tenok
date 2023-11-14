@@ -33,10 +33,17 @@ void os_env_init(void *stack);
  * @brief  Jump to the thread given by the stack (context switch)
  * @param  stack: The thread stack to provide.
  * @param  stack: Specify the thread privilege. True as kernel thread and false
-           as user thread.
+ *         as user thread.
  * @retval uint32_t*: New stack pointer after returning back to the kernel.
  */
 void *jump_to_thread(void *stack, bool privileged);
+
+/**
+ * @brief  Jump to the kernel space
+ * @param  None
+ * @retval None
+ */
+void jump_to_kernel(void);
 
 /**
  * @brief  Initialize platform drivers
