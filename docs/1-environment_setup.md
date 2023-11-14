@@ -1,53 +1,61 @@
 Development Tools Setup
 =======================
 
-1. Prerequisites:
+Build requirement: `GNU/Linux x86-64` and `python3`
+
+Tested with `Ubuntu 22.04`.
+
+### 1. Prerequisites:
 
 ```
-sudo apt install build-essential git zlib1g-dev libsdl1.2-dev automake* autoconf* \
-         libtool libpixman-1-dev lib32gcc1 lib32ncurses5 libc6:i386 libncurses5:i386 \
-         libstdc++6:i386 libusb-1.0.0-dev ninja-build gcc-multilib python-is-python3
+sudo add-apt-repository ppa:deadsnakes/ppa # Python 3.8 required by arm-none-eabi-gdb
+sudo apt update
+sudo apt install git cgdb curl python3.8 build-essential automake* autoconf* \
+                 libsdl2-dev libpixman-1-dev libusb-1.0.0-dev libjaylink-dev libncursesw5 \
+                 ninja-build flex bison gcc-multilib
 ```
 
-2. OpenOCD:
+### 2. OpenOCD:
 
 ```
-git clone git://git.code.sf.net/p/openocd/code openocd
+git clone https://github.com/openocd-org/openocd.git
 cd openocd
 ./bootstrap
 ./configure --prefix=/usr/local --enable-jlink --enable-amtjtagaccel --enable-buspirate \
             --enable-stlink --disable-libftdi
-echo -e "all:\ninstall:" > doc/Makefile
-make -j4
+make -j$(nproc)
 sudo make install
 ```
 
-3. ARM GCC toolchain 9:
+### 3. ARM GNU toolchain 12.3:
+
+Download the pre-built ARM GNU toolchain:
 
 ```
-wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-tar jxf ./gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-rm gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
+wget https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
+tar xf arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
+rm arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
 ```
 
-4. QEMU:
+Append the following instruction in the `~/.bashrc`:
 
 ```
-git clone git://git.qemu.org/qemu.git
+PATH=$PATH:${YOUR_PATH}/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi/bin
+```
+
+Note that `Python 3.8` is a hard requirement for running version `12.3` of `arm-none-eabi-gdb`.
+
+### 4. QEMU:
+
+```
+git clone https://github.com/qemu/qemu.git
 cd qemu
-git submodule init
-git submodule update --recursive
+git submodule update --init --recursive
 mkdir build
 cd build
 ../configure
 make -j $(nproc)
+sudo make install
 ```
 
-5. Edit `~/.bashrc` and append the following instructions:
-
-```
-PATH=$PATH:${YOUR_PATH}/qemu/build
-PATH=$PATH:${YOUR_PATH}/gcc-arm-none-eabi-9-2019-q4-major/bin
-```
-
-6. Restart the terminal
+### 5. Restart the terminal
