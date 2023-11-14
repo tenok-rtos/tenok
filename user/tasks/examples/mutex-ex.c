@@ -30,7 +30,7 @@ static void print(int fd, char *str)
 
 void mutex_task1(void)
 {
-    setprogname("mutex1");
+    setprogname("mutex-ex-1");
 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond_producer, 0);
@@ -71,7 +71,7 @@ void mutex_task1(void)
 
 void mutex_task2(void)
 {
-    setprogname("mutex2");
+    setprogname("mutex-ex-2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {

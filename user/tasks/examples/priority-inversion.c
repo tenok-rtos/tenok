@@ -13,7 +13,7 @@ static pthread_mutex_t mutex;
 
 void mutex_task_high(void)
 {
-    setprogname("mutex high");
+    setprogname("pri-inv-high");
 
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -54,7 +54,7 @@ void mutex_task_high(void)
 
 void mutex_task_median(void)
 {
-    setprogname("mutex median");
+    setprogname("pri-inv-median");
 
     struct timespec start_time, curr_time;
 
@@ -91,7 +91,7 @@ void mutex_task_median(void)
 
 void mutex_task_low(void)
 {
-    setprogname("mutex low");
+    setprogname("pri-inv-low");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {

@@ -14,7 +14,7 @@ static char buffer[100];
 
 void poll_task1(void)
 {
-    setprogname("poll1");
+    setprogname("poll-ex-1");
 
     char *s = "poll example.\n\r";
 
@@ -35,7 +35,7 @@ void poll_task1(void)
 
 void poll_task2(void)
 {
-    setprogname("poll2");
+    setprogname("poll-ex-2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {

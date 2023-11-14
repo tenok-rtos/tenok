@@ -21,7 +21,7 @@ void signal_task1(void)
 {
     task1_pid = getpid();
 
-    setprogname("signal1");
+    setprogname("signal-ex-1");
 
     serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {
@@ -53,7 +53,7 @@ void signal_task1(void)
 
 void signal_task2(void)
 {
-    setprogname("signal2");
+    setprogname("signal-ex-2");
 
     sleep(1);
 

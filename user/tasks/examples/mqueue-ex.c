@@ -15,7 +15,7 @@
 
 void message_queue_task1(void)
 {
-    setprogname("queue1");
+    setprogname("mqueue-ex-1");
 
     char *str = "mqueue: greeting\n\r";
 
@@ -37,7 +37,7 @@ void message_queue_task1(void)
 
 void message_queue_task2(void)
 {
-    setprogname("queue2");
+    setprogname("mqueue-ex-2");
 
     int serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {

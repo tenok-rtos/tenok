@@ -19,7 +19,7 @@ void timer_callback(union sigval sv)
 
 void timer_task(void)
 {
-    setprogname("timer");
+    setprogname("timer-ex");
 
     serial_fd = open("/dev/serial0", O_RDWR);
     if (serial_fd < 0) {

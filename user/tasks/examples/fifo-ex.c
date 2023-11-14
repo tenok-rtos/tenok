@@ -16,7 +16,7 @@
 
 void fifo_task1(void)
 {
-    setprogname("fifo1");
+    setprogname("fifo-ex-1");
 
     if (mkfifo("/fifo_test", 0) < 0) {
         exit(1);
@@ -35,7 +35,7 @@ void fifo_task1(void)
 
 void fifo_task2(void)
 {
-    setprogname("fifo2");
+    setprogname("fifo-ex-2");
 
     int fifo_fd = open("/fifo_test", 0);
     if (fifo_fd < 0) {
