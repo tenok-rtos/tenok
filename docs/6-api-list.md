@@ -185,6 +185,10 @@ Tenok API List
 
 * fwrite() 
 
+* getcwd()
+
+* chdir()
+
 ### Signals:
 
 * sigaction()

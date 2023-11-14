@@ -6,30 +6,20 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <fs/fs.h>
-
 #include "kconfig.h"
 #include "shell.h"
-#include "uart.h"
+
+void shell_path_init(void);
 
 static void shell_reset_line(struct shell *shell);
 static void shell_reset_autocomplete(struct shell *shell);
 static void shell_reset_history_scrolling(struct shell *shell);
-
-struct inode *shell_dir_curr = NULL;
 
 static int serial_fd = 0;
 
 void shell_serial_init(void)
 {
     serial_fd = open("/dev/serial0", O_RDWR);
-}
-
-void shell_path_init(void)
-{
-    DIR dir;
-    opendir("/", &dir);
-    shell_dir_curr = dir.inode_dir;
 }
 
 char shell_getc(void)

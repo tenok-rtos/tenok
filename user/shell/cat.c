@@ -5,8 +5,6 @@
 
 #include "shell.h"
 
-extern struct inode *shell_dir_curr;
-
 void shell_cmd_cat(int argc, char *argv[])
 {
     char path[PATH_LEN_MAX] = {0};
@@ -14,7 +12,7 @@ void shell_cmd_cat(int argc, char *argv[])
     if (argv[1][0] != '/') {
         /* input is a relative path */
         char pwd[PATH_LEN_MAX] = {0};
-        fs_get_pwd(pwd, shell_dir_curr);
+        getcwd(pwd, PATH_LEN_MAX);
 
         snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
     } else {

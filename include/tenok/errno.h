@@ -19,6 +19,7 @@
 #define ENOTBLK 15    /**< Not a block device */
 #define EBUSY 16      /**< Device or resource busy */
 #define EEXIST 17     /**< File exists */
+#define ENOTDIR 20    /**< Not a directory */
 #define EINVAL 22     /**< Invalid argument */
 #define ENFILE 23     /**< Too many open files in the system */
 #define EMFILE 24     /**< File descriptor value too long */

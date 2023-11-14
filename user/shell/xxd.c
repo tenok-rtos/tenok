@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "shell.h"
 
 #define XXD_N_BYTES 16      // byte numbers for xxd to display per one line
 #define XXD_PAUSE_LINES 10  // the number of lines that xxd can print at once
-
-extern struct inode *shell_dir_curr;
 
 static void byte2hex(char byte, char *hex_str)
 {
@@ -90,7 +89,7 @@ void shell_cmd_xxd(int argc, char *argv[])
     if (argv[1][0] != '/') {
         /* input is a relative path */
         char pwd[PATH_LEN_MAX] = {0};
-        fs_get_pwd(pwd, shell_dir_curr);
+        getcwd(pwd, PATH_LEN_MAX);
 
         snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
     } else {

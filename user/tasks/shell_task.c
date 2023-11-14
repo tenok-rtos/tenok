@@ -5,7 +5,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "fs.h"
 #include "shell.h"
 
 extern char _shell_cmds_start;
@@ -30,13 +29,12 @@ void shell_task(void)
     /* shell initialization */
     shell_init(&shell, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX,
                autocompl);
-    shell_path_init();
     shell_serial_init();
 
     shell_puts("type `help' for help\n\r");
 
     while (1) {
-        fs_get_pwd(shell_path, shell_dir_curr);
+        getcwd(shell_path, PATH_LEN_MAX);
         snprintf(prompt, SHELL_PROMPT_LEN_MAX, __USER_NAME__ "@%s:%s$ ",
                  __BOARD_NAME__, shell_path);
         shell_set_prompt(&shell, prompt);

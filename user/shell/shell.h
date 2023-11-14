@@ -2,6 +2,7 @@
 #define __SHELL_H__
 
 #include <stdbool.h>
+
 #include "kconfig.h"
 #include "list.h"
 

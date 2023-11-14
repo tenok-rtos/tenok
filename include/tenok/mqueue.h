@@ -4,7 +4,6 @@
 #ifndef __MQUEUE_H__
 #define __MQUEUE_H__
 
-#include <fs/fs.h>
 #include <kernel/list.h>
 #include <kernel/pipe.h>
 #include <mm/mpool.h>

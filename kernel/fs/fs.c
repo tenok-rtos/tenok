@@ -43,6 +43,8 @@ uint32_t bitmap_blks[FS_BITMAP_BLK] = {0};
 struct mount mount_points[MOUNT_CNT_MAX + 1];  // 0 is reserved for the rootfs
 int mount_cnt = 0;
 
+struct inode *shell_dir_curr;
+
 struct kmem_cache *file_caches;
 
 static struct file_operations rootfs_file_ops = {
@@ -147,6 +149,8 @@ void rootfs_init(void)
     inode_root->i_blocks = 0;
     inode_root->i_data = (uint32_t) NULL;
     INIT_LIST_HEAD(&inode_root->i_dentry);
+
+    shell_dir_curr = inode_root;
 
     /* create new file for the rootfs */
     struct file *rootfs_file = fs_alloc_file();
@@ -926,12 +930,12 @@ static int fs_mount(char *source, char *target)
     return 0;
 }
 
-void fs_get_pwd(char *path, struct inode *dir_curr)
+char *getcwd(char *buf, size_t len)
 {
     char old_path[PATH_LEN_MAX] = {0};
     char new_path[PATH_LEN_MAX] = {0};
 
-    struct inode *inode = dir_curr;
+    struct inode *inode = shell_dir_curr;
 
     while (1) {
         if (inode->i_ino == 0)
@@ -956,7 +960,50 @@ void fs_get_pwd(char *path, struct inode *dir_curr)
         }
     }
 
-    snprintf(path, PATH_LEN_MAX, "/%s", new_path);
+    snprintf(buf, len, "/%s", new_path);
+
+    return buf;
+}
+
+int chdir(const char *path)
+{
+    DIR dir;
+    char path_tmp[PATH_LEN_MAX] = {0};
+
+    if (strncmp("..", path, SHELL_CMD_LEN_MAX) == 0) {
+        /* handle cd .. */
+        getcwd(path_tmp, PATH_LEN_MAX);
+        int pos = strlen(path_tmp);
+        snprintf(&path_tmp[pos], PATH_LEN_MAX, "..");
+    } else {
+        /* handle regular path */
+        if (path[0] == '/') {
+            /* handle the absolute path */
+            strncpy(path_tmp, path, PATH_LEN_MAX);
+        } else {
+            /* handle the relative path */
+            getcwd(path_tmp, PATH_LEN_MAX);
+            int pos = strlen(path_tmp);
+            snprintf(&path_tmp[pos], PATH_LEN_MAX, "%s", path);
+        }
+    }
+
+    /* open the directory */
+    int retval = opendir(path_tmp, &dir);  // XXX
+
+    /* directory not found */
+    if (retval != 0) {
+        return -ENOENT;
+    }
+
+    /* not a directory */
+    if (dir.inode_dir->i_mode != S_IFDIR) {
+        return -ENOTDIR;
+    }
+
+    shell_dir_curr = dir.inode_dir;
+
+    return 0;
 }
 
 int fs_read_dir(DIR *dirp, struct dirent *dirent)

@@ -109,7 +109,6 @@ void rootfs_init(void);
 int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
-void fs_get_pwd(char *path, struct inode *dir_curr);
 int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);

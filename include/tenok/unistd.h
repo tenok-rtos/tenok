@@ -80,10 +80,27 @@ ssize_t write(int fd, const void *buf, size_t count);
 off_t lseek(int fd, long offset, int whence);
 
 /**
- * @brief  return the ID of the calling task
+ * @brief  Return the ID of the calling task
  * @param  None
  * @retval int: Task ID.
  */
 int getpid(void);
+
+/**
+ * @brief  Get current working directory
+ * @param  buf: Buffer space for storing path of the current working space.
+ * @param  size: Size of the buffer space.
+ * @retval char *: The function returns a pointer to a string containing the
+ *         pathname of current working directory if success; otherwise it
+ *         returns NULL.
+ */
+char *getcwd(char *buf, size_t size);
+
+/**
+ * @brief  Change working directory
+ * @param  path: Pathname of the new working directory.
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
+int chdir(const char *path);
 
 #endif

@@ -2,24 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-
-#include <fs/fs.h>
+#include <unistd.h>
 
 #include "shell.h"
-
-extern struct inode *shell_dir_curr;
 
 void shell_cmd_ls(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    /* no file is under this directory */
-    if (shell_dir_curr->i_size == 0)
-        return;
-
     /* get current directoory path */
     char path[PATH_LEN_MAX] = {0};
-    fs_get_pwd(path, shell_dir_curr);
+    getcwd(path, PATH_LEN_MAX);
 
     if (argc == 2) {
         if (argv[1][0] != '/') {
