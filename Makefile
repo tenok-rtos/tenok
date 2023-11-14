@@ -189,7 +189,7 @@ gdbauto:
 FORMAT_EXCLUDE = -path ./lib -o -path ./platform
 FORMAT_FILES = ".*\.\(c\|h\)"
 
-clang-format:
+format:
 	@echo "Execute clang-format"
 	@find . -type d \( $(FORMAT_EXCLUDE) \) -prune -o \
                 -regex $(FORMAT_FILES) -print \
@@ -204,4 +204,4 @@ doxygen:
 	@rm -rf main_page.md
 	@echo "doxygen docs/Doxyfile"
 
-.PHONY: all check clean gdbauto size msggen gen_syscalls doxygen
+.PHONY: all check clean gdbauto format size msggen gen_syscalls doxygen
