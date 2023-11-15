@@ -39,7 +39,6 @@ void sched_start(void);
 /* non-posix syscalls */
 void *thread_info(struct thread_stat *info, void *next);
 void setprogname(const char *name);
-const char *getprogname(void);
 int delay_ticks(uint32_t ticks);
 int minfo(int name);
 

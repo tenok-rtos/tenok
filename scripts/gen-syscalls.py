@@ -5,7 +5,6 @@ import datetime
 syscalls = \
     ['thread_info',
      'setprogname',
-     'getprogname',
      'delay_ticks',
      'task_create',
      'mpool_alloc',

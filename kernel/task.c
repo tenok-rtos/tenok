@@ -18,11 +18,6 @@ NACKED void setprogname(const char *name)
     SYSCALL(SETPROGNAME);
 }
 
-NACKED const char *getprogname(void)
-{
-    SYSCALL(GETPROGNAME);
-}
-
 NACKED int _getpid(void)
 {
     SYSCALL(GETPID);

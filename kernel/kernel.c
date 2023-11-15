@@ -710,12 +710,6 @@ void sys_setprogname(void)
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
 }
 
-void sys_getprogname(void)
-{
-    /* return pointer to the program name */
-    SYSCALL_ARG(char *, 0) = running_thread->name;
-}
-
 void sys_delay_ticks(void)
 {
     /* read syscall arguments */
