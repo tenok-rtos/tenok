@@ -24,6 +24,8 @@ syscalls = \
      'fstat',
      'opendir',
      'readdir',
+     'getcwd',
+     'chdir',
      'getpid',
      'gettid',
      'mknod',

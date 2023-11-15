@@ -837,7 +837,7 @@ void sys_mount(void)
     } else {
         /* request is complete */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        SYSCALL_ARG(int, 0) = mnt_result;
     }
 }
 
@@ -1318,6 +1318,62 @@ void sys_readdir(void)
 
     /* pass the return value with r0 */
     SYSCALL_ARG(int, 0) = (uint32_t) fs_read_dir(dirp, dirent);
+}
+
+void sys_getcwd(void)
+{
+    /* read syscall arguments */
+    char *buf = SYSCALL_ARG(char *, 0);
+    size_t len = SYSCALL_ARG(size_t, 1);
+
+    int tid = running_thread->tid;
+
+    /* send mount request to the file system daemon */
+    if (running_thread->syscall_pending == false) {
+        request_getcwd(tid, buf, len);
+    }
+
+    /* read mount result from the file system daemon */
+    char *path;
+    int retval = fifo_read(files[tid], (char *) &path, sizeof(path), 0);
+
+    /* check if the syscall need to be restarted */
+    if (retval == -ERESTARTSYS) {
+        /* file system has not finished the request yet */
+        set_syscall_pending(running_thread);
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(char *, 0) = path;
+    }
+}
+
+void sys_chdir(void)
+{
+    /* read syscall arguments */
+    char *path = SYSCALL_ARG(char *, 0);
+
+    int tid = running_thread->tid;
+
+    /* send mount request to the file system daemon */
+    if (running_thread->syscall_pending == false) {
+        request_chdir(tid, path);
+    }
+
+    /* read mount result from the file system daemon */
+    int chdir_result;
+    int retval =
+        fifo_read(files[tid], (char *) &chdir_result, sizeof(chdir_result), 0);
+
+    /* check if the syscall need to be restarted */
+    if (retval == -ERESTARTSYS) {
+        /* file system has not finished the request yet */
+        set_syscall_pending(running_thread);
+    } else {
+        /* request is complete */
+        reset_syscall_pending(running_thread);
+        SYSCALL_ARG(int, 0) = chdir_result;
+    }
 }
 
 void sys_getpid(void)

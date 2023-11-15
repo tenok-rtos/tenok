@@ -28,6 +28,8 @@ enum {
     FS_OPEN_FILE = 2,
     FS_OPEN_DIR = 3,
     FS_MOUNT = 4,
+    FS_GET_CWD = 5,
+    FS_CHANGE_DIR = 6,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -117,6 +119,8 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type);
 void request_open_file(int reply_fd, char *path);
 void request_open_directory(int reply_fd, char *path);
 void request_mount(int reply_fd, char *source, char *path);
+void request_getcwd(int reply_fd, char *buf, size_t len);
+void request_chdir(int reply_fd, const char *path);
 
 void filesysd(void);
 

@@ -930,7 +930,7 @@ static int fs_mount(char *source, char *target)
     return 0;
 }
 
-char *getcwd(char *buf, size_t len)
+char *fs_getcwd(char *buf, size_t len)
 {
     char old_path[PATH_LEN_MAX] = {0};
     char new_path[PATH_LEN_MAX] = {0};
@@ -965,14 +965,13 @@ char *getcwd(char *buf, size_t len)
     return buf;
 }
 
-int chdir(const char *path)
+int fs_chdir(const char *path)
 {
-    DIR dir;
     char path_tmp[PATH_LEN_MAX] = {0};
 
     if (strncmp("..", path, SHELL_CMD_LEN_MAX) == 0) {
         /* handle cd .. */
-        getcwd(path_tmp, PATH_LEN_MAX);
+        fs_getcwd(path_tmp, PATH_LEN_MAX);
         int pos = strlen(path_tmp);
         snprintf(&path_tmp[pos], PATH_LEN_MAX, "..");
     } else {
@@ -982,26 +981,26 @@ int chdir(const char *path)
             strncpy(path_tmp, path, PATH_LEN_MAX);
         } else {
             /* handle the relative path */
-            getcwd(path_tmp, PATH_LEN_MAX);
+            fs_getcwd(path_tmp, PATH_LEN_MAX);
             int pos = strlen(path_tmp);
             snprintf(&path_tmp[pos], PATH_LEN_MAX, "%s", path);
         }
     }
 
     /* open the directory */
-    int retval = opendir(path_tmp, &dir);  // XXX
+    struct inode *inode_dir = fs_open_directory(path_tmp);
 
     /* directory not found */
-    if (retval != 0) {
+    if (!inode_dir) {
         return -ENOENT;
     }
 
     /* not a directory */
-    if (dir.inode_dir->i_mode != S_IFDIR) {
+    if (inode_dir->i_mode != S_IFDIR) {
         return -ENOTDIR;
     }
 
-    shell_dir_curr = dir.inode_dir;
+    shell_dir_curr = inode_dir;
 
     return 0;
 }
@@ -1163,6 +1162,47 @@ void request_mount(int reply_fd, char *source, char *target)
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
 
+void request_getcwd(int reply_fd, char *path, size_t len)
+{
+    int fs_cmd = FS_GET_CWD;
+
+    int buf_size = 0;
+    char buf[sizeof(path) + sizeof(len) + sizeof(reply_fd)];
+
+    memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
+    buf_size += sizeof(fs_cmd);
+
+    memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
+    buf_size += sizeof(reply_fd);
+
+    memcpy(&buf[buf_size], &path, sizeof(path));
+    buf_size += sizeof(path);
+
+    memcpy(&buf[buf_size], &len, sizeof(len));
+    buf_size += sizeof(len);
+
+    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+}
+
+void request_chdir(int reply_fd, const char *path)
+{
+    int fs_cmd = FS_CHANGE_DIR;
+
+    int buf_size = 0;
+    char buf[sizeof(path) + sizeof(reply_fd)];
+
+    memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
+    buf_size += sizeof(fs_cmd);
+
+    memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
+    buf_size += sizeof(reply_fd);
+
+    memcpy(&buf[buf_size], &path, sizeof(path));
+    buf_size += sizeof(path);
+
+    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+}
+
 void filesysd(void)
 {
     setprogname("filesysd");
@@ -1229,6 +1269,27 @@ void filesysd(void)
             read(FILE_SYSTEM_FD, &target, target_len);
 
             int result = fs_mount(source, target);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_GET_CWD: {
+            char *buf;
+            read(FILE_SYSTEM_FD, &buf, sizeof(buf));
+
+            size_t len;
+            read(FILE_SYSTEM_FD, &len, sizeof(len));
+
+            char *retval = fs_getcwd(buf, len);
+            write(reply_fd, &retval, sizeof(retval));
+
+            break;
+        }
+        case FS_CHANGE_DIR: {
+            char *path;
+            read(FILE_SYSTEM_FD, &path, sizeof(path));
+
+            int result = fs_chdir(path);
             write(reply_fd, &result, sizeof(result));
 
             break;

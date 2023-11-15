@@ -90,6 +90,16 @@ NACKED int readdir(DIR *dirp, struct dirent *dirent)
     SYSCALL(READDIR);
 }
 
+NACKED char *getcwd(char *buf, size_t len)
+{
+    SYSCALL(GETCWD);
+}
+
+NACKED int chdir(const char *path)
+{
+    SYSCALL(CHDIR);
+}
+
 NACKED int mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     SYSCALL(MKNOD);
