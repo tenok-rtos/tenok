@@ -21,6 +21,7 @@
 #define UART1_ISR_PRIORITY 14
 
 static int uart1_dma_puts(const char *data, size_t size);
+ssize_t console_write(const char *buf, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial0_write(struct file *filp,
