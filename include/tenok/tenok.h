@@ -36,10 +36,35 @@ enum {
  */
 void sched_start(void);
 
-/* non-posix syscalls */
+/**
+ * @brief  Get the thread information iteratively
+ * @param  info: For returning thread information
+ * @param  next: The pointer to the next thread. Initially the argument
+ *         should be set as NULL.
+ * @retval void *: The pointer to the next thread. The function returns
+ *         NULL if the next thread does not exist.
+ */
 void *thread_info(struct thread_stat *info, void *next);
+
+/**
+ * @brief  Set the name of the running thread
+ * @param  name: The name of the program to provide.
+ * @retval None
+ */
 void setprogname(const char *name);
+
+/**
+ * @brief  To cause the calling thread to sleep for the given ticks
+ * @param  ticks: The ticks of time to sleep
+ * @retval int: 0 on sucess and nonzero error number on error.
+ */
 int delay_ticks(uint32_t ticks);
+
+/**
+ * @brief  Get information about OS memory management
+ * @param  name: One of the value from the MINFO_NAMES enum.
+ * @retval int: For returning the acquiring information.
+ */
 int minfo(int name);
 
 #endif

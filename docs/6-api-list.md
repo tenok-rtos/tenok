@@ -3,6 +3,12 @@ Tenok API List
 
 ## User-space API
 
+### Utilities:
+
+* thread_info()
+
+* minfo()
+
 ### Scheduler:
 
 * sched_start()
@@ -19,11 +25,15 @@ Tenok API List
 
 * usleep()
 
+* delay_ticks()
+
 ### Task:
 
 * HOOK_USER_TASK()
 
 * task_create()
+
+* setprogname()
 
 * getpid()
 
