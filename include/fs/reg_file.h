@@ -5,7 +5,6 @@
 #define __REG_FILE_H__
 
 #include <fs/fs.h>
-#include <mm/mpool.h>
 
 struct reg_file {
     int pos;

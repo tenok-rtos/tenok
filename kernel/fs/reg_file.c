@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include <fs/fs.h>
-#include <mm/mpool.h>
 
 #include "kconfig.h"
 #include "reg_file.h"

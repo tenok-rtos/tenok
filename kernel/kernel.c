@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <mpool.h>
 #include <mqueue.h>
 #include <poll.h>
 #include <pthread.h>
@@ -38,7 +39,6 @@
 #include <kernel/tty.h>
 #include <kernel/wait.h>
 #include <mm/mm.h>
-#include <mm/mpool.h>
 #include <mm/page.h>
 #include <mm/slab.h>
 #include <rom_dev.h>

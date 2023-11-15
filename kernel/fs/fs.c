@@ -15,7 +15,6 @@
 #include <kernel/pipe.h>
 #include <kernel/wait.h>
 #include <mm/mm.h>
-#include <mm/mpool.h>
 #include <mm/slab.h>
 
 #include "rom_dev.h"
