@@ -29,6 +29,7 @@
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
 #include <kernel/printk.h>
+#include <kernel/semaphore.h>
 #include <kernel/signal.h>
 #include <kernel/softirq.h>
 #include <kernel/syscall.h>
@@ -674,13 +675,28 @@ void sys_thread_info(void)
     info->pid = thread->task->pid;
     info->tid = thread->tid;
     info->priority = thread->priority;
-    info->status = thread->status;
     info->privileged = thread->privilege == KERNEL_THREAD;
     info->stack_usage =
         (size_t) ((uintptr_t) thread->stack + thread->stack_size -
                   (uintptr_t) thread->stack_top);
     info->stack_size = thread->stack_size;
     strncpy(info->name, thread->name, THREAD_NAME_MAX);
+
+    switch (thread->status) {
+    case THREAD_WAIT:
+        info->status = "S";
+        break;
+    case THREAD_SUSPENDED:
+        info->status = "T";
+        break;
+    case THREAD_READY:
+    case THREAD_RUNNING:
+        info->status = "R";
+        break;
+    default:
+        info->status = "?";
+        break;
+    }
 
     /* return next thread's address */
     SYSCALL_ARG(void *, 0) = thread_info_find_next(thread);

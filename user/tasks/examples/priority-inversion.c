@@ -6,6 +6,7 @@
 #include <string.h>
 #include <task.h>
 #include <tenok.h>
+#include <time.h>
 #include <unistd.h>
 
 static pthread_mutex_t mutex;

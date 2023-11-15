@@ -6,6 +6,7 @@
 #include <arch/port.h>
 #include <kernel/mutex.h>
 #include <kernel/syscall.h>
+#include <kernel/thread.h>
 
 int pthread_attr_init(pthread_attr_t *attr)
 {

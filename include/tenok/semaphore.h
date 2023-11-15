@@ -4,11 +4,9 @@
 #ifndef __SEMAPHORE_H__
 #define __SEMAPHORE_H__
 
-#include <common/list.h>
-#include <kernel/semaphore.h>
-#include <kernel/spinlock.h>
+#include <stdint.h>
 
-#define __SIZEOF_SEM_T sizeof(struct semaphore)
+#define __SIZEOF_SEM_T 12 /* sizeof(struct semaphore) */
 
 typedef union {
     char __size[__SIZEOF_SEM_T];

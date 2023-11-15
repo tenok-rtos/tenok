@@ -9,10 +9,6 @@
 #include <sys/sched.h>
 
 #include <common/list.h>
-#include <kernel/mutex.h>
-#include <kernel/spinlock.h>
-#include <kernel/thread.h>
-#include <kernel/wait.h>
 
 #define PTHREAD_ONCE_INIT                                     \
     {                                                         \
@@ -25,11 +21,11 @@
 #define PTHREAD_PRIO_NONE 0
 #define PTHREAD_PRIO_INHERIT 1
 
-#define __SIZEOF_PTHREAD_MUTEXATTR_T sizeof(struct mutex_attr)
-#define __SIZEOF_PTHREAD_MUTEX_T sizeof(struct mutex)
-#define __SIZEOF_PTHREAD_ATTR_T sizeof(struct thread_attr)
-#define __SIZEOF_PTHREAD_COND_T sizeof(struct cond)
-#define __SIZEOF_PTHREAD_ONCE_T sizeof(struct thread_once)
+#define __SIZEOF_PTHREAD_MUTEXATTR_T 4 /* sizeof(struct mutex_attr) */
+#define __SIZEOF_PTHREAD_MUTEX_T 16    /* sizeof(struct mutex) */
+#define __SIZEOF_PTHREAD_ATTR_T 20     /* sizeof(struct thread_attr) */
+#define __SIZEOF_PTHREAD_COND_T 8      /* sizeof(struct cond) */
+#define __SIZEOF_PTHREAD_ONCE_T 12     /* sizeof(struct thread_once) */
 
 typedef uint32_t pthread_t;
 typedef uint32_t pthread_condattr_t;

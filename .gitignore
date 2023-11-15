@@ -6,6 +6,7 @@
 *.swp
 */mkromfs/mkromfs
 */msggen/msggen
+*/type_size/type_size
 */rtplot/build/
 */rtplot/src/rtplot.egg-info/
 */gazebo_bridge/gazebo_bridge

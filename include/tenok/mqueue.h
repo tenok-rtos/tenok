@@ -4,9 +4,9 @@
 #ifndef __MQUEUE_H__
 #define __MQUEUE_H__
 
+#include <sys/types.h>
+
 #include <common/list.h>
-#include <kernel/pipe.h>
-#include <mm/mpool.h>
 
 typedef uint32_t mqd_t;
 

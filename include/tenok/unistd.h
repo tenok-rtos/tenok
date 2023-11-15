@@ -26,7 +26,7 @@ int usleep(useconds_t usec);
 
 /**
  * @brief  Close a file descriptor, so that it no longer refers to any file
-           and may be reused
+ *         and may be reused
  * @param  fd: The file descriptor to provide.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
@@ -61,7 +61,7 @@ ssize_t read(int fd, void *buf, size_t count);
 
 /**
  * @brief  Write up to count bytes from the buffer starting at buf to the file
-           referred to by the file descriptor fd
+ *         referred to by the file descriptor fd
  * @param  fd: The file descriptor to provide.
  * @param  buf: The data to write.
  * @param  count: The number of bytes to write.

@@ -16,7 +16,6 @@ static void stack_usage(char *buf,
 
 static void ps(void)
 {
-    char *stat;
     char s[PRINT_SIZE_MAX] = {0};
 
     struct thread_stat info;
@@ -27,31 +26,15 @@ static void ps(void)
     do {
         next = thread_info(&info, next);
 
-        switch (info.status) {
-        case THREAD_WAIT:
-            stat = "S";
-            break;
-        case THREAD_SUSPENDED:
-            stat = "T";
-            break;
-        case THREAD_READY:
-        case THREAD_RUNNING:
-            stat = "R";
-            break;
-        default:
-            stat = "?";
-            break;
-        }
-
         char s_stack_usage[10] = {0};
         stack_usage(s_stack_usage, 10, info.stack_usage, info.stack_size);
 
         if (info.privileged) {
             snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r", info.pid,
-                     info.priority, stat, s_stack_usage, info.name);
+                     info.priority, info.status, s_stack_usage, info.name);
         } else {
             snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r", info.pid,
-                     info.priority, stat, s_stack_usage, info.name);
+                     info.priority, info.status, s_stack_usage, info.name);
         }
 
         shell_puts(s);

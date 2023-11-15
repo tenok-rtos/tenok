@@ -5,10 +5,9 @@
 #define __TENOK_H__
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-
-#include <kernel/kernel.h>
 
 #include "kconfig.h"
 
@@ -16,7 +15,7 @@ struct thread_stat {
     int pid;
     int tid;
     int priority;
-    int status;
+    char *status;
     bool privileged;
     size_t stack_usage;
     size_t stack_size;

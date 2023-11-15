@@ -4,7 +4,7 @@
 #ifndef __STAT_H__
 #define __STAT_H__
 
-#include <fs/fs.h>
+#include <sys/types.h>
 
 #define S_IFIFO 0 /* fifo */
 #define S_IFCHR 1 /* char device */
