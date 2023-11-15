@@ -1033,7 +1033,8 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
 
     uint32_t blk_addr = (uint32_t) NULL;
     struct block_header blk_head = {
-        .b_next = inode->i_data};  // first block address = inode->i_data
+        .b_next = inode->i_data,
+    };  // first block address = inode->i_data
 
     int i;
     for (i = 0; i < (blk_index + 1); i++) {
@@ -1051,12 +1052,9 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
 void request_create_file(int reply_fd, char *path, uint8_t file_type)
 {
     int fs_cmd = FS_CREATE_FILE;
-    int path_len = strlen(path) + 1;
-
-    const int overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path_len) +
-                         sizeof(file_type);
-    char buf[PATH_LEN_MAX + overhead];
-
+    const size_t overhead =
+        sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path) + sizeof(file_type);
+    char buf[overhead];
     int buf_size = 0;
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
@@ -1065,11 +1063,8 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type)
     memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
     buf_size += sizeof(reply_fd);
 
-    memcpy(&buf[buf_size], &path_len, sizeof(path_len));
-    buf_size += sizeof(path_len);
-
-    memcpy(&buf[buf_size], path, path_len);
-    buf_size += path_len;
+    memcpy(&buf[buf_size], &path, sizeof(path));
+    buf_size += sizeof(path);
 
     memcpy(&buf[buf_size], &file_type, sizeof(file_type));
     buf_size += sizeof(file_type);
@@ -1080,11 +1075,8 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type)
 void request_open_file(int reply_fd, char *path)
 {
     int fs_cmd = FS_OPEN_FILE;
-    int path_len = strlen(path) + 1;
-
-    const int overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path_len);
-    char buf[PATH_LEN_MAX + overhead];
-
+    const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
+    char buf[overhead];
     int buf_size = 0;
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
@@ -1093,11 +1085,8 @@ void request_open_file(int reply_fd, char *path)
     memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
     buf_size += sizeof(reply_fd);
 
-    memcpy(&buf[buf_size], &path_len, sizeof(path_len));
-    buf_size += sizeof(path_len);
-
-    memcpy(&buf[buf_size], path, path_len);
-    buf_size += path_len;
+    memcpy(&buf[buf_size], &path, sizeof(path));
+    buf_size += sizeof(path);
 
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
@@ -1105,11 +1094,8 @@ void request_open_file(int reply_fd, char *path)
 void request_open_directory(int reply_fd, char *path)
 {
     int fs_cmd = FS_OPEN_DIR;
-    int path_len = strlen(path) + 1;
-
-    const int overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path_len);
-    char buf[PATH_LEN_MAX + overhead];
-
+    const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
+    char buf[overhead];
     int buf_size = 0;
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
@@ -1118,11 +1104,8 @@ void request_open_directory(int reply_fd, char *path)
     memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
     buf_size += sizeof(reply_fd);
 
-    memcpy(&buf[buf_size], &path_len, sizeof(path_len));
-    buf_size += sizeof(path_len);
-
-    memcpy(&buf[buf_size], path, path_len);
-    buf_size += path_len;
+    memcpy(&buf[buf_size], &path, sizeof(path));
+    buf_size += sizeof(path);
 
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
@@ -1130,14 +1113,9 @@ void request_open_directory(int reply_fd, char *path)
 void request_mount(int reply_fd, char *source, char *target)
 {
     int fs_cmd = FS_MOUNT;
-    int source_len = strlen(source) + 1;
-    int target_len = strlen(target) + 1;
-
-    const int overhead = sizeof(fs_cmd) + sizeof(reply_fd) +
-                         sizeof(source_len) + sizeof(target_len);
-
-    char buf[(PATH_LEN_MAX * 2) + overhead];
-
+    const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) +
+                            sizeof(sizeof(source)) + sizeof(sizeof(target));
+    char buf[overhead];
     int buf_size = 0;
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
@@ -1146,17 +1124,11 @@ void request_mount(int reply_fd, char *source, char *target)
     memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
     buf_size += sizeof(reply_fd);
 
-    memcpy(&buf[buf_size], &source_len, sizeof(source_len));
-    buf_size += sizeof(source_len);
+    memcpy(&buf[buf_size], &source, sizeof(source));
+    buf_size += sizeof(source);
 
-    memcpy(&buf[buf_size], source, source_len);
-    buf_size += source_len;
-
-    memcpy(&buf[buf_size], &target_len, sizeof(target_len));
-    buf_size += sizeof(target_len);
-
-    memcpy(&buf[buf_size], target, target_len);
-    buf_size += target_len;
+    memcpy(&buf[buf_size], &target, sizeof(target));
+    buf_size += sizeof(target);
 
     fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
 }
@@ -1164,9 +1136,9 @@ void request_mount(int reply_fd, char *source, char *target)
 void request_getcwd(int reply_fd, char *path, size_t len)
 {
     int fs_cmd = FS_GET_CWD;
-
+    const size_t overhead = sizeof(path) + sizeof(len) + sizeof(reply_fd);
+    char buf[overhead];
     int buf_size = 0;
-    char buf[sizeof(path) + sizeof(len) + sizeof(reply_fd)];
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
     buf_size += sizeof(fs_cmd);
@@ -1186,9 +1158,9 @@ void request_getcwd(int reply_fd, char *path, size_t len)
 void request_chdir(int reply_fd, const char *path)
 {
     int fs_cmd = FS_CHANGE_DIR;
-
+    const size_t overhead = sizeof(path) + sizeof(reply_fd);
+    char buf[overhead];
     int buf_size = 0;
-    char buf[sizeof(path) + sizeof(reply_fd)];
 
     memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
     buf_size += sizeof(fs_cmd);
@@ -1215,11 +1187,8 @@ void filesysd(void)
 
         switch (file_cmd) {
         case FS_CREATE_FILE: {
-            int path_len;
-            read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
-
-            char path[PATH_LEN_MAX];
-            read(FILE_SYSTEM_FD, path, path_len);
+            char *path;
+            read(FILE_SYSTEM_FD, &path, sizeof(path));
 
             uint8_t file_type;
             read(FILE_SYSTEM_FD, &file_type, sizeof(file_type));
@@ -1230,11 +1199,8 @@ void filesysd(void)
             break;
         }
         case FS_OPEN_FILE: {
-            int path_len;
-            read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
-
-            char path[PATH_LEN_MAX];
-            read(FILE_SYSTEM_FD, path, path_len);
+            char *path;
+            read(FILE_SYSTEM_FD, &path, sizeof(path));
 
             int open_fd = fs_open_file(path);
             write(reply_fd, &open_fd, sizeof(open_fd));
@@ -1242,11 +1208,8 @@ void filesysd(void)
             break;
         }
         case FS_OPEN_DIR: {
-            int path_len;
-            read(FILE_SYSTEM_FD, &path_len, sizeof(path_len));
-
-            char path[PATH_LEN_MAX];
-            read(FILE_SYSTEM_FD, path, path_len);
+            char *path;
+            read(FILE_SYSTEM_FD, &path, sizeof(path));
 
             struct inode *inode_dir = fs_open_directory(path);
 
@@ -1255,17 +1218,11 @@ void filesysd(void)
             break;
         }
         case FS_MOUNT: {
-            int source_len;
-            read(FILE_SYSTEM_FD, &source_len, sizeof(source_len));
+            char *source;
+            read(FILE_SYSTEM_FD, &source, sizeof(source));
 
-            char source[PATH_LEN_MAX];
-            read(FILE_SYSTEM_FD, source, source_len);
-
-            int target_len;
-            read(FILE_SYSTEM_FD, &target_len, sizeof(target_len));
-
-            char target[PATH_LEN_MAX];
-            read(FILE_SYSTEM_FD, &target, target_len);
+            char *target;
+            read(FILE_SYSTEM_FD, &target, sizeof(target));
 
             int result = fs_mount(source, target);
             write(reply_fd, &result, sizeof(result));
