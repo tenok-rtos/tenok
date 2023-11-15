@@ -1399,12 +1399,6 @@ void sys_getpid(void)
     SYSCALL_ARG(int, 0) = task->pid;
 }
 
-void sys_gettid(void)
-{
-    /* return the thread id */
-    SYSCALL_ARG(int, 0) = running_thread->tid;
-}
-
 void sys_mknod(void)
 {
     /* read syscall arguments */
@@ -1905,6 +1899,12 @@ void sys_pthread_create(void)
 
     /* return sucesss */
     SYSCALL_ARG(int, 0) = 0;
+}
+
+void sys_pthread_self(void)
+{
+    /* return the thread id */
+    SYSCALL_ARG(pthread_t, 0) = (pthread_t) running_thread->tid;
 }
 
 void sys_pthread_join(void)

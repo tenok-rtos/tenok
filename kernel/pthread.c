@@ -185,9 +185,9 @@ NACKED int pthread_create(pthread_t *thread,
     SYSCALL(PTHREAD_CREATE);
 }
 
-pthread_t pthread_self(void)
+NACKED pthread_t pthread_self(void)
 {
-    return gettid();
+    SYSCALL(PTHREAD_SELF);
 }
 
 NACKED int pthread_join(pthread_t thread, void **retval)

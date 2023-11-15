@@ -28,11 +28,6 @@ NACKED int _getpid(void)
     SYSCALL(GETPID);
 }
 
-NACKED int gettid(void)
-{
-    SYSCALL(GETTID);
-}
-
 NACKED int task_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
     SYSCALL(TASK_CREATE);
