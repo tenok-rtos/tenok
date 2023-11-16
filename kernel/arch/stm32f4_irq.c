@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <arch/port.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/tty.h>
 
@@ -147,27 +148,88 @@ void SysTick_Handler(void)
     jump_to_kernel();
 }
 
+static void early_printf(char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    char buf[300] = {'\r', 0};
+    vsnprintf(buf, 300, format, args);
+    early_tty_print(buf, strlen(buf));
+
+    va_end(args);
+}
+
+static void dump_registers(uint32_t *fault_stack)
+{
+    unsigned int r0 = fault_stack[0];
+    unsigned int r1 = fault_stack[1];
+    unsigned int r2 = fault_stack[2];
+    unsigned int r3 = fault_stack[3];
+    unsigned int r12 = fault_stack[4];
+    unsigned int lr = fault_stack[5];
+    unsigned int pc = fault_stack[6];
+    unsigned int psr = fault_stack[7];
+
+    early_printf(
+        "r0:  0x%08x r1:  0x%08x r2: 0x%08x\n\r"
+        "r3:  0x%08x r12: 0x%08x lr: 0x%08x\n\r"
+        "psr: 0x%08x\n\r"
+        "Faulting instruction address (pc): 0x%08x\n\r",
+        r0, r1, r2, r3, r12, lr, psr, pc);
+}
+
+void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t _lr)
+{
+    bool imprecise_error = false;
+    uint32_t *fault_stack = NULL;
+
+    if (_lr == 0xfffffff1 || _lr == 0xffffffe1) {
+        imprecise_error = true;
+    } else if (_lr == 0xfffffff9 || _lr == 0xffffffe9) {
+        fault_stack = msp;
+    } else if (_lr == 0xfffffffd || _lr == 0xffffffed) {
+        fault_stack = psp;
+    }
+
+    CURRENT_THREAD_INFO(curr_thread);
+
+    early_printf("\r================= HARD FAULT =================\n\r");
+
+    if (curr_thread) {
+        early_printf("Current thread: %p (%s)\n\r", curr_thread,
+                     curr_thread->name);
+    }
+
+    if (!imprecise_error) {
+        dump_registers(fault_stack);
+    } else {
+        early_printf(
+            "Imprecise falut detected\n\r"
+            "Unable to dump registers\n\r");
+    }
+
+    early_printf(
+        ">>> Halting system <<<\n\r"
+        "==============================================");
+
+    while (1)
+        ;
+}
+
 void NMI_Handler(void)
 {
     while (1)
         ;
 }
 
-void HardFault_Handler(void)
+NACKED void HardFault_Handler(void)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
-    char s[150] = {0};
-    snprintf(s, PRINT_SIZE_MAX,
-             "***** HARD FAULT *****\n\r"
-             "Current thread: %s (PID: %d, TID: %d)\n\r"
-             "Fatal fault encountered. Aborting!",
-             curr_thread->name, curr_thread->task->pid, (int) curr_thread->tid);
-
-    early_tty_print(s, strlen(s));
-
-    while (1)
-        ;
+    asm volatile(
+        "mrs r0, msp\n"
+        "mrs r1, psp\n"
+        "mov r2, lr\n"
+        "bl hardfault_dump\n");
 }
 
 void MemManage_Handler(void)
