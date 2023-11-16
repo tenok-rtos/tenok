@@ -34,7 +34,7 @@
 #define FILE_CNT_MAX         100   /* the maximum number of the files can be *
                                     * created, which includes directories.   */
 #define FILE_NAME_LEN_MAX    30
-#define FILE_DESC_CNT_MAX    20    /* the size of the task file descriptor */
+#define FILE_DESC_CNT_MAX    100   /* size of the file descriptor table */
 
 #define PATH_LEN_MAX         128
 

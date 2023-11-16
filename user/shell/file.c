@@ -55,6 +55,9 @@ void shell_cmd_file(int argc, char *argv[])
     struct stat stat;
     fstat(fd, &stat);
 
+    /* close the file */
+    close(fd);
+
     switch (stat.st_mode) {
     case S_IFIFO:
         snprintf(str, PRINT_SIZE_MAX, "%s: fifo (named pipe)\n\r", path);
@@ -74,7 +77,6 @@ void shell_cmd_file(int argc, char *argv[])
     }
 
     shell_puts(str);
-    return;
 }
 
 HOOK_SHELL_CMD(file);
