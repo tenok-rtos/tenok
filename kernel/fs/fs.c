@@ -246,8 +246,7 @@ static void fs_read_inode(uint8_t rdev,
                          inode_addr);
 }
 
-/*
- * search a file under the given directory
+/* search a file under the given directory
  * input : directory inode, file name
  * output: file inode
  */
@@ -369,11 +368,11 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 {
     /* inodes numbers is full */
     if (mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
-        return NULL;
+        goto failed;
 
     /* file table is full */
     if (file_cnt >= FILE_CNT_MAX)
-        return NULL;
+        goto failed;
 
     /* dispatch a new file descriptor number */
     int fd = file_cnt + TASK_CNT_MAX;
@@ -387,22 +386,23 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 
     /* configure the new dentry */
     struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-    new_dentry->d_inode =
-        new_inode->i_ino;  // assign new inode number for the file
-    new_dentry->d_parent =
-        inode_dir->i_ino;  // save the inode of the parent directory
-    strncpy(new_dentry->d_name, file_name,
-            FILE_NAME_LEN_MAX);  // copy the file name
+    new_dentry->d_inode = new_inode->i_ino;   // inode of the file
+    new_dentry->d_parent = inode_dir->i_ino;  // inode of the parent file
+    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX);  // file name
 
     /* file instantiation */
     int result = 0;
 
-    // TODO: handle malloc failure
     switch (file_type) {
     case S_IFIFO: {
         /* create new named pipe */
         struct pipe *pipe = kmalloc(sizeof(struct pipe));
         struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_DEPTH);
+
+        /* allocation failure */
+        if (!pipe || !pipe_fifo)
+            goto failed;
+
         pipe->fifo = pipe_fifo;
         result = fifo_init(fd, (struct file **) &files, new_inode, pipe);
 
@@ -416,6 +416,11 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     case S_IFCHR: {
         /* create a new character device file */
         struct file *dev_file = fs_alloc_file();
+
+        /* allocation failure */
+        if (!dev_file)
+            goto failed;
+
         dev_file->f_inode = new_inode;
         files[fd] = dev_file;
 
@@ -429,6 +434,11 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     case S_IFBLK: {
         /* create a new block device file */
         struct file *dev_file = fs_alloc_file();
+
+        /* allocation failure */
+        if (!dev_file)
+            goto failed;
+
         dev_file->f_inode = new_inode;
         files[fd] = dev_file;
 
@@ -442,6 +452,11 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     case S_IFREG: {
         /* create a new regular file */
         struct reg_file *reg_file = kmalloc(sizeof(struct reg_file));
+
+        /* allocation failure */
+        if (!reg_file)
+            goto failed;
+
         result = reg_file_init((struct file **) &files, new_inode, reg_file);
 
         new_inode->i_mode = S_IFREG;
@@ -468,10 +483,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     files[fd]->f_events = 0;
 
     if (result != 0)
-        return NULL;
+        goto failed;
 
-    file_cnt++;  // update the file count for generating new file descriptor
-                 // number
+    /* update file count */
+    file_cnt++;
 
     /* currently no files is under the directory */
     if (list_empty(&inode_dir->i_dentry) == true)
@@ -487,6 +502,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
 
     return new_inode;
+
+failed:
+    // TODO: clean up allocated resources
+    return NULL;
 }
 
 /* must be called by the fs_mount_directory() function since current design only
@@ -576,8 +595,7 @@ static bool fs_sync_file(struct inode *inode)
     return true;
 }
 
-/*
- * mount a directory from a external storage under the rootfs
+/* mount a directory from a external storage under the rootfs
  * input: "inode_src" (external directory to mount) and "inode_target" (where to
  * mount on the rootfs)
  */
@@ -605,8 +623,7 @@ static void fs_mount_directory(struct inode *inode_src,
 
     dentry_addr = (uint32_t) inode_src->i_data;
 
-    /*
-     * for a mounted directory, reset the block and file size fields of the
+    /*for a mounted directory, reset the block and file size fields of the
      * directory inode since they are copied from the storage device, but the
      * data is not synchronized yet! therefore, they are reset first and will be
      * resumed later after all the files under the directory are mounted.
@@ -645,8 +662,7 @@ static void fs_mount_directory(struct inode *inode_src,
     inode_target->i_sync = true;
 }
 
-/*
- * get the first entry of a given path. e.g., given a input "dir1/file1.txt"
+/* get the first entry of a given path. e.g., given a input "dir1/file1.txt"
  * yields with "dir". input : path output: entry name and the reduced string of
  * path
  */
@@ -675,8 +691,7 @@ static char *fs_split_path(char *entry, char *path)
     return path;  // return the address of the left path string
 }
 
-/*
- * create a file by given the pathname
+/* create a file by given the pathname
  * input : path name and file type
  * output: file descriptor number
  */
@@ -752,8 +767,7 @@ static int fs_create_file(char *pathname, uint8_t file_type)
     }
 }
 
-/*
- * open a file by given a pathname
+/* open a file by given a pathname
  * input : path name
  * output: file descriptor number
  */
@@ -823,8 +837,7 @@ static int fs_open_file(char *pathname)
     }
 }
 
-/*
- * input : file path
+/* input : file path
  * output: directory inode
  */
 struct inode *fs_open_directory(char *pathname)
