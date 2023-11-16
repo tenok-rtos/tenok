@@ -14,6 +14,24 @@
 
 #define ISR __attribute__((weak, alias("Default_Handler")))
 
+#define FAULT_DUMP(type)                  \
+    do {                                  \
+        asm volatile(                     \
+            "mov r0, %0   \n"             \
+            "mrs r1, msp  \n"             \
+            "mrs r2, psp  \n"             \
+            "mov r3, lr   \n"             \
+            "bl fault_dump\n" ::"r"(type) \
+            :);                           \
+    } while (0)
+
+enum {
+    HARD_FAULT = 0,
+    MPU_FAULT = 1,
+    BUS_FAULT = 2,
+    USAGE_FAULT = 3,
+};
+
 void Default_Handler(void);
 void irq_handler(void);
 
@@ -153,8 +171,8 @@ static void early_printf(char *format, ...)
     va_list args;
     va_start(args, format);
 
-    char buf[300] = {'\r', 0};
-    vsnprintf(buf, 300, format, args);
+    char buf[200] = {'\r', 0};
+    vsnprintf(buf, 200, format, args);
     early_tty_print(buf, strlen(buf));
 
     va_end(args);
@@ -172,15 +190,16 @@ static void dump_registers(uint32_t *fault_stack)
     unsigned int psr = fault_stack[7];
 
     early_printf(
-        "r0:  0x%08x r1:  0x%08x r2: 0x%08x\n\r"
-        "r3:  0x%08x r12: 0x%08x lr: 0x%08x\n\r"
-        "psr: 0x%08x\n\r"
-        "Faulting instruction address (pc): 0x%08x\n\r",
-        r0, r1, r2, r3, r12, lr, psr, pc);
+        "r0: 0x%08x r1:  0x%08x r2: 0x%08x\n\r"
+        "r3: 0x%08x r12: 0x%08x lr: 0x%08x\n\r"
+        "pc: 0x%08x psr: 0x%08x\n\r",
+        r0, r1, r2, r3, r12, lr, pc, psr);
 }
 
-void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t lr)
+void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
 {
+    CURRENT_THREAD_INFO(curr_thread);
+
     bool imprecise_error = false;
     uint32_t *fault_stack = NULL;
 
@@ -192,9 +211,20 @@ void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t lr)
         fault_stack = psp;
     }
 
-    CURRENT_THREAD_INFO(curr_thread);
-
-    early_printf("\r================= HARD FAULT =================\n\r");
+    switch (fault_type) {
+    case HARD_FAULT:
+        early_printf("\r================ HARD FAULT ==================\n\r");
+        break;
+    case MPU_FAULT:
+        early_printf("\r================= MPU FAULT ==================\n\r");
+        break;
+    case BUS_FAULT:
+        early_printf("\r================= BUS FAULT ==================\n\r");
+        break;
+    case USAGE_FAULT:
+        early_printf("\r================ USAGE FAULT =================\n\r");
+        break;
+    }
 
     if (curr_thread) {
         early_printf("Current thread: %p (%s)\n\r", curr_thread,
@@ -203,9 +233,11 @@ void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t lr)
 
     if (!imprecise_error) {
         dump_registers(fault_stack);
+        early_printf("Faulting instruction address = 0x%08x\n\r",
+                     fault_stack[6]);
     } else {
         early_printf(
-            "Imprecise falut detected\n\r"
+            "Imprecise fault detected\n\r"
             "Unable to dump registers\n\r");
     }
 
@@ -225,29 +257,22 @@ void NMI_Handler(void)
 
 NACKED void HardFault_Handler(void)
 {
-    asm volatile(
-        "mrs r0, msp\n"
-        "mrs r1, psp\n"
-        "mov r2, lr\n"
-        "bl hardfault_dump\n");
+    FAULT_DUMP(HARD_FAULT);
 }
 
 void MemManage_Handler(void)
 {
-    while (1)
-        ;
+    FAULT_DUMP(MPU_FAULT);
 }
 
 void BusFault_Handler(void)
 {
-    while (1)
-        ;
+    FAULT_DUMP(BUS_FAULT);
 }
 
 void UsageFault_Handler(void)
 {
-    while (1)
-        ;
+    FAULT_DUMP(USAGE_FAULT);
 }
 
 void DebugMon_Handler(void)
