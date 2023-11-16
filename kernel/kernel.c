@@ -2952,6 +2952,32 @@ static void slab_init(void)
     }
 }
 
+static void check_thread_stack(void)
+{
+    /* calculate stack range of the thread */
+    uintptr_t lower_bound = (uintptr_t) running_thread->stack;
+    uintptr_t upper_bound =
+        (uintptr_t) running_thread->stack + running_thread->stack_size;
+
+    /* check thread stack pointer is valid or not */
+    if ((uintptr_t) running_thread->stack_top < lower_bound ||
+        (uintptr_t) running_thread->stack_top > upper_bound) {
+        early_printf(
+            "\r================ STACK FAULT =================\n\r"
+            "Current thread: %p (%s)\n\r"
+            "Stack range: [0x%08x-0x%08x]\n\r"
+            "Stack size: %d\n\r"
+            "Faulting stack pointer = %p\n\r"
+            ">>> Halting system <<<\n\r"
+            "==============================================",
+            running_thread, running_thread->name, lower_bound, upper_bound,
+            running_thread->stack_size, running_thread->stack_top);
+
+        while (1)
+            ;
+    }
+}
+
 void init(void)
 {
     setprogname("idle");
@@ -3039,5 +3065,8 @@ void sched_start(void)
         /* jump to the selected thread */
         running_thread->stack_top = jump_to_thread(running_thread->stack_top,
                                                    running_thread->privilege);
+
+        /* check thread stack pointer after it returned to the kernel */
+        check_thread_stack();
     }
 }

@@ -5,7 +5,7 @@
 #include <arch/port.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/tty.h>
+#include <kernel/printk.h>
 
 #include "stm32f4xx.h"
 
@@ -164,18 +164,6 @@ void Default_Handler(void)
 void SysTick_Handler(void)
 {
     jump_to_kernel();
-}
-
-static void early_printf(char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-
-    char buf[200] = {'\r', 0};
-    vsnprintf(buf, 200, format, args);
-    early_tty_print(buf, strlen(buf));
-
-    va_end(args);
 }
 
 static void dump_registers(uint32_t *fault_stack)

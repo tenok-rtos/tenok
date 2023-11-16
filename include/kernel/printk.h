@@ -14,4 +14,6 @@
  */
 void printk(char *format, ...);
 
+void early_printf(char *format, ...);
+
 #endif

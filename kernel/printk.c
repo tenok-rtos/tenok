@@ -39,3 +39,15 @@ void printk(char *format, ...)
 
     va_end(args);
 }
+
+void early_printf(char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    char buf[300] = {0};
+    vsnprintf(buf, 300, format, args);
+    early_tty_print(buf, strlen(buf));
+
+    va_end(args);
+}
