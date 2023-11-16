@@ -4,6 +4,7 @@ BIN := $(PROJECT).bin
 
 CC := arm-none-eabi-gcc
 OBJCOPY := arm-none-eabi-objcopy
+OBJDUMP := arm-none-eabi-objdump
 GDB := arm-none-eabi-gdb
 SIZE := arm-none-eabi-size
 QEMU := qemu-system-arm

@@ -198,10 +198,13 @@ format:
 size:
 	$(SIZE) $(ELF)
 
+objdump:
+	$(OBJDUMP) -d $(ELF) > $(ELF).asm
+
 doxygen:
 	@tail -n +4 README.md > main_page.md
 	@doxygen docs/Doxyfile
 	@rm -rf main_page.md
 	@echo "doxygen docs/Doxyfile"
 
-.PHONY: all check clean gdbauto format size msggen gen_syscalls doxygen
+.PHONY: all check clean gdbauto format size objdump msggen gen_syscalls doxygen

@@ -179,16 +179,16 @@ static void dump_registers(uint32_t *fault_stack)
         r0, r1, r2, r3, r12, lr, psr, pc);
 }
 
-void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t _lr)
+void hardfault_dump(uint32_t *msp, uint32_t *psp, uint32_t lr)
 {
     bool imprecise_error = false;
     uint32_t *fault_stack = NULL;
 
-    if (_lr == 0xfffffff1 || _lr == 0xffffffe1) {
+    if (lr == 0xfffffff1 || lr == 0xffffffe1) {
         imprecise_error = true;
-    } else if (_lr == 0xfffffff9 || _lr == 0xffffffe9) {
+    } else if (lr == 0xfffffff9 || lr == 0xffffffe9) {
         fault_stack = msp;
-    } else if (_lr == 0xfffffffd || _lr == 0xffffffed) {
+    } else if (lr == 0xfffffffd || lr == 0xffffffed) {
         fault_stack = psp;
     }
 
