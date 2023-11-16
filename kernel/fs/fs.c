@@ -83,6 +83,7 @@ struct file *fs_alloc_file(void)
 {
     preempt_disable();
     struct file *new_file = kmem_cache_alloc(file_caches, 0);
+    memset(new_file, 0, sizeof(*new_file));
     preempt_enable();
 
     return new_file;

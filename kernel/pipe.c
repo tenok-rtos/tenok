@@ -3,6 +3,7 @@
 #include <poll.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <fs/fs.h>
 #include <kernel/errno.h>
@@ -36,6 +37,7 @@ int fifo_init(int fd,
     INIT_LIST_HEAD(&pipe->w_wait_list);
 
     /* register fifo to the file table */
+    memset(&pipe->file, 0, sizeof(pipe->file));
     pipe->file.f_op = &fifo_ops;
     pipe->file.f_inode = file_inode;
     files[fd] = &pipe->file;

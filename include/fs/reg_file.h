@@ -8,7 +8,6 @@
 
 struct reg_file {
     int pos;
-    struct inode *f_inode;
     struct file file;
 };
 

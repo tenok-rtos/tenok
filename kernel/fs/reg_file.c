@@ -29,12 +29,14 @@ int reg_file_init(struct file **files,
                   struct inode *file_inode,
                   struct reg_file *reg_file)
 {
+    /* initialize the data pointer */
     reg_file->pos = 0;
-    reg_file->f_inode = file_inode;
-    reg_file->file.f_op = &reg_file_ops;
 
+    /* register regular file to the file table */
+    memset(&reg_file->file, 0, sizeof(reg_file->file));
+    reg_file->file.f_inode = file_inode;
+    reg_file->file.f_op = &reg_file_ops;
     files[file_inode->i_fd] = &reg_file->file;
-    files[file_inode->i_fd]->f_inode = file_inode;
 
     return 0;
 }
@@ -52,7 +54,7 @@ ssize_t reg_file_read(struct file *filp,
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
     /* get the inode of the regular file */
-    struct inode *inode = reg_file->f_inode;
+    struct inode *inode = reg_file->file.f_inode;
 
     /* get the driver file of the storage device */
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
@@ -112,7 +114,7 @@ ssize_t reg_file_write(struct file *filp,
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
     /* get the inode of the regular file */
-    struct inode *inode = reg_file->f_inode;
+    struct inode *inode = reg_file->file.f_inode;
 
     if (inode->i_rdev != RDEV_ROOTFS) {
         return 0;
@@ -183,7 +185,7 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
     /* get the inode of the regular file */
-    struct inode *inode = reg_file->f_inode;
+    struct inode *inode = reg_file->file.f_inode;
 
     char new_pos;
 
