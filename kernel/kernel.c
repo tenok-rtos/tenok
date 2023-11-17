@@ -2748,7 +2748,7 @@ void sys_malloc(void)
 void sys_free(void)
 {
     /* read syscall arguments */
-    __attribute__((unused)) void *ptr = SYSCALL_ARG(void *, 0);
+    void *ptr = SYSCALL_ARG(void *, 0);
 
     __free(ptr);
 }
