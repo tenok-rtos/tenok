@@ -73,7 +73,7 @@ void __stack_init(uint32_t **stack_top,
 bool check_systick_event(void *sp);
 
 /**
- * @brief  Get syscall number and arguments 
+ * @brief  Get syscall number and arguments
  * @param  sp: The stack pointer points to the top of the thread stack.
  * @param  pargs: The array for returning syscall arguments.
  * @retval unsigned long: The current syscall number.

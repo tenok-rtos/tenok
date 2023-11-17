@@ -58,7 +58,7 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     list_for_each_safe (curr, next, wait_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
-        if (thread->file_request.size <= avail_size &&
+        if (thread->file_request_size <= avail_size &&
             (highest_pri_thread == NULL ||
              thread->priority > highest_pri_thread->priority)) {
             highest_pri_thread = thread;
@@ -88,7 +88,7 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
             }
         } else { /* block mode */
             /* save the read request size */
-            curr_thread->file_request.size = size;
+            curr_thread->file_request_size = size;
 
             /* force the thread to sleep */
             prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
@@ -127,7 +127,7 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
             }
         } else { /* block mode */
             /* save the write request size */
-            curr_thread->file_request.size = size;
+            curr_thread->file_request_size = size;
 
             /* force the thread to sleep */
             prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,

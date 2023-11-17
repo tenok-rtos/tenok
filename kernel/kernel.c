@@ -593,7 +593,7 @@ static inline void thread_join_handler(void)
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
         /* pass the return value back to the waiting thread */
-        void **retval = (void **) thread->args[1];  // XXX
+        void **retval = (void **) thread->syscall_args[1];  // XXX
         if (retval) {
             *(uint32_t *) retval = (uint32_t) running_thread->retval;
         }
@@ -2069,7 +2069,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         /* wake up the waiting thread and setup return values */
         finish_wait(&thread->list);
         *thread->ret_sig = signum;
-        *(int *) thread->args[0] = 0;
+        *(int *) thread->syscall_args[0] = 0;  // XXX
     }
 
     switch (signum) {
@@ -2835,15 +2835,15 @@ static void thread_return_event_handler(void)
          * be terminated */
         sys_exit();
     } else {
-        running_thread->retval = (void *) running_thread->args[0];
+        running_thread->retval = (void *) running_thread->syscall_args[0];
         thread_join_handler();
     }
 }
 
 static void syscall_handler(void)
 {
-    unsigned long syscall_num =
-        get_syscall_info(running_thread->stack_top, running_thread->args);
+    unsigned long syscall_num = get_syscall_info(running_thread->stack_top,
+                                                 running_thread->syscall_args);
 
     switch (syscall_num) {
     case 0:
