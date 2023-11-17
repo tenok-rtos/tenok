@@ -2,6 +2,7 @@
 #define __UART_H__
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>
@@ -20,12 +21,10 @@ typedef struct {
     wait_queue_t *tx_wait;
     wait_queue_t *rx_wait;
     struct mutex tx_mtx;
-
     struct kfifo *rx_fifo;
-
-    int rx_wait_size;
+    size_t rx_wait_size;
     bool tx_dma_ready;
-    int tx_state;
+    uint8_t tx_state;
 } uart_dev_t;
 
 void uart_putc(USART_TypeDef *uart, char c);

@@ -51,21 +51,10 @@ static struct file_operations serial0_file_ops = {
     .open = serial0_open,
 };
 
-void tty_init(void)
-{
-    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX, UART1_TX_FIFO_SIZE);
-    tasklet_init(&uart1_tx_tasklet, uart1_tx_tasklet_handler, 0);
-
-#ifndef BUILD_QEMU
-    /* clean screen */
-    char *cls_str = "\x1b[H\x1b[2J";
-    console_write(cls_str, strlen(cls_str));
-#endif
-}
-
 void uart1_init(uint32_t baudrate)
 {
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
@@ -93,9 +82,6 @@ void uart1_init(uint32_t baudrate)
     };
     USART_Init(USART1, &USART_InitStruct);
     USART_Cmd(USART1, ENABLE);
-#if (ENABLE_UART1_DMA != 0)
-    USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
-#endif
     USART_ClearFlag(USART1, USART_FLAG_TC);
 
     /* initialize interrupt of the uart1 */
@@ -120,23 +106,34 @@ void uart1_init(uint32_t baudrate)
 #endif
 }
 
-void serial0_init(void)
+void tty_init(void)
 {
-    /* initialize serial0 as character device */
-    register_chrdev("serial0", &serial0_file_ops);
-
-    /* create kfifo for reception */
-    uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
-
     /* create wait queues for synchronization */
     init_waitqueue_head(&uart1.tx_wq);
     init_waitqueue_head(&uart1.rx_wq);
 
-    /* initialize mutex for protecting tx resource */
+    /* create kfifo for uart1 rx */
+    uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
+
+    /* initialize mutex, kfifo, and tasklet for uart1 tx */
     mutex_init(&uart1.tx_mtx);
+    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX, UART1_TX_FIFO_SIZE);
+    tasklet_init(&uart1_tx_tasklet, uart1_tx_tasklet_handler, 0);
 
     /* initialize uart1 */
     uart1_init(115200);
+
+#ifndef BUILD_QEMU
+    /* clean screen */
+    char *cls_str = "\x1b[H\x1b[2J";
+    console_write(cls_str, strlen(cls_str));
+#endif
+}
+
+void serial0_init(void)
+{
+    /* register serial0 to the file system */
+    register_chrdev("serial0", &serial0_file_ops);
 
     printk("chardev serial0: console");
 }
@@ -262,7 +259,8 @@ void USART1_IRQHandler(void)
         uint8_t c = USART_ReceiveData(USART1);
         kfifo_put(uart1.rx_fifo, &c);
 
-        if (kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
+        if (uart1.rx_wait_size &&
+            kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
             finish_wait(uart1.rx_wait);
             uart1.rx_wait_size = 0;
         }
