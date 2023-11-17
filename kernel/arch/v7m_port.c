@@ -96,7 +96,7 @@ void __stack_init(uint32_t **stack_top,
      */
     uint32_t *sp = *stack_top - 18;
     *stack_top = sp;
-    memset(sp, 0, 18);
+    memset(sp, 0, sizeof(uint32_t) * 18);
     sp[17] = INITIAL_XPSR;    // psr
     sp[16] = func;            // pc
     sp[15] = return_handler;  // lr
