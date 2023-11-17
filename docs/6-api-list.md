@@ -347,6 +347,30 @@ Tenok API List
 
 * kfifo_is_full()
 
+### Memory Allocation:
+
+* kmalloc()
+
+* kfree()
+
+* page_order_to_size()
+
+* size_to_page_order()
+
+* alloc_pages()
+
+* free_pages()
+
+* kmem_cache_alloc()
+
+* kmem_cache_create()
+
+* kmem_cache_free()
+
+---
+
+## Common API
+
 ### List:
 
 * LIST_HEAD()
@@ -382,23 +406,3 @@ Tenok API List
 * list_for_each_entry()
 
 * list_for_each_safe()
-
-### Memory Allocation:
-
-* kmalloc()
-
-* kfree()
-
-* page_order_to_size()
-
-* size_to_page_order()
-
-* alloc_pages()
-
-* free_pages()
-
-* kmem_cache_alloc()
-
-* kmem_cache_create()
-
-* kmem_cache_free()

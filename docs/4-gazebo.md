@@ -1,47 +1,60 @@
 Run Tenok with Gazebo Simulator
 ===============================
 
-1. Install Gazebo simulator:
+First, install the Gazebo simulator:
 
 > Check Gazebo's official [tutorial](https://classic.gazebosim.org/tutorials?tut=install_ubuntu).
 
-2. Build PX4 SITL to provide MAVLink translation plugin for Gazebo:
+Next, build PX4 SITL to provide MAVLink translation plugin for Gazebo:
 
 ```
-git clone https://github.com/Tenok-RTOS/gazebo.git
+git clone https://github.com/tenok-rtos/gazebo.git
 cd gazebo
 git submodule update --init --recursive
 cd PX4-Autopilot
 make px4_sitl_default gazebo
 ```
 
-3. Launch Gazeobo:
+Additionally, build `gazebo_bridge` for forwarding messages between `Tenok` (serial) and Gazebo (TCP/IP):
+
+```
+cd tenok/tools/gazebo_bridge
+make
+```
+
+After finishing the installation, launch Gazeobo simulator:
 
 ```
 ./run_gazebo.sh
 ```
 
-3. Launch Tenok:
+By the same time, launch `Tenok` with QEMU:
 
 ```
-make qemu # or alternatively use real hardware
+make qemu # Or use real hardware alternatively
 ```
 
-6. Build Gazeobo bridge:
+The user should expect to see similar output as following:
+
+```
+char device redirected to /dev/pts/X (label serial1)
+char device redirected to /dev/pts/Y (label serial2)
+[    0.001000000] Tenok RTOS (built time: 11:14:41 Nov  8 2023)
+[    0.001000000] Machine model: stm32f407
+[    0.006000000] chardev serial0: console
+[    0.008000000] chardev serial1: mavlink
+[    0.008000000] chardev serial2: debug-link
+[    0.008000000] blkdev rom: romfs storage
+type `help' for help
+user@stm32f407:/$
+```
+
+Next, launch Gazeobo bridge with the serial path given by QEMU:
 
 ```
 cd tenok/tools/gazebo_bridge
 make
+./gazebo_bridge -i 127.0.0.1 -p 4560 -s /dev/pts/X -b 115200
 ```
 
-8. Execute Gazeobo bridge:
-
-> Check MAVLink serial port path from QEMU (e.g., /dev/pts/X) then execute:
-
-```
-cd tenok/tools/gazebo_bridge
-make
-./gazebo_bridge -i 127.0.0.1 -p 4560 -s ${MAVLINK_SERIAL_PATH} -b 115200
-```
-
-> Note that 115200 is the default baudate of the MAVLink serial port by the Tenok.
+Finally, the simulation should start. Note that `115200` is the default baudate of the MAVLink port set by `Tenok`.

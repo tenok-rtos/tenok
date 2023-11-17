@@ -1,7 +1,7 @@
-Real-time Visualization with RTPlot and Debug-Link
+Real-time Visualization with rtplot and debug-link
 ==================================================
 
-## Build RTPlot Example
+### 1. Build rtplot example 
 
 Download the example files using:
 
@@ -11,7 +11,7 @@ Download the example files using:
 
 Enable debug-link task in `user/task/task.mk`
 
-```
+```make
 # Uncomment the line
 SRC += $(PROJ_ROOT)/user/tasks/debug_task.c
 ```
@@ -29,7 +29,7 @@ cd tools/rtplot/
 make install
 ```
 
-## Run RTPlot Example with QEMU
+### 2. Run rtplot example with QEMU
 
 First, execute the following command to launch the Tenok with QEMU:
 
@@ -64,7 +64,7 @@ make rtplot
 After the rtplot window shows up, select `/dev/pts/Y` port, `test` message then click the connect button.
 The user should expect to see some real-time plotting on the screen.
 
-## Define Debug-Link Message
+## 3. Define debug-link message
 
 Tenok uses a metalanguage to define messages for debug visualization, this message prorocol is called the Debug-Link.
 All message files should named as `*.msg` and by default they should be placed in the `msg/` directory.

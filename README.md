@@ -1,9 +1,14 @@
 Tenok
 =====
 
-This is [Tenok](https://github.com/shengwen-tw/tenok), a real-time operating system (RTOS) for Robotics and the Internet of Things (IoT). It resembles various designs from Linux and maintains a small footprint for ARM Cortex-M processors. Instead of including low-level peripheral drivers as a part of the system like NuttX, Tenok adopts an approach like FreeRTOS, which treats RTOS a third-party library, and the user can choose their own favorite library of hardware abstraction layer (HAL).
+The project [Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) designed for robotic applications and the 
+Internet of Things (IoT). The name originated from the language of an indigenous tribe called Amis in Taiwan, where the term "tenok" means
+"kernel" in their language. It resembles various designs from Linux and maintains a small code footprint for ARM Cortex-M processors. Unlike 
+NuttX, Tenok does not implement a set of low-level hardware drivers as a part of the system but instead adopts an approach similar to FreeRTOS 
+by treating the RTOS as a third-party library, and the user can choose their favorite library of the hardware abstraction layer (HAL).
 
-Tenok also offers several utilities for developing Robotic applications, including a debug visualization tool, integration of MAVLink communication protocol, and support of software-in-the-loop simulation with Gazeobo simulator. The Amis people are an indigenous tribe that originated in Taiwan, and the term "tenok" in their language means "kernel."
+Tenok also integrates the MAVLink communication protocol and offers several utilities for robotics, including a debug visualization tool 
+and a facility tool for supporting software-in-the-loop simulation with the Gazebo simulator.
 
 ## Key Features
 
@@ -12,9 +17,9 @@ Tenok also offers several utilities for developing Robotic applications, includi
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
-* Kernel-space memory allocation: Buddy system and Slab allocator
+* Kernel-space memory allocation: Buddy allocator and Slab allocator
 * User-space memory allocation: Memory pool and First-Fit Free List
-* Software timer
+* Software timer and clock
 * Built-in Shell with command completion and history saving
 * Root and ROM file systems
 * Real-time plotting and customizable debug messaging with metalanguage
@@ -23,7 +28,7 @@ Tenok also offers several utilities for developing Robotic applications, includi
 
 ## Tools
 
-* **mkromfs**: Import files into firmware binary with `Tenok`'s romfs format
+* **mkromfs**: Import files to the firmware binary with `Tenok`'s romfs format
 * **msggen**: Convert user-defined metalanguage messages into C codes and YAML files
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
 * **gazebo_bridge**: Message forwarding between `Tenok` (serial) and Gazebo simulator (TCP/IP)
@@ -34,7 +39,7 @@ Tenok also offers several utilities for developing Robotic applications, includi
 * [Build and Run the Tenok](https://tenok-rtos.github.io/md_docs_2_build_and_run.html)
 * [Interact with Tenok Shell](https://tenok-rtos.github.io/md_docs_3_shell.html)
 * [Run Tenok with Gazebo Simulator](https://tenok-rtos.github.io/md_docs_4_gazebo.html)
-* [Real-time Visualization with RTPlot and Debug-Link](https://tenok-rtos.github.io/md_docs_5_debug_link.html)
+* [Real-time Visualization with rtplot and debug-link](https://tenok-rtos.github.io/md_docs_5_debug_link.html)
 
 ## Resources 
 
