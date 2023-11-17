@@ -65,6 +65,8 @@ void __stack_init(uint32_t **stack_top,
                   uint32_t return_handler,
                   uint32_t args[4]);
 
+unsigned long get_syscall_info(void *stack_addr, unsigned long *pargs[4]);
+
 /**
  * @brief  Trigger platform-specific idling
  * @param  None

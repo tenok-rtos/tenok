@@ -77,10 +77,10 @@ struct stack_fpu {
     /* registeres pushed into the stack by the os */
     uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
-    uint32_t _r7;            /* r7 (syscall number) */
-    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
+    uint32_t _r7; /* r7 (syscall number) */
 
     /* registers pushed into the stack by exception entry */
+    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
     uint32_t r0, r1, r2, r3;
     uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
     uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */

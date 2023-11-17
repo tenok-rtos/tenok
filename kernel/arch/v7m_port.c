@@ -83,6 +83,31 @@ void __stack_init(uint32_t **stack_top,
     sp[8] = THREAD_PSP;       //_lr
 }
 
+unsigned long get_syscall_info(void *stack_addr, unsigned long *pargs[4])
+{
+    uint32_t lr = ((uint32_t *) stack_addr)[8];
+    unsigned long syscall_num;
+
+    /* EXC_RETURN[4]: 0 = FPU used / 1 = FPU unused */
+    if (lr & 0x10) {
+        struct stack *stack = (struct stack *) stack_addr;
+        syscall_num = stack->_r7;
+        pargs[0] = &stack->r0;
+        pargs[1] = &stack->r1;
+        pargs[2] = &stack->r2;
+        pargs[3] = &stack->r3;
+    } else {
+        struct stack_fpu *stack = (struct stack_fpu *) stack_addr;
+        syscall_num = stack->_r7;
+        pargs[0] = &stack->r0;
+        pargs[1] = &stack->r1;
+        pargs[2] = &stack->r2;
+        pargs[3] = &stack->r3;
+    }
+
+    return syscall_num;
+}
+
 void __idle(void)
 {
     asm volatile("wfi");

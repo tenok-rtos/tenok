@@ -2841,34 +2841,19 @@ static inline bool check_systick_event(void)
     return false;
 }
 
-static inline void prepare_syscall_args(void)
-{
-    /* the stack layouts are different according to the fpu is used or not due
-     * to the lazy context switch mechanism of the arm processor. when lr[4] bit
-     * is set as 0, the fpu is used otherwise it is unused.
-     */
-    if (running_thread->stack_top->_lr & 0x10) {
-        struct stack *sp = (struct stack *) running_thread->stack_top;
-        running_thread->reg.r0 = &sp->r0;
-        running_thread->reg.r1 = &sp->r1;
-        running_thread->reg.r2 = &sp->r2;
-        running_thread->reg.r3 = &sp->r3;
-    } else {
-        struct stack_fpu *sp_fpu =
-            (struct stack_fpu *) running_thread->stack_top;
-        running_thread->reg.r0 = &sp_fpu->r0;
-        running_thread->reg.r1 = &sp_fpu->r1;
-        running_thread->reg.r2 = &sp_fpu->r2;
-        running_thread->reg.r3 = &sp_fpu->r3;
-    }
-}
-
 static void syscall_handler(void)
 {
+    unsigned long *args[4];
+    unsigned long syscall_num =
+        get_syscall_info(running_thread->stack_top, args);
+
     for (int i = 0; i < SYSCALL_CNT; i++) {
-        if (SUPERVISOR_EVENT(running_thread) == syscall_table[i].num) {
+        if (syscall_num == syscall_table[i].num) {
             /* execute the syscall service */
-            prepare_syscall_args();
+            running_thread->reg.r0 = args[0];  // TODO
+            running_thread->reg.r1 = args[1];
+            running_thread->reg.r2 = args[2];
+            running_thread->reg.r3 = args[3];
             syscall_table[i].syscall_handler();
             break;
         }
