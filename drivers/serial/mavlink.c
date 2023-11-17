@@ -80,15 +80,15 @@ void uart2_init(uint32_t baudrate)
 
 void serial1_init(void)
 {
-    /* initialize serial0 as character device */
+    /* register serial1 to the file system */
     register_chrdev("serial1", &serial1_file_ops);
-
-    /* create kfifo for reception */
-    uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* create wait queues for synchronization */
     init_waitqueue_head(&uart2.tx_wq);
     init_waitqueue_head(&uart2.rx_wq);
+
+    /* create kfifo for uart2 rx */
+    uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* initialize uart3 */
     uart2_init(115200);
@@ -128,7 +128,8 @@ void USART2_IRQHandler(void)
         uint8_t c = USART_ReceiveData(USART2);
         kfifo_put(uart2.rx_fifo, &c);
 
-        if (kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
+        if (uart2.rx_wait_size &&
+            kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
             finish_wait(uart2.rx_wait);
             uart2.rx_wait_size = 0;
         }

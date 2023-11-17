@@ -99,15 +99,15 @@ void uart3_init(uint32_t baudrate)
 
 void serial2_init(void)
 {
-    /* initialize serial2 as character device */
+    /* register serial2 to the file system */
     register_chrdev("serial2", &serial2_file_ops);
-
-    /* create kfifo for reception */
-    uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
 
     /* create wait queues for synchronization */
     init_waitqueue_head(&uart3.tx_wq);
     init_waitqueue_head(&uart3.rx_wq);
+
+    /* create kfifo for uart3 rx */
+    uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
 
     /* initialize uart3 */
     uart3_init(115200);
