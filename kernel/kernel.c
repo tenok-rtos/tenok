@@ -3015,8 +3015,8 @@ void sched_start(void)
 
     /* initialize kernel threads and deamons */
     kthread_create(init, 0, 2048);
-    kthread_create(softirqd, KTHREAD_PRI_MAX, 1024);
-    kthread_create(filesysd, KTHREAD_PRI_MAX - 1, 1024);
+    kthread_create(softirqd, KTHREAD_PRI_MAX, 2048);
+    kthread_create(filesysd, KTHREAD_PRI_MAX - 1, 2048);
 
     /* manually set task 0 as the first thread to run */
     running_thread = &threads[0];
