@@ -65,7 +65,20 @@ void __stack_init(uint32_t **stack_top,
                   uint32_t return_handler,
                   uint32_t args[4]);
 
-unsigned long get_syscall_info(void *stack_addr, unsigned long *pargs[4]);
+/**
+ * @brief  Check if the kernel is returned from user space via systick
+ * @param  sp: The stack pointer points to the top of the thread stack.
+ * @retval bool: true if is returned via systick; otherwise false.
+ */
+bool check_systick_event(void *sp);
+
+/**
+ * @brief  Get syscall number and arguments 
+ * @param  sp: The stack pointer points to the top of the thread stack.
+ * @param  pargs: The array for returning syscall arguments.
+ * @retval unsigned long: The current syscall number.
+ */
+unsigned long get_syscall_info(void *sp, unsigned long *pargs[4]);
 
 /**
  * @brief  Trigger platform-specific idling

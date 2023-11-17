@@ -28,12 +28,10 @@
         .syscall_handler = sys_##func, .num = _num \
     }
 
-#define SYSCALL_ARG(type, arg_num) *(type *) running_thread->reg.r##arg_num
+#define SYSCALL_ARG(type, idx) *((type *) running_thread->args[idx])
 
 #define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
-
-#define SUPERVISOR_EVENT(thread) thread->stack_top->_r7
 
 struct syscall_info {
     void (*syscall_handler)(void);
@@ -58,36 +56,6 @@ enum {
     USER_THREAD = 1,
 } THREAD_TYPE;
 
-/* stack layout for threads without using fpu */
-struct stack {
-    /* registers pushed into the stack by the os */
-    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
-    uint32_t _lr;
-    uint32_t _r7; /* r7 (syscall number) */
-
-    /* registers pushed into the stack by exception entry */
-    uint32_t r0, r1, r2, r3;
-    uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
-
-    /* the rest of the stack is ommited */
-};
-
-/* stack layout for threads that using fpu */
-struct stack_fpu {
-    /* registeres pushed into the stack by the os */
-    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
-    uint32_t _lr;
-    uint32_t _r7; /* r7 (syscall number) */
-
-    /* registers pushed into the stack by exception entry */
-    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
-    uint32_t r0, r1, r2, r3;
-    uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
-    uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
-
-    /* the rest of the stack is ommited */
-};
-
 struct task_struct {
     int pid;
 
@@ -101,13 +69,11 @@ struct task_struct {
 };
 
 struct thread_info {
-    struct stack *stack_top; /* stack pointer */
-    uint32_t *stack;         /* base address to the thread stack */
-    size_t stack_size;       /* bytes */
+    unsigned long *stack_top; /* stack pointer */
+    unsigned long *stack;     /* base address to the thread stack */
+    size_t stack_size;        /* bytes */
 
-    struct {
-        uint32_t *r0, *r1, *r2, *r3;
-    } reg;
+    unsigned long *args[4]; /* pointer to the syscall arguments in the staack */
 
     struct task_struct *task; /* the task of this thread */
 

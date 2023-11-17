@@ -325,7 +325,7 @@ static int thread_create(struct thread_info **new_thread,
     }
 
     thread->stack_top =
-        (struct stack *) ((uintptr_t) thread->stack + stack_size);
+        (unsigned long *) ((uintptr_t) thread->stack + stack_size);
 
     /* allocate anonymous pipe for the new thread */
     thread->stack_top = thread_pipe_alloc(tid, thread->stack_top);
@@ -581,7 +581,7 @@ void finish_wait(struct list_head *wait)
 static inline void signal_cleanup_handler(void)
 {
     running_thread->stack_top =
-        (struct stack *) running_thread->stack_top_preserved;
+        (unsigned long *) running_thread->stack_top_preserved;
     running_thread->stack_top_preserved = (unsigned long) NULL;
 }
 
@@ -593,7 +593,7 @@ static inline void thread_join_handler(void)
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
         /* pass the return value back to the waiting thread */
-        void **retval = (void **) thread->stack_top->r1;
+        void **retval = (void **) thread->args[1];  // XXX
         if (retval) {
             *(uint32_t *) retval = (uint32_t) running_thread->retval;
         }
@@ -2069,7 +2069,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         /* wake up the waiting thread and setup return values */
         finish_wait(&thread->list);
         *thread->ret_sig = signum;
-        *(int *) thread->reg.r0 = 0;
+        *(int *) thread->args[0] = 0;
     }
 
     switch (signum) {
@@ -2302,7 +2302,7 @@ static void pthread_once_cleanup_handler(void)
 {
     /* restore the stack */
     running_thread->stack_top =
-        (struct stack *) running_thread->stack_top_preserved;
+        (unsigned long *) running_thread->stack_top_preserved;
     running_thread->stack_top_preserved = (unsigned long) NULL;
 
     /* wakeup all waiting threads and mark once variable as complete */
@@ -2827,39 +2827,6 @@ static void system_ticks_update(void)
     syscall_timeout_update();
 }
 
-static inline bool check_systick_event(void)
-{
-    /* if r7 is negative, the kernel is returned from the systick
-     * interrupt. otherwise the kernel is returned from the
-     * supervisor call.
-     */
-    if ((int) SUPERVISOR_EVENT(running_thread) < 0) {
-        SUPERVISOR_EVENT(running_thread) *= -1;  // restore to positive
-        return true;
-    }
-
-    return false;
-}
-
-static void syscall_handler(void)
-{
-    unsigned long *args[4];
-    unsigned long syscall_num =
-        get_syscall_info(running_thread->stack_top, args);
-
-    for (int i = 0; i < SYSCALL_CNT; i++) {
-        if (syscall_num == syscall_table[i].num) {
-            /* execute the syscall service */
-            running_thread->reg.r0 = args[0];  // TODO
-            running_thread->reg.r1 = args[1];
-            running_thread->reg.r2 = args[2];
-            running_thread->reg.r3 = args[3];
-            syscall_table[i].syscall_handler();
-            break;
-        }
-    }
-}
-
 static void thread_return_event_handler(void)
 {
     struct task_struct *task = current_task_info();
@@ -2868,21 +2835,49 @@ static void thread_return_event_handler(void)
          * be terminated */
         sys_exit();
     } else {
-        running_thread->retval = (void *) running_thread->stack_top->r0;
+        running_thread->retval = (void *) running_thread->args[0];
         thread_join_handler();
     }
 }
 
-static void supervisor_request_handler(void)
+static void syscall_handler(void)
 {
-    if (SUPERVISOR_EVENT(running_thread) == SIGNAL_CLEANUP_EVENT) {
+    unsigned long syscall_num =
+        get_syscall_info(running_thread->stack_top, running_thread->args);
+
+    switch (syscall_num) {
+    case 0:
+        break;
+    case SIGNAL_CLEANUP_EVENT:
         signal_cleanup_handler();
-    } else if (SUPERVISOR_EVENT(running_thread) == THREAD_RETURN_EVENT) {
+        break;
+    case THREAD_RETURN_EVENT:
         thread_return_event_handler();
-    } else if (SUPERVISOR_EVENT(running_thread) == THREAD_ONCE_EVENT) {
+        break;
+    case THREAD_ONCE_EVENT:
         pthread_once_cleanup_handler();
-    } else {
-        syscall_handler();
+        break;
+    default:
+        /* check syscall table */
+        for (int i = 0; i < SYSCALL_CNT; i++) {
+            if (syscall_num == syscall_table[i].num) {
+                /* execute the syscall service */
+                syscall_table[i].syscall_handler();
+                return;
+            }
+        }
+
+        early_printf(
+            "\r=============== SYSCALL FAULT ================\n\r"
+            "Current thread: %p (%s)\n\r"
+            "Faulting syscall number = %d\n\r"
+            ">>> Halting system <<<\n\r"
+            "==============================================",
+            running_thread, running_thread->name, syscall_num);
+
+        /* unknown supervisor request */
+        while (1)
+            ;
     }
 }
 
@@ -3018,7 +3013,6 @@ void sched_start(void)
         INIT_LIST_HEAD(&ready_list[i]);
     }
 
-
     /* initialize kernel threads and deamons */
     kthread_create(init, 0, 2048);
     kthread_create(softirqd, KTHREAD_PRI_MAX, 1024);
@@ -3030,10 +3024,10 @@ void sched_start(void)
     list_del(&threads[0].list);  // remove from the sleep list
 
     while (1) {
-        if (check_systick_event()) {
+        if (check_systick_event(running_thread->stack_top)) {
             system_ticks_update();
         } else {
-            supervisor_request_handler();
+            syscall_handler();
         }
 
         /* select new thread */

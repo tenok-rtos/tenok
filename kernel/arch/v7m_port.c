@@ -29,6 +29,30 @@ enum {
     USAGE_FAULT = 3,
 };
 
+struct context {
+    /* pushed by the os: */
+    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
+    uint32_t _lr;
+    uint32_t _r7; /* r7 (syscall number) */
+
+    /* pushed by the exception entry: */
+    uint32_t r0, r1, r2, r3;
+    uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
+};
+
+struct context_fpu {
+    /* pushed by the os: */
+    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
+    uint32_t _lr;
+    uint32_t _r7; /* r7 (syscall number) */
+
+    /* pushed by the exception entry: */
+    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
+    uint32_t r0, r1, r2, r3;
+    uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
+    uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
+};
+
 uint32_t get_proc_mode(void)
 {
     /* get the 9 bits isr number from the ipsr register,
@@ -83,26 +107,50 @@ void __stack_init(uint32_t **stack_top,
     sp[8] = THREAD_PSP;       //_lr
 }
 
-unsigned long get_syscall_info(void *stack_addr, unsigned long *pargs[4])
+bool check_systick_event(void *sp)
 {
-    uint32_t lr = ((uint32_t *) stack_addr)[8];
+    uint32_t lr = ((uint32_t *) sp)[8];
+    long *syscall_num = NULL;
+
+    /* EXC_RETURN[4]: 0 = FPU used / 1 = FPU unused */
+    if (lr & 0x10) {
+        syscall_num = (long *) &((struct context *) sp)->_r7;
+    } else {
+        syscall_num = (long *) &((struct context_fpu *) sp)->_r7;
+    }
+
+    /* if r7 is negative, the kernel is returned from the systick
+     * interrupt. otherwise the kernel is returned from the
+     * supervisor call.
+     */
+    if (*syscall_num < 0) {
+        *syscall_num *= -1; /* restore the syscall number */
+        return true;
+    }
+
+    return false;
+}
+
+unsigned long get_syscall_info(void *sp, unsigned long *pargs[4])
+{
+    uint32_t lr = ((uint32_t *) sp)[8];
     unsigned long syscall_num;
 
     /* EXC_RETURN[4]: 0 = FPU used / 1 = FPU unused */
     if (lr & 0x10) {
-        struct stack *stack = (struct stack *) stack_addr;
-        syscall_num = stack->_r7;
-        pargs[0] = &stack->r0;
-        pargs[1] = &stack->r1;
-        pargs[2] = &stack->r2;
-        pargs[3] = &stack->r3;
+        struct context *context = (struct context *) sp;
+        syscall_num = context->_r7;
+        pargs[0] = &context->r0;
+        pargs[1] = &context->r1;
+        pargs[2] = &context->r2;
+        pargs[3] = &context->r3;
     } else {
-        struct stack_fpu *stack = (struct stack_fpu *) stack_addr;
-        syscall_num = stack->_r7;
-        pargs[0] = &stack->r0;
-        pargs[1] = &stack->r1;
-        pargs[2] = &stack->r2;
-        pargs[3] = &stack->r3;
+        struct context_fpu *context = (struct context_fpu *) sp;
+        syscall_num = context->_r7;
+        pargs[0] = &context->r0;
+        pargs[1] = &context->r1;
+        pargs[2] = &context->r2;
+        pargs[3] = &context->r3;
     }
 
     return syscall_num;
