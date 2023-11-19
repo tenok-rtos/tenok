@@ -252,13 +252,16 @@ void uart1_tx_tasklet_handler(unsigned long data)
     char *buf;
     size_t size;
 
-    while (!kfifo_is_empty(uart1_tx_fifo)) {
-        kfifo_dma_out_prepare(uart1_tx_fifo, &buf, &size);
-        uart_puts(USART1, buf, size);
-        kfifo_dma_out_finish(uart1_tx_fifo);
+    kfifo_dma_out_prepare(uart1_tx_fifo, &buf, &size);
+    uart_puts(USART1, buf, size);
+    kfifo_dma_out_finish(uart1_tx_fifo);
 
-        wake_up(&uart1_tx_wait_list);
-    }
+    /* wake up a write-waiting thread */
+    wake_up(&uart1_tx_wait_list);
+
+    /* schedule the tasklet again if the fifo is not cleared */
+    if (!kfifo_is_empty(uart1_tx_fifo))
+        tasklet_schedule(&uart1_tx_tasklet);
 }
 
 void USART1_IRQHandler(void)
