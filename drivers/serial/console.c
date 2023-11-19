@@ -44,6 +44,7 @@ uart_dev_t uart1 = {
 
 static struct kfifo *uart1_tx_fifo;
 static struct tasklet_struct uart1_tx_tasklet;
+static LIST_HEAD(uart1_tx_wait_list);
 
 static struct file_operations serial0_file_ops = {
     .read = serial0_read,
@@ -158,10 +159,6 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 
 ssize_t console_write(const char *buf, size_t size)
 {
-    /* TODO:
-     * place the thread into the waitqueue if kfifo has
-     * no free space
-     */
     kfifo_in(uart1_tx_fifo, buf, size);
     tasklet_schedule(&uart1_tx_tasklet);
     return size;
@@ -172,7 +169,16 @@ ssize_t serial0_write(struct file *filp,
                       size_t size,
                       off_t offset)
 {
-    return console_write(buf, size);
+    CURRENT_THREAD_INFO(curr_thread);
+
+    if (kfifo_avail(uart1_tx_fifo) > 0) {
+        kfifo_in(uart1_tx_fifo, buf, size);
+        tasklet_schedule(&uart1_tx_tasklet);
+        return size;
+    } else {
+        prepare_to_wait(&uart1_tx_wait_list, &curr_thread->list, THREAD_WAIT);
+        return -ERESTARTSYS;
+    }
 }
 
 void early_tty_print(char *buf, size_t size)
@@ -250,6 +256,8 @@ void uart1_tx_tasklet_handler(unsigned long data)
         kfifo_dma_out_prepare(uart1_tx_fifo, &buf, &size);
         uart_puts(USART1, buf, size);
         kfifo_dma_out_finish(uart1_tx_fifo);
+
+        wake_up(&uart1_tx_wait_list);
     }
 }
 
