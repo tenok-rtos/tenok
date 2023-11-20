@@ -595,14 +595,12 @@ static inline void thread_join_handler(void)
     list_for_each_safe (curr, next, &running_thread->join_list) {
         struct thread_info *thread = list_entry(curr, struct thread_info, list);
 
-        /* pass the return value back to the waiting thread */
-        void **retval = (void **) thread->syscall_args[1];  // XXX
-        if (retval) {
-            *(uint32_t *) retval = (uint32_t) running_thread->retval;
+        /* pass the return value back to the joining thread */
+        if (thread->retval_join) {
+            *thread->retval_join = running_thread->retval;
         }
 
-        list_move(&thread->list, &ready_list[thread->priority]);
-        thread->status = THREAD_READY;
+        finish_wait(&thread->list);
     }
 
     /* remove the task from the system if it contains no thread anymore */
@@ -1908,7 +1906,7 @@ void sys_pthread_join(void)
 {
     /* read syscall arguments */
     pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    // void **retval = SYSCALL_ARG(void **, 0); //TODO
+    void **retval = SYSCALL_ARG(void **, 1);
 
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
@@ -1933,6 +1931,8 @@ void sys_pthread_join(void)
             return;
         }
     }
+
+    running_thread->retval_join = retval;
 
     list_add(&running_thread->list, &thread->join_list);
     running_thread->status = THREAD_WAIT;
@@ -2838,7 +2838,7 @@ static void thread_return_event_handler(void)
          * be terminated */
         sys_exit();
     } else {
-        running_thread->retval = (void *) running_thread->syscall_args[0];
+        running_thread->retval = (void *) *running_thread->syscall_args[0];
         thread_join_handler();
     }
 }

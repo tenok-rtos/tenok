@@ -88,6 +88,7 @@ struct thread_info {
 
     /* thread */
     void *retval;               /* for passing retval after the thread end */
+    void **retval_join;         /* to receive retval from a thread to join */
     size_t file_request_size;   /* size of the thread requesting to a file */
     uint32_t sleep_ticks;       /* remained ticks to sleep */
     uint16_t tid;               /* thread id */
