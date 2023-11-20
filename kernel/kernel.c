@@ -280,6 +280,7 @@ static void *thread_signal_queue_alloc(struct kfifo *signal_queue,
 static int thread_create(struct thread_info **new_thread,
                          thread_func_t thread_func,
                          struct thread_attr *attr,
+                         void *thread_arg,
                          uint32_t privilege)
 {
     /* check if the detach state setting is invalid */
@@ -334,9 +335,11 @@ static int thread_create(struct thread_info **new_thread,
         thread_signal_queue_alloc(&thread->signal_queue, thread->stack_top);
 
     /* initialize the thread stack */
-    uint32_t args[4] = {0};
+    uint32_t func_args[4] = {0};
+    if (thread_arg)
+        func_args[0] = (uint32_t) thread_arg;
     __stack_init((uint32_t **) &thread->stack_top, (uint32_t) thread_func,
-                 (uint32_t) thread_return_handler, args);
+                 (uint32_t) thread_return_handler, func_args);
 
     /* initialize the thread parameters */
     thread->stack_size = stack_size; /* bytes */
@@ -385,7 +388,7 @@ static int _task_create(thread_func_t task_func,
     };
 
     struct thread_info *thread;
-    int retval = thread_create(&thread, task_func, &attr, privilege);
+    int retval = thread_create(&thread, task_func, &attr, NULL, privilege);
     if (retval != 0)
         return retval;
 
@@ -1860,7 +1863,7 @@ void sys_pthread_create(void)
     pthread_t *pthread = SYSCALL_ARG(pthread_t *, 0);
     pthread_attr_t *_attr = SYSCALL_ARG(pthread_attr_t *, 1);
     start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
-    // void *arg = SYSCALL_ARG(void *, 3); //TODO
+    void *arg = SYSCALL_ARG(void *, 3);
 
     struct thread_attr *attr = (struct thread_attr *) _attr;
 
@@ -1875,7 +1878,7 @@ void sys_pthread_create(void)
     /* create new thread */
     struct thread_info *thread;
     int retval = thread_create(&thread, (thread_func_t) start_routine, attr,
-                               USER_THREAD);
+                               arg, USER_THREAD);
     if (retval != 0) {
         /* failed to create new thread, return error */
         SYSCALL_ARG(int, 0) = retval;
