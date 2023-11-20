@@ -48,9 +48,6 @@
 #define PRI_RESERVED 2
 #define KTHREAD_PRI_MAX (THREAD_PRIORITY_MAX + PRI_RESERVED)
 
-extern char _user_stack_start;
-extern char _user_stack_end;
-
 static LIST_HEAD(tasks_list);   /* list of all tasks in the system */
 static LIST_HEAD(threads_list); /* list of all threads in the system */
 static LIST_HEAD(sleep_list);   /* list of all threads in the sleeping state */
