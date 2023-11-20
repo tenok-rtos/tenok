@@ -137,27 +137,6 @@ __attribute__((section(".isr_vector"))) irq_handler_t isr_vectors[IRQ_CNT] = {
 
 irq_handler_t irq_table[IRQ_CNT];
 
-void Default_Handler(void)
-{
-    while (1)
-        ;
-}
-
-void SysTick_Handler(void)
-{
-    jump_to_kernel();
-}
-
-void NMI_Handler(void)
-{
-    while (1)
-        ;
-}
-
-void DebugMon_Handler(void)
-{
-}
-
 void irq_handler(void)
 {
     int irq = get_proc_mode();

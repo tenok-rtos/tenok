@@ -251,3 +251,24 @@ NACKED void UsageFault_Handler(void)
 {
     FAULT_DUMP(USAGE_FAULT);
 }
+
+void Default_Handler(void)
+{
+    while (1)
+        ;
+}
+
+void SysTick_Handler(void)
+{
+    jump_to_kernel();
+}
+
+void NMI_Handler(void)
+{
+    while (1)
+        ;
+}
+
+void DebugMon_Handler(void)
+{
+}
