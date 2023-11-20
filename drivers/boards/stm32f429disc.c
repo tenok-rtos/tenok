@@ -61,7 +61,7 @@ void lcd_init(void)
     LCD_DisplayOn();
 }
 
-void __platform_init(void)
+void __board_init(void)
 {
     SDRAM_Init();
     lcd_init();

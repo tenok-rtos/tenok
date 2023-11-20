@@ -44,10 +44,10 @@ struct context_fpu {
     /* pushed by the os: */
     uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
-    uint32_t _r7; /* r7 (syscall number) */
+    uint32_t _r7;            /* r7 (syscall number) */
+    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
 
     /* pushed by the exception entry: */
-    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
     uint32_t r0, r1, r2, r3;
     uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
     uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
@@ -105,6 +105,25 @@ void __stack_init(uint32_t **stack_top,
     sp[11] = args[1];         // r1
     sp[10] = args[0];         // r0
     sp[8] = THREAD_PSP;       //_lr
+}
+
+void __platform_init(void)
+{
+    /* priority range of group 4 is 0-15 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    NVIC_SetPriority(MemoryManagement_IRQn, 0);
+    NVIC_SetPriority(BusFault_IRQn, 0);
+    NVIC_SetPriority(UsageFault_IRQn, 0);
+    NVIC_SetPriority(SysTick_IRQn, 1);
+    NVIC_SetPriority(SVCall_IRQn, 15);
+    NVIC_SetPriority(PendSV_IRQn, 15);
+
+    /* enable the systick timer */
+    SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
+
+    /* use a dummy stack to initialize the os environment */
+    uint32_t stack_empty[32];
+    os_env_init(&stack_empty[31]);
 }
 
 bool check_systick_event(void *sp)
@@ -265,19 +284,4 @@ void NMI_Handler(void)
 
 void DebugMon_Handler(void)
 {
-}
-
-void irq_init(void)
-{
-    /* priority range of group 4 is 0-15 */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-    NVIC_SetPriority(MemoryManagement_IRQn, 0);
-    NVIC_SetPriority(BusFault_IRQn, 0);
-    NVIC_SetPriority(UsageFault_IRQn, 0);
-    NVIC_SetPriority(SysTick_IRQn, 1);
-    NVIC_SetPriority(SVCall_IRQn, 15);
-    NVIC_SetPriority(PendSV_IRQn, 15);
-
-    /* enable the systick timer */
-    SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 }

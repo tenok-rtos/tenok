@@ -24,7 +24,7 @@ void led_write(int state)
     GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 }
 
-void __platform_init(void)
+void __board_init(void)
 {
     led_init();
     serial0_init();

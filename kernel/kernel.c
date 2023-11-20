@@ -2992,11 +2992,11 @@ void init(void)
 {
     setprogname("idle");
 
-    /* platform initialization */
+    /* bring up drivers */
     preempt_disable();
     {
         print_platform_info();
-        __platform_init();
+        __board_init();
         rom_dev_init();
     }
     preempt_enable();
@@ -3026,13 +3026,7 @@ void init(void)
 
 void sched_start(void)
 {
-    /* initialize the irq vector table */
-    irq_init();
-
-    uint32_t stack_empty[32];  // a dummy stack for os enviromnent
-                               // initialization
-    os_env_init(&stack_empty[31]);
-
+    __platform_init();
     slab_init();
     heap_init();
     tty_init();

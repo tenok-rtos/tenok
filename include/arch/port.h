@@ -46,11 +46,18 @@ void *jump_to_thread(void *stack, bool privileged);
 void jump_to_kernel(void);
 
 /**
- * @brief  Initialize platform drivers
+ * @brief  Basic platform initialization
  * @param  None
  * @retval None
  */
 void __platform_init(void);
+
+/**
+ * @brief  Initialize board drivers
+ * @param  None
+ * @retval None
+ */
+void __board_init(void);
 
 /**
  * @brief  Initialize thread stack
