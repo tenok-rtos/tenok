@@ -33,6 +33,19 @@
 #define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
 
+/* clang-format off */
+#define DAEMON_LIST \
+    DECLARE_DAEMON(SOFTIRQD), \
+    DECLARE_DAEMON(FILESYSD)
+/* clang-format on */
+
+#define DECLARE_DAEMON(x) x
+enum {
+    DAEMON_LIST,
+    DAEMON_CNT,
+};
+#undef DECLARE_DAEMON
+
 struct syscall_info {
     void (*syscall_handler)(void);
     uint32_t num;
@@ -126,5 +139,8 @@ int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 struct task_struct *current_task_info(void);
 struct thread_info *current_thread_info(void);
 struct thread_info *acquire_thread(int tid);
+
+void set_daemon_id(int daemon);
+uint16_t get_daemon_id(int daemon);
 
 #endif

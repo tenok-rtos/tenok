@@ -11,8 +11,6 @@
 
 #include "kconfig.h"
 
-#define SOFTIRQD_ID 1
-
 static LIST_HEAD(tasklet_list);
 static LIST_HEAD(softirqd_wait);
 
@@ -30,7 +28,8 @@ void tasklet_schedule(struct tasklet_struct *t)
     list_move(&t->list, &tasklet_list);
 
     /* wake up the softirq daemon */
-    struct thread_info *thread = acquire_thread(SOFTIRQD_ID);
+    int softirqd_tid = get_daemon_id(SOFTIRQD);
+    struct thread_info *thread = acquire_thread(softirqd_tid);
     finish_wait(&thread->list);
 }
 
@@ -47,6 +46,7 @@ static void softirqd_sleep(void)
 void softirqd(void)
 {
     setprogname("softirqd");
+    set_daemon_id(SOFTIRQD);
 
     struct tasklet_struct *t;
 

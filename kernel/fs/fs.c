@@ -1083,7 +1083,8 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type)
     memcpy(&buf[buf_size], &file_type, sizeof(file_type));
     buf_size += sizeof(file_type);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void request_open_file(int reply_fd, char *path)
@@ -1102,7 +1103,8 @@ void request_open_file(int reply_fd, char *path)
     memcpy(&buf[buf_size], &path, sizeof(path));
     buf_size += sizeof(path);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void request_open_directory(int reply_fd, char *path)
@@ -1121,7 +1123,8 @@ void request_open_directory(int reply_fd, char *path)
     memcpy(&buf[buf_size], &path, sizeof(path));
     buf_size += sizeof(path);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void request_mount(int reply_fd, char *source, char *target)
@@ -1144,7 +1147,8 @@ void request_mount(int reply_fd, char *source, char *target)
     memcpy(&buf[buf_size], &target, sizeof(target));
     buf_size += sizeof(target);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void request_getcwd(int reply_fd, char *path, size_t len)
@@ -1166,7 +1170,8 @@ void request_getcwd(int reply_fd, char *path, size_t len)
     memcpy(&buf[buf_size], &len, sizeof(len));
     buf_size += sizeof(len);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void request_chdir(int reply_fd, const char *path)
@@ -1185,27 +1190,31 @@ void request_chdir(int reply_fd, const char *path)
     memcpy(&buf[buf_size], &path, sizeof(path));
     buf_size += sizeof(path);
 
-    fifo_write(files[FILE_SYSTEM_FD], buf, buf_size, 0);
+    const int filesysd_id = get_daemon_id(FILESYSD);
+    fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
 void filesysd(void)
 {
     setprogname("filesysd");
+    set_daemon_id(FILESYSD);
+
+    const int filesysd_id = get_daemon_id(FILESYSD);
 
     while (1) {
         int file_cmd;
-        read(FILE_SYSTEM_FD, &file_cmd, sizeof(file_cmd));
+        read(filesysd_id, &file_cmd, sizeof(file_cmd));
 
         int reply_fd;
-        read(FILE_SYSTEM_FD, &reply_fd, sizeof(reply_fd));
+        read(filesysd_id, &reply_fd, sizeof(reply_fd));
 
         switch (file_cmd) {
         case FS_CREATE_FILE: {
             char *path;
-            read(FILE_SYSTEM_FD, &path, sizeof(path));
+            read(filesysd_id, &path, sizeof(path));
 
             uint8_t file_type;
-            read(FILE_SYSTEM_FD, &file_type, sizeof(file_type));
+            read(filesysd_id, &file_type, sizeof(file_type));
 
             int new_fd = fs_create_file(path, file_type);
             write(reply_fd, &new_fd, sizeof(new_fd));
@@ -1214,7 +1223,7 @@ void filesysd(void)
         }
         case FS_OPEN_FILE: {
             char *path;
-            read(FILE_SYSTEM_FD, &path, sizeof(path));
+            read(filesysd_id, &path, sizeof(path));
 
             int open_fd = fs_open_file(path);
             write(reply_fd, &open_fd, sizeof(open_fd));
@@ -1223,7 +1232,7 @@ void filesysd(void)
         }
         case FS_OPEN_DIR: {
             char *path;
-            read(FILE_SYSTEM_FD, &path, sizeof(path));
+            read(filesysd_id, &path, sizeof(path));
 
             struct inode *inode_dir = fs_open_directory(path);
 
@@ -1233,10 +1242,10 @@ void filesysd(void)
         }
         case FS_MOUNT: {
             char *source;
-            read(FILE_SYSTEM_FD, &source, sizeof(source));
+            read(filesysd_id, &source, sizeof(source));
 
             char *target;
-            read(FILE_SYSTEM_FD, &target, sizeof(target));
+            read(filesysd_id, &target, sizeof(target));
 
             int result = fs_mount(source, target);
             write(reply_fd, &result, sizeof(result));
@@ -1245,10 +1254,10 @@ void filesysd(void)
         }
         case FS_GET_CWD: {
             char *buf;
-            read(FILE_SYSTEM_FD, &buf, sizeof(buf));
+            read(filesysd_id, &buf, sizeof(buf));
 
             size_t len;
-            read(FILE_SYSTEM_FD, &len, sizeof(len));
+            read(filesysd_id, &len, sizeof(len));
 
             char *retval = fs_getcwd(buf, len);
             write(reply_fd, &retval, sizeof(retval));
@@ -1257,7 +1266,7 @@ void filesysd(void)
         }
         case FS_CHANGE_DIR: {
             char *path;
-            read(FILE_SYSTEM_FD, &path, sizeof(path));
+            read(filesysd_id, &path, sizeof(path));
 
             int result = fs_chdir(path);
             write(reply_fd, &result, sizeof(result));

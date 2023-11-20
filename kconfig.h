@@ -30,7 +30,6 @@
 #define SIGNAL_QUEUE_SIZE    5
 
 /* file system */
-#define FILE_SYSTEM_FD       2
 #define FILE_CNT_MAX         100   /* the maximum number of the files can be *
                                     * created, which includes directories.   */
 #define FILE_NAME_LEN_MAX    30

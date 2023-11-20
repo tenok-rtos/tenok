@@ -72,6 +72,13 @@ static struct thread_info *running_thread = NULL;
 static uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];
 static uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)];
 
+/* daemons information */
+static int daemon_id_table[DAEMON_CNT];
+
+#define DECLARE_DAEMON(x) #x
+static char *deamon_names[] = {DAEMON_LIST};
+#undef DECLARE_DAEMON
+
 /* files */
 struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
 int file_cnt = 0;
@@ -239,6 +246,26 @@ struct thread_info *acquire_thread(int tid)
     }
 
     return NULL;
+}
+
+void set_daemon_id(int daemon)
+{
+    preempt_disable();
+
+    /* calling thread is not the daemon itself */
+    if (strcasecmp(deamon_names[daemon], running_thread->name)) {
+        while (1)
+            ;
+    }
+
+    daemon_id_table[daemon] = running_thread->tid;
+
+    preempt_enable();
+}
+
+uint16_t get_daemon_id(int daemon)
+{
+    return daemon_id_table[daemon];
 }
 
 /**
