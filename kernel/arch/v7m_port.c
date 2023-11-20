@@ -252,12 +252,6 @@ NACKED void UsageFault_Handler(void)
     FAULT_DUMP(USAGE_FAULT);
 }
 
-void Default_Handler(void)
-{
-    while (1)
-        ;
-}
-
 void SysTick_Handler(void)
 {
     jump_to_kernel();
@@ -271,4 +265,19 @@ void NMI_Handler(void)
 
 void DebugMon_Handler(void)
 {
+}
+
+void irq_init(void)
+{
+    /* priority range of group 4 is 0-15 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    NVIC_SetPriority(MemoryManagement_IRQn, 0);
+    NVIC_SetPriority(BusFault_IRQn, 0);
+    NVIC_SetPriority(UsageFault_IRQn, 0);
+    NVIC_SetPriority(SysTick_IRQn, 1);
+    NVIC_SetPriority(SVCall_IRQn, 15);
+    NVIC_SetPriority(PendSV_IRQn, 15);
+
+    /* enable the systick timer */
+    SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 }

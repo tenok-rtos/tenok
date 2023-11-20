@@ -263,8 +263,6 @@ Tenok API List
 
 * preempt_enable()
 
-* request_irq()
-
 ### Mutex:
 
 * mutex_init()
@@ -285,7 +283,7 @@ Tenok API List
 
 * down_trylock()
 
-### Tasklet:
+### Tasklet (SoftIRQ):
 
 * tasklet_init()
 

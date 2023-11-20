@@ -90,7 +90,6 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_i2c.c
 
 SRC += ./kernel/arch/v7m_port.c \
-       ./kernel/arch/stm32f4_irq.c \
        ./kernel/kfifo.c \
        ./kernel/list.c \
        ./kernel/kernel.c \

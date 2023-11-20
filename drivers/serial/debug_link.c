@@ -85,14 +85,12 @@ void uart3_init(uint32_t baudrate)
     };
     NVIC_Init(&nvic);
 
-    request_irq(USART3_IRQn, USART3_IRQHandler, 0, NULL, NULL);
     USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 #if (ENABLE_UART3_DMA != 0)
     /* initialize interrupt of the dma1 channel4 */
     nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
     NVIC_Init(&nvic);
 
-    request_irq(DMA1_Stream4_IRQn, DMA1_Stream4_IRQHandler, 0, NULL, NULL);
     DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 #endif
 }

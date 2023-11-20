@@ -4,8 +4,6 @@
 #ifndef __KERNEL_INTERRUPT_H__
 #define __KERNEL_INTERRUPT_H__
 
-typedef void (*irq_handler_t)(void);
-
 /**
  * @brief  Disable all interrupts
  * @param  None
@@ -27,20 +25,5 @@ void preempt_enable(void);
  * @retval None
  */
 void irq_init(void);
-
-/**
- * @brief  Register the interrupt handler function to a specified IRQ
- * @param  irq: The IRQ number to provide.
- * @param  handler: The interrupt handler function to provide.
- * @param  flags: Not used.
- * @param  name: Not used.
- * @param  dev: Not used.
- * @retval int: 0 on sucess and nonzero error number on error.
- */
-int request_irq(unsigned int irq,
-                irq_handler_t handler,
-                unsigned long flags,
-                const char *name,
-                void *dev);
 
 #endif

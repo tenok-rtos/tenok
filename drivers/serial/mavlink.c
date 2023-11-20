@@ -74,7 +74,6 @@ void uart2_init(uint32_t baudrate)
     };
     NVIC_Init(&NVIC_InitStruct);
 
-    request_irq(USART2_IRQn, USART2_IRQHandler, 0, NULL, NULL);
     USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 }
 

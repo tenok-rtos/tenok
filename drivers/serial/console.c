@@ -94,7 +94,6 @@ void uart1_init(uint32_t baudrate)
     };
     NVIC_Init(&nvic);
 
-    request_irq(USART1_IRQn, USART1_IRQHandler, 0, NULL, NULL);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 
 #if (ENABLE_UART1_DMA != 0)
@@ -102,7 +101,6 @@ void uart1_init(uint32_t baudrate)
     nvic.NVIC_IRQChannel = DMA2_Stream7_IRQn;
     NVIC_Init(&nvic);
 
-    request_irq(DMA2_Stream7_IRQn, DMA2_Stream7_IRQHandler, 0, NULL, NULL);
     DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 #endif
 }
