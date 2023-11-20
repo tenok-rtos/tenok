@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/reent.h>
 #include <unistd.h>
 
 #include "kconfig.h"
@@ -289,6 +290,24 @@ int dprintf(int fd, const char *format, ...)
 
     size_t len = strlen(buf);
     int retval = write(fd, buf, len);
+
+    va_end(args);
+
+    return retval;
+}
+
+int fprintf(FILE *stream, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+
+    char buf[PRINT_SIZE_MAX];
+    vsnprintf(buf, PRINT_SIZE_MAX, format, args);
+
+    __FILE *_stream = (__FILE *) stream;
+    size_t len = strlen(buf);
+    int retval = write(_stream->fd, buf, len);
 
     va_end(args);
 

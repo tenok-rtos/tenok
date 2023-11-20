@@ -86,8 +86,8 @@ int fseek(FILE *stream, long offset, int whence);
  */
 int fileno(FILE *stream);
 
-int printf(const char *format, ...);                 // TODO
-int fprintf(FILE *stream, const char *format, ...);  // TODO
+int printf(const char *format, ...);  // TODO
+int fprintf(FILE *stream, const char *format, ...);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);
 int vsprintf(char *str, const char *format, va_list);
