@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <arch/port.h>
@@ -179,7 +180,7 @@ void __idle(void)
     asm volatile("wfi");
 }
 
-static void dump_registers(uint32_t *fault_stack)
+static int dump_registers(char *buf, size_t buf_size, uint32_t *fault_stack)
 {
     unsigned int r0 = fault_stack[0];
     unsigned int r1 = fault_stack[1];
@@ -190,11 +191,11 @@ static void dump_registers(uint32_t *fault_stack)
     unsigned int pc = fault_stack[6];
     unsigned int psr = fault_stack[7];
 
-    early_printf(
-        "r0: 0x%08x r1:  0x%08x r2: 0x%08x\n\r"
-        "r3: 0x%08x r12: 0x%08x lr: 0x%08x\n\r"
-        "pc: 0x%08x psr: 0x%08x\n\r",
-        r0, r1, r2, r3, r12, lr, pc, psr);
+    return snprintf(buf, buf_size,
+                    "r0: 0x%08x r1:  0x%08x r2: 0x%08x\n\r"
+                    "r3: 0x%08x r12: 0x%08x lr: 0x%08x\n\r"
+                    "pc: 0x%08x psr: 0x%08x\n\r",
+                    r0, r1, r2, r3, r12, lr, pc, psr);
 }
 
 void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
@@ -212,39 +213,45 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
         fault_stack = psp;
     }
 
+    char *fault_type_s = "";
     switch (fault_type) {
     case HARD_FAULT:
-        early_printf("\r================ HARD FAULT ==================\n\r");
+        fault_type_s = "\r================ HARD FAULT ==================\n\r";
         break;
     case MPU_FAULT:
-        early_printf("\r================= MPU FAULT ==================\n\r");
+        fault_type_s = "\r================= MPU FAULT ==================\n\r";
         break;
     case BUS_FAULT:
-        early_printf("\r================= BUS FAULT ==================\n\r");
+        fault_type_s = "\r================= BUS FAULT ==================\n\r";
         break;
     case USAGE_FAULT:
-        early_printf("\r================ USAGE FAULT =================\n\r");
+        fault_type_s = "\r================ USAGE FAULT =================\n\r";
         break;
     }
 
+    char thread_info_s[100] = {0};
     if (curr_thread) {
-        early_printf("Current thread: %p (%s)\n\r", curr_thread,
-                     curr_thread->name);
+        snprintf(thread_info_s, sizeof(thread_info_s),
+                 "Current thread: %p (%s)\n\r", curr_thread, curr_thread->name);
     }
 
+    char reg_info_s[200] = {0};
+    char fault_msg_s[100] = {0};
     if (!imprecise_error) {
-        dump_registers(fault_stack);
-        early_printf("Faulting instruction address = 0x%08x\n\r",
-                     fault_stack[6]);
+        dump_registers(reg_info_s, sizeof(reg_info_s), fault_stack);
+        snprintf(fault_msg_s, sizeof(fault_msg_s),
+                 "Faulting instruction address = 0x%08lx\n\r", fault_stack[6]);
     } else {
-        early_printf(
-            "Imprecise fault detected\n\r"
-            "Unable to dump registers\n\r");
+        snprintf(fault_msg_s, sizeof(fault_msg_s),
+                 "Imprecise fault detected\n\r"
+                 "Unable to dump registers\n\r");
     }
 
-    early_printf(
+    panic(
+        "%s%s%s%s"
         ">>> Halting system <<<\n\r"
-        "==============================================");
+        "==============================================",
+        fault_type_s, thread_info_s, reg_info_s, fault_msg_s);
 
     while (1)
         ;

@@ -257,6 +257,8 @@ Tenok API List
 
 * printk()
 
+* panic()
+
 ### Interrupt:
 
 * preempt_disable()

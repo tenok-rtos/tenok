@@ -2903,17 +2903,14 @@ static void syscall_handler(void)
             }
         }
 
-        early_printf(
+        /* Unknown supervisor request */
+        panic(
             "\r=============== SYSCALL FAULT ================\n\r"
             "Current thread: %p (%s)\n\r"
             "Faulting syscall number = %d\n\r"
             ">>> Halting system <<<\n\r"
             "==============================================",
             running_thread, running_thread->name, syscall_num);
-
-        /* Unknown supervisor request */
-        while (1)
-            ;
     }
 }
 
@@ -2978,7 +2975,7 @@ static void check_thread_stack(void)
     /* Check thread stack pointer is valid or not */
     if ((uintptr_t) running_thread->stack_top < lower_bound ||
         (uintptr_t) running_thread->stack_top > upper_bound) {
-        early_printf(
+        panic(
             "\r================ STACK FAULT =================\n\r"
             "Current thread: %p (%s)\n\r"
             "Stack range: [0x%08x-0x%08x]\n\r"
@@ -2988,9 +2985,6 @@ static void check_thread_stack(void)
             "==============================================",
             running_thread, running_thread->name, lower_bound, upper_bound,
             running_thread->stack_size, running_thread->stack_top);
-
-        while (1)
-            ;
     }
 }
 

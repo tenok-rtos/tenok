@@ -40,14 +40,18 @@ void printk(char *format, ...)
     va_end(args);
 }
 
-void early_printf(char *format, ...)
+void panic(char *format, ...)
 {
+    char buf[1024] = {0};
+
     va_list args;
     va_start(args, format);
 
-    char buf[300] = {0};
-    vsnprintf(buf, 300, format, args);
+    vsnprintf(buf, sizeof(buf), format, args);
     early_tty_print(buf, strlen(buf));
 
     va_end(args);
+
+    while (1)
+        ;
 }

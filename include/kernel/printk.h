@@ -9,11 +9,18 @@
            called inside the kernel space
  * @param  format: The formatting string.
  * @param  variable arguments: The variables used by the
-                               formatting specifiers.
+ *         formatting specifiers.
  * @retval None
  */
 void printk(char *format, ...);
 
-void early_printf(char *format, ...);
+/**
+ * @brief  Display a message, then halt the system
+ * @param  format: The formatting string.
+ * @param  variable arguments: The variables used by the
+ *         formatting specifiers.
+ * @retval None
+ */
+void panic(char *format, ...);
 
 #endif
