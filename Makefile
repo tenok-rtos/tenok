@@ -95,7 +95,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/kernel.c \
        ./kernel/task.c \
        ./kernel/sched.c \
-       ./kernel/fcntl.c \
+       ./kernel/file.c \
        ./kernel/pipe.c \
        ./kernel/mqueue.c \
        ./kernel/mutex.c \
@@ -107,7 +107,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/printk.c \
        ./kernel/softirq.c \
        ./kernel/fs/fs.c \
-       ./kernel/fs/file.c \
+       ./kernel/fs/wrapper.c \
        ./kernel/fs/reg_file.c \
        ./kernel/fs/rom_dev.c \
        ./kernel/mm/mpool.c \
