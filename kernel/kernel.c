@@ -1788,7 +1788,11 @@ void sys_mq_unlink(void)
 {
     char *name = SYSCALL_ARG(char *, 0);
 
-    // TODO: String length check
+    /* Check the length of the message queue name */
+    if (strlen(name) >= FILE_NAME_LEN_MAX) {
+        SYSCALL_ARG(int, 0) = -ENAMETOOLONG;
+        return;
+    }
 
     /* Search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
