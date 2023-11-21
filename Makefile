@@ -41,6 +41,9 @@ CFLAGS += -Wl,-T,$(LD_GENERATED)
 USER = $(shell whoami)
 CFLAGS += -D__USER_NAME__=\"$(USER)\"
 
+REVISION = $(shell git rev-parse --short=10 HEAD)
+CFLAGS += -D__REVISION__=\"$(REVISION)\"
+
 CFLAGS += -I ./lib/CMSIS/ST/STM32F4xx/Include
 CFLAGS += -I ./lib/CMSIS/Include
 CFLAGS += -I $(ST_LIB)/inc

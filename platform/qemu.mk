@@ -5,7 +5,8 @@ LD_SCRIPT += platform/stm32f407.ld
 CFLAGS += -D STM32F40_41xxx \
 	  -D ENABLE_UART1_DMA=0 \
 	  -D ENABLE_UART3_DMA=0 \
-	  -D BUILD_QEMU
+	  -D BUILD_QEMU \
+          -D __ARCH__=\"armv7m\"
 
 CFLAGS += -D__BOARD_NAME__=\"stm32f407\"
 

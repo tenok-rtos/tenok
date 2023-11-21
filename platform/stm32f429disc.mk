@@ -4,7 +4,8 @@ LD_SCRIPT = platform/stm32f429.ld
 
 CFLAGS += -D STM32F429_439xx \
           -D ENABLE_UART1_DMA=1 \
-          -D ENABLE_UART3_DMA=1
+          -D ENABLE_UART3_DMA=1 \
+          -D __ARCH__=\"armv7m\"
 
 CFLAGS += -D__BOARD_NAME__=\"stm32f429\"
 

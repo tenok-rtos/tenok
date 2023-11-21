@@ -4,7 +4,8 @@ LD_SCRIPT += platform/stm32f407.ld
 
 CFLAGS += -D STM32F40_41xxx \
 	  -D ENABLE_UART1_DMA=1 \
-	  -D ENABLE_UART3_DMA=1
+	  -D ENABLE_UART3_DMA=1 \
+          -D __ARCH__=\"armv7m\"
 
 CFLAGS += -Wl,-T,platform/stm32f407.ld
 
