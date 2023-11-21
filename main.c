@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <tenok.h>
 
 int main(void)
