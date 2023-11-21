@@ -43,7 +43,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 
 ## Resources 
 
-* [Tenok Full API List](https://tenok-rtos.github.io/md_docs_6_api_list.html)
+* [Tenok API List](https://tenok-rtos.github.io/md_docs_6_api_list.html)
 * [Supported Platforms](https://tenok-rtos.github.io/md_docs_7_platforms.html)
 * [Doxygen Page](https://tenok-rtos.github.io/index.html)
 * [Presentation at COSCUP 2023](https://drive.google.com/file/d/1p8YJVPVwFAEknMXPbXzjj0y0p5qcqT2T/view?fbclid=IwAR1kYbiMB8bbCdlgW6ffHRBong7hNtJ8uCeVU4Qi5HvZ3G3srwhKPasPLEg)

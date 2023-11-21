@@ -20,7 +20,7 @@ called  `tenok/shell/XXX.c`:
 ```c
 #include "shell.h"
 
-void shell_XXX_help(int argc, char *argv[])
+void shell_cmd_XXX(int argc, char *argv[])
 {
     shell_puts("hello world!\n\r");
 }

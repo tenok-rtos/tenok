@@ -64,7 +64,7 @@ make rtplot
 After the rtplot window shows up, select `/dev/pts/Y` port, `test` message then click the connect button.
 The user should expect to see some real-time plotting on the screen.
 
-## 3. Define debug-link message
+### 3. Define debug-link message
 
 Tenok uses a metalanguage to define messages for debug visualization, this message prorocol is called the Debug-Link.
 All message files should named as `*.msg` and by default they should be placed in the `msg/` directory.

@@ -1,7 +1,7 @@
 Supported Platforms
 ===================
 
-## ARM Cortex-M4
+### ARM Cortex-M4
 
 * [STM32F4DISCOVERY](https://www.st.com/en/evaluation-tools/stm32f4discovery.html) (STM32F407VG)
   - Select by enabling `include platform/stm32f4disc.mk` in the Makefile
