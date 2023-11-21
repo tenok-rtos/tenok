@@ -46,14 +46,14 @@ static int get_baudrate_cflag(int baudrate)
 
 int serial_init(char *port_name, int baudrate)
 {
-    /* open the port */
+    /* Open the port */
     int serial_fd = open(port_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
     if (serial_fd == -1) {
         return -1;
     }
 
-    /* config the port */
+    /* Configure the port */
     struct termios options;
 
     tcgetattr(serial_fd, &options);

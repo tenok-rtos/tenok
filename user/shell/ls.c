@@ -10,17 +10,17 @@ void shell_cmd_ls(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    /* get current directoory path */
+    /* Get current directory path */
     char path[PATH_LEN_MAX] = {0};
     getcwd(path, PATH_LEN_MAX);
 
     if (argc == 2) {
         if (argv[1][0] != '/') {
-            /* user feed a relative path */
+            /* Input filename using relative path */
             int pos = strlen(path);
             snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", argv[1]);
         } else {
-            /* user feed a absolute path */
+            /* Input filename using absolute path */
             strncpy(path, argv[1], PATH_LEN_MAX);
         }
     } else if (argc > 2) {
@@ -28,11 +28,11 @@ void shell_cmd_ls(int argc, char *argv[])
         return;
     }
 
-    /* open the directory */
+    /* Open the directory */
     DIR dir;
     int retval = opendir(path, &dir);
 
-    /* check if the directory is successfull opened */
+    /* Check if the directory is open successfully */
     if (retval != 0) {
         snprintf(str, PRINT_SIZE_MAX,
                  "ls: cannot access '%s': No such file or directory\n\r",
@@ -41,7 +41,7 @@ void shell_cmd_ls(int argc, char *argv[])
         return;
     }
 
-    /* enumerate the directory */
+    /* Enumerate the directory */
     int pos = 0;
     struct dirent dirent;
     while ((readdir(&dir, &dirent)) != -1) {

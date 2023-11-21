@@ -9,7 +9,7 @@
 #define BITS_PER_CHAR 8
 #define BITS_PER_LONG (BITS_PER_CHAR * sizeof(long))
 
-/* find last bit set:
+/* Find last bit set:
  * the index of the last bit that's set, or 0 if value is zero.
  */
 static inline unsigned long _flsl(unsigned long word)

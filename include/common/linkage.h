@@ -8,7 +8,7 @@
     .global name;   \
     name:
 
-#define END(name) .size name, .- name  // calculate the size of the section
+#define END(name) .size name, .- name /* Calculate the size of the section */
 
 #define ENDPROC(name)       \
     .type name, % function; \

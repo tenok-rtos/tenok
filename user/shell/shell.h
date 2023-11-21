@@ -20,46 +20,46 @@
             .handler = shell_cmd_##cmd_name, .name = #cmd_name}
 
 enum {
-    NULL_CH = 0,      /* null character */
-    CTRL_A = 1,       /* ctrl + a */
-    CTRL_B = 2,       /* ctrl + b */
-    CTRL_C = 3,       /* ctrl + c */
-    CTRL_D = 4,       /* ctrl + d */
-    CTRL_E = 5,       /* ctrl + e */
-    CTRL_F = 6,       /* ctrl + f */
+    NULL_CH = 0,      /* Null character */
+    CTRL_A = 1,       /* Ctrl + a */
+    CTRL_B = 2,       /* Ctrl + b */
+    CTRL_C = 3,       /* Ctrl + c */
+    CTRL_D = 4,       /* Ctrl + d */
+    CTRL_E = 5,       /* Ctrl + e */
+    CTRL_F = 6,       /* Ctrl + f */
     CTRL_G = 7,       /* ctrl + g */
-    CTRL_H = 8,       /* ctrl + h */
-    TAB = 9,          /* tab */
-    CTRL_J = 10,      /* ctrl + j */
-    CTRL_K = 11,      /* ctrl + k */
-    CTRL_L = 12,      /* ctrl + l */
-    ENTER = 13,       /* enter */
-    CTRL_N = 14,      /* ctrl + n */
-    CTRL_O = 15,      /* ctrl + o */
-    CTRL_P = 16,      /* ctrl + p */
-    CTRL_Q = 17,      /* ctrl + r */
-    CTRL_R = 18,      /* ctrl + r */
-    CTRL_S = 19,      /* ctrl + s */
-    CTRL_T = 20,      /* ctrl + t */
-    CTRL_U = 21,      /* ctrl + u */
-    CTRL_W = 23,      /* ctrl + w */
-    CTRL_X = 24,      /* ctrl + x */
-    CTRL_Y = 25,      /* ctrl + y */
-    CTRL_Z = 26,      /* ctrl + z */
-    ESC_SEQ1 = 27,    /* first byte of the vt100/xterm escape sequence */
-    SPACE = 32,       /* space */
-    DELETE = 51,      /* delete, third byte of the xterm escape sequence */
-    UP_ARROW = 65,    /* up arrow, third byte of the xterm escape sequence */
-    DOWN_ARROW = 66,  /* down arrow, third byte of the xterm escape sequence */
-    RIGHT_ARROW = 67, /* right arrow, third byte of the xterm escape sequence */
-    LEFT_ARROW = 68,  /* left arrow, third byte of the xterm escape sequence */
-    END_XTERM = 70,   /* end, third byte of the xterm escape sequence */
-    END_VT100 = 52,   /* end, third byte of the vt100 escape sequence */
-    HOME_XTERM = 72,  /* home, third byte of the escape sequence */
-    HOME_VT100 = 49,  /* home, third byte of the vt100 escape sequence */
-    ESC_SEQ2 = 91,    /* second byte of the escape sequence */
-    ESC_SEQ4 = 126,   /* fourth byte of the vt100 escape sequence */
-    BACKSPACE = 127,  /* backspace */
+    CTRL_H = 8,       /* Ctrl + h */
+    TAB = 9,          /* Tab */
+    CTRL_J = 10,      /* Ctrl + j */
+    CTRL_K = 11,      /* Ctrl + k */
+    CTRL_L = 12,      /* Ctrl + l */
+    ENTER = 13,       /* Enter */
+    CTRL_N = 14,      /* Ctrl + n */
+    CTRL_O = 15,      /* Ctrl + o */
+    CTRL_P = 16,      /* Ctrl + p */
+    CTRL_Q = 17,      /* Ctrl + r */
+    CTRL_R = 18,      /* Ctrl + r */
+    CTRL_S = 19,      /* Ctrl + s */
+    CTRL_T = 20,      /* Ctrl + t */
+    CTRL_U = 21,      /* Ctrl + u */
+    CTRL_W = 23,      /* Ctrl + w */
+    CTRL_X = 24,      /* Ctrl + x */
+    CTRL_Y = 25,      /* Ctrl + y */
+    CTRL_Z = 26,      /* Ctrl + z */
+    ESC_SEQ1 = 27,    /* The first byte of the vt100/xterm esc. seq. */
+    SPACE = 32,       /* Space */
+    DELETE = 51,      /* Delete, the third byte of the xterm esc. seq. */
+    UP_ARROW = 65,    /* Up arrow, the third byte of the xterm esc. seq. */
+    DOWN_ARROW = 66,  /* Down arrow, the third byte of the xterm esc. seq. */
+    RIGHT_ARROW = 67, /* Right arrow, the third byte of the xterm esc. seq. */
+    LEFT_ARROW = 68,  /* Left arrow, the third byte of the xterm esc. seq. */
+    END_XTERM = 70,   /* End, the third byte of the xterm esc. seq. */
+    END_VT100 = 52,   /* End, the third byte of the vt100 esc. seq. */
+    HOME_XTERM = 72,  /* Home, the third byte of the esc. seq. */
+    HOME_VT100 = 49,  /* Home, the third byte of the vt100 esc. seq. */
+    ESC_SEQ2 = 91,    /* The second byte of the esc. seq. */
+    ESC_SEQ4 = 126,   /* The fourth byte of the vt100 esc. seq. */
+    BACKSPACE = 127,  /* Backspace */
 } KEYS;
 
 struct shell_history {
@@ -80,23 +80,22 @@ struct shell {
     char prompt[SHELL_PROMPT_LEN_MAX];
     char input_backup[SHELL_CMD_LEN_MAX];
 
-    /* autocomplete */
+    /* Autocomplete */
     bool show_autocompl;
     int autocompl_cursor_pos;
     int autocompl_cnt;
     int autocompl_curr;
-    struct shell_autocompl
-        *autocompl;  // allocate the amount of the commands you have
+    struct shell_autocompl *autocompl; /* Space provided by user */
 
-    /* history */
+    /* History */
     int history_max_cnt;
     int history_cnt;
     bool show_history;
-    struct shell_history *history;  // memory for storing the history
+    struct shell_history *history; /* Space provided by user */
     struct list_head history_head;
     struct list_head *history_curr;
 
-    /* shell commands */
+    /* Shell commands */
     struct shell_cmd *shell_cmds;
     int cmd_cnt;
 };
@@ -106,13 +105,13 @@ struct shell_cmd {
     char name[SHELL_PROMPT_LEN_MAX];
 };
 
-/* serial input/output */
+/* Serial I/O */
 void shell_serial_init(void);
 char shell_getc(void);
 void shell_puts(char *s);
 void shell_cls(void);
 
-/* shell functions */
+/* Shell functions */
 void shell_init(struct shell *shell,
                 struct shell_cmd *shell_cmds,
                 int cmd_cnt,

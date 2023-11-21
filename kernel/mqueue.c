@@ -14,15 +14,15 @@
 
 struct pipe *__mq_open(struct mq_attr *attr)
 {
-    /* initialize the pipe */
+    /* Allocate new pipe */
     struct pipe *pipe = kmalloc(sizeof(struct pipe));
     struct kfifo *pipe_fifo = kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
 
-    /* failed to allocate the pipe */
+    /* Failed to allocate new pipe */
     if (pipe == NULL || pipe_fifo == NULL)
         return NULL;
 
-    /* initialize the pipe object */
+    /* Initialize the pipe */
     pipe->fifo = pipe_fifo;
     INIT_LIST_HEAD(&pipe->r_wait_list);
     INIT_LIST_HEAD(&pipe->w_wait_list);
@@ -38,32 +38,32 @@ ssize_t __mq_receive(struct pipe *pipe,
     CURRENT_THREAD_INFO(curr_thread);
     struct kfifo *fifo = pipe->fifo;
 
-    /* the message queue descriptor is not opened for reading */
+    /* The message queue descriptor is not open with reading flag */
     if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
         return -EBADF;
 
-    /* the buffer size must be larger or equal to the max message size */
+    /* The buffer size must be larger or equal to the max message size */
     if (msg_len < attr->mq_msgsize)
         return -EMSGSIZE;
 
-    /* no message available in the fifo? */
+    /* Check if the FIFO has message to read */
     if (kfifo_len(fifo) <= 0) {
-        if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
-            /* return immediately */
+        if (attr->mq_flags & O_NONBLOCK) { /* Non-block mode */
+            /* Return immediately */
             return -EAGAIN;
-        } else { /* block mode */
-            /* force the thread to sleep */
+        } else { /* Block mode */
+            /* Enqueue the thread into the waiting list */
             prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
                             THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
-    /* read data from the fifo */
+    /* Read data from the FIFO */
     size_t read_size = kfifo_peek_len(fifo);
     kfifo_out(fifo, buf, read_size);
 
-    /* the fifo has space now, wake up a thread that waiting to write */
+    /* Wake up the highest-priority thread from the waiting list */
     wake_up(&pipe->w_wait_list);
 
     return read_size;
@@ -78,32 +78,32 @@ ssize_t __mq_send(struct pipe *pipe,
 
     struct kfifo *fifo = pipe->fifo;
 
-    /* the message queue descriptor is not opened for writing */
+    /* The message queue descriptor is not open with writing flag */
     if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
         return -EBADF;
 
-    /* the write size must be smaller or equal to the max message size */
+    /* The write size must be smaller or equal to the max message size */
     if (msg_len > attr->mq_msgsize) {
         return -EMSGSIZE;
     }
 
-    /* fifo has no free space to write? */
+    /* Check if the FIFO has space to write */
     if (kfifo_avail(fifo) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
-            /* return immediately */
+            /* Return immediately */
             return -EAGAIN;
         } else { /* block mode */
-            /* force the thread to sleep */
+            /* Enqueue the thread into the waiting list */
             prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
                             THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
-    /* write data to the fifo */
+    /* Write data to the FIFO */
     kfifo_in(fifo, buf, msg_len);
 
-    /* the fifo has message now, wake up a thread that waiting to read */
+    /* Wake up the highest-priority thread from the waiting list */
     wake_up(&pipe->r_wait_list);
 
     return 0;

@@ -86,6 +86,7 @@ print('// Created on ' +
 print('')
 
 print('/** @file */')
+print('/* clang-format off */')
 print('#ifndef __KERNEL_SYSCALL_H__')
 print('#define __KERNEL_SYSCALL_H__\n')
 
@@ -116,3 +117,4 @@ for i in range(0, syscall_cnt):
     print("void sys_%s(void);" % (syscalls[i]))
 
 print('\n#endif')
+print('/* clang-format on */')

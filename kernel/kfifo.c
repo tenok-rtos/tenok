@@ -20,13 +20,13 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size)
     fifo->esize = esize;
     fifo->size = size;
 
-    /* initialize kfifo as byte stream mode if esize is 1 */
+    /* Initialize kfifo as byte stream mode if esize is 1 */
     if (fifo->esize > 1) {
-        /* structured content with header (esize > 1) */
+        /* Structured content with header (esize > 1) */
         fifo->header_size = sizeof(struct kfifo_hdr);
         fifo->payload_size = sizeof(struct kfifo_hdr) + esize;
     } else {
-        /* byte stream without header (esize == 1) */
+        /* Byte stream without header (esize == 1) */
         fifo->header_size = 0;
         fifo->payload_size = 1;
     }
@@ -34,19 +34,19 @@ void kfifo_init(struct kfifo *fifo, void *data, size_t esize, size_t size)
 
 struct kfifo *kfifo_alloc(size_t esize, size_t size)
 {
-    /* allocate new kfifo object */
+    /* Allocate new kfifo object */
     struct kfifo *fifo = kmalloc(sizeof(struct kfifo));
     if (!fifo)
-        return NULL; /* allocation failed */
+        return NULL; /* Allocation failed */
     kfifo_init(fifo, NULL, esize, size);
 
-    /* allocate buffer space for the kfifo */
+    /* Allocate buffer space for the kfifo */
     uint8_t *fifo_data = kmalloc(fifo->payload_size * size);
     if (!fifo_data)
-        return NULL; /* allocation failed  */
+        return NULL; /* Allocation failed  */
     fifo->data = fifo_data;
 
-    /* return the allocated kfifo object */
+    /* Return the allocated kfifo object */
     return fifo;
 }
 
@@ -70,69 +70,69 @@ void kfifo_in(struct kfifo *fifo, const void *buf, size_t n)
     char *dest;
 
     if (kfifo_is_full(fifo)) {
-        /* ring buffer is full, overwrite the oldest data and
+        /* The FIFO is full, overwrite the oldest data and
          * shift the pointer to the next position */
         data_start = (char *) ((uintptr_t) fifo->data +
                                fifo->start * fifo->payload_size);
         dest = (char *) ((uintptr_t) data_start + fifo->header_size);
         memcpy(dest, buf, n);
 
-        /* update the start position */
+        /* Update the start position */
         fifo->start = kfifo_increase(fifo, fifo->start);
     } else {
-        /* append data at the end as the ring buffer has free space */
+        /* Append data at the end of the FIFO as it still has free space */
         data_start =
             (char *) ((uintptr_t) fifo->data + fifo->end * fifo->payload_size);
         dest = (char *) ((uintptr_t) data_start + fifo->header_size);
         memcpy(dest, buf, n);
 
-        /* update the data count */
+        /* Update the data count */
         fifo->count++;
     }
 
-    /* write the record size field if the fifo is configured
-     * as the structured content mode */
+    /* Write the record size field if the FIFO is configured
+     * as structured content mode */
     if (fifo->esize > 1)
         *(uint16_t *) data_start = n; /* recsize field */
 
-    /* update the end position */
+    /* Update the end position */
     fifo->end = kfifo_increase(fifo, fifo->end);
 }
 
 void kfifo_out(struct kfifo *fifo, void *buf, size_t n)
 {
-    /* return if no data to read */
+    /* Return if no data to read */
     if (fifo->count <= 0)
         return;
 
-    /* copy the data from the fifo */
+    /* Copy the data from the FIFO */
     char *src = (char *) ((uintptr_t) fifo->data + fifo->header_size +
                           fifo->start * fifo->payload_size);
     memcpy(buf, src, n);
 
-    /* update fifo information */
+    /* Update FIFO information */
     fifo->start = kfifo_increase(fifo, fifo->start);
     fifo->count--;
 }
 
 void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n)
 {
-    /* return if no data to read */
+    /* Return if no data to read */
     if (fifo->count <= 0)
         return;
 
-    /* calculate the start address of the next data */
+    /* Calculate the start address of the next data */
     char *data_start =
         (char *) ((uintptr_t) fifo->data + fifo->start * fifo->payload_size);
 
-    /* copy the data from the fifo */
+    /* Copy the data from the fifo */
     if (fifo->esize > 1) {
-        /* structured content mode */
+        /* Structured content mode */
         char *src =
             (char *) ((uintptr_t) data_start + sizeof(struct kfifo_hdr));
         memcpy(data, src, n);
     } else {
-        /* byte stream mode */
+        /* Byte stream mode */
         *(char *) data = *data_start;
     }
 }
@@ -140,11 +140,11 @@ void kfifo_out_peek(struct kfifo *fifo, void *data, size_t n)
 void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr)
 {
     if (kfifo_is_full(fifo)) {
-        /* fifo is full, return the address of the oldest data to overwrite */
+        /* FIFO is full, return the address of the oldest data to overwrite */
         *data_ptr = (char *) ((uintptr_t) fifo->data + fifo->header_size +
                               fifo->start * fifo->payload_size);
     } else {
-        /* return the next free space of the fifo */
+        /* Return the next free space of the fifo */
         *data_ptr = (char *) ((uintptr_t) fifo->data + fifo->header_size +
                               fifo->end * fifo->payload_size);
     }
@@ -153,19 +153,19 @@ void kfifo_dma_in_prepare(struct kfifo *fifo, char **data_ptr)
 void kfifo_dma_in_finish(struct kfifo *fifo, size_t n)
 {
     if (kfifo_is_full(fifo)) {
-        /* update the start pointer as the oldest data is overwritten */
+        /* Update the start pointer as the oldest data is overwritten */
         fifo->start = kfifo_increase(fifo, fifo->start);
     } else {
-        /* increase the element count in the fifo */
+        /* Increase the element count in the FIFO */
         fifo->count++;
     }
 
-    /* update the record size */
+    /* Update the record size */
     uint16_t *recsize = (uint16_t *) ((uintptr_t) fifo->data +
                                       fifo->start * fifo->payload_size);
     *recsize = n;
 
-    /* update as the data is written via dma */
+    /* Update as the data is written via DMA */
     fifo->end = kfifo_increase(fifo, fifo->end);
 }
 
@@ -175,14 +175,14 @@ void kfifo_dma_out_prepare(struct kfifo *fifo, char **data_ptr, size_t *n)
         (char *) ((uintptr_t) fifo->data + fifo->start * fifo->payload_size);
     uint16_t *recsize = (uint16_t *) data_start;
 
-    /* return the address and size of the next data to read */
+    /* Return the address and size of the next data to read */
     *data_ptr = (char *) ((uintptr_t) data_start + fifo->header_size);
     *n = *recsize;
 }
 
 void kfifo_dma_out_finish(struct kfifo *fifo)
 {
-    /* update the information as the data is read via dma */
+    /* Update the information as the data is read via DMA */
     fifo->start = kfifo_increase(fifo, fifo->start);
     fifo->count--;
 }
@@ -194,7 +194,7 @@ size_t kfifo_peek_len(struct kfifo *fifo)
     if (fifo->esize <= 1)
         return 0;
 
-    /* read and return the recsize */
+    /* Read and return the recsize */
     uint16_t *recsize = (uint16_t *) ((uintptr_t) fifo->data +
                                       fifo->start * fifo->payload_size);
     return *recsize;

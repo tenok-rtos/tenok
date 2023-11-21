@@ -70,68 +70,68 @@ enum {
 } THREAD_TYPE;
 
 struct task_struct {
-    uint16_t pid;                    /* task id */
-    struct thread_info *main_thread; /* the main thread belongs to the task */
+    uint16_t pid;                    /* Task ID */
+    struct thread_info *main_thread; /* The main thread belongs to the task */
 
-    /* record for the file descriptors owned by the task */
+    /* For recording for the file descriptors belongs to the task */
     uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
 
-    /* record for the mqueue descriptors owned by the task */
+    /* For recording message queue descriptors belongs to the task */
     uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
 
-    struct list_head threads_list; /* list of all threads held by the task */
-    struct list_head list;         /* link to the global task list */
+    struct list_head threads_list; /* List of all threads of the task */
+    struct list_head list;         /* Link to the global task list */
 };
 
 struct thread_info {
-    /* task */
-    struct task_struct *task; /* task of the thread belongs to */
+    /* Task */
+    struct task_struct *task; /* Task of the thread belongs to */
 
-    /* stack */
-    unsigned long *stack_top; /* stack pointer to the top of the thread stack */
-    unsigned long stack_top_preserved; /* preserve for staging new handler */
-    unsigned long *stack;              /* base address of the thread stack */
-    size_t stack_size;                 /* stack size of the thread in bytes */
+    /* Stack */
+    unsigned long *stack_top; /* Stack pointer to the top of the thread stack */
+    unsigned long stack_top_preserved; /* Preserve for staging new handler */
+    unsigned long *stack;              /* Base address of the thread stack */
+    size_t stack_size;                 /* Stack size of the thread in bytes */
 
-    /* syscall */
-    unsigned long *syscall_args[4];  /* pointer to the syscall arguments */
-    struct timespec syscall_timeout; /* for setting timeout for syscall */
-    bool syscall_pending;    /* indicate if the syscall is pending or not */
-    bool syscall_is_timeout; /* indicate if the syscall waiting time is up */
+    /* Syscall */
+    unsigned long *syscall_args[4];  /* Pointer to the syscall arguments */
+    struct timespec syscall_timeout; /* For setting timeout for syscall */
+    bool syscall_pending;    /* Indicate if the syscall is pending or not */
+    bool syscall_is_timeout; /* Indicate if the syscall waiting time is up */
 
-    /* thread */
-    void *retval;               /* for passing retval after the thread end */
-    void **retval_join;         /* to receive retval from a thread to join */
-    size_t file_request_size;   /* size of the thread requesting to a file */
-    uint32_t sleep_ticks;       /* remained ticks to sleep */
-    uint16_t tid;               /* thread id */
-    uint16_t timer_cnt;         /* the number of timers that the thread has */
-    uint8_t privilege;          /* kernel thread or user thread */
-    uint8_t status;             /* thread status */
-    uint8_t priority;           /* thread priority */
-    uint8_t original_priority;  /* original priority before inheritance */
-    bool priority_inherited;    /* true if current priority is inherited */
-    bool detached;              /* thread is detached or not */
-    bool joinable;              /* thread is joinable or not */
-    char name[THREAD_NAME_MAX]; /* thread name */
-    struct thread_once *once_control; /* for handling pthread_once_control */
+    /* Thread */
+    void *retval;               /* For passing retval after the thread end */
+    void **retval_join;         /* To receive retval from a thread to join */
+    size_t file_request_size;   /* Size of the thread requesting to a file */
+    uint32_t sleep_ticks;       /* Remained ticks to sleep */
+    uint16_t tid;               /* Thread id */
+    uint16_t timer_cnt;         /* The number of timers that the thread has */
+    uint8_t privilege;          /* Kernel thread or user thread */
+    uint8_t status;             /* Thread status */
+    uint8_t priority;           /* Thread priority */
+    uint8_t original_priority;  /* Original priority before inheritance */
+    bool priority_inherited;    /* True if current priority is inherited */
+    bool detached;              /* Thread is detached or not */
+    bool joinable;              /* Thread is joinable or not */
+    char name[THREAD_NAME_MAX]; /* Thread name */
+    struct thread_once *once_control; /* For handling pthread_once_control */
 
-    /* signals */
+    /* Signals */
     struct sigaction *sig_table[SIGNAL_CNT];
-    struct kfifo signal_queue; /* the queue for pending signals */
-    sigset_t sig_wait_set;     /* the signal set to wait */
-    uint32_t signal_cnt;       /* the number of pending signals in the queue */
-    int *ret_sig;              /* for storing retval of the sigwait */
-    bool wait_for_signal;      /* indicates the thread is waiting for signal */
+    struct kfifo signal_queue; /* The queue for pending signals */
+    sigset_t sig_wait_set;     /* The signal set to wait */
+    uint32_t signal_cnt;       /* The number of pending signals in the queue */
+    int *ret_sig;              /* For storing retval of the sigwait */
+    bool wait_for_signal;      /* Indicates the thread is waiting for signal */
 
-    /* lists */
-    struct list_head timers_list;     /* list of timers belongs to the thread */
-    struct list_head poll_files_list; /* list of all files polling for */
-    struct list_head task_list;       /* link to the thread list of the task */
-    struct list_head thread_list;     /* link to the global thread list */
-    struct list_head timeout_list;    /* link to the global timeout list */
-    struct list_head join_list; /* link to another thread waiting for join */
-    struct list_head list;      /* link to a scheduling list */
+    /* Lists */
+    struct list_head timers_list;     /* List of timers belongs to the thread */
+    struct list_head poll_files_list; /* List of all files polling for */
+    struct list_head task_list;       /* Link to the thread list of the task */
+    struct list_head thread_list;     /* Link to the global thread list */
+    struct list_head timeout_list;    /* Link to the global timeout list */
+    struct list_head join_list; /* Link to another thread waiting for join */
+    struct list_head list;      /* Link to a scheduling list */
 };
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);

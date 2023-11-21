@@ -1,4 +1,4 @@
-#STM32F4DISCOVERY board (https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
+# STM32F4DISCOVERY board (https://www.st.com/en/evaluation-tools/stm32f4discovery.html)
 
 LD_SCRIPT += platform/stm32f407.ld
 

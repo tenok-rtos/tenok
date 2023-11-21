@@ -44,7 +44,7 @@ unsigned int sleep(unsigned int seconds)
 
 int usleep(useconds_t usec)
 {
-    /* FIXME: granularity is too large with current design */
+    /* FIXME: Granularity is too large in current design */
 
     int usec_tick = OS_TICK_FREQ * usec / 1000000;
     long granularity_us = 1000000 / OS_TICK_FREQ;

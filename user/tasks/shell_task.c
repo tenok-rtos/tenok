@@ -14,7 +14,7 @@ extern struct inode *shell_dir_curr;
 struct shell shell;
 
 static struct shell_history history[SHELL_HISTORY_MAX];
-static struct shell_autocompl autocompl[100];  // XXX: handle with mpool
+static struct shell_autocompl autocompl[100]; /* FIXME */
 
 static char shell_path[PATH_LEN_MAX];
 static char prompt[SHELL_PROMPT_LEN_MAX];
@@ -26,7 +26,7 @@ void shell_task(void)
     struct shell_cmd *shell_cmds = (struct shell_cmd *) &_shell_cmds_start;
     int shell_cmd_cnt = SHELL_CMDS_CNT(_shell_cmds_start, _shell_cmds_end);
 
-    /* shell initialization */
+    /* Shell initialization */
     shell_init(&shell, shell_cmds, shell_cmd_cnt, history, SHELL_HISTORY_MAX,
                autocompl);
     shell_serial_init();

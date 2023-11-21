@@ -2,8 +2,10 @@
 #include "mavlink/hil.h"
 
 struct mavlink_cmd cmd_list[] = {
-    DEF_MAVLINK_CMD(mav_hil_sensor, 107), DEF_MAVLINK_CMD(mav_hil_gps, 113),
-    DEF_MAVLINK_CMD(mav_hil_state_quaternion, 115)};
+    DEF_MAVLINK_CMD(mav_hil_sensor, 107),
+    DEF_MAVLINK_CMD(mav_hil_gps, 113),
+    DEF_MAVLINK_CMD(mav_hil_state_quaternion, 115),
+};
 
 void parse_mavlink_msg(mavlink_message_t *msg)
 {

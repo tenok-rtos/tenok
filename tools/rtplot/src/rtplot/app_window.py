@@ -37,10 +37,10 @@ class QSerialThread(QtCore.QThread):
     def run(self):
         self.running = True
         while self.running == True:
-            # message reception
+            # Message reception
             result, msg_id, msg_name, data = self.serial_manager.receive_msg()
 
-            # send the data to the app window
+            # Send the data to the app window
             if result == 'success':
                 self.data_ready_signal.emit(msg_id, msg_name, data)
 
@@ -52,7 +52,7 @@ class QSerialThread(QtCore.QThread):
 
 class MyCanvas(FigureCanvas):
     def __init__(self, width, height):
-        # reference: https://stackoverflow.com/questions/71898494/weird-behaviour-with-qscrollarea-in-pyqt5-not-scrolling
+        # Reference: https://stackoverflow.com/questions/71898494/weird-behaviour-with-qscrollarea-in-pyqt5-not-scrolling
         self.fig = Figure(figsize=(5, 4))
         self.fig.tight_layout()
         FigureCanvas.__init__(self, self.fig)
@@ -74,27 +74,27 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.plot_pause = False
         self.old_selected_msg = ""
 
-        # plot data
-        self.data_list = []  # sensor measurement values
-        self.time_list = []  # received time sequence of the rtplot
+        # Plot data
+        self.data_list = []  # Sensor measurement values
+        self.time_list = []  # Received time sequence of the rtplot
         self.data_size = 10000
         self.subplot_cnt = 0
         self.curve_cnt = 0
 
-        # display time range
+        # Display time range
         self.x_axis_len = 20
         self.x_axis_min = 0
         self.x_axis_max = self.x_axis_min + self.x_axis_len
 
         self.ui_init()
 
-        # serial thread
+        # Serial thread
         self.ser_thread = None
 
         self.x_start_time = time.time()
         self.x_last_time = self.x_start_time
 
-        # csv saver
+        # CSV saver
         self.csv_saver = []
 
     def closeEvent(self, event):
@@ -102,14 +102,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.ser_thread.stop()
 
     def serial_ready_event(self, msg_id, msg_name, serial_data_list):
-        # select csv saver
+        # Select CSV saver
         _csv_saver = None
         for i in range(0, len(self.csv_saver)):
             if self.csv_saver[i].msg_id == msg_id:
                 _csv_saver = self.csv_saver[i]
                 break
 
-        # save csv
+        # Save CSV
         if _csv_saver != None:
             _csv_saver.save(serial_data_list)
 
@@ -137,7 +137,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.layout_main = QVBoxLayout(self._main)
 
         #=========#
-        # top bar #
+        # Top bar #
         #=========#
         hbox_topbar = QHBoxLayout()
 
@@ -190,14 +190,14 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.layout_main.addLayout(hbox_topbar)
 
     def delete_plots(self):
-        # stop animation before deleting canvas
+        # Stop animation before deleting canvas
         for i in range(0, self.subplot_cnt):
-            # call the private function to force the garbage collection
+            # Call the private function to force the garbage collection
             # recyle the matplot animation object
             self.matplot_ani[i]._stop()
 
-        # delete of pyqt objects requires only the toppest object
-        sip.delete(self.tab)  # this cleans the nav bar, canvas, etc.
+        # Delete of pyqt objects requires only the toppest object
+        sip.delete(self.tab)  # This cleans the nav bar, canvas, etc.
 
         del self.signal
         del self.matplot_ani
@@ -229,7 +229,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         if self.plot_pause == True:
             return
 
-        # scroll the x axis (time)
+        # Scroll the x axis (time)
         if (self.x_last_time - self.x_start_time) > self.x_axis_len:
             t = self.x_last_time - self.x_start_time
             self.x_axis_min = t - self.x_axis_len
@@ -239,7 +239,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             for i in range(0, self.subplot_cnt):
                 self.subplot[i].set_xlim(new_x_lim)
 
-        # autoscale of the y axis
+        # Autoscale of the y axis
         for i in range(0, self.subplot_cnt):
             self.subplot[i].relim()
             self.subplot[i].autoscale_view()
@@ -254,10 +254,10 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.btn_pause.setEnabled(True)
             self.btn_clean.setEnabled(True)
 
-            # reset the plot canvas
+            # Reset the plot canvas
             self.btn_clean_clicked()
 
-            # launch the serial thread
+            # Launch the serial thread
             port_name = self.combo_ports.currentText()
             baudrate = int(self.combo_baudrates.currentText())
             self.ser_thread = QSerialThread(
@@ -265,12 +265,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.ser_thread.data_ready_signal.connect(self.serial_ready_event)
             self.ser_thread.start()
 
-            # start the csv saver
+            # Start the CSV saver
             if self.checkbox_csv.isChecked() == True:
                 self.csv_saver = []
                 msg_cnt = len(self.msg_manager.msg_list)
 
-                # create log directory if it does not exist
+                # Create log directory if it does not exist
                 if not os.path.isdir('./logs'):
                     os.mkdir('./logs')
 
@@ -293,7 +293,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             del self.ser_thread
             self.ser_thread = None
 
-            # close the csv saver
+            # Close the CSV saver
             if self.checkbox_csv.isChecked() == True:
                 msg_cnt = len(self.msg_manager.msg_list)
 
@@ -309,9 +309,9 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         curr_selected_msg = self.combo_msgs.currentText()
 
         if curr_selected_msg == "---message---" or curr_selected_msg == self.old_selected_msg:
-            return  # ignore
+            return  # Ignore
 
-        # remove the combo hint (i.e., "---message---") once the user selected a message
+        # Remove the combo hint (i.e., "---message---") once the user selected a message
         if self.old_selected_msg == '':
             self.combo_msgs.removeItem(0)
 
@@ -320,20 +320,20 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_plots()
 
     def display_plots(self):
-        # delete old plots
+        # Delete old plots
         if self.display_off == False:
             self.delete_plots()
 
-        # reset time
+        # Reset time
         self.x_start_time = time.time()
 
-        # load message information
+        # Load message information
         selected_msg = self.combo_msgs.currentText()
         self.curr_msg_info = self.msg_manager.find_name(selected_msg)
 
         self.subplot_cnt = len(self.curr_msg_info.fields)
 
-        # resize window
+        # Resize window
         self.resize(700, 600)
 
         self.tab = QTabWidget()
@@ -343,7 +343,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
 
         min_width = 500
         min_height = 150
-        self.x_axis_min = 0  # reset x axis
+        self.x_axis_min = 0  # Reset x axis
         self.matplot_canvas = []
         self.matplot_nav_bar = []
         self.fig = []
@@ -351,31 +351,31 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.subplot_info = []
         self.matplot_ani = []
 
-        # set up subplots
+        # Set up subplots
         self.signal = []
         x_arr = np.linspace(0, self.data_size, self.data_size + 1)
         y_arr = np.zeros(self.data_size + 1)
         self.curve_cnt = 0
 
-        # initialize the tab widget
+        # Initialize the tab widget
         for i in range(0, self.subplot_cnt):
-            # create plot canvas for each tab
+            # Create plot canvas for each tab
             self.matplot_canvas.append(MyCanvas(min_width, min_height))
             self.matplot_canvas[i].figure.set_facecolor("lightGray")
             self.fig.append(self.matplot_canvas[i].figure)
 
-            # create new subplot
+            # Create new subplot
             self.subplot.append(self.fig[i].subplots(1, 1))
 
-            # retrieve message declaration
+            # Retrieve message declaration
             y_label = self.curr_msg_info.fields[i].description
             var_name = self.curr_msg_info.fields[i].var_name
             array_size = self.curr_msg_info.fields[i].array_size
 
-            # record curve start index and curve count
+            # Record curve start index and curve count
             self.subplot_info.append((self.curve_cnt, array_size))
 
-            # check the data to plot is a variable or an array
+            # Check the data to plot is a variable or an array
             if array_size == 0:
                 new_signal, = self.subplot[i].plot(
                     x_arr, y_arr, label=var_name)
@@ -389,7 +389,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
                     self.signal.append(new_signal)
                     self.curve_cnt = self.curve_cnt + 1
 
-            # configure the new subplot
+            # Configure the new subplot
             self.subplot[i].grid(color="lightGray")
             self.subplot[i].set_xlim(
                 [self.x_axis_min, self.x_axis_min + self.x_axis_len])
@@ -397,17 +397,17 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             self.subplot[i].set_ylabel(y_label)
             self.subplot[i].legend(loc='upper left', shadow=True)
 
-            # create navigation bar for each tab
+            # Create navigation bar for each tab
             self.matplot_nav_bar.append(
                 NavigationToolbar(self.matplot_canvas[i], self))
 
-            # add each canvas into a new tab
+            # Add each canvas into a new tab
             self.tab.addTab(self.plot_container[i], str(i))
             self.plot_layouts[i].addWidget(self.matplot_nav_bar[i])
             self.plot_layouts[i].addWidget(self.matplot_canvas[i])
             self.plot_container[i].setLayout(self.plot_layouts[i])
 
-        # initialize plot data list
+        # Initialize plot data list
         self.data_list = []
         self.time_list = []
         for i in range(0, self.curve_cnt):
@@ -419,12 +419,12 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             animator = animation.FuncAnimation(self.fig[i], partial(
                 self.update, who=i), data_x_range, interval=10, blit=False)
             self.matplot_ani.append(animator)
-            self.matplot_ani[i].event_source.stop()  # disable animation first
+            self.matplot_ani[i].event_source.stop()  # Disable animation first
 
-            # to sprress the warning of the animation never start when closing the window
+            # Sprress the warning of the animation never start when closing the window
             setattr(self.matplot_ani[i], '_draw_was_started', True)
 
-        # enable the animation of canvas on current tab only
+        # Enable the animation of canvas on current tab only
         canvas_index = self.tab.currentIndex()
         self.matplot_ani[canvas_index].event_source.start()
 
@@ -433,21 +433,21 @@ class RTPlotWindow(QtWidgets.QMainWindow):
         self.display_off = False
 
     def tab_on_change(self):
-        # ignore the event if the canvas is not yet ready
+        # Ignore the event if the canvas is not yet ready
         if self.display_off == True:
             return
 
-        # disable animation of canvas on every tab
+        # Disable animation of canvas on every tab
         for i in range(0, self.subplot_cnt):
             self.matplot_ani[i].event_source.stop()
 
-        # enable the animation of canvas on current tab only
+        # Enable the animation of canvas on current tab only
         canvas_index = self.tab.currentIndex()
         self.matplot_ani[canvas_index].event_source.start()
         self.matplot_canvas[canvas_index].draw()
 
     def btn_pause_clicked(self):
-        # ignore the event if the canvas is not yet ready
+        # Ignore the event if the canvas is not yet ready
         if self.display_off == True:
             return
 
@@ -457,7 +457,7 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
 
-            # disable the animation of the current matplot canvas
+            # Disable the animation of the current matplot canvas
             curr_canvas = self.tab.currentIndex()
             self.matplot_ani[curr_canvas].event_source.stop()
 
@@ -467,15 +467,15 @@ class RTPlotWindow(QtWidgets.QMainWindow):
             icon = self.style().standardIcon(pixmapi)
             self.btn_pause.setIcon(icon)
 
-            # enable the animation of the current matplot canvas
+            # Enable the animation of the current matplot canvas
             canvas_index = self.tab.currentIndex()
             self.matplot_ani[canvas_index].event_source.start()
 
     def btn_clean_clicked(self):
         if self.combo_msgs.currentText() == "---message---":
-            return  # ignore
+            return  # Ignore
 
-        # clean everything then redraw
+        # Clean everything then redraw
         self.display_plots()
 
     def start_window(serial_ports, msg_list, msg_manager: TenokMsgManager):

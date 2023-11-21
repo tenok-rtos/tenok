@@ -10,7 +10,7 @@ LD_GENERATED := generated.ld
 
 ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
 
-#board selection
+# Board selection
 include platform/qemu.mk
 #include platform/stm32f4disc.mk
 #include platform/stm32f429disc.mk

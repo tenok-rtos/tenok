@@ -1,4 +1,4 @@
-#32F429IDISCOVERY board (https://www.st.com/en/evaluation-tools/32f429idiscovery.html)
+# 32F429IDISCOVERY board (https://www.st.com/en/evaluation-tools/32f429idiscovery.html)
 
 LD_SCRIPT = platform/stm32f429.ld
 

@@ -49,7 +49,7 @@ int split_tokens(char *token[3],
 
     int step = SPLIT_TYPE;
     int token_cnt = 0;
-    int quote_cnt = 0;  // for handling the third token
+    int quote_cnt = 0; /* For handling the third token */
 
     int i = 0, j = 0;
     for (i = 0; i < size; i++) {
@@ -58,15 +58,15 @@ int split_tokens(char *token[3],
         switch (step) {
         case SPLIT_TYPE:
         case SPLIT_VAR_NAME:
-            /* skip spaces before the start of the token */
+            /* Skip spaces before the start of the token */
             if (c == ' ') {
                 if (j != 0) {
-                    /* end of the current token */
+                    /* End of the current token */
                     token[token_cnt][j] = '\0';
                     token_cnt++;
                     j = 0;
 
-                    /* switch to next step */
+                    /* Switch to next step */
                     step++;
                 }
             } else if (c == '"') {
@@ -74,11 +74,11 @@ int split_tokens(char *token[3],
                        file_name, line_num, i + 1);
                 return -1;
             } else {
-                /* copy data for current token */
+                /* Copy data for current token */
                 token[token_cnt][j] = c;
                 j++;
 
-                /* is this the last character? */
+                /* Is this the last character? */
                 if (i == (size - 1)) {
                     token_cnt++;
                 }
@@ -88,14 +88,14 @@ int split_tokens(char *token[3],
         case SPLIT_DESCRIPTION:
             if (quote_cnt == 0) {
                 if (c == ' ') {
-                    /* skip spaces before the quote symbol */
+                    /* Skip spaces before the quote symbol */
                     continue;
                 } else if (c == '"') {
-                    /* first quote symbol is caught */
+                    /* First quote symbol is caught */
                     quote_cnt++;
                 } else {
-                    /* the first symbol of the third token should
-                     * starts with the qoute symbol */
+                    /* The first symbol of the third token should
+                     * start with the qoute symbol */
                     printf(
                         "[msggen] %s:%d:%d: error, the third argument must be "
                         "quoted\n",
@@ -104,17 +104,17 @@ int split_tokens(char *token[3],
                 }
             } else if (quote_cnt == 1) {
                 if (c == '"') {
-                    /* the second quote symbol is caught */
+                    /* The second quote symbol is caught */
                     quote_cnt++;
 
-                    /* end of the current token */
+                    /* End of the current token */
                     token[token_cnt][j] = '\0';
                     token_cnt++;
                     j = 0;
 
                     step = SPLIT_OVER_LENGTH;
                 } else {
-                    /* copy data for current token */
+                    /* Copy data for current token */
                     token[token_cnt][j] = c;
                     j++;
                 }
@@ -181,10 +181,10 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
 
         switch (state) {
         case PARSER_WAIT_NAME: {
-            /* 1. handle the first character of the variable name to come in */
+            /* 1. Handle the first character of the variable name to come in */
             bool legal =
                 (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-                (c == '_');  // variable name should not starts with numbers
+                (c == '_'); /* Variable name should not start with numbers */
 
             if (legal) {
                 state = PARSER_WAIT_NAME_OR_LB;
@@ -197,14 +197,14 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
             break;
         }
         case PARSER_WAIT_NAME_OR_LB: {
-            /* 2. handle for more characters of variable name or a left
+            /* 2. Handle for more characters of variable name or a left
              * bracket to come in */
             if (c == '[') {
-                state = PARSER_WAIT_INDEX;  // left bracket detected!
+                state = PARSER_WAIT_INDEX; /* left bracket detected! */
 
-                /* as long as the left bracket is read, it is known that this
+                /* As long as the left bracket is read, it is known that this
                  * is a array declaration, so we need to track the income
-                 * character until the right bracket is read */
+                 * character until the right bracket is read. */
                 bracket_not_closed = true;
             } else {
                 bool legal = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
@@ -220,24 +220,25 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
             break;
         }
         case PARSER_WAIT_INDEX: {
-            /* 3. handle for the first index number to come in */
+            /* 3. Handle for the first index number to come in */
             if (c >= '0' && c <= '9') {
                 state = PARSER_WAIT_INDEX_OR_RB;
                 array_size[array_size_len] = c;
                 array_size_len++;
             } else {
-                return -1;  // only numbers are accepted
+                /* Only accept numbers */
+                return -1;
             }
 
             break;
         }
         case PARSER_WAIT_INDEX_OR_RB: {
-            /* 4. handle for more index numbers or a right bracket to come in */
+            /* 4. Handle for more index numbers or a right bracket to come in */
             if (c == ']') {
                 /* ready to be done */
                 bracket_not_closed = false;
 
-                /* if everything is fine, this assigned new state should not be
+                /* If everything is fine, this assigned new state should not be
                  * happened */
                 state = PARSER_OVER_LENGTH;
             } else {
@@ -245,14 +246,16 @@ int parse_variable_name(char *input, char *var_name, char *array_size)
                     array_size[array_size_len] = c;
                     array_size_len++;
                 } else {
-                    return -1;  // only numbers are accepted
+                    /* Only numbers are accepted */
+                    return -1;
                 }
             }
 
             break;
         }
         case PARSER_OVER_LENGTH: {
-            return -1;  // bracket is closed, no more characters are accepted!
+            /* Bracket is closed, no more characters are accepted! */
+            return -1;
         }
         }
     }
@@ -275,11 +278,11 @@ int msg_name_rule_check(char *msg_name)
         bool legal = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') ||
                      (c >= 'a' && c <= 'z') || (c == '_');
 
-        /* message name should not starts with a number */
+        /* Message name should not starts with a number */
         if (i == 0 && (c >= '0' && c <= '9'))
             legal = false;
 
-        /* bad message name */
+        /* Bad message name */
         if (legal == false)
             return -1;
     }
@@ -295,7 +298,7 @@ char *get_message_name(char *file_name)
     if (msg_name == NULL)
         return NULL;
 
-    /* copy and omit the ".msg" part of the file name */
+    /* Copy and omit the ".msg" part of the file name */
     strncpy(msg_name, file_name, len - 4);
     msg_name[len - 4] = '\0';
 
@@ -314,7 +317,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     if (msg_name == NULL)
         return -1;
 
-    /* create c header file */
+    /* Create C header file */
     char *c_header_name =
         calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
     sprintf(c_header_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
@@ -326,7 +329,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         return -1;
     }
 
-    /* create yaml file  */
+    /* Create YAML file  */
     char *yaml_name =
         calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
     sprintf(yaml_name, "%s/tenok_%s_msg.yaml", output_dir, msg_name);
@@ -338,7 +341,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         return -1;
     }
 
-    /* parse the message declaration*/
+    /* Parse the message declaration*/
     char *line_start = msgs;
     char *line_end = msgs;
 
@@ -357,10 +360,10 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     while (1) {
         line_num++;
 
-        /* search the end of the current line */
+        /* Search the end of the current line */
         char *line_end = strchr(line_start, '\n');
 
-        /* skip empty lines */
+        /* Skip empty lines */
         if ((line_end - line_start) == 0) {
             line_start++;
             continue;
@@ -368,21 +371,22 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         /* EOF detection */
         if (line_end == NULL) {
-            break;  // leave the loop
+            /* Leave the loop */
+            break;
         }
 
         *line_end = '\0';
 
-        /* allocate memory space for storing tokens */
+        /* Allocate memory space for storing tokens */
         char *tokens[3];
         tokens[0] =
-            calloc(sizeof(char), line_end - line_start + 1);  // fieldtype
+            calloc(sizeof(char), line_end - line_start + 1); /* Field type */
         tokens[1] =
-            calloc(sizeof(char), line_end - line_start + 1);  // fieldname
+            calloc(sizeof(char), line_end - line_start + 1); /* Field name */
         tokens[2] =
-            calloc(sizeof(char), line_end - line_start + 1);  // description
+            calloc(sizeof(char), line_end - line_start + 1); /* Description */
 
-        /* split tokens of current line */
+        /* Split tokens of current line */
         int token_cnt = split_tokens(tokens, line_start, line_end - line_start,
                                      file_name, line_num);
 
@@ -392,17 +396,17 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         char *array_size = calloc(sizeof(char), line_end - line_start + 1);
 
         if (token_cnt == -1) {
-            /* grammer error */
+            /* Syntax error */
             error = true;
         } else if (token_cnt == 0) {
-            /* read nothing, skip current line */
+            /* Read nothing, skip current line */
             free(tokens[0]);
             free(tokens[1]);
             free(tokens[2]);
             free(var_name);
             free(array_size);
 
-            /* read next line */
+            /* Read next line */
             line_start = line_end + 1;
             continue;
         } else if (token_cnt >= 2) {
@@ -410,14 +414,14 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             var_name_len = strlen(tokens[1]);
             desc_len = strlen(tokens[2]);
 
-            /* check data type of current message data field */
+            /* Check data type of current message data field */
             if (type_check(tokens[0]) != 0) {
                 printf("[msggen] %s:%d: error, unknown type \"%s\"\n",
                        file_name, line_num, tokens[0]);
                 error = true;
             }
 
-            /* check variable name of current message data field */
+            /* Check variable name of current message data field */
             if (parse_variable_name(tokens[1], var_name, array_size) != 0) {
                 printf("[msggen] %s:%d: error, illegal variable name: \"%s\"\n",
                        file_name, line_num, tokens[1]);
@@ -425,7 +429,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             }
         }
 
-        /* clean up then abort */
+        /* Clean up then abort */
         if (error) {
             fclose(output_c_header);
             fclose(output_yaml);
@@ -454,7 +458,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             return -1;
         }
 
-        /* append new variable declaration to the list */
+        /* Append new variable declaration to the list */
         struct msg_var_entry *new_var = malloc(sizeof(struct msg_var_entry));
         new_var->var_name = var_name;
         new_var->c_type = calloc(sizeof(char), var_name_len + 1);
@@ -469,25 +473,25 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         line_start = line_end + 1;
 
-        /* clean up */
+        /* Clean up */
         free(tokens[0]);
         free(tokens[1]);
         free(tokens[2]);
     }
 
-    /* check if variable with duplicated name exists */
+    /* Check if variable with duplicated name exists */
     bool var_duplicated = false;
 
     struct list_head *cmp1;
     list_for_each (cmp1, &msg_var_list) {
-        /* counter for recording how many time the variable name appears */
+        /* Counter for recording how many time the variable name appears */
         int cnt = 0;
 
-        /* pick the name of each variable in the list */
+        /* Pick the name of each variable in the list */
         struct msg_var_entry *cmp_var1 =
             list_entry(cmp1, struct msg_var_entry, list);
 
-        /* compare with all variable in list */
+        /* Compare with all variable in list */
         struct list_head *cmp2;
         list_for_each (cmp2, &msg_var_list) {
             struct msg_var_entry *cmp_var2 =
@@ -497,7 +501,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
                 cnt++;
         }
 
-        /* duplicated, variable with same name appeared */
+        /* Duplicated, variable with same name appeared */
         if (cnt > 1) {
             printf(
                 "[msggen] %s:%d: error, variable name \"%s\" is duplicated\n",
@@ -510,17 +514,17 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     if (var_duplicated == false) {
         /*===================*
-         * c code generation *
+         * C code generation *
          *===================*/
 
-        /* generate preprocessing code */
+        /* Generate preprocessing code */
         fprintf(output_c_header,
                 "#pragma once\n\n"
                 "#include \"tenok_link.h\"\n\n"
                 "#define TENOK_MSG_ID_%s %d\n\n",
                 msg_name, msg_cnt);
 
-        /* generarte message structure */
+        /* Generarte message structure */
         fprintf(output_c_header, "typedef struct __tenok_msg_%s_t {\n",
                 msg_name);
 
@@ -529,18 +533,18 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             struct msg_var_entry *msg_var =
                 list_entry(curr, struct msg_var_entry, list);
 
-            /* data type and variable name */
+            /* Data type and variable name */
             fprintf(output_c_header, "    %s %s", msg_var->c_type,
                     msg_var->var_name);
 
-            /* array size */
+            /* Array size */
             if (strlen(msg_var->array_size) > 0) {
                 fprintf(output_c_header, "[%s];", msg_var->array_size);
             } else {
                 fprintf(output_c_header, ";");
             }
 
-            /* description */
+            /* Description */
             if (desc_len > 0) {
                 fprintf(output_c_header, " //%s\n", msg_var->description);
             } else {
@@ -550,7 +554,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
         fprintf(output_c_header, "} tenok_msg_%s_t;\n\n", msg_name);
 
-        /* generation message function */
+        /* Generate message functions */
         fprintf(output_c_header,
                 "static inline size_t pack_tenok_%s_msg(tenok_msg_%s_t *msg, "
                 "uint8_t *data)\n{\n"
@@ -562,7 +566,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             struct msg_var_entry *msg_var =
                 list_entry(curr, struct msg_var_entry, list);
 
-            /* generate function calls to pack data fields */
+            /* Generate functions to pack data fields */
             if (strlen(msg_var->array_size) > 0) {
                 fprintf(output_c_header,
                         "    pack_tenok_msg_field_%s(msg->%s, &payload, %s);\n",
@@ -581,7 +585,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         fprintf(output_c_header, "return payload.size;\n}\n");
 
         /*======================*
-         * yaml file generation *
+         * YAML file generation *
          *======================*/
         fprintf(output_yaml, "msg_id: %d\n\npayload:\n", msg_cnt);
 
@@ -612,7 +616,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
                yaml_name);
     }
 
-    /* clean up */
+    /* Clean up */
     fclose(output_c_header);
     fclose(output_yaml);
 
@@ -638,25 +642,25 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
 char *load_msg_file(char *file_name)
 {
-    /* open msg file */
+    /* Open msg file */
     FILE *msg_file = fopen(file_name, "r");
     if (msg_file == NULL) {
         printf("msggen: error, no such file\n");
         return NULL;
     }
 
-    /* get file size */
-    fseek(msg_file, 0, SEEK_END);   // move to the end of the file
-    long size = ftell(msg_file);    // get size
-    fseek(msg_file, 0L, SEEK_SET);  // move the start of the file
+    /* Get file size */
+    fseek(msg_file, 0, SEEK_END);  /* Move to the end of the file */
+    long size = ftell(msg_file);   /* Get size */
+    fseek(msg_file, 0L, SEEK_SET); /* Move the start of the file */
 
-    /* read msg file */
+    /* Read msg file */
     char *file_content = (char *) malloc(sizeof(char) * size);
 
     if (file_content != NULL)
         fread(file_content, sizeof(char), size, msg_file);
 
-    /* close file */
+    /* Close file */
     fclose(msg_file);
 
     return file_content;
@@ -664,7 +668,7 @@ char *load_msg_file(char *file_name)
 
 int main(int argc, char **argv)
 {
-    /* incorrect argument counts */
+    /* Incorrect argument number */
     if (argc != 3) {
         printf("msggen [input directory] [output directory]\n");
         return -1;
@@ -673,7 +677,7 @@ int main(int argc, char **argv)
     char *input_dir = argv[1];
     char *output_dir = argv[2];
 
-    /* open directory */
+    /* Open directory */
     DIR *dir = opendir(input_dir);
     if (dir == NULL) {
         printf("msggen: failed to open the given directory.\n");
@@ -682,7 +686,7 @@ int main(int argc, char **argv)
 
     bool failed = false;
 
-    /* enumerate all the files under the given directory path */
+    /* Enumerate all the files under the given directory path */
     struct dirent *dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
         if (dirent->d_type != DT_REG)
@@ -691,21 +695,21 @@ int main(int argc, char **argv)
         char *msg_file_name = dirent->d_name;
         int len = strlen(msg_file_name);
 
-        /* find all msg files, i.e., file names end with ".msg" */
+        /* Find all msg files, i.e., file names end with ".msg" */
         if ((strncmp(".msg", msg_file_name + len - 4, 4) == 0)) {
-            /* load the msg file */
+            /* Load the msg file */
             char *file_path = calloc(
                 sizeof(char), strlen(input_dir) + strlen(msg_file_name) + 50);
             sprintf(file_path, "%s/%s", input_dir, msg_file_name);
             char *msgs = load_msg_file(file_path);
 
-            /* run code generation */
+            /* Run code generation */
             int retval = codegen(msg_file_name, msgs, output_dir);
 
-            /* clean up */
+            /* Clean up */
             free(msgs);
 
-            /* failed for some reason */
+            /* Failed for some reason */
             if (retval != 0) {
                 failed = true;
                 break;
@@ -715,7 +719,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* close directory */
+    /* Close directory */
     closedir(dir);
 
     return failed == true ? -1 : 0;

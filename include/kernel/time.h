@@ -15,11 +15,11 @@ struct timer {
     bool enabled;
     struct sigevent sev;
     struct itimerspec setting;
-    struct itimerspec ret_time; /* for returning to the getter */
-    struct timespec counter;    /* internal down counter */
-    struct thread_info *thread; /* backlink to the thread */
-    struct list_head g_list;    /* linked to the global list of all timers */
-    struct list_head list;      /* linked to the timer list of the thread */
+    struct itimerspec ret_time; /* For returning current time */
+    struct timespec counter;    /* Internal countdown counter */
+    struct thread_info *thread; /* The thread that the timer belongs to */
+    struct list_head g_list;    /* Linked to the global timer list */
+    struct list_head list;      /* Linked to the thread timer list */
 };
 
 void timer_up_count(struct timespec *time);

@@ -13,8 +13,8 @@ CFLAGS += -I./drivers/boards
 
 SRC += ./drivers/boards/stm32f4disc.c
 
-# some useful qemu debug options:
-# type `$(QEMU) -d help` for more information
+# Some useful qemu debug options.
+# Type `$(QEMU) -d help` for more information.
 # QEMU_DEBUG = -d in_asm
 # QEMU_DEBUG = -d int
 # QEMU_DEBUG = -d cpu

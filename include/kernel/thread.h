@@ -12,7 +12,7 @@
 struct thread_attr {
     struct sched_param schedparam;
     void *stackaddr;
-    size_t stacksize; /* bytes */
+    size_t stacksize; /* Bytes */
     int schedpolicy;
     int detachstate;
 };

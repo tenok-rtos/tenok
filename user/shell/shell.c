@@ -86,7 +86,7 @@ void shell_init(struct shell *shell,
     }
 }
 
-/* minimal configurattion that does not support command parsing,
+/* Minimal configuration of which does not support command parsing,
  * history saving, and command completion */
 void shell_init_minimal(struct shell *shell)
 {
@@ -153,9 +153,9 @@ static void shell_refresh_line(struct shell *shell)
 {
     char s[SHELL_PROMPT_LEN_MAX * 5];
     snprintf(s, SHELL_PROMPT_LEN_MAX * 5,
-             "\33[2K\r"  /* clear current line */
-             "%s%s\r"    /* show prompt */
-             "\033[%dC", /* move cursor */
+             "\33[2K\r"  /* Clear current line */
+             "%s%s\r"    /* Show prompt message */
+             "\033[%dC", /* Move cursor position */
              shell->prompt, shell->buf, shell->prompt_len + shell->cursor_pos);
     shell_puts(s);
 }
@@ -192,33 +192,33 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
     struct list_head *history_list;
     struct shell_history *history_new;
 
-    /* check the size of the history list */
+    /* Check the size of the history list */
     if (shell->history_cnt < shell->history_max_cnt) {
-        /* history list is not full, allocate new memory space */
+        /* History list is not full, allocate new memory space */
         history_list =
             &shell->history[shell->history_max_cnt - shell->history_cnt - 1]
                  .list;
         shell->history_cnt++;
 
-        /* push new history record into the list */
+        /* Push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
         strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
         list_add(history_list, &shell->history_head);
     } else {
-        /* history list is full, remove the oldest record */
+        /* History list is full, remove the oldest record */
         history_list = shell->history_head.next;
         list_del(history_list);
 
-        /* push new history record into the list */
+        /* Push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
         strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
         list_add(history_list, &shell->history_head);
     }
 
-    /* initialize the history pointer */
+    /* Initialize the history pointer */
     shell->history_curr = &shell->history_head;
 
-    /* reset the history reading */
+    /* Reset the history reading */
     shell->show_history = false;
 }
 
@@ -231,48 +231,48 @@ static void shell_generate_suggest_words(struct shell *shell,
                                          int argv0_start,
                                          int argv0_end)
 {
-    /* reset the suggestion candidate count of the autocomplete */
+    /* Reset the recommendation candidate count */
     shell->autocompl_cnt = 0;
 
-    /* calculate the length of the first argument */
+    /* Calculate the length of the first argument */
     int argv0_len = shell->cursor_pos - argv0_start;
 
-    /* calculate the length of the whole user input */
+    /* Calculate the length of the whole user input */
     int cmd_len = strlen(shell->buf);
 
-    /* get the first argument get rid of the spaces */
+    /* Get the first argument that get rid of the spaces */
     char *user_cmd = &shell->buf[argv0_start];
 
     int i;
     for (i = 0; i < shell->cmd_cnt; i++) {
-        /* load the shell command from the command list for comparing */
+        /* Load shell command from the command list for comparing */
         char *shell_cmd = shell->shell_cmds[i].name;
 
-        /* if the user input matches the shell command */
+        /* Check if the user input matches the shell command */
         if (strncmp(user_cmd, shell_cmd, argv0_len) == 0) {
             char *suggest_candidate;
 
-            /* copy string from the beginning to the character before the firt
+            /* Copy string from the beginning to the character before the first
              * argument */
             suggest_candidate = shell->autocompl[shell->autocompl_cnt].cmd;
             memcpy(suggest_candidate, &shell->buf[0], argv0_start);
 
-            /* insert the name of the matched shell command */
+            /* Insert the name of the matched shell command */
             suggest_candidate += argv0_start;
             memcpy(suggest_candidate, shell_cmd, strlen(shell_cmd));
 
-            /* copy the string from the insertion tail to the end of the first
+            /* Copy the string from the insertion tail to the end of the first
              * argument */
             suggest_candidate += strlen(shell_cmd);
             int cnt = &shell->buf[argv0_end] - &shell->buf[shell->cursor_pos];
             memcpy(suggest_candidate, &shell->buf[shell->cursor_pos], cnt);
 
-            /* copy string from the tail of the first argument to the end */
+            /* Copy string from the tail of the first argument to the end */
             suggest_candidate += cnt;
             cnt = &shell->buf[cmd_len] - &shell->buf[argv0_end];
             memcpy(suggest_candidate, &shell->buf[argv0_end], cnt);
 
-            /* append the end character */
+            /* Append end character */
             suggest_candidate += cnt;
             *suggest_candidate = '\0';
 
@@ -287,62 +287,62 @@ static void shell_autocomplete(struct shell *shell)
         return;
     }
 
-    /* find the start position of the first argument */
+    /* Find the start position of the first argument */
     int argv0_start = 0;
     while ((shell->buf[argv0_start] == ' ') && (argv0_start < shell->char_cnt))
         argv0_start++;
 
-    /* find the end position of the first argument */
+    /* Find the end position of the first argument */
     int argv0_end = argv0_start;
     while ((shell->buf[argv0_end] != ' ') && (argv0_end < shell->char_cnt))
         argv0_end++;
 
 
-    /* autocomplete is disabled after the first argument */
+    /* Autocomplete is disabled after the first argument */
     if (shell->cursor_pos > argv0_end)
         return;
 
-    /* autocomplete is triggered before the first argument (i.e., spaces) */
+    /* Autocomplete is triggered before the first argument (i.e., spaces) */
     if (shell->cursor_pos < argv0_start) {
         argv0_start = shell->cursor_pos;
         argv0_end = shell->cursor_pos;
     }
 
-    /* reset the autocomplete if the cursor position changed */
+    /* Reset the autocomplete if the cursor position changed */
     if (shell->autocompl_cursor_pos != shell->cursor_pos) {
         shell_reset_autocomplete(shell);
     }
 
-    /* check if the autocomple has been initialized */
+    /* Check if the autocomple has been initialized */
     if (shell->show_autocompl == false) {
-        /* backup the user input */
+        /* Backup the user input */
         strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
 
-        /* generate the suggestion word dictionary */
+        /* Generate the recommendation word dictionary */
         shell_generate_suggest_words(shell, argv0_start, argv0_end);
 
-        /* record the cursor positon */
+        /* Record the cursor positon */
         shell->autocompl_cursor_pos = shell->cursor_pos;
 
         shell->autocompl_curr = 0;
         shell->show_autocompl = true;
     }
 
-    /* is there any more candidate words? */
+    /* Check if there are more candidate words or not */
     if (shell->autocompl_curr == shell->autocompl_cnt) {
-        /* restore the user input */
+        /* Restore the user input */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell_reset_autocomplete(shell);
     } else {
-        /* overwrite the user input with autocomplete suggestion */
+        /* Overwrite the user input with autocomplete result */
         char *suggestion = shell->autocompl[shell->autocompl_curr].cmd;
         strncpy(shell->buf, suggestion, SHELL_CMD_LEN_MAX);
     }
 
-    /* prepare the next candidate word to show */
+    /* Prepare the next candidate word to show */
     shell->autocompl_curr++;
 
-    /* refresh the line */
+    /* Refresh the line */
     shell->char_cnt = strlen(shell->buf);
     shell_refresh_line(shell);
 }
@@ -396,35 +396,34 @@ static void shell_up_arrow_handler(struct shell *shell)
         return;
     }
 
-    /* ignore the key pressing if the hisotry list is empty */
+    /* Ignore the key pressing if the history list is empty */
     if (list_empty(&shell->history_head) == true)
         return;
 
     if (shell->show_history == false) {
-        /* create a backup of the user input */
+        /* Backup the user input */
         strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
 
-        /* history reading mode is on */
+        /* History reading mode is now on */
         shell->show_history = true;
     }
 
-    /* load the next history to show */
+    /* Load the next history to show */
     shell->history_curr = shell->history_curr->prev;
 
-    /* check if there is more hisotry to present */
+    /* Check if there is more hisotry to show */
     if (shell->history_curr == &shell->history_head) {
-        /* restore the user input if the traversal of the history list is done
-         */
+        /* Restore user input if traversal of history list is done */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell->show_history = false;
     } else {
-        /* display the history to the user */
+        /* Display the history to the user */
         struct shell_history *history =
             list_entry(shell->history_curr, struct shell_history, list);
         strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
     }
 
-    /* refresh the line */
+    /* Refresh the line */
     shell->char_cnt = strlen(shell->buf);
     shell->cursor_pos = shell->char_cnt;
     shell_refresh_line(shell);
@@ -436,26 +435,26 @@ static void shell_down_arrow_handler(struct shell *shell)
         return;
     }
 
-    /* user did not trigger the history reading */
+    /* Return if user did not trigger history reading */
     if (shell->show_history == false)
         return;
 
-    /* load the previos history */
+    /* Load previos history */
     shell->history_curr = shell->history_curr->next;
 
-    /* is the the traversal of the history list done? */
+    /* Check if the traversal of history list is done */
     if (shell->history_curr == &shell->history_head) {
-        /* restore the user input */
+        /* Restore user input */
         strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
         shell->show_history = false;
     } else {
-        /* display the history to the user */
+        /* Display history to the user */
         struct shell_history *history =
             list_entry(shell->history_curr, struct shell_history, list);
         strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
     }
 
-    /* refresh the line */
+    /* Refresh the line */
     shell->char_cnt = strlen(shell->buf);
     shell->cursor_pos = shell->char_cnt;
     shell_refresh_line(shell);
@@ -647,30 +646,30 @@ static int shell_split_cmd_token(char *cmd, char *argv[])
     int i = 0;
     int len = strlen(cmd);
 
-    /* skip spaces before first parameter */
+    /* Skip spaces before the first argument */
     while (i < len && cmd[i] == ' ') {
         i++;
     }
 
-    /* get the first argument */
+    /* Get the first argument */
     argv[0] = &cmd[i];
     int argc = 1;
 
     for (; i < len; i++) {
         if (cmd[i] == ' ') {
-            /* split the token by inserting a null character */
+            /* Split the token by inserting a null character */
             cmd[i] = '\0';
             i++;
 
-            /* skip repeated spaces */
+            /* Skip repeated spaces */
             while (cmd[i] == ' ')
                 i++;
 
-            /* no more characters to read */
+            /* No more characters to read */
             if (i == len)
                 break;
 
-            /* check the count of the argument */
+            /* Check the count of the argument */
             if (argc <= (SHELL_ARG_CNT - 1)) {
                 argv[argc] = &cmd[i];  // record the start address for the token
                 argc++;

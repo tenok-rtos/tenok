@@ -75,16 +75,16 @@ static void format_write(char *str,
                          int *padding_end,
                          bool *pad_with_zeros)
 {
-    /* read length setting */
+    /* Read length setting */
     padding_str[*padding_end] = '\0';
     *padding_end = 0;
     int desired_len = atoi(padding_str);
 
-    /* deterimine the padding symbol */
+    /* Deterimine the padding symbol */
     char symbol = *pad_with_zeros ? '0' : ' ';
     *pad_with_zeros = false;
 
-    /* check if the format string requires paddings */
+    /* Check if the format string requires paddings */
     size_t format_str_len = strlen(format_str);
     if (format_str_len >= desired_len) {
         /* no, output without padding */
@@ -92,14 +92,14 @@ static void format_write(char *str,
         return;
     }
 
-    /* generate paddings */
+    /* Generate paddings */
     size_t padding_size = desired_len - format_str_len;
     for (int i = 0; i < padding_size; i++) {
         padding_str[i] = symbol;
     }
     padding_str[padding_size] = '\0';
 
-    /* write output */
+    /* Write output */
     strcat(str, padding_str);
     strcat(str, format_str);
 }
@@ -120,17 +120,17 @@ static int __vsnprintf(char *str,
 
     int pos = 0;
     while (format[pos]) {
-        /* boundary check */
+        /* Boundary check */
         if (check_size && pos >= size)
             return strlen(str);
 
         if (format[pos] != '%') {
-            /* copy */
+            /* Copy */
             c_str[0] = format[pos];
             pos++;
             strcat(str, c_str);
 
-            /* reset flags */
+            /* Reset flags */
             pad_with_zeros = false;
             buf_pos = 0;
         } else {
@@ -138,11 +138,11 @@ static int __vsnprintf(char *str,
 
             bool leave = false;
             while (!leave && format[pos] != '\0') {
-                /* boundary check */
+                /* Boundary check */
                 if (check_size && pos >= size)
                     return strlen(str);
 
-                /* handle specifiers */
+                /* Handle specifiers */
                 switch (format[pos]) {
                 case '0': {
                     if (buf_pos == 0) {

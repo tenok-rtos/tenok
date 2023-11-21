@@ -47,14 +47,14 @@ class CSVSaver:
 
 class SerialManager:
     def __init__(self, port_name, baudrate, msg_manager):
-        # open the serial port
+        # Open the serial port
         self.ser = serial.Serial(
             port_name,
             baudrate,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
-            timeout=0.1) #timeout = 0.1 second
+            timeout=0.1)  # Timeout = 0.1 second
 
         print("connected to: " + self.ser.portstr)
 
@@ -175,7 +175,7 @@ class SerialManager:
         update_rate = 1.0 / (curr_time - self.recvd_time_last[msg_id])
         self.recvd_time_last[msg_id] = curr_time
 
-        # if the frequency change is too rapidly, then it means the communication is unstable
+        # If the frequency change is too rapidly, then it means the communication is unstable
         if abs(update_rate - self.update_rate_last) > 50:
             print_str = '[{}] received \'{}\' (message, id={})\n'.format(
                 datetime.now().strftime('%H:%M:%S'), msg_name, msg_id)
@@ -203,28 +203,28 @@ class SerialManager:
             array_size = msg_info.fields[i].array_size
             c_type = msg_info.fields[i].c_type
 
-            # the field is a variable if the array_size is set zero
+            # The field is a variable if the array_size is set zero
             is_array = True
             if array_size == 0:
                 is_array = False
                 array_size = 1
 
-            # decode array elements of each fields
+            # Decode array elements of each fields
             for j in range(0, array_size):
                 decoded_data = self.decode_field(buffer, c_type, recept_cnt)
                 data_list.append(decoded_data)
                 recept_cnt = recept_cnt + 1
 
                 if is_array == True:
-                    # print array
+                    # Print array
                     print_str = print_str + \
                         '- {}[{}]: {}\n'.format(var_name, j, decoded_data)
                 else:
-                    # print variable
+                    # Print variable
                     print_str = print_str + \
                         '- {}: {}\n'.format(var_name, decoded_data)
 
-        # print prompt message
+        # Print prompt message
         print(print_str, end='')
 
         return msg_id, msg_name, data_list
@@ -242,24 +242,24 @@ class SerialManager:
         # print("c:")
         # print(c)
 
-        # wait for the start byte
+        # Wait for the start byte
         if c == '@':
             pass
         else:
             return 'failed', None, None, None
 
-        # receive payload size
+        # Receive payload size
         payload_count, =  struct.unpack("B", self.ser.read(1))
         # print('payload size: %d' %(payload_count))
 
-        # receive message id
+        # Receive message ID
         _msg_id, =  struct.unpack("c", self.ser.read(1))
         msg_id = ord(_msg_id)
 
-        # receive payloads + checksum
+        # Receive payloads + checksum
         buf = self.ser.read(payload_count + 1)
 
-        # verify the checksum
+        # Verify the checksum
         for i in range(0, payload_count):
             buffer.append(buf[i])
             buffer_checksum = buffer[i]
@@ -271,7 +271,7 @@ class SerialManager:
             print("error: checksum mismatched")
             return 'failed', None, None, None
 
-        # decode message fields
+        # Decode message fields
         msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
 
         return 'success', msg_id, msg_name, data

@@ -33,51 +33,51 @@ enum {
 } FS_SERVER_CMDS;
 
 struct super_block {
-    uint32_t s_blk_cnt;    // number of the used blocks
-    uint32_t s_inode_cnt;  // number of the used inodes
+    uint32_t s_blk_cnt;   /* Number of the used blocks */
+    uint32_t s_inode_cnt; /* Number of the used inodes */
 
-    bool s_rd_only;  // read only flag
+    bool s_rd_only; /* Read-only flag */
 
-    uint32_t s_sb_addr;   // start address of the super block
-    uint32_t s_ino_addr;  // start address of the inode table
-    uint32_t s_blk_addr;  // start address of the blocks region
+    uint32_t s_sb_addr;  /* Start address of the super block */
+    uint32_t s_ino_addr; /* Start address of the inode table */
+    uint32_t s_blk_addr; /* Start address of the blocks region */
 };
 
-/* block header will be placed to the top of every blocks of the regular file */
+/* Block header will be placed at the top of every blocks of the regular file */
 struct block_header {
-    uint32_t b_next;  // virtual address of the next block
+    uint32_t b_next; /* Virtual address of the next block */
 };
 
 struct mount {
-    struct file *dev_file;         // driver file of the mounted storage device
-    struct super_block super_blk;  // super block of the mounted storage device
+    struct file *dev_file;        /* Driver file of the mounted device */
+    struct super_block super_blk; /* Super block of the mounted device */
 };
 
 /* index node */
 struct inode {
-    uint8_t i_mode;  // file type: e.g., S_IFIFO, S_IFCHR, etc.
+    uint8_t i_mode; /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
 
-    uint8_t i_rdev;  // the device on which the file is mounted
-    bool i_sync;     // the mounted file is loaded into the rootfs or not
+    uint8_t i_rdev; /* The device on which the file is mounted */
+    bool i_sync;    /* The mounted file is loaded into the rootfs or not */
 
-    uint32_t i_ino;     // inode number
-    uint32_t i_parent;  // inode number of the parent directory
+    uint32_t i_ino;    /* inode number */
+    uint32_t i_parent; /* inode number of the parent directory */
 
-    uint32_t i_fd;  // file descriptor number
+    uint32_t i_fd; /* File descriptor number */
 
-    uint32_t i_size;    // file size (bytes)
-    uint32_t i_blocks;  // block_numbers = file_size / (block_size -
-                        // block_header_size)
-    uint32_t i_data;    // virtual address for accessing the storage
+    uint32_t i_size;   /* File size (bytes) */
+    uint32_t i_blocks; /* block_numbers = file_size / (block_size -
+                        * block_header_size) */
+    uint32_t i_data;   /* Virtual address for accessing the storage */
 
-    struct list_head i_dentry;  // list head of the dentry table
+    struct list_head i_dentry; /* List head of the dentry table */
 };
 
-/* directory entry */
+/* Directory entry */
 struct dentry {
-    char d_name[FILE_NAME_LEN_MAX];  // file name
-    uint32_t d_inode;                // the inode of the file
-    uint32_t d_parent;               // the inode of the parent directory
+    char d_name[FILE_NAME_LEN_MAX]; /* File name */
+    uint32_t d_inode;               /* The inode of the file */
+    uint32_t d_parent;              /* The inode of the parent directory */
 
     struct list_head d_list;
 };

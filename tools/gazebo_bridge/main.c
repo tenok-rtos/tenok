@@ -19,7 +19,7 @@ int serial_fd, socket_fd;
 
 void *thread_gazebo_to_hil(void *arg)
 {
-    /* sil / hil to gazebo forwarding */
+    /* SIL/HIL to gazebo forwarding */
     char c;
     while (1) {
         c = serial_getc(serial_fd);
@@ -29,7 +29,7 @@ void *thread_gazebo_to_hil(void *arg)
 
 void *thread_hil_to_gazebo(void *arg)
 {
-    /* gazebo to sil / hil forwarding */
+    /* Gazebo to SIL/HIL forwarding */
     char c;
     while (1) {
         read(socket_fd, &c, 1);
@@ -133,7 +133,7 @@ static void handle_options(int argc,
     if (!*baudrate)
         *baudrate = "115200";
 
-    /* check port number and baudrate value are valid integers */
+    /* Check if port number and baudrate value are valid integers */
     long val;
     if (!parse_long_from_str(*port_number, &val)) {
         printf("Bad port number.\n");
@@ -148,7 +148,7 @@ static void handle_options(int argc,
 
 int main(int argc, char **argv)
 {
-    /* parse input arguments */
+    /* Parse input arguments */
     char *gazebo_ip;
     char *port_number;
     char *serial_name;
@@ -160,14 +160,14 @@ int main(int argc, char **argv)
     printf("Gazebo IP: %s, port: %d\nSerial: %s, baudrate: %d\n", gazebo_ip,
            atoi(port_number), serial_name, atoi(baudrate));
 
-    /* serial port initialization */
+    /* sSerial port initialization */
     serial_fd = serial_init(serial_name, atoi(baudrate));
     if (serial_fd == -1) {
         printf("Failed to connect to the serial.\n");
         exit(1);
     }
 
-    /* socket initialization */
+    /* Socket initialization */
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1) {
         printf("Failed to create socket.\n");
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
                                     .sin_addr.s_addr = inet_addr(gazebo_ip),
                                     .sin_port = htons(atoi(port_number))};
 
-    /* attempt to connect to the gazebo server */
+    /* Attempt to connect to the Gazebo server */
     if (connect(socket_fd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))) {
         printf("Failed to connect to the Gazeobo.\n");
         exit(1);
@@ -186,16 +186,16 @@ int main(int argc, char **argv)
 
     printf("Established connection between SIL/HIL and Gazebo.\n");
 
-    /* launch threads to handle communication forwarding */
+    /* Launch threads to handle message forwarding */
     pthread_create(&thread1, NULL, thread_gazebo_to_hil, NULL);
     pthread_create(&thread2, NULL, thread_hil_to_gazebo, NULL);
 
-    /* install the signal handlers */
+    /* Install the signal handlers */
     signal(SIGINT, sig_handler);
     signal(SIGABRT, sig_handler);
     signal(SIGTERM, sig_handler);
 
-    /* wait until the program is terminated */
+    /* Wait until the program is terminated */
     sem_init(&sem_terminate, 0, 0);
     sem_wait(&sem_terminate);
 

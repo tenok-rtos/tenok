@@ -4,8 +4,9 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_ltdc.h"
 
-// example of using the sdram:
-// uint8_t sdram[10000] __attribute__((section(".sdram")));
+/* Example of using the SDRAM:
+ * uint8_t sdram[10000] __attribute__((section(".sdram")));
+ */
 
 struct lcd_layer {
     LTDC_Layer_TypeDef *ltdc_layer;
@@ -13,7 +14,7 @@ struct lcd_layer {
     void *buf;
 };
 
-/* declare two layers for double buffering */
+/* Declare two layers for double buffering */
 struct lcd_layer lcd_layers[] = {
     {.ltdc_layer = LTDC_Layer1,
      .lcd_layer = LCD_BACKGROUND_LAYER,

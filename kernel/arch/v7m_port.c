@@ -30,24 +30,24 @@ enum {
 };
 
 struct context {
-    /* pushed by the os: */
+    /* Pushed by the OS */
     uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
-    uint32_t _r7; /* r7 (syscall number) */
+    uint32_t _r7; /* r7 (Syscall number) */
 
-    /* pushed by the exception entry: */
+    /* Pushed by exception entry */
     uint32_t r0, r1, r2, r3;
     uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
 };
 
 struct context_fpu {
-    /* pushed by the os: */
+    /* Pushed by the OS */
     uint32_t r4_to_r11[8]; /* r4, ..., r11 */
     uint32_t _lr;
     uint32_t _r7;            /* r7 (syscall number) */
     uint32_t s16_to_s31[16]; /* s16, ..., s31 */
 
-    /* pushed by the exception entry: */
+    /* Pushed by exception entry: */
     uint32_t r0, r1, r2, r3;
     uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
     uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
@@ -55,14 +55,14 @@ struct context_fpu {
 
 uint32_t get_proc_mode(void)
 {
-    /* get the 9 bits isr number from the ipsr register,
-     * check "exception types" of the ARM CM3 for details
+    /* Get the 9 bits ISR number from the ipsr register.
+     * Check "Exception types" of the ARM CM4 for details.
      */
     volatile unsigned int mode = 0;
     asm volatile(
         "mrs  r0, ipsr \n"
         "str  r0, [%0] \n" ::"r"(&mode));
-    return mode & 0x1ff;  // return ipsr[8:0]
+    return mode & 0x1ff; /* return ipsr[8:0] */
 }
 
 void preempt_disable(void)
@@ -89,10 +89,10 @@ void __stack_init(uint32_t **stack_top,
                   uint32_t return_handler,
                   uint32_t args[4])
 {
-    /* the stack design contains three parts:
+    /* The stack design contains three parts:
      * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setup exception return),
      * _r7 (for passing system call number), and
-     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch)
+     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch).
      */
     uint32_t *sp = *stack_top - 18;
     *stack_top = sp;
@@ -109,7 +109,7 @@ void __stack_init(uint32_t **stack_top,
 
 void __platform_init(void)
 {
-    /* priority range of group 4 is 0-15 */
+    /* Priority range of group 4 is 0-15 */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
     NVIC_SetPriority(MemoryManagement_IRQn, 0);
     NVIC_SetPriority(BusFault_IRQn, 0);
@@ -118,10 +118,10 @@ void __platform_init(void)
     NVIC_SetPriority(SVCall_IRQn, 15);
     NVIC_SetPriority(PendSV_IRQn, 15);
 
-    /* enable the systick timer */
+    /* Enable SysTick timer */
     SysTick_Config(SystemCoreClock / OS_TICK_FREQ);
 
-    /* use a dummy stack to initialize the os environment */
+    /* Use a dummy stack to initialize the os environment */
     uint32_t stack_empty[32];
     os_env_init(&stack_empty[31]);
 }
@@ -138,12 +138,11 @@ bool check_systick_event(void *sp)
         syscall_num = (long *) &((struct context_fpu *) sp)->_r7;
     }
 
-    /* if r7 is negative, the kernel is returned from the systick
-     * interrupt. otherwise the kernel is returned from the
-     * supervisor call.
+    /* If r7 is negative, then the kernel is returned from the SysTick
+     * interrupt. Otherwise the kernel is returned via supervisor call.
      */
     if (*syscall_num < 0) {
-        *syscall_num *= -1; /* restore the syscall number */
+        *syscall_num *= -1; /* Restore the syscall number */
         return true;
     }
 

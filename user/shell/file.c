@@ -11,7 +11,7 @@ void shell_cmd_file(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    /* get current directoory path */
+    /* Get current directory path */
     char path[PATH_LEN_MAX] = {0};
     getcwd(path, PATH_LEN_MAX);
 
@@ -24,18 +24,18 @@ void shell_cmd_file(int argc, char *argv[])
     }
 
     if (argv[1][0] != '/') {
-        /* user feed a relative path */
+        /* Input filename using relative path */
         int pos = strlen(path);
         snprintf(&path[pos], PRINT_SIZE_MAX, "%s", argv[1]);
     } else {
-        /* user feed a absolute path */
+        /* Input filename using absolute path */
         strncpy(path, argv[1], PATH_LEN_MAX);
     }
 
-    /* open the file */
+    /* Open the file */
     int fd = open(path, 0);
     if (fd < 0) {
-        /* maybe it is a direcotry */
+        /* Check if it is a direcotry */
         DIR dir;
         if (opendir(path, &dir) == 0) {
             snprintf(str, PRINT_SIZE_MAX, "%s: directory\n\r", path);
@@ -43,7 +43,7 @@ void shell_cmd_file(int argc, char *argv[])
             return;
         }
 
-        /* the given path is neither a file or direcotry */
+        /* The given path is neither a file or direcotry */
         snprintf(str, PRINT_SIZE_MAX,
                  "%s: cannot open `%s' (No such file or directory)\n\r", path,
                  path);
@@ -51,11 +51,11 @@ void shell_cmd_file(int argc, char *argv[])
         return;
     }
 
-    /* read and print the file type */
+    /* Read and print the file type */
     struct stat stat;
     fstat(fd, &stat);
 
-    /* close the file */
+    /* Close the file */
     close(fd);
 
     switch (stat.st_mode) {

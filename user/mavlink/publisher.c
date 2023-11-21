@@ -38,7 +38,7 @@ void mavlink_send_hil_actuator_controls(int fd)
     uint8_t mode = MAV_MODE_FLAG_HIL_ENABLED | MAV_MODE_FLAG_SAFETY_ARMED |
                    MAV_MODE_FLAG_AUTO_ENABLED;
 
-    /* get current time */
+    /* Get current time */
     struct timespec tp;
     clock_gettime(CLOCK_MONOTONIC, &tp);
     uint64_t time_usec = (tp.tv_sec * 1000000) + (tp.tv_nsec / 1000);

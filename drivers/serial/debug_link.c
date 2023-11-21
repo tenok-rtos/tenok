@@ -44,12 +44,12 @@ static struct file_operations serial2_file_ops = {
 
 void uart3_init(uint32_t baudrate)
 {
-    /* initialize the rcc */
+    /* Initialize the RCC */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
-    /* initialize the gpio */
+    /* Initialize the GPIO */
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3);
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3);
     GPIO_InitTypeDef gpio = {
@@ -61,7 +61,7 @@ void uart3_init(uint32_t baudrate)
     };
     GPIO_Init(GPIOC, &gpio);
 
-    /* initialize the uart3 */
+    /* Initialize the UART3 */
     USART_InitTypeDef uart3 = {
         .USART_BaudRate = baudrate,
         .USART_Mode = USART_Mode_Rx | USART_Mode_Tx,
@@ -76,7 +76,7 @@ void uart3_init(uint32_t baudrate)
 #endif
     USART_ClearFlag(USART3, USART_FLAG_TC);
 
-    /* initialize interrupt of the uart3*/
+    /* Initialize interrupt of the UART3 */
     NVIC_InitTypeDef nvic = {
         .NVIC_IRQChannel = USART3_IRQn,
         .NVIC_IRQChannelPreemptionPriority = UART3_ISR_PRIORITY,
@@ -87,7 +87,7 @@ void uart3_init(uint32_t baudrate)
 
     USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
 #if (ENABLE_UART3_DMA != 0)
-    /* initialize interrupt of the dma1 channel4 */
+    /* Initialize interrupt of the DMA1 channel4 */
     nvic.NVIC_IRQChannel = DMA1_Stream4_IRQn;
     NVIC_Init(&nvic);
 
@@ -97,17 +97,17 @@ void uart3_init(uint32_t baudrate)
 
 void serial2_init(void)
 {
-    /* register serial2 to the file system */
+    /* Register serial2 to the file system */
     register_chrdev("serial2", &serial2_file_ops);
 
-    /* create wait queues for synchronization */
+    /* Create wait queues for synchronization */
     init_waitqueue_head(&uart3.tx_wq);
     init_waitqueue_head(&uart3.rx_wq);
 
-    /* create kfifo for uart3 rx */
+    /* Create kfifo for UART3 rx */
     uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
 
-    /* initialize uart3 */
+    /* Initialize UART3 */
     uart3_init(115200);
 
     printk("chardev serial2: debug-link");
@@ -147,7 +147,7 @@ static int uart3_dma_puts(const char *data, size_t size)
 {
     switch (uart3.tx_state) {
     case UART_TX_IDLE: {
-        /* configure the dma */
+        /* Configure the DMA */
         DMA_InitTypeDef DMA_InitStructure = {
             .DMA_BufferSize = (uint32_t) size,
             .DMA_FIFOMode = DMA_FIFOMode_Disable,
@@ -166,7 +166,7 @@ static int uart3_dma_puts(const char *data, size_t size)
         };
         DMA_Init(DMA1_Stream4, &DMA_InitStructure);
 
-        /* enable dma to copy the data */
+        /* Enable DMA to copy the data */
         DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
         DMA_Cmd(DMA1_Stream4, ENABLE);
@@ -174,13 +174,13 @@ static int uart3_dma_puts(const char *data, size_t size)
         uart3.tx_state = UART_TX_DMA_BUSY;
         uart3.tx_dma_ready = false;
 
-        /* wait until dma complete data transfer */
+        /* Wait until DMA complete data transfer */
         init_wait(uart3.tx_wait);
         prepare_to_wait(&uart3.tx_wq, uart3.tx_wait, THREAD_WAIT);
         return -ERESTARTSYS;
     }
     case UART_TX_DMA_BUSY: {
-        /* notified by the dma irq, the data transfer is now complete */
+        /* Notified by the DMA ISR, the data transfer is now complete */
         uart3.tx_state = UART_TX_IDLE;
         return size;
     }

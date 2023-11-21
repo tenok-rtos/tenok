@@ -34,7 +34,7 @@ uint32_t sig2bit(int signum)
         DEF_SIG_BIT(SIGCONT, 4);
         DEF_SIG_BIT(SIGKILL, 5);
     default:
-        return 0; /* should not happened */
+        return 0; /* Should never happened */
     }
 }
 
@@ -55,7 +55,7 @@ int get_signal_index(int signum)
         return 5;
     }
 
-    return 0; /* should not happened */
+    return 0; /* Should never happened */
 }
 
 int sigemptyset(sigset_t *set)

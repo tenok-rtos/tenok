@@ -18,10 +18,10 @@ void mutex_task_high(void)
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
 #if 1
-    /* enable priority inheritance */
+    /* Enable priority inheritance */
     pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
 #else
-    /* disable priority inheritance */
+    /* Disable priority inheritance */
     pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_NONE);
 #endif
     pthread_mutex_init(&mutex, &attr);
@@ -37,17 +37,17 @@ void mutex_task_high(void)
     sleep(5);
 
     while (1) {
-        /* start of the critical section */
+        /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
         dprintf(serial_fd,
                 "[mutex high] highest-priority thread locked the mutex "
                 "successfully.\n\r");
 
-        /* end of the critical section */
+        /* End the critical section */
         pthread_mutex_unlock(&mutex);
 
-        /* simulate some work */
+        /* Simulate some work */
         sleep(2);
     }
 }
@@ -63,13 +63,13 @@ void mutex_task_median(void)
         exit(1);
     }
 
-    /* occupy the cpu to block the lowest-prioiry thread after 3 seconds */
+    /* Occupy the CPU to block the lowest-prioiry thread after 3 seconds */
     dprintf(
         serial_fd,
         "[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
     sleep(3);
 
-    /* occupy the cpu for 20 seconds */
+    /* Occupy the CPU for 10 seconds */
     dprintf(
         serial_fd,
         "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
@@ -83,7 +83,7 @@ void mutex_task_median(void)
             break;
     }
 
-    /* pause the thread af the job is finished */
+    /* Pause the thread after the job is finish */
     while (1) {
         pause();
     }
@@ -99,17 +99,17 @@ void mutex_task_low(void)
     }
 
     while (1) {
-        /* start of the critical section */
+        /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
         dprintf(serial_fd,
                 "[mutex low] lowest-priority thread locked the mutex "
                 "successfully.\n\r");
 
-        /* simulate some works */
+        /* Simulate some works */
         sleep(2);
 
-        /* end of the critical section */
+        /* End the critical section */
         pthread_mutex_unlock(&mutex);
     }
 }

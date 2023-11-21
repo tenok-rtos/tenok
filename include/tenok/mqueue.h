@@ -11,10 +11,10 @@
 typedef uint32_t mqd_t;
 
 struct mq_attr {
-    int mq_flags;   /* flags: 0 or O_NONBLOCK */
-    int mq_maxmsg;  /* max number of the messages in the queue */
-    int mq_msgsize; /* byte size of the message */
-    int mq_curmsgs; /* number of the messages currently in the queue */
+    int mq_flags;   /* Flags: 0 or O_NONBLOCK */
+    int mq_maxmsg;  /* Max number of the messages in the queue */
+    int mq_msgsize; /* Byte size of the message */
+    int mq_curmsgs; /* Number of the messages currently in the queue */
 };
 
 /**

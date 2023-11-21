@@ -29,10 +29,10 @@ int reg_file_init(struct file **files,
                   struct inode *file_inode,
                   struct reg_file *reg_file)
 {
-    /* initialize the data pointer */
+    /* Initialize the data pointer */
     reg_file->pos = 0;
 
-    /* register regular file to the file table */
+    /* Register regular file on the file table */
     memset(&reg_file->file, 0, sizeof(reg_file->file));
     reg_file->file.f_inode = file_inode;
     reg_file->file.f_op = &reg_file_ops;
@@ -46,17 +46,14 @@ int reg_file_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-ssize_t reg_file_read(struct file *filp,
-                      char *buf,
-                      size_t size,
-                      off_t offset /* not used */)
+ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
     /* get the inode of the regular file */
     struct inode *inode = reg_file->file.f_inode;
 
-    /* get the driver file of the storage device */
+    /* Get the driver file of the storage device */
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     uint32_t blk_head_size = sizeof(struct block_header);
@@ -66,20 +63,20 @@ ssize_t reg_file_read(struct file *filp,
     size_t read_size = 0;
 
     while (remained_size) {
-        /* calculate the block index corresponding to the current file read
+        /* Calculate the block index corresponding to the current file read
          * position */
         int blk_i = reg_file->pos / blk_free_size;
 
-        /* get the start address of the block */
+        /* Get the start address of the block */
         uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
 
-        /* calculate the block offset of the current read position */
+        /* Calculate the block offset of the current read position */
         uint8_t blk_pos = reg_file->pos % blk_free_size;
 
-        /* calculate the read address */
+        /* Calculate the read address */
         uint32_t read_addr = blk_start_addr + blk_head_size + blk_pos;
 
-        /* calculate the max size to read from the current block */
+        /* Calculate the max size to read from the current block */
         uint32_t max_read_size = blk_free_size - blk_pos;
         if (remained_size > max_read_size) {
             read_size = max_read_size;
@@ -87,19 +84,19 @@ ssize_t reg_file_read(struct file *filp,
             read_size = remained_size;
         }
 
-        /* read data */
+        /* Read data */
         int buf_pos = size - remained_size;
         int retval = driver_file->f_op->read(NULL, (char *) &buf[buf_pos],
                                              read_size, read_addr);
 
-        /* read failure */
+        /* Read failure */
         if (retval < 0)
             break;
 
-        /* update the remained size */
+        /* Update the remained size */
         remained_size -= read_size;
 
-        /* update the file read position */
+        /* Update the file read position */
         reg_file->pos += read_size;
     }
 
@@ -113,14 +110,14 @@ ssize_t reg_file_write(struct file *filp,
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-    /* get the inode of the regular file */
+    /* Get the inode of the regular file */
     struct inode *inode = reg_file->file.f_inode;
 
     if (inode->i_rdev != RDEV_ROOTFS) {
         return 0;
     }
 
-    /* get the driver file of the storage device */
+    /* Get the driver file of the storage device */
     struct file *driver_file = mount_points[inode->i_rdev].dev_file;
 
     uint32_t blk_head_size = sizeof(struct block_header);
@@ -130,27 +127,27 @@ ssize_t reg_file_write(struct file *filp,
     size_t write_size = 0;
 
     while (remained_size) {
-        /* calculate the block index corresponding to the current file read
+        /* Calculate the block index corresponding to the current file read
          * position */
         int blk_i = reg_file->pos / blk_free_size;
 
-        /* get the start address of the block */
+        /* Get the start address of the block */
         uint32_t blk_start_addr = (blk_i >= filp->f_inode->i_blocks)
                                       ? fs_file_append_block(inode)
                                       : fs_get_block_addr(inode, blk_i);
 
-        /* check if the block address is valid */
+        /* Check if the block address is valid */
         if (blk_start_addr == (uint32_t) NULL) {
             break;
         }
 
-        /* calculate the block offset of the current read position */
+        /* Calculate the block offset of the current read position */
         uint8_t blk_pos = reg_file->pos % blk_free_size;
 
-        /* calculate the write address */
+        /* Calculate the write address */
         uint32_t write_addr = blk_start_addr + blk_head_size + blk_pos;
 
-        /* calculate the max size to read from the current block */
+        /* Calculate the max size to read from the current block */
         uint32_t max_write_size = blk_free_size - blk_pos;
         if (remained_size > max_write_size) {
             write_size = max_write_size;
@@ -158,23 +155,23 @@ ssize_t reg_file_write(struct file *filp,
             write_size = remained_size;
         }
 
-        /* write data */
+        /* Write data */
         int buf_pos = size - remained_size;
         int retval = driver_file->f_op->write(NULL, (char *) &buf[buf_pos],
                                               write_size, write_addr);
 
-        /* write failure */
+        /* Write failure */
         if (retval < 0)
             break;
 
-        /* update the remained size */
+        /* Update the remained size */
         remained_size -= write_size;
 
-        /* update the file read position */
+        /* Update the file read position */
         reg_file->pos += write_size;
     }
 
-    /* update the file size */
+    /* Update the file size */
     filp->f_inode->i_size += size;
 
     return size - remained_size;
@@ -184,7 +181,7 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
-    /* get the inode of the regular file */
+    /* Get the inode of the regular file */
     struct inode *inode = reg_file->file.f_inode;
 
     char new_pos;
@@ -203,7 +200,7 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
         return -1;
     }
 
-    /* check if the new position is valid or not */
+    /* Check if the new position is valid or not */
     if ((new_pos >= 0) && (new_pos < inode->i_size)) {
         reg_file->pos = new_pos;
         return new_pos;

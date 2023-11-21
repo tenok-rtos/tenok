@@ -19,13 +19,13 @@ int down(struct semaphore *sem)
     CURRENT_THREAD_INFO(curr_thread);
 
     if (sem->count <= 0) {
-        /* failed to obtain the semaphore, put the current thread into the
+        /* Failed to acquire the semaphore, enqueue the current thread into the
          * waiting list */
         prepare_to_wait(&sem->wait_list, &curr_thread->list, THREAD_WAIT);
 
         return -ERESTARTSYS;
     } else {
-        /* successfully obtained the semaphore */
+        /* Acquired the semaphore successfully */
         sem->count--;
 
         return 0;
@@ -37,7 +37,7 @@ int down_trylock(struct semaphore *sem)
     if (sem->count <= 0) {
         return -EAGAIN;
     } else {
-        /* successfully obtained the semaphore */
+        /* Acquired the semaphore successfully */
         sem->count--;
 
         return 0;
@@ -46,14 +46,14 @@ int down_trylock(struct semaphore *sem)
 
 int up(struct semaphore *sem)
 {
-    /* prevent integer overflow */
+    /* Prevent the integer overflow */
     if (sem->count >= (INT32_MAX - 1)) {
         return -EOVERFLOW;
     } else {
-        /* increase the semaphore */
+        /* Increase the semaphore counter */
         sem->count++;
 
-        /* wake up a thread from the waiting list */
+        /* Wake up the highest-priority thread from the waiting list */
         if (sem->count > 0 && !list_empty(&sem->wait_list)) {
             wake_up(&sem->wait_list);
         }

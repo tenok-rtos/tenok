@@ -52,5 +52,5 @@ ssize_t rom_dev_write(struct file *filp,
                       size_t size,
                       off_t offset)
 {
-    return 0;  // rom does not support write operation
+    return 0; /* ROM does not support write operation */
 }

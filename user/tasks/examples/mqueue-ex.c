@@ -56,10 +56,10 @@ void message_queue_task2(void)
     char str[MSG_SIZE_MAX] = {0};
 
     while (1) {
-        /* read message queue */
+        /* Read message queue */
         mq_receive(mqdes_print, str, MSG_SIZE_MAX, 0);
 
-        /* write serial */
+        /* Write serial */
         write(serial_fd, str, strlen(str));
     }
 }

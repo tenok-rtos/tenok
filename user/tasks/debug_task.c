@@ -43,7 +43,7 @@ void debug_link_task(void)
             }
         }
 
-        usleep(10000);  // 100Hz (10ms)
+        usleep(10000); /* 100Hz (10ms) */
     }
 }
 

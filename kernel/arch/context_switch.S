@@ -3,118 +3,125 @@
 .syntax unified
 
 ENTRY(PendSV_Handler)
-    /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
+    /*Note: ISR always uses msp */
 
-    /* disable all interrupts before entering into the kernel */
+    /* Disable interrupts */
     cpsid i
     cpsid f
     
-    neg   r7,  r7 //negate _r7 to indicate that the kernel is returned from pendsv handler 
+    neg   r7,  r7 /* Negate _r7 to indicate that the returning is triggered by SysTick */
 
-    /* save user state */
-    mrs   r0,  psp  //load psp into the r0
+    /* Save user state */
+    mrs   r0,  psp  /* Load psp into the r0 */
 
+    /* Save FPU state if required */
     tst      r14, #0x10
     it       eq
     vstmdbeq r0!, {s16-s31}
 
-    stmdb r0!, {r7} //preserve the syscall number of the _r7
-    stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve context: r4-r11 and lr
+    stmdb r0!, {r7} /* Preserve syscall number */
+    stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} /* Preserve user state */
 
-    /* set thread mode to be privileged */
+    /* Turn on the privilege mode */
     mov  r4, #0
     msr  control, r4
 
-    /* load kernel state */
-    pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //load r4-r11, ip and lr from the msp
-    msr   psr_nzcvq, ip //load psr from the ip
+    /* Load kernel state */
+    pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}
+    msr   psr_nzcvq, ip /* Restore psr from the ip */
 
-    /* exception return */
-    bx    lr //jump to the kernel space
+    /* Exception return (back to the kernel) */
+    bx    lr
 ENDPROC(PendSV_Handler)
 
 ENTRY(SVC_Handler)
-    /* note: ISRs are executed in the handler mode which use msp as the stack pointer */
+    /*Note: ISR always uses msp */
 
-    /* disable the interrupt */
+    /* Disable interrupts */
     cpsid i
     cpsid f
 
-    /* save user state */
-    mrs   r0, psp   //load psp into the r0
+    /* Save user state */
+    mrs   r0, psp /* Load psp to the r0 */
 
+    /* Save FPU state if required */
     tst      r14, #0x10
     it       eq
     vstmdbeq r0!, {s16-s31}
 
-    stmdb r0!, {r7} //preserve the syscall number of the _r7
-    stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //preserve user context: r4-r11 and lr
+    stmdb r0!, {r7} /* Preserve syscall number */
+    stmdb r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} /* Preserve user state */
 
-    /* set thread mode to be privileged */
+    /* Turn on the privilege mode */
     mov  r4, #0
     msr  control, r4
 
-    /* load kernel state */
-    pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}  //load r4-r11, ip and lr from the msp
-    msr   psr_nzcvq, ip //load psr from the ip
+    /* Load kernel state */
+    pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}
+    msr   psr_nzcvq, ip /* Load psr from the ip */
 
-    /* exception return */
-    bx    lr //jump to the kernel space
+    /* Exception return (back to the kernel) */
+    bx    lr
 ENDPROC(SVC_Handler)
 
 ENTRY(jump_to_thread)
-    //arguments:
-    //r0 (input) : stack address of the thread 
-    //r1 (input) : run user task with priviledge or not
-    //r0 (return): stack address after loading the user stack
+    /* Arguments:
+     * r0 (input) : Stack address of the thread 
+     * r1 (input) : Run user thread with priviledge or not
+     * r0 (return): Stack address after loading the user stack */
 
-    /* save kernel state */
-    mrs   ip, psr //save psr into the ip
-    push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //preserve kernel context: r4-r11, ip and lr
+    /* Save kernel state */
+    mrs   ip, psr /* Save psr to the ip */
+    push  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} /* Preserve kernel state */
 
-    /* set thread's privilege */
+    /* Set thread's privilege */
     msr  control, r1
 
-    /* load user state */
-    ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr} //load the user state from the address pointed by the r0
-    ldmia r0!, {r7} //load syscall number _r7
+    /* Load user state */
+    ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, lr}
 
+    /* Load syscall number */
+    ldmia r0!, {r7}
+
+    /* Load FPU state if required */
     tst      r14, #0x10
     it       eq
     vldmiaeq r0!, {s16-s31}
 
-    msr   psp, r0   //psp = r0 (set the psp to the stack address of the task to jump)
+    msr   psp, r0 /* psp = r0 */
 
-    /* enable the interrupt */
+    /* Enable interrupts */
     cpsie i
     cpsie f
 
-    bx    lr //jump to the user task
+    /* Jump to user space */
+    bx    lr
 ENDPROC(jump_to_thread)
 
 ENTRY(os_env_init)
-    //arguments:
-    //r0 (input): stack address
+    /* Arguments:
+     * r0 (input): Stack address */
 
-    /* save kernel state */
-    mrs  ip, psr //save psr into the ip
-    push {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr} //preserve r4-r11, ip, and lr to the space pointed by msp
+    /* Save kernel state */
+    mrs  ip, psr /* Save psr to the ip */
+    push {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}
 
-    /* switch stack pointer from msp to psp */
-    msr  psp, r0     //psp = r1
-    mov  r0, #3      //r0 = 3
-    msr  control, r0 //control = r0 (stack pointer is now switched to psp)
-    isb              //flush the pipeline since the stack pointer is changed
+    /* Switch stack pointer from msp to psp */
+    msr  psp, r0     /* psp = r1 */
+    mov  r0, #3      /* r0 = 3 */
+    msr  control, r0 /* control = r0 (stack pointer is now switched to psp) */
+    isb              /* Flush the pipeline as the stack pointer is changed */
 
-    /* switch to handler mode via svc */
-    push {r7}   //preserve old r7 for overwriting
-    mov  r7, #0 //write syscall number to the r7
-    svc  0      //trigger svc interrupt handler
-    pop  {r7}   //resume old r7 value
+    /* Switch to handler mode */
+    push {r7}   /* Preserve old r7 for overwriting */
+    mov  r7, #0 /* Write syscall number to the r7 */
+    svc  0      /* Trigger SVC interrupt handler */
+    pop  {r7}   /* Resume old r7 value */
 
-    /* disable the interrupt before entering into the kernel */
+    /* Disable interrupts */
     cpsid i 
     cpsid f
 
-    bx lr //function return
+    /* Function return */
+    bx lr
 ENDPROC(os_env_init)

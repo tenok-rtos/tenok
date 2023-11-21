@@ -79,17 +79,17 @@ void uart2_init(uint32_t baudrate)
 
 void serial1_init(void)
 {
-    /* register serial1 to the file system */
+    /* Register serial1 to the file system */
     register_chrdev("serial1", &serial1_file_ops);
 
-    /* create wait queues for synchronization */
+    /* Create wait queues for synchronization */
     init_waitqueue_head(&uart2.tx_wq);
     init_waitqueue_head(&uart2.rx_wq);
 
-    /* create kfifo for uart2 rx */
+    /* Create kfifo for UART2 rx */
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
-    /* initialize uart3 */
+    /* Initialize UART2 */
     uart2_init(115200);
 
     printk("chardev serial1: mavlink");

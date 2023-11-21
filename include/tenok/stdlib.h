@@ -39,7 +39,7 @@ void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);
 
 /**
- * currently not implemented yet:
+ * Currently not implemented yet:
  */
 
 #if 0
@@ -53,7 +53,7 @@ char *getenv(const char *name);
 #endif
 
 /**
- * non-standard extensions:
+ * Non-standard extensions:
  */
 
 char *itoa(int value, char *buffer, int radix);
@@ -62,7 +62,7 @@ char *ltoa(long value, char *buffer, int radix);
 char *ultoa(unsigned long value, char *buffer, int radix);
 
 /**
- * functions provided by the compiler:
+ * Functions provided by the compiler:
  */
 
 typedef struct {

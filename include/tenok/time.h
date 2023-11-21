@@ -12,8 +12,8 @@
 #define CLOCK_MONOTONIC 1
 
 struct timespec {
-    time_t tv_sec; /* seconds */
-    long tv_nsec;  /* nanoseconds */
+    time_t tv_sec; /* Seconds */
+    long tv_nsec;  /* Nanoseconds */
 };
 
 struct itimerspec {

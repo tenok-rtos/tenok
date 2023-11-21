@@ -20,18 +20,18 @@
 
 FILE *_fopen(const char *pathname, const char *mode)
 {
-    /* open the file with the system call */
+    /* Open the file with the system call */
     int fd = open(pathname, 0);
 
-    /* failed to open the file */
+    /* Failed to open the file */
     if (fd < 0)
         return NULL;
 
-    /* allocate new file stream object */
+    /* Allocate new file stream */
     FILE *stream = malloc(sizeof(FILE));
     __FILE *_stream = (__FILE *) stream;
 
-    /* failed to allocate new memory */
+    /* Failed to allocate file stream */
     if (!_stream) {
         close(fd);
         return NULL;
@@ -55,7 +55,7 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
 
-    /* start of the critical section */
+    /* Start the critical section */
     pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
@@ -71,11 +71,11 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
         nbytes -= rsize;
 
         if (retval != rsize) {
-            break;  // EOF or read error
+            break; /* EOF or read error */
         }
     }
 
-    /* end of the critical section */
+    /* End the critical section */
     pthread_mutex_unlock(&_stream->lock);
 
     return total;
@@ -85,7 +85,7 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
 
-    /* start of the critical section */
+    /* Start the critical section */
     pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
@@ -94,7 +94,7 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 
     int retval;
     for (int i = 0; i < times; i++) {
-        /* write file */
+        /* Write file */
         int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
         retval = write(_stream->fd, (char *) ((uintptr_t) ptr + total), wsize);
 
@@ -102,11 +102,11 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
         nbytes -= wsize;
 
         if (retval != wsize) {
-            break;  // EOF or write error
+            break; /* EOF or write error */
         }
     }
 
-    /* end of the critical section */
+    /* End the critical section */
     pthread_mutex_unlock(&_stream->lock);
 
     return total;

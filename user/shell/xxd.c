@@ -5,8 +5,8 @@
 
 #include "shell.h"
 
-#define XXD_N_BYTES 16      // byte numbers for xxd to display per one line
-#define XXD_PAUSE_LINES 10  // the number of lines that xxd can print at once
+#define XXD_N_BYTES 16     /* The Byte number for xxd to print per line */
+#define XXD_PAUSE_LINES 10 /* The line number that xxd can print at once */
 
 static void byte2hex(char byte, char *hex_str)
 {
@@ -27,14 +27,14 @@ static void byte2char(char byte, char *char_str)
 
 static void xxd_print_line(unsigned int addr, char *buf, int nbytes)
 {
-    /* append address */
+    /* Append address */
     char s[PRINT_SIZE_MAX] = {0};
     snprintf(s, PRINT_SIZE_MAX, "%08x: ", addr);
 
-    /* hex code */
+    /* Hex code */
     for (int i = 0; i < XXD_N_BYTES; i++) {
         if (i < nbytes) {
-            /* append hex code of the byte */
+            /* Append hex code of the byte */
             char hex_str[3] = {'\0'};
             byte2hex(buf[i], hex_str);
             strncat(s, hex_str, 3);
@@ -43,26 +43,26 @@ static void xxd_print_line(unsigned int addr, char *buf, int nbytes)
         }
 
         if (i % 2) {
-            /* add a new space after every two bytes */
+            /* Add a new space after every two bytes */
             strncat(s, " ", 2);
         }
     }
 
-    /* append delimiter */
+    /* Append delimiter */
     strncat(s, "  ", 3);
 
-    /* plain text */
+    /* Plain text */
     for (int i = 0; i < nbytes; i++) {
-        /* append plain text of the byte */
+        /* Append plain text of the byte */
         char char_str[2] = {'\0'};
         byte2char(buf[i], char_str);
         strncat(s, char_str, 2);
     }
 
-    /* append new line */
+    /* Append new line */
     strncat(s, "\n\r", 3);
 
-    /* print the xxd line out */
+    /* Print the xxd line out */
     shell_puts(s);
 }
 
@@ -87,30 +87,30 @@ void shell_cmd_xxd(int argc, char *argv[])
     char path[PATH_LEN_MAX] = {0};
 
     if (argv[1][0] != '/') {
-        /* input is a relative path */
+        /* Input is a relative path */
         char pwd[PATH_LEN_MAX] = {0};
         getcwd(pwd, PATH_LEN_MAX);
 
         snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
     } else {
-        /* input is a absolute path */
+        /* Input is a absolute path */
         strncpy(path, argv[1], PATH_LEN_MAX);
     }
 
-    /* open file */
+    /* Open file */
     FILE *file = fopen(path, "");
     if (!file) {
         shell_puts("failed to open the file.\n\r");
         return;
     }
 
-    /* get file size */
+    /* Get file size */
     struct stat stat;
     fstat(fileno(file), &stat);
     fseek(file, 0, SEEK_SET);
     int fsize = stat.st_size;
 
-    /* read file */
+    /* Read file */
     unsigned int addr = 0;
     char buf[100];
 
@@ -119,29 +119,29 @@ void shell_cmd_xxd(int argc, char *argv[])
     while (fsize > 0) {
         int rsize;
         if (fsize >= XXD_N_BYTES) {
-            /* full line */
+            /* Full line */
             rsize = XXD_N_BYTES;
             fsize -= XXD_N_BYTES;
         } else {
-            /* remainers */
+            /* Remainers */
             rsize = fsize;
             fsize = 0;
         }
 
-        /* read file */
+        /* Read file */
         fread(buf, rsize, 1, file);
 
-        /* print one line of xxd message */
+        /* Print one line of xxd message */
         xxd_print_line(addr, buf, rsize);
 
-        /* address of next line to read */
+        /* Address of the next line to read */
         addr += XXD_N_BYTES;
 
         if (fsize == 0) {
             return;
         }
 
-        /* pause the printing and wait for the key */
+        /* Pause the printing and wait for the key */
         line++;
         if (line == XXD_PAUSE_LINES) {
             shell_puts("press [enter] to show more, [q] to leave.\n\r");

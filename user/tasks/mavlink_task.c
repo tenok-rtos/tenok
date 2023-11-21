@@ -36,13 +36,13 @@ void mavlink_out_task(void)
         mavlink_send_heartbeat(fd);
         mavlink_send_hil_actuator_controls(fd);
 
-        /* trigger the command parser if received new message from the queue */
+        /* Trigger command parser if received new message from the queue */
         if (mq_receive(mqdes_recvd_msg, (char *) &recvd_msg, sizeof(recvd_msg),
                        0) == sizeof(recvd_msg)) {
             parse_mavlink_msg(&recvd_msg);
         }
 
-        sleep(200);  // 5Hz
+        sleep(200); /* 5Hz */
     }
 }
 
@@ -57,12 +57,12 @@ void mavlink_in_task(void)
     mavlink_message_t recvd_msg;
 
     while (1) {
-        /* read byte */
+        /* Read byte */
         c = read(fd, &c, 1);
 
-        /* attempt to parse the message */
+        /* Attempt to parse the message */
         if (mavlink_parse_char(MAVLINK_COMM_1, c, &recvd_msg, &status) == 1) {
-            /* received, put the received message into the queue */
+            /* Put the received message into the queue */
             mq_send(mqdes_recvd_msg, (char *) &recvd_msg, sizeof(recvd_msg), 0);
         }
     }

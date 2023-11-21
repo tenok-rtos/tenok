@@ -12,11 +12,11 @@
 
 #define BUFFER_SIZE 10
 
-/* producer and consumer's data */
+/* Producer and consumer's data */
 static int my_buffer[BUFFER_SIZE];
 static int my_cnt = 0;
 
-/* data protection and task signaling */
+/* For resource protection */
 static pthread_mutex_t mutex;
 static pthread_cond_t cond_producer;
 static pthread_cond_t cond_consumer;
@@ -43,7 +43,7 @@ void mutex_task1(void)
     int item = 1;
 
     while (1) {
-        /* start of the critical section */
+        /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == BUFFER_SIZE) {
@@ -52,18 +52,18 @@ void mutex_task1(void)
             pthread_cond_wait(&cond_producer, &mutex);
         }
 
-        /* produce an item and add it to the buffer */
+        /* Produce an item and add it to the buffer */
         my_buffer[my_cnt++] = item;
         dprintf(serial_fd, "[task 1] produced item %d\n\r", item);
         item++;
 
-        /* signal to consumers that an item is available */
+        /* Signal to consumers that an item is available */
         pthread_cond_signal(&cond_consumer);
 
-        /* end of the critical section */
+        /* End the critical section */
         pthread_mutex_unlock(&mutex);
 
-        /* simulate some work */
+        /* Simulate some work */
         sleep(1);
     }
 }
@@ -78,7 +78,7 @@ void mutex_task2(void)
     }
 
     while (1) {
-        /* start of the critical section */
+        /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == 0) {
@@ -87,18 +87,18 @@ void mutex_task2(void)
             pthread_cond_wait(&cond_consumer, &mutex);
         }
 
-        /* consume an item from the buffer */
+        /* Consume an item from the buffer */
         int item = my_buffer[--my_cnt];
         dprintf(serial_fd, "[task 2] consumed item %d\n\r", item);
 
-        /* signal to producers that there is space in the buffer */
+        /* Signal to producers that there is space in the buffer */
         pthread_cond_signal(&cond_producer);
 
-        /* end of the critical section */
+        /* End the critical section */
         pthread_mutex_unlock(&mutex);
 
-        /* simulate some work */
-        usleep(100000);  // 100ms
+        /* Simulate some work */
+        usleep(100000); /* 100ms */
     }
 }
 

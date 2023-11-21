@@ -13,9 +13,9 @@
 typedef uint32_t nfds_t;
 
 struct pollfd {
-    int fd;        /* file descriptor */
-    short events;  /* requested events */
-    short revents; /* returned events */
+    int fd;        /* File descriptor number */
+    short events;  /* Requested events */
+    short revents; /* Returned events */
 };
 
 /**

@@ -15,57 +15,58 @@
 #define ROMFS_OUTPUT_DIR "/rom_data/"
 #define OUTPUT_BIN "./romfs.bin"
 
-#define S_IFREG 3  // regular file
-#define S_IFDIR 4  // directory
+#define S_IFREG 3 /* Regular file */
+#define S_IFDIR 4 /* Directory */
 
 bool _verbose = false;
 
 struct super_block {
-    uint32_t s_blk_cnt;    // number of the used blocks
-    uint32_t s_inode_cnt;  // number of the used inodes
+    uint32_t s_blk_cnt;   /* number of the used blocks */
+    uint32_t s_inode_cnt; /* number of the used inodes */
 
-    bool s_rd_only;  // read only flag
+    bool s_rd_only; /* Read-only flag */
 
-    uint32_t s_sb_addr;   // start address of the super block
-    uint32_t s_ino_addr;  // start address of the inode table
-    uint32_t s_blk_addr;  // start address of the blocks region
+    uint32_t s_sb_addr;  /* Start address of the super block */
+    uint32_t s_ino_addr; /* Start address of the inode table */
+    uint32_t s_blk_addr; /* Start address of the blocks region */
 };
 
-/* block header will be placed to the top of every blocks of the regular file */
+/* Block header will be placed to the top of every blocks of the regular file */
 struct block_header {
-    uint32_t b_next;  // virtual address of the next block
+    uint32_t b_next; /* Virtual address of the next block */
 };
 
 struct mount {
-    struct file *dev_file;         // driver file of the mounted storage device
-    struct super_block super_blk;  // super block of the mounted storage device
+    struct file *dev_file; /* Driver file of the mounted storage device */
+    struct super_block
+        super_blk; /* Super block of the mounted storage device */
 };
 
 /* index node */
 struct inode {
-    uint8_t i_mode;  // file type: e.g., S_IFIFO, S_IFCHR, etc.
+    uint8_t i_mode; /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
 
-    uint8_t i_rdev;  // the device on which this file system is mounted
-    bool i_sync;     // the mounted file is loaded into the rootfs or not
+    uint8_t i_rdev; /* The device on which this file system is mounted */
+    bool i_sync;    /* The mounted file is loaded into the rootfs or not */
 
-    uint32_t i_ino;     // inode number
-    uint32_t i_parent;  // inode number of the parent directory
+    uint32_t i_ino;    /* inode number */
+    uint32_t i_parent; /* inode number of the parent directory */
 
-    uint32_t i_fd;  // file descriptor number
+    uint32_t i_fd; /* File descriptor number */
 
-    uint32_t i_size;    // file size (bytes)
-    uint32_t i_blocks;  // block_numbers = file_size / block_size
-    uint32_t i_data;    // virtual address for accessing the storage
+    uint32_t i_size;   /* File size (bytes) */
+    uint32_t i_blocks; /* Block_numbers = file_size / block_size */
+    uint32_t i_data;   /* Virtual address for accessing the storage */
 
-    struct list_head i_dentry;  // list head of the dentry table
+    struct list_head i_dentry; /* List head of the dentry table */
 };
 
-/* directory entry */
+/* Directory entry */
 struct dentry {
-    char d_name[FILE_NAME_LEN_MAX];  // file name
+    char d_name[FILE_NAME_LEN_MAX]; /* File name */
 
-    uint32_t d_inode;   // the inode of the file
-    uint32_t d_parent;  // the inode of the parent directory
+    uint32_t d_inode;  /* The inode of the file */
+    uint32_t d_parent; /* The inode of the parent directory */
 
     struct list_head d_list;
 };
@@ -90,7 +91,7 @@ int verbose(const char *restrict format, ...)
 
 void romfs_init(void)
 {
-    /* configure the root directory inode */
+    /* Configure the root directory inode */
     struct inode *inode_root = &inodes[0];
     inode_root->i_mode = S_IFDIR;
     inode_root->i_ino = 0;
@@ -110,16 +111,16 @@ void romfs_init(void)
 
 struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 {
-    /* currently the dentry table is empty */
+    /* Currently the dentry table is empty */
     if (inode_dir->i_size == 0)
         return NULL;
 
-    /* traversal of the dentry list */
+    /* Traverse the dentry list */
     struct list_head *list_curr;
     list_for_each (list_curr, &inode_dir->i_dentry) {
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
-        /* compare the file name with the dentry */
+        /* Compare the file name with the dentry */
         if (strcmp(dentry->d_name, file_name) == 0)
             return &inodes[dentry->d_inode];
     }
@@ -129,10 +130,10 @@ struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 
 int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 {
-    /* calculate how many dentries can a block hold */
+    /* Calculate how many dentries a block can hold */
     int dentry_per_blk = block_size / sizeof(struct dentry);
 
-    /* calculate how many blocks is required for storing N dentries */
+    /* Calculate how many blocks is required for storing N dentries */
     int blocks = dentry_cnt / dentry_per_blk;
     if (dentry_cnt % dentry_per_blk)
         blocks++;
@@ -148,46 +149,44 @@ struct inode *fs_add_file(struct inode *inode_dir,
     if (romfs_sb.s_inode_cnt >= INODE_CNT_MAX)
         return NULL;
 
-    /* calculate how many dentries can a block hold */
+    /* Calculate how many dentries a block can hold */
     int dentry_per_blk = FS_BLK_SIZE / sizeof(struct dentry);
 
-    /* calculate how many dentries the directory has */
+    /* Calculate how many dentries the directory has */
     int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
 
-    /* check if current block can fit a new dentry */
+    /* Check if current block can fit a new dentry */
     bool fit =
         ((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) &&
-        (inode_dir->i_size != 0) /* no memory is allocated if size = 0 */;
+        (inode_dir->i_size != 0) /* No memory is allocated if size = 0 */;
 
-    /* allocate memory for the new dentry */
+    /* Allocate new dentry */
     uint8_t *dir_data_p;
     if (fit == true) {
+        /* Append at the end of the old block */
         struct list_head *list_end = inode_dir->i_dentry.prev;
         struct dentry *dir = list_entry(list_end, struct dentry, d_list);
         dir_data_p = (uint8_t *) dir + sizeof(struct dentry);
     } else {
-        /* can not fit, requires a new block */
+        /* The dentry requires a new block */
         dir_data_p = (uint8_t *) romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
 
         romfs_sb.s_blk_cnt++;
     }
 
-    /* configure the new dentry */
+    /* Configure the new dentry */
     struct dentry *new_dentry = (struct dentry *) dir_data_p;
-    new_dentry->d_inode =
-        romfs_sb.s_inode_cnt;  // assign new inode number for the file
-    new_dentry->d_parent =
-        inode_dir->i_ino;  // save the inode of the parent directory
-    strncpy(new_dentry->d_name, file_name,
-            FILE_NAME_LEN_MAX);  // copy the file name
+    new_dentry->d_inode = romfs_sb.s_inode_cnt; /* File inode */
+    new_dentry->d_parent = inode_dir->i_ino;    /* Parent inode */
+    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX); /* File name */
 
-    /* configure the new file inode */
+    /* Configure the new file inode */
     struct inode *new_inode = &inodes[romfs_sb.s_inode_cnt];
     new_inode->i_ino = romfs_sb.s_inode_cnt;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd = 0;
 
-    /* file instantiation */
+    /* File instantiation */
     int result = 0;
 
     switch (file_type) {
@@ -195,7 +194,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
         new_inode->i_mode = S_IFREG;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL;  // empty file
+        new_inode->i_data = (uint32_t) NULL; /* Empty file */
 
         break;
     }
@@ -203,7 +202,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
         new_inode->i_mode = S_IFDIR;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL;  // empty directory
+        new_inode->i_data = (uint32_t) NULL; /* Empty directory */
         INIT_LIST_HEAD(&new_inode->i_dentry);
 
         break;
@@ -212,16 +211,19 @@ struct inode *fs_add_file(struct inode *inode_dir,
         exit(-1);
     }
 
-    romfs_sb.s_inode_cnt++;  // update inode number for the next file
+    /* Update inode count */
+    romfs_sb.s_inode_cnt++;
 
-    /* currently no files is under the directory */
-    if (list_empty(&inode_dir->i_dentry) == true)
-        inode_dir->i_data = (uint32_t) new_dentry;  // add the first dentry
+    /* Currently no files is under the directory */
+    if (list_empty(&inode_dir->i_dentry) == true) {
+        /* Add the first dentry */
+        inode_dir->i_data = (uint32_t) new_dentry;
+    }
 
-    /* insert the new file under the current directory */
+    /* Insert the new file under the current directory */
     list_add(&new_dentry->d_list, &inode_dir->i_dentry);
 
-    /* update size and block information of the inode */
+    /* Update inode size and block information */
     inode_dir->i_size += sizeof(struct dentry);
 
     dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
@@ -235,7 +237,7 @@ char *fs_split_path(char *entry, char *path)
     while (1) {
         bool found_dir = (*path == '/');
 
-        /* copy */
+        /* Copy */
         if (found_dir == false) {
             *entry = *path;
             entry++;
@@ -249,73 +251,77 @@ char *fs_split_path(char *entry, char *path)
 
     *entry = '\0';
 
+    /* The path can not be splitted anymore */
     if (*path == '\0')
-        return NULL;  // the path can not be splitted anymore
+        return NULL;
 
-    return path;  // return the address of the left path string
+    /* Return the address of the left path string */
+    return path;
 }
 
 static struct inode *fs_create_file(char *pathname, uint8_t file_type)
 {
-    /* the path name must start with '/' */
+    /* The path name must start with '/' */
     if (pathname[0] != '/')
         return NULL;
 
-    struct inode *inode_curr = &inodes[0];  // start from the root node
+    /* Iterate from the root inode */
+    struct inode *inode_curr = &inodes[0];
     struct inode *inode;
 
     char file_name[FILE_NAME_LEN_MAX];
     char entry[PATH_LEN_MAX];
     char *path = pathname;
 
-    path = fs_split_path(entry, path);  // get rid of the first '/'
+    /* Get rid of the first '/' */
+    path = fs_split_path(entry, path);
 
     while (1) {
-        /* split the path and get the entry name at each layer */
+        /* Split the path and get the entry name of each layer */
         path = fs_split_path(entry, path);
 
-        /* two successive '/' are detected */
+        /* Two successive '/' are detected */
         if (entry[0] == '\0')
             continue;
 
-        /* the last non-empty entry string is the file name */
+        /* The last non-empty entry string is the file name */
         if (entry[0] != '\0')
             strncpy(file_name, entry, FILE_NAME_LEN_MAX);
 
-        /* search the entry and get the inode */
+        /* Search the entry and get the inode */
         inode = fs_search_file(inode_curr, entry);
 
         if (path != NULL) {
-            /* the path can be further splitted, which means it is a directory
+            /* The path can be further splitted, which means it is a directory
              */
 
-            /* check if the directory exists */
+            /* Check if the directory exists */
             if (inode == NULL) {
-                /* directory does not exist, create one */
+                /* Directory does not exist, create one */
                 inode = fs_add_file(inode_curr, entry, S_IFDIR);
 
-                /* failed to create the directory */
+                /* Failed to create the directory */
                 if (inode == NULL)
                     return NULL;
             }
 
             inode_curr = inode;
         } else {
-            /* no more path to be splitted, the remained string should be the
+            /* No more path to be splitted, the remained string should be the
              * file name */
 
-            /* file with the same name already exists */
+            /* File with the same name already exists */
             if (inode != NULL)
                 return NULL;
 
-            /* create new inode for the file */
+            /* Create new inode for the file */
             inode = fs_add_file(inode_curr, file_name, file_type);
 
-            /* failed to create the file */
+            /* Failed to create the file */
             if (inode == NULL)
                 return NULL;
 
-            /* file is created successfully */
+            /* File is created successfully */
             return inode;
         }
     }
@@ -327,7 +333,7 @@ void romfs_address_conversion_dir(struct inode *inode)
     uint32_t inodes_size = sizeof(inodes);
     uint32_t blocks_size = sizeof(romfs_blk);
 
-    /* adjust the address stored in the inode.i_data (which is in the block
+    /* Adjust the address stored in the inode.i_data (which is in the block
      * region) */
     inode->i_data =
         inode->i_data - (uint32_t) romfs_blk + sb_size + inodes_size;
@@ -335,22 +341,22 @@ void romfs_address_conversion_dir(struct inode *inode)
     struct list_head *list_start = &inode->i_dentry;
     struct list_head *list_curr = list_start;
 
-    /* adjust the dentry list */
+    /* Adjust the dentry list */
     do {
-        /* preserve the next pointer before modifying */
+        /* Preserve the next pointer before modifying */
         struct list_head *list_next = list_curr->next;
 
-        /* obtain the dentry */
+        /* Acquire the dentry */
         struct dentry *dentry = list_entry(list_curr, struct dentry, d_list);
 
         if (dentry->d_list.prev == &inode->i_dentry) {
-            /* the address of the inode.i_dentry (list head) is in the inodes
+            /* The address of the inode.i_dentry (list head) is in the inodes
              * region */
             dentry->d_list.prev =
                 (struct list_head *) ((uint8_t *) &inode->i_dentry -
                                       (uint32_t) inodes + sb_size);
         } else {
-            /* besides the list head, others in the blocks region */
+            /* Besides the list head, others in the blocks region */
             dentry->d_list.prev =
                 (struct list_head *) ((uint8_t *) dentry->d_list.prev -
                                       (uint32_t) romfs_blk + sb_size +
@@ -358,13 +364,13 @@ void romfs_address_conversion_dir(struct inode *inode)
         }
 
         if (dentry->d_list.next == &inode->i_dentry) {
-            /* the address of the inode.i_dentry (list head) is in the inodes
+            /* The address of the inode.i_dentry (list head) is in the inodes
              * region */
             dentry->d_list.next =
                 (struct list_head *) ((uint8_t *) &inode->i_dentry -
                                       (uint32_t) inodes + sb_size);
         } else {
-            /* besides the list head, others in the blocks region */
+            /* Besides the list head, others in the blocks region */
             dentry->d_list.next =
                 (struct list_head *) ((uint8_t *) dentry->d_list.next -
                                       (uint32_t) romfs_blk + sb_size +
@@ -394,7 +400,7 @@ void romfs_address_conversion_file(struct inode *inode)
     uint32_t blk_head_size = sizeof(struct block_header);
     uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
 
-    /* calculate the blocks count */
+    /* Calculate the blocks count */
     int blocks = inode->i_size / blk_free_size;
     if ((inode->i_size % blk_free_size) > 0)
         blocks++;
@@ -402,24 +408,24 @@ void romfs_address_conversion_file(struct inode *inode)
     struct block_header *blk_head;
     uint32_t next_blk_addr;
 
-    /* adjust the block headers of the file */
+    /* Adjust the block headers of the file */
     int i;
     for (i = 0; i < blocks; i++) {
         if (i == 0) {
-            /* get the address of the firt block from inode.i_data */
+            /* Get the address of the firt block from inode.i_data */
             blk_head = (struct block_header *) inode->i_data;
             next_blk_addr = blk_head->b_next;
         } else {
-            /* get the address of the rest from the block header */
+            /* Get the address of the rest from the block header */
             blk_head = (struct block_header *) next_blk_addr;
             next_blk_addr = blk_head->b_next;
         }
 
-        /* the last block header requires no adjustment */
+        /* The last block header requires no adjustment */
         if (blk_head->b_next == (uint32_t) NULL)
             break;
 
-        /* adjust block_head.b_next (the address in in the block region) */
+        /* Adjust block_head.b_next (the address in in the block region) */
         blk_head->b_next =
             blk_head->b_next - (uint32_t) romfs_blk + sb_size + inodes_size;
 
@@ -427,7 +433,7 @@ void romfs_address_conversion_file(struct inode *inode)
                 (uint32_t) blk_head->b_next);
     }
 
-    /* adjust the address stored in the inode.i_data (which is in the block
+    /* Adjust the address stored in the inode.i_data (which is in the block
      * region) */
     inode->i_data =
         inode->i_data - (uint32_t) romfs_blk + sb_size + inodes_size;
@@ -443,7 +449,7 @@ void romfs_export(void)
     uint32_t inodes_size = sizeof(inodes);
     uint32_t blocks_size = sizeof(romfs_blk);
 
-    /* memory space conversion */
+    /* Memory space conversion */
     verbose(
         "================================\n"
         "[romfs memory space conversion]\n");
@@ -478,51 +484,51 @@ void romfs_export(void)
 
 void romfs_import_file(char *host_path, char *romfs_path)
 {
-    /* create new romfs file */
+    /* Create new romfs file */
     struct inode *inode = fs_create_file(romfs_path, S_IFREG);
     if (inode == NULL) {
         printf("[mkromfs] failed to create new file!\n");
         exit(-1);
     }
 
-    /* open the source file */
+    /* Open the source file */
     FILE *file = fopen(host_path, "r");
     if (file == NULL) {
         printf("%s: failed to open the file!\n", host_path);
         exit(-1);
     }
 
-    /* get the source file size */
+    /* Get the source file size */
     fseek(file, 0, SEEK_END);  // get the file size
     long file_size = ftell(file);
 
-    /* nothing to write to the romfs file */
+    /* Nothing to write to the romfs file */
     if (file_size == 0) {
         fclose(file);
         return;
     }
 
-    /* check if the file is too big */
+    /* Check if the file is too big */
     int left_space = FS_BLK_SIZE * (FS_BLK_CNT - romfs_sb.s_blk_cnt);
     if (file_size > left_space) {
         printf("%s: the space is not enough to fit the file!\n", host_path);
         exit(1);
     }
 
-    /* read and close the source file */
-    char *file_content = malloc(file_size + 1);  // plus one for the EOF symbol
+    /* Read and close the source file */
+    char *file_content = malloc(file_size + 1); /* +1 for the EOF symbol */
     fseek(file, 0L, SEEK_SET);
     fread(file_content, sizeof(char), file_size, file);
     fclose(file);
 
-    /* calculate the required blocks number */
+    /* Calculate the required blocks number */
     uint32_t blk_head_size = sizeof(struct block_header);
     uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
     int blocks = file_size / blk_free_size;
     if ((file_size % blk_free_size) > 0)
         blocks++;
 
-    /* update inode information */
+    /* Update inode information */
     inode->i_size = file_size;
     inode->i_blocks = blocks;
 
@@ -535,17 +541,17 @@ void romfs_import_file(char *host_path, char *romfs_path)
 
     int i;
     for (i = 0; i < blocks; i++) {
-        /* new block allocation */
+        /* Allocate new blocl */
         uint8_t *block_addr =
             (uint8_t *) romfs_blk + (romfs_sb.s_blk_cnt * FS_BLK_SIZE);
         romfs_sb.s_blk_cnt++;
 
-        /* first block to write */
+        /* First block to write */
         if (i == 0) {
             inode->i_data = (uint32_t) block_addr;
         }
 
-        /* update the block header for the last block */
+        /* Update the block header for the last block */
         if (i > 0) {
             struct block_header *blk_head_last =
                 (struct block_header *) last_blk_addr;
@@ -555,29 +561,29 @@ void romfs_import_file(char *host_path, char *romfs_path)
         int blk_pos = 0;
         int write_size = 0;
 
-        /* calculate the write size for the current block */
+        /* Calculate the write size for the current block */
         if (file_size_remained > blk_free_size) {
-            /* too large to fit all */
+            /* Too large to fit all */
             write_size = blk_free_size;
             file_size_remained -= blk_free_size;
         } else {
-            /* enough to fit the left data */
+            /* Enough to fit the left data */
             write_size = file_size_remained;
         }
 
-        /* write the block header */
+        /* Write the block header */
         struct block_header blk_head = {.b_next = (uint32_t) NULL};
         memcpy(&block_addr[blk_pos], &blk_head, blk_head_size);
         blk_pos += blk_head_size;
 
-        /* write the left file content */
+        /* Write the left file content */
         memcpy(&block_addr[blk_pos], &file_content[file_pos], write_size);
         blk_pos += write_size;
 
-        /* update the position of the file content that is written */
+        /* Update the position of the file content that is written */
         file_pos += write_size;
 
-        /* preserve the current block address */
+        /* Preserve the current block address */
         last_blk_addr = block_addr;
     }
 
@@ -587,15 +593,15 @@ void romfs_import_file(char *host_path, char *romfs_path)
 #define PATH_BUF_SIZE 500
 char romfs_import_dir(const char *host_path, const char *romfs_path)
 {
-    /* open the directory */
+    /* Open the directory */
     DIR *dir = opendir(host_path);
     if (dir == NULL)
         exit(1);
 
-    /* enumerate all the files under the directory */
+    /* Enumerate all the files under the directory */
     struct dirent *dirent = NULL;
     while ((dirent = readdir(dir)) != NULL) {
-        /* ignore "." and ".." */
+        /* Ignore "." and ".." */
         if (!strcmp(dirent->d_name, ".") || !strcmp(dirent->d_name, "..") ||
             !strcmp(dirent->d_name, ".gitkeep"))
             continue;
@@ -604,22 +610,22 @@ char romfs_import_dir(const char *host_path, const char *romfs_path)
         char host_child_path[PATH_BUF_SIZE] = {0};
 
         if (dirent->d_type == DT_DIR) {
-            /* combine the children directory name with the parent path name */
+            /* Combine the children directory name with the parent pathname */
             snprintf(romfs_child_path, PATH_BUF_SIZE, "%s%s/", romfs_path,
                      dirent->d_name);
             snprintf(host_child_path, PATH_BUF_SIZE, "%s%s/", host_path,
                      dirent->d_name);
 
-            /* import the directory recursively */
+            /* Import the directory recursively */
             romfs_import_dir(host_child_path, romfs_child_path);
         } else if (dirent->d_type == DT_REG) {
-            /* combine the children file name with the parent path name */
+            /* Combine the children file name with the parent pathname */
             snprintf(romfs_child_path, PATH_BUF_SIZE, "%s%s", romfs_path,
                      dirent->d_name);
             snprintf(host_child_path, PATH_BUF_SIZE, "%s%s", host_path,
                      dirent->d_name);
 
-            /* import the files under the directory */
+            /* Import the files under the directory */
             romfs_import_file(host_child_path, romfs_child_path);
         }
     }

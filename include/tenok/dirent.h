@@ -8,17 +8,17 @@
 
 #include "kconfig.h"
 
-/* return type of the opendir() syscall */
+/* Return type of the opendir() syscall */
 typedef struct dirstream {
-    struct inode *inode_dir;       /* directory inode */
-    struct list_head *dentry_list; /* list pointer of the dentry to return */
+    struct inode *inode_dir;       /* Directory inode */
+    struct list_head *dentry_list; /* List pointer of the dentry to return */
 } DIR;
 
-/* return type of the readdir() syscall */
+/* Return type of the readdir() syscall */
 struct dirent {
-    char d_name[FILE_NAME_LEN_MAX]; /* file name */
-    uint32_t d_ino;                 /* the inode of the file */
-    uint8_t d_type;                 /* file type */
+    char d_name[FILE_NAME_LEN_MAX]; /* File name */
+    uint32_t d_ino;                 /* The inode of the file */
+    uint8_t d_type;                 /* File type */
 };
 
 /**

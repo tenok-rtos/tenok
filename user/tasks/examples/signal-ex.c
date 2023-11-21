@@ -27,24 +27,24 @@ void signal_task1(void)
         exit(1);
     }
 
-    /* register the signal handler function */
+    /* Register a signal handler */
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = sig_handler;
     sa.sa_flags = 0;
     sigaction(SIGUSR1, &sa, NULL);
 
-    /* block until the signal arrived */
+    /* Block until the signal arrived */
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGUSR1);
     int sig;
     sigwait(&set, &sig);
 
-    /* print after the signal arrived */
+    /* Print after the signal arrived */
     dprintf(serial_fd, "signal %d is captured.\n\r", sig);
 
-    /* sleep */
+    /* Sleep */
     while (1) {
         sleep(1);
     }
@@ -56,10 +56,10 @@ void signal_task2(void)
 
     sleep(1);
 
-    /* send the signal */
+    /* Send the signal */
     kill(task1_pid, SIGUSR1);
 
-    /* sleep */
+    /* Sleep */
     while (1) {
         sleep(1);
     }

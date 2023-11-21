@@ -20,14 +20,14 @@ int mutex_lock(struct mutex *mtx)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    /* check if the mutex is occupied */
+    /* Check if the mutex is occupied */
     if (mtx->owner != NULL) {
-        /* put the current thread into the mutex waiting list */
+        /* Enqueue current thread into the waiting list */
         prepare_to_wait(&mtx->wait_list, &curr_thread->list, THREAD_WAIT);
 
         return -ERESTARTSYS;
     } else {
-        /* occupy the mutex by setting the owner */
+        /* Occupy the mutex by setting the owner */
         mtx->owner = curr_thread;
 
         return 0;
@@ -38,14 +38,14 @@ int mutex_unlock(struct mutex *mtx)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    /* only the owner thread can unlock the mutex */
+    /* Only the owner thread can unlock the mutex */
     if (mtx->owner != curr_thread)
         return -EPERM;
 
-    /* release the mutex */
+    /* Release the mutex */
     mtx->owner = NULL;
 
-    /* wake up a thread from the mutex waiting list */
+    /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mtx->wait_list);
 
     return 0;

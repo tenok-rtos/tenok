@@ -304,7 +304,7 @@ int pthread_condattr_init(pthread_condattr_t *attr)
     if (!attr)
         return -ENOMEM;
 
-    // no attribute is currently implemented
+    /* No attribute is currently implemented */
 
     return 0;
 }

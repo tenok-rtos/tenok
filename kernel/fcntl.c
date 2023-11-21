@@ -115,8 +115,8 @@ NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
     SYSCALL(POLL);
 }
 
-/* not implemented. the function is defined only
- * to supress the newlib warning
+/* Not implemented. The function is defined only
+ * to supress the newlib warning.
  */
 int _isatty(int fd)
 {

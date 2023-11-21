@@ -64,7 +64,7 @@ void set_sys_time(struct timespec *tp)
 
 int clock_getres(clockid_t clk_id, struct timespec *res)
 {
-    // TODO: check clock id
+    // TODO: Check clock ID
 
     res->tv_sec = 0;
     res->tv_nsec = NANOSECOND_TICKS;

@@ -49,10 +49,10 @@ void fifo_task2(void)
     while (1) {
         char data[50] = {0};
 
-        /* read fifo */
+        /* Read fifo */
         read(fifo_fd, &data, LEN);
 
-        /* write serial */
+        /* Write serial */
         write(serial_fd, data, LEN);
     }
 }
