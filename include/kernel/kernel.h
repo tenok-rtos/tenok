@@ -23,12 +23,12 @@
 #define TASK_CNT_MAX 32
 #define THREAD_CNT_MAX 64
 
-#define DEF_SYSCALL(func, _num)                    \
-    {                                              \
-        .syscall_handler = sys_##func, .num = _num \
+#define DEF_SYSCALL(func, _num)                                 \
+    {                                                           \
+        .handler_func = (unsigned long) sys_##func, .num = _num \
     }
 
-#define SYSCALL_ARG(type, idx) *((type *) running_thread->syscall_args[idx])
+#define SYSCALL_ARG(thread, type, idx) *((type *) thread->syscall_args[idx])
 
 #define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
 #define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
@@ -47,7 +47,7 @@ enum {
 #undef DECLARE_DAEMON
 
 struct syscall_info {
-    void (*syscall_handler)(void);
+    unsigned long handler_func;
     uint32_t num;
 };
 

@@ -105,9 +105,6 @@ static struct kmalloc_slab_info kmalloc_slab_info[] = {
 
 static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
-/* Syscall table */
-static struct syscall_info syscall_table[] = SYSCALL_TABLE_INIT;
-
 NACKED void thread_return_handler(void)
 {
     SYSCALL(THREAD_RETURN_EVENT);
@@ -667,12 +664,8 @@ static struct thread_info *thread_info_find_next(struct thread_info *curr)
     return thread;
 }
 
-void sys_thread_info(void)
+static void *sys_thread_info(struct thread_stat *info, void *next)
 {
-    /* Read syscall arguments */
-    struct thread_stat *info = SYSCALL_ARG(struct thread_stat *, 0);
-    void *next = SYSCALL_ARG(void *, 1);
-
     int tid;
     struct thread_info *thread = NULL;
 
@@ -694,10 +687,8 @@ void sys_thread_info(void)
             thread = thread_info_find_next(next);
 
             /* No more alive thread */
-            if (!thread) {
-                SYSCALL_ARG(void *, 0) = NULL;
-                return;
-            }
+            if (!thread)
+                return NULL;
         }
     }
 
@@ -729,54 +720,41 @@ void sys_thread_info(void)
     }
 
     /* Return the pointer of the next thread */
-    SYSCALL_ARG(void *, 0) = thread_info_find_next(thread);
+    return thread_info_find_next(thread);
 }
 
-void sys_setprogname(void)
+static void sys_setprogname(const char *name)
 {
-    /* Read syscall arguments */
-    char *name = SYSCALL_ARG(char *, 0);
-
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
 }
 
-void sys_delay_ticks(void)
+static int sys_delay_ticks(uint32_t ticks)
 {
-    /* Read syscall arguments */
-    uint32_t tick = SYSCALL_ARG(uint32_t, 0);
-
     /* Reconfigure the tick to sleep */
-    running_thread->sleep_ticks = tick;
+    running_thread->sleep_ticks = ticks;
 
     /* Enqueue the thread into the sleep list */
     running_thread->status = THREAD_WAIT;
     list_add(&(running_thread->list), &sleep_list);
 
     /* Return success */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_task_create(void)
+static int sys_task_create(task_func_t task_func,
+                           uint8_t priority,
+                           int stack_size)
 {
-    /* Read syscall arguments */
-    task_func_t task_func = SYSCALL_ARG(task_func_t, 0);
-    int priority = SYSCALL_ARG(int, 1);
-    int stack_size = SYSCALL_ARG(int, 2);
-
     int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
     if (retval < 0)
         printk("task_create(): failed to create new task");
 
     /* Return task creation result */
-    SYSCALL_ARG(int, 0) = retval;
+    return retval;
 }
 
-void sys_mpool_alloc(void)
+static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
 {
-    /* Read syscall arguments */
-    struct mpool *mpool = SYSCALL_ARG(struct mpool *, 0);
-    size_t size = SYSCALL_ARG(size_t, 1);
-
     void *ptr = NULL;
     size_t alloc_size = ALIGN(size, sizeof(long));
 
@@ -787,14 +765,11 @@ void sys_mpool_alloc(void)
     }
 
     /* Return the allocated memory */
-    SYSCALL_ARG(void *, 0) = ptr;
+    return ptr;
 }
 
-void sys_minfo(void)
+static int sys_minfo(int name)
 {
-    /* Read syscall arguments */
-    int name = SYSCALL_ARG(int, 0);
-
     int retval = -1;
 
     switch (name) {
@@ -813,20 +788,20 @@ void sys_minfo(void)
     }
 
     /* Return the inquired information */
-    SYSCALL_ARG(int, 0) = retval;
+    return retval;
 }
 
-void sys_sched_yield(void)
+static int sys_sched_yield(void)
 {
     /* Suspend current thread */
     prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+
+    /* Return success */
+    return 0;
 }
 
-void sys_exit(void)
+static void sys_exit(int status)
 {
-    /* Read syscall arguments */
-    int status = SYSCALL_ARG(int, 0);
-
     /* Acquire the current running task */
     struct task_struct *task = current_task_info();
 
@@ -855,18 +830,13 @@ void sys_exit(void)
     task_delete(task);
 }
 
-void sys_mount(void)
+static int sys_mount(const char *source, const char *target)
 {
-    /* Read syscall arguments */
-    char *source = SYSCALL_ARG(char *, 0);
-    char *target = SYSCALL_ARG(char *, 1);
-
     int tid = running_thread->tid;
 
     /* Send mount request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_mount(tid, source, target);
-    }
 
     /* Read mount result from the file system daemon */
     int mnt_result;
@@ -877,19 +847,16 @@ void sys_mount(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* The request is complete */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = mnt_result;
+        return mnt_result;
     }
 }
 
-void sys_open(void)
+static int sys_open(const char *pathname, int flags)
 {
-    /* Read syscall argument */
-    char *pathname = SYSCALL_ARG(char *, 0);
-    int flags = SYSCALL_ARG(int, 1);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -897,9 +864,8 @@ void sys_open(void)
     int tid = running_thread->tid;
 
     /* Send file open request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_open_file(tid, pathname);
-    }
 
     /* Read the file index from the file system daemon */
     int file_idx;
@@ -909,25 +875,23 @@ void sys_open(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
-        return;
-    } else {
-        /* The request is complete */
-        reset_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     }
+
+    /* The request is complete */
+    reset_syscall_pending(running_thread);
 
     /* File not found */
     if (file_idx == -1) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -1;
-        return;
+        return -ENOENT;
     }
 
     /* Find a free entry on the file descriptor entry table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
     if (fdesc_idx >= FILE_DESC_CNT_MAX) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENOMEM;
-        return;
+        return -ENOMEM;
     }
     bitmap_set_bit(bitmap_fds, fdesc_idx);
     bitmap_set_bit(task->bitmap_fds, fdesc_idx);
@@ -946,8 +910,7 @@ void sys_open(void)
         bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENXIO;
-        return;
+        return -ENXIO;
     }
 
     /* Call open operation  */
@@ -955,22 +918,17 @@ void sys_open(void)
 
     /* Return the file descriptor number */
     int fd = fdesc_idx + TASK_CNT_MAX;
-    SYSCALL_ARG(int, 0) = fd;
+    return fd;
 }
 
-void sys_close(void)
+static int sys_close(int fd)
 {
-    /* Read syscall arguments */
-    int fd = SYSCALL_ARG(int, 0);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
     /* Invalid file descriptor number */
-    if (fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
+    if (fd < TASK_CNT_MAX)
+        return -EBADF;
 
     /* Calculate the index number of the file descriptor */
     int fdesc_idx = fd - TASK_CNT_MAX;
@@ -978,8 +936,7 @@ void sys_close(void)
     /* Check if the file descriptor belongs to current task */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Free the file descriptor */
@@ -987,18 +944,13 @@ void sys_close(void)
     bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
     /* Return success */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_dup(void)
+static int sys_dup(int oldfd)
 {
-    /* Read syscall arguments */
-    int oldfd = SYSCALL_ARG(int, 0);
-
-    if (oldfd < TASK_CNT_MAX) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
+    if (oldfd < TASK_CNT_MAX)
+        return -EBADF;
 
     /* Convert oldfd to the index numbers on the table */
     int old_fdesc_idx = oldfd - TASK_CNT_MAX;
@@ -1009,16 +961,14 @@ void sys_dup(void)
     /* Check if the file descriptor is invalid */
     if (!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx)) {
-        SYSCALL_ARG(ssize_t, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Find a free entry on the file descriptor table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
     if (fdesc_idx >= FILE_DESC_CNT_MAX) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENOMEM;
-        return;
+        return -ENOMEM;
     }
     bitmap_set_bit(bitmap_fds, fdesc_idx);
     bitmap_set_bit(task->bitmap_fds, fdesc_idx);
@@ -1028,23 +978,17 @@ void sys_dup(void)
 
     /* Return new file descriptor number */
     int fd = fdesc_idx + TASK_CNT_MAX;
-    SYSCALL_ARG(int, 0) = fd;
+    return fd;
 }
 
-void sys_dup2(void)
+static int sys_dup2(int oldfd, int newfd)
 {
-    /* read syscall arguments */
-    int oldfd = SYSCALL_ARG(int, 0);
-    int newfd = SYSCALL_ARG(int, 1);
-
     /* Convert fds to the index numbers on the table */
     int old_fdesc_idx = oldfd - TASK_CNT_MAX;
     int new_fdesc_idx = newfd - TASK_CNT_MAX;
 
-    if (oldfd < TASK_CNT_MAX || newfd < TASK_CNT_MAX) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
+    if (oldfd < TASK_CNT_MAX || newfd < TASK_CNT_MAX)
+        return -EBADF;
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1054,24 +998,18 @@ void sys_dup2(void)
         !bitmap_get_bit(bitmap_fds, new_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, new_fdesc_idx)) {
-        SYSCALL_ARG(ssize_t, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Copy the old file descriptor content to the new one */
     fdtable[new_fdesc_idx] = fdtable[old_fdesc_idx];
 
     /* Return new file descriptor */
-    SYSCALL_ARG(int, 0) = newfd;
+    return newfd;
 }
 
-void sys_read(void)
+static ssize_t sys_read(int fd, void *buf, size_t count)
 {
-    /* Read syscall argument */
-    int fd = SYSCALL_ARG(int, 0);
-    char *buf = SYSCALL_ARG(char *, 1);
-    size_t count = SYSCALL_ARG(size_t, 2);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1088,8 +1026,7 @@ void sys_read(void)
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
             !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            SYSCALL_ARG(ssize_t, 0) = -EBADF;
-            return;
+            return -EBADF;
         }
 
         filp = fdtable[fdesc_idx].file;
@@ -1099,8 +1036,7 @@ void sys_read(void)
     /* Check if the file operation is undefined */
     if (!filp->f_op->read) {
         /* Return error */
-        SYSCALL_ARG(ssize_t, 0) = -ENXIO;
-        return;
+        return -ENXIO;
     }
 
     /* Call read operation */
@@ -1110,20 +1046,16 @@ void sys_read(void)
     if (retval == -ERESTARTSYS) {
         /* Reading is not yet finish */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* Reading is finish, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(ssize_t, 0) = retval;
+        return retval;
     }
 }
 
-void sys_write(void)
+static ssize_t sys_write(int fd, const void *buf, size_t count)
 {
-    /* Read syscall arguments */
-    int fd = SYSCALL_ARG(int, 0);
-    char *buf = SYSCALL_ARG(char *, 1);
-    size_t count = SYSCALL_ARG(size_t, 2);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1140,8 +1072,7 @@ void sys_write(void)
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
             !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            SYSCALL_ARG(ssize_t, 0) = -EBADF;
-            return;
+            return -EBADF;
         }
 
         filp = fdtable[fdesc_idx].file;
@@ -1151,8 +1082,7 @@ void sys_write(void)
     /* Check if the file operation is undefined */
     if (!filp->f_op->write) {
         /* Return error */
-        SYSCALL_ARG(ssize_t, 0) = -ENXIO;
-        return;
+        return -ENXIO;
     }
 
     /* Call write operation */
@@ -1162,20 +1092,16 @@ void sys_write(void)
     if (retval == -ERESTARTSYS) {
         /* Writing is not yet finish */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* Writing is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(ssize_t, 0) = retval;
+        return retval;
     }
 }
 
-void sys_ioctl(void)
+static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
 {
-    /* Read syscall arguments */
-    int fd = SYSCALL_ARG(int, 0);
-    unsigned int cmd = SYSCALL_ARG(unsigned int, 1);
-    unsigned long arg = SYSCALL_ARG(unsigned long, 2);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1192,8 +1118,7 @@ void sys_ioctl(void)
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
             !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            SYSCALL_ARG(int, 0) = -EBADF;
-            return;
+            return -EBADF;
         }
 
         filp = fdtable[fdesc_idx].file;
@@ -1202,31 +1127,26 @@ void sys_ioctl(void)
     /* Check if the file operation is undefined */
     if (!filp->f_op->ioctl) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENXIO;
-        return;
+        return -ENXIO;
     }
 
     /* Call ioctl operation */
-    int retval = filp->f_op->ioctl(filp, cmd, arg);
+    int retval = filp->f_op->ioctl(filp, request, arg);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
         /* I/O control is not yet finish */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* I/O control is finish, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_lseek(void)
+static off_t sys_lseek(int fd, long offset, int whence)
 {
-    /* Read syscall arguments */
-    int fd = SYSCALL_ARG(int, 0);
-    long offset = SYSCALL_ARG(long, 1);
-    int whence = SYSCALL_ARG(int, 2);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1243,8 +1163,7 @@ void sys_lseek(void)
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
             !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            SYSCALL_ARG(off_t, 0) = -EBADF;
-            return;
+            return -EBADF;
         }
 
         filp = fdtable[fdesc_idx].file;
@@ -1253,8 +1172,7 @@ void sys_lseek(void)
     /* Check if the file operation is undefined */
     if (!filp->f_op->lseek) {
         /* Return error */
-        SYSCALL_ARG(off_t, 0) = -ENXIO;
-        return;
+        return -ENXIO;
     }
 
     /* Call lseek operation */
@@ -1264,26 +1182,21 @@ void sys_lseek(void)
     if (retval == -ERESTARTSYS) {
         /* lseek is not yet finish */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* lseek is finish, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(off_t, 0) = retval;
+        return retval;
     }
 }
 
-void sys_fstat(void)
+static int sys_fstat(int fd, struct stat *statbuf)
 {
-    /* Read syscall arguments */
-    int fd = SYSCALL_ARG(int, 0);
-    struct stat *statbuf = SYSCALL_ARG(struct stat *, 1);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
-    if (fd < TASK_CNT_MAX) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
-    }
+    if (fd < TASK_CNT_MAX)
+        return -EBADF;
 
     /* Calculate the index number of the file descriptor
      * on the table */
@@ -1292,8 +1205,7 @@ void sys_fstat(void)
     /* Check if the file descriptor is invalid */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Get file inode */
@@ -1309,21 +1221,16 @@ void sys_fstat(void)
     }
 
     /* Return success */
-    SYSCALL_ARG(int *, 0) = 0;
+    return 0;
 }
 
-void sys_opendir(void)
+static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
-    /* Read syscall arguments */
-    char *pathname = SYSCALL_ARG(char *, 0);
-    DIR *dirp = SYSCALL_ARG(DIR *, 1);
-
     int tid = running_thread->tid;
 
     /* Send directory open request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_open_directory(tid, pathname);
-    }
 
     /* Read the directory inode from the file system daemon */
     struct inode *inode_dir;
@@ -1334,11 +1241,11 @@ void sys_opendir(void)
     if (retval == -ERESTARTSYS) {
         /* The request if not yet processed */
         set_syscall_pending(running_thread);
-        return;
-    } else {
-        /* The request is complete */
-        reset_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     }
+
+    /* The request is complete */
+    reset_syscall_pending(running_thread);
 
     /* Return directory information */
     dirp->inode_dir = inode_dir;
@@ -1347,35 +1254,26 @@ void sys_opendir(void)
     /* Check if the information is retrieved successfully */
     if (dirp->inode_dir == NULL) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -1;
+        return -ENOENT;
     } else {
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = 0;
+        return 0;
     }
 }
 
-void sys_readdir(void)
+static int sys_readdir(DIR *dirp, struct dirent *dirent)
 {
-    /* Read syscall arguments */
-    DIR *dirp = SYSCALL_ARG(DIR *, 0);
-    struct dirent *dirent = SYSCALL_ARG(struct dirent *, 1);
-
     /* Return the direcotry entry structure */
-    SYSCALL_ARG(int, 0) = (uint32_t) fs_read_dir(dirp, dirent);
+    return fs_read_dir(dirp, dirent);
 }
 
-void sys_getcwd(void)
+static char *sys_getcwd(char *buf, size_t size)
 {
-    /* Read syscall arguments */
-    char *buf = SYSCALL_ARG(char *, 0);
-    size_t len = SYSCALL_ARG(size_t, 1);
-
     int tid = running_thread->tid;
 
     /* Send getcwd request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
-        request_getcwd(tid, buf, len);
-    }
+    if (running_thread->syscall_pending == false)
+        request_getcwd(tid, buf, size);
 
     /* Read getcwd result from the file system daemon */
     char *path;
@@ -1385,24 +1283,21 @@ void sys_getcwd(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
+        return NULL;
     } else {
         /* The request is complete, return current pathname */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(char *, 0) = path;
+        return path;
     }
 }
 
-void sys_chdir(void)
+static int sys_chdir(const char *path)
 {
-    /* Read syscall arguments */
-    char *path = SYSCALL_ARG(char *, 0);
-
     int tid = running_thread->tid;
 
     /* Send chdir request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_chdir(tid, path);
-    }
 
     /* Read chdir result from the file system daemon */
     int chdir_result;
@@ -1413,33 +1308,27 @@ void sys_chdir(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* The request is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = chdir_result;
+        return chdir_result;
     }
 }
 
-void sys_getpid(void)
+static int sys_getpid(void)
 {
     /* Return the task ID */
-    struct task_struct *task = current_task_info();
-    SYSCALL_ARG(int, 0) = task->pid;
+    return running_thread->task->pid;
 }
 
-void sys_mknod(void)
+static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
-    /* Read syscall arguments */
-    char *pathname = SYSCALL_ARG(char *, 0);
-    // mode_t mode = SYSCALL_ARG(mode_t, 1);
-    dev_t dev = SYSCALL_ARG(dev_t, 2);
-
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_create_file(tid, pathname, dev);
-    }
 
     /* Read file index from the file system daemon  */
     int file_idx;
@@ -1449,33 +1338,28 @@ void sys_mknod(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
-        return;
-    } else {
-        /* The request is complete */
-        reset_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     }
 
+    /* The request is complete */
+    reset_syscall_pending(running_thread);
+
     if (file_idx == -1) {
-        /* File not found, return error */
-        SYSCALL_ARG(int, 0) = -1;
+        /* Failed to create file */
+        return -1; /* TODO: Specify the failed reason */
     } else {
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = 0;
+        return 0;
     }
 }
 
-void sys_mkfifo(void)
+static int sys_mkfifo(const char *pathname, mode_t mode)
 {
-    /* Read syscall arguments */
-    char *pathname = SYSCALL_ARG(char *, 0);
-    // mode_t mode = SYSCALL_ARG(mode_t, 1);
-
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
-    if (running_thread->syscall_pending == false) {
+    if (running_thread->syscall_pending == false)
         request_create_file(tid, pathname, S_IFIFO);
-    }
 
     /* Read the file index from the file system daemon */
     int file_idx = 0;
@@ -1485,18 +1369,18 @@ void sys_mkfifo(void)
     if (retval == -ERESTARTSYS) {
         /* The request is not yet processed */
         set_syscall_pending(running_thread);
-        return;
-    } else {
-        /* The request is complete */
-        reset_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     }
 
+    /* The request is complete */
+    reset_syscall_pending(running_thread);
+
     if (file_idx == -1) {
-        /* File not found, return error */
-        SYSCALL_ARG(int, 0) = -1;
+        /* Failed to create FIFO */
+        return -1; /* TODO: Specify the failed reason */
     } else {
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = 0;
+        return 0;
     }
 }
 
@@ -1516,13 +1400,8 @@ void poll_notify(struct file *notify_file)
     }
 }
 
-void sys_poll(void)
+static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-    /* Read syscall arguments */
-    struct pollfd *fds = SYSCALL_ARG(struct pollfd *, 0);
-    nfds_t nfds = SYSCALL_ARG(nfds_t, 1);
-    int timeout = SYSCALL_ARG(int, 2);
-
     if (running_thread->syscall_pending == false) {
         /* Set polling deadline */
         if (timeout > 0) {
@@ -1555,15 +1434,13 @@ void sys_poll(void)
 
         if (!no_event) {
             /* Return sucesss */
-            SYSCALL_ARG(int, 0) = 0;
-            return;
+            return 0;
         }
 
         /* No events is observed and no timeout is set, return immediately */
         if (timeout == 0) {
             /* return error */
-            SYSCALL_ARG(int, 0) = -1;
-            return;
+            return -1; /* TODO: Specify the failed reason */
         }
 
         /* Turn on the syscall pending flag */
@@ -1582,6 +1459,8 @@ void sys_poll(void)
             filp = fdtable[fd].file;
             list_add(&filp->list, &running_thread->poll_files_list);
         }
+
+        return -ERESTARTSYS;
     } else {
         /* Turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
@@ -1595,26 +1474,21 @@ void sys_poll(void)
 
         if (running_thread->syscall_is_timeout) {
             /* Return error */
-            SYSCALL_ARG(int, 0) = -1;
+            return -1; /* TODO: Specify the failed reason */
         } else {
             /* Return sucesss */
-            SYSCALL_ARG(int, 0) = 0;
+            return 0;
         }
     }
 }
 
-void sys_mq_getattr(void)
+static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
 {
-    /* Read syscall arguments */
-    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
-    struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 1);
-
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Return attributes */
@@ -1624,21 +1498,17 @@ void sys_mq_getattr(void)
     attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_mq_setattr(void)
+static int sys_mq_setattr(mqd_t mqdes,
+                          const struct mq_attr *newattr,
+                          struct mq_attr *oldattr)
 {
-    /* Read syscall arguments */
-    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
-    struct mq_attr *newattr = SYSCALL_ARG(struct mq_attr *, 1);
-    struct mq_attr *oldattr = SYSCALL_ARG(struct mq_attr *, 2);
-
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Acquire message queue attributes from the table */
@@ -1649,8 +1519,7 @@ void sys_mq_setattr(void)
         newattr->mq_maxmsg != curr_attr->mq_maxmsg ||
         newattr->mq_msgsize != curr_attr->mq_msgsize) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Preserve old attributes */
@@ -1663,10 +1532,10 @@ void sys_mq_setattr(void)
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-struct mqueue *acquire_mqueue(char *name)
+struct mqueue *acquire_mqueue(const char *name)
 {
     /* Find the message queue with the given name */
     struct mqueue *mq;
@@ -1679,13 +1548,8 @@ struct mqueue *acquire_mqueue(char *name)
     return NULL;
 }
 
-void sys_mq_open(void)
+static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
-    /* Read syscall arguments */
-    char *name = SYSCALL_ARG(char *, 0);
-    int oflag = SYSCALL_ARG(int, 1);
-    struct mq_attr *attr = SYSCALL_ARG(struct mq_attr *, 2);
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1694,10 +1558,8 @@ void sys_mq_open(void)
 
     /* Check if new message queue descriptor can be dispatched */
     int mqdes = find_first_zero_bit(bitmap_mqds, MQUEUE_CNT_MAX);
-    if (mqdes >= MQUEUE_CNT_MAX) {
-        SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
-        return;
-    }
+    if (mqdes >= MQUEUE_CNT_MAX)
+        return -ENOMEM;
 
     /* Attribute is not provided */
     struct mq_attr default_attr;
@@ -1713,8 +1575,7 @@ void sys_mq_open(void)
         /* Both O_CREAT and O_EXCL flags are set */
         if (oflag & O_CREAT && oflag & O_EXCL) {
             /* Return error */
-            SYSCALL_ARG(mqd_t, 0) = -EEXIST;
-            return;
+            return -EEXIST;
         }
 
         /* Register new message queue descriptor */
@@ -1725,15 +1586,13 @@ void sys_mq_open(void)
         mqd_table[mqdes].attr.mq_flags = oflag;
 
         /* Return message queue descriptor */
-        SYSCALL_ARG(mqd_t, 0) = mqdes;
-        return;
+        return mqdes;
     }
 
     /* O_CREAT flag is not set */
     if (!(oflag & O_CREAT)) {
         /* Return error */
-        SYSCALL_ARG(mqd_t, 0) = -ENOENT;
-        return;
+        return -ENOENT;
     }
 
     /* Allocate new message queue */
@@ -1743,8 +1602,7 @@ void sys_mq_open(void)
     /* Memory allocation failure */
     if (!pipe || !new_mq) {
         /* Return error */
-        SYSCALL_ARG(mqd_t, 0) = -ENOMEM;
-        return;
+        return -ENOMEM;
     }
 
     /* Set up the message queue */
@@ -1760,20 +1618,16 @@ void sys_mq_open(void)
     mqd_table[mqdes].attr.mq_flags = oflag;
 
     /* Return the message queue descriptor */
-    SYSCALL_ARG(mqd_t, 0) = mqdes;
+    return mqdes;
 }
 
-void sys_mq_close(void)
+static int sys_mq_close(mqd_t mqdes)
 {
-    /* Read syscall arguments */
-    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
-
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Free the message queue descriptor */
@@ -1781,18 +1635,14 @@ void sys_mq_close(void)
     bitmap_clear_bit(task->bitmap_mqds, mqdes);
 
     /* Return sucesss */
-    SYSCALL_ARG(long, 0) = 0;
+    return 0;
 }
 
-void sys_mq_unlink(void)
+static int sys_mq_unlink(const char *name)
 {
-    char *name = SYSCALL_ARG(char *, 0);
-
     /* Check the length of the message queue name */
-    if (strlen(name) >= FILE_NAME_LEN_MAX) {
-        SYSCALL_ARG(int, 0) = -ENAMETOOLONG;
-        return;
-    }
+    if (strlen(name) >= FILE_NAME_LEN_MAX)
+        return -ENAMETOOLONG;
 
     /* Search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
@@ -1804,26 +1654,23 @@ void sys_mq_unlink(void)
         kfree(mq);
 
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = 0;
+        return 0;
     } else {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENOENT;
+        return -ENOENT;
     }
 }
 
-void sys_mq_receive(void)
+static ssize_t sys_mq_receive(mqd_t mqdes,
+                              char *msg_ptr,
+                              size_t msg_len,
+                              unsigned int *msg_prio)
 {
-    /* Read syscall arguments */
-    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
-    char *msg_ptr = SYSCALL_ARG(char *, 1);
-    size_t msg_len = SYSCALL_ARG(size_t, 2);
-
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        SYSCALL_ARG(long, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Acquire the message queue */
@@ -1831,10 +1678,8 @@ void sys_mq_receive(void)
     struct pipe *pipe = mq->pipe;
 
     /* Check if msg_len exceeds maximum size */
-    if (msg_len > mqd_table[mqdes].attr.mq_msgsize) {
-        SYSCALL_ARG(int, 0) = -EMSGSIZE;
-        return;
-    }
+    if (msg_len > mqd_table[mqdes].attr.mq_msgsize)
+        return -EMSGSIZE;
 
     /* Read message */
     ssize_t retval =
@@ -1844,26 +1689,24 @@ void sys_mq_receive(void)
     if (retval == -ERESTARTSYS) {
         /* Reception is not yet finish */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* Reception is finish, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_mq_send(void)
+static int sys_mq_send(mqd_t mqdes,
+                       const char *msg_ptr,
+                       size_t msg_len,
+                       unsigned int msg_prio)
 {
-    /* Read syscall arguments */
-    mqd_t mqdes = SYSCALL_ARG(mqd_t, 0);
-    char *msg_ptr = SYSCALL_ARG(char *, 1);
-    size_t msg_len = SYSCALL_ARG(size_t, 2);
-
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        SYSCALL_ARG(int, 0) = -EBADF;
-        return;
+        return -EBADF;
     }
 
     /* Acquire the message queue */
@@ -1871,10 +1714,8 @@ void sys_mq_send(void)
     struct pipe *pipe = mq->pipe;
 
     /* Check if msg_len exceeds maximum size */
-    if (msg_len > mqd_table[mqdes].attr.mq_msgsize) {
-        SYSCALL_ARG(int, 0) = -EMSGSIZE;
-        return;
-    }
+    if (msg_len > mqd_table[mqdes].attr.mq_msgsize)
+        return -EMSGSIZE;
 
     /* Send message */
     ssize_t retval = __mq_send(pipe, msg_ptr, msg_len, &mqd_table[mqdes].attr);
@@ -1883,23 +1724,19 @@ void sys_mq_send(void)
     if (retval == -ERESTARTSYS) {
         /* Sending is not finish  */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* Sending is complete, return the result */
         reset_syscall_pending(running_thread);
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_pthread_create(void)
+static int sys_pthread_create(pthread_t *pthread,
+                              const pthread_attr_t *_attr,
+                              void *(*start_routine)(void *),
+                              void *arg)
 {
-    typedef void *(*start_routine_t)(void *);
-
-    /* Read syscall arguments */
-    pthread_t *pthread = SYSCALL_ARG(pthread_t *, 0);
-    pthread_attr_t *_attr = SYSCALL_ARG(pthread_attr_t *, 1);
-    start_routine_t start_routine = SYSCALL_ARG(start_routine_t, 2);
-    void *arg = SYSCALL_ARG(void *, 3);
-
     struct thread_attr *attr = (struct thread_attr *) _attr;
 
     /* Use defualt attributes if user did not provide */
@@ -1916,8 +1753,7 @@ void sys_pthread_create(void)
                                arg, USER_THREAD);
     if (retval != 0) {
         /* Failed to create new thread, return error */
-        SYSCALL_ARG(int, 0) = retval;
-        return;
+        return retval;
     }
 
     strncpy(thread->name, running_thread->name, THREAD_NAME_MAX);
@@ -1930,32 +1766,26 @@ void sys_pthread_create(void)
     *pthread = thread->tid;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_self(void)
+static pthread_t sys_pthread_self(void)
 {
     /* Return thread ID */
-    SYSCALL_ARG(pthread_t, 0) = (pthread_t) running_thread->tid;
+    return running_thread->tid;
 }
 
-void sys_pthread_join(void)
+static int sys_pthread_join(pthread_t tid, void **retval)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    void **retval = SYSCALL_ARG(void **, 1);
-
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     if (thread->detached || !thread->joinable) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Check deadlock (threads should not join on each other) */
@@ -1964,8 +1794,7 @@ void sys_pthread_join(void)
         /* Check if the thread is waiting to join the running thread */
         if (check_thread == thread) {
             /* Deadlock identified, return error */
-            SYSCALL_ARG(int, 0) = -EDEADLK;
-            return;
+            return -EDEADLK;
         }
     }
 
@@ -1975,79 +1804,64 @@ void sys_pthread_join(void)
     running_thread->status = THREAD_WAIT;
 
     /* Return sucesss (after the thread is awakened) */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_cancel(void)
+static int sys_pthread_cancel(pthread_t tid)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* kthread can only be canceled by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EPERM;
-        return;
+        return -EPERM;
     }
 
     thread_delete(thread);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_detach(void)
+static int sys_pthread_detach(pthread_t tid)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-
     /* Check if the thread exists */
     if (!bitmap_get_bit(bitmap_threads, tid)) {
         /* Return error */
-        SYSCALL_ARG(long, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     threads[tid].detached = true;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_setschedparam(void)
+static int sys_pthread_setschedparam(pthread_t tid,
+                                     int policy,
+                                     const struct sched_param *param)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    // int policy = SYSCALL_ARG(int, 1);
-    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 2);
-
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* kthread can only be configured by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EPERM;
-        return;
+        return -EPERM;
     }
 
     /* Invalid priority parameter */
     if (param->sched_priority < 0 ||
         param->sched_priority > THREAD_PRIORITY_MAX) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Apply settings */
@@ -2057,28 +1871,23 @@ void sys_pthread_setschedparam(void)
         thread->priority = param->sched_priority;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_getschedparam(void)
+static int sys_pthread_getschedparam(pthread_t tid,
+                                     int *policy,
+                                     struct sched_param *param)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    // int *policy = SYSCALL_ARG(int *, 1);
-    struct sched_param *param = SYSCALL_ARG(struct sched_param *, 2);
-
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* kthread can only be set by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EPERM;
-        return;
+        return -EPERM;
     }
 
     /* Return settings */
@@ -2088,13 +1897,16 @@ void sys_pthread_getschedparam(void)
         param->sched_priority = thread->priority;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_yield(void)
+static int sys_pthread_yield(void)
 {
     /* Yield the time quatum to other threads */
     prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+
+    /* Return success */
+    return 0;
 }
 
 static void handle_signal(struct thread_info *thread, int signum)
@@ -2109,7 +1921,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         /* Wake up the thread and set the return values */
         finish_wait(&thread->list);
         *thread->ret_sig = signum;
-        *(int *) thread->syscall_args[0] = 0;
+        SYSCALL_ARG(thread, int, 0) = 0;
     }
 
     switch (signum) {
@@ -2165,55 +1977,42 @@ static void handle_signal(struct thread_info *thread, int signum)
     }
 }
 
-void sys_pthread_kill(void)
+static int sys_pthread_kill(pthread_t tid, int sig)
 {
-    /* Read syscall arguments */
-    pthread_t tid = SYSCALL_ARG(pthread_t, 0);
-    int sig = SYSCALL_ARG(int, 1);
-
     struct thread_info *thread = acquire_thread(tid);
 
     /* Failed to find the thread */
     if (!thread) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* kthread does not receive signals */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EPERM;
-        return;
+        return -EPERM;
     }
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(sig)) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     handle_signal(thread, sig);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_pthread_exit(void)
+static void sys_pthread_exit(void *retval)
 {
-    /* Read syscall arguments */
-    void *retval = SYSCALL_ARG(void *, 0);
     running_thread->retval = retval;
-
     thread_join_handler();
 }
 
-void sys_pthread_mutex_unlock(void)
+static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
 {
-    /* Read syscall arguments */
-    pthread_mutex_t *_mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
-
     struct mutex *mutex = (struct mutex *) _mutex;
     int retval = mutex_unlock(mutex);
 
@@ -2224,14 +2023,11 @@ void sys_pthread_mutex_unlock(void)
         running_thread->priority = running_thread->original_priority;
     }
 
-    SYSCALL_ARG(int, 0) = retval;
+    return retval;
 }
 
-void sys_pthread_mutex_lock(void)
+static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 {
-    /* Read syscall arguments */
-    pthread_mutex_t *_mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
-
     struct mutex *mutex = (struct mutex *) _mutex;
     int retval = mutex_lock(mutex);
 
@@ -2262,6 +2058,7 @@ void sys_pthread_mutex_lock(void)
 
         /* Turn on the syscall pending flag */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else { /* Acquired the mutex successfully */
         /* Handle priority inheritance */
         if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
@@ -2273,57 +2070,44 @@ void sys_pthread_mutex_lock(void)
         reset_syscall_pending(running_thread);
 
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_pthread_mutex_trylock(void)
+static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    /* Read syscall arguments */
-    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 0);
-
     int retval = mutex_lock((struct mutex *) mutex);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
         /* Failed to lock the mutex */
-        SYSCALL_ARG(int, 0) = -EBUSY;
+        return -EBUSY;
     } else {
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_pthread_cond_signal(void)
+static int sys_pthread_cond_signal(pthread_cond_t *cond)
 {
-    /* Read syscall arguments */
-    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
-
     /* Wake up a thread from the wait list */
     wake_up(&((struct cond *) cond)->task_wait_list);
 
-    /* pthread_cond_signal never returns error code */
-    SYSCALL_ARG(int, 0) = 0;
+    /* Return success */
+    return 0;
 }
 
-void sys_pthread_cond_broadcast(void)
+static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    /* Read syscall arguments */
-    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
-
     /* Wake up all threads from the wait list */
     wake_up_all(&((struct cond *) cond)->task_wait_list);
 
-    /* pthread_cond_signal never returns error code */
-    SYSCALL_ARG(int, 0) = 0;
+    /* Return success */
+    return 0;
 }
 
-void sys_pthread_cond_wait(void)
+static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    /* Read syscall arguments */
-    pthread_cond_t *cond = SYSCALL_ARG(pthread_cond_t *, 0);
-    pthread_mutex_t *mutex = SYSCALL_ARG(pthread_mutex_t *, 1);
-
     if (((struct mutex *) mutex)->owner) {
         /* Release the mutex */
         ((struct mutex *) mutex)->owner = NULL;
@@ -2333,8 +2117,8 @@ void sys_pthread_cond_wait(void)
                         &running_thread->list, THREAD_WAIT);
     }
 
-    /* pthread_cond_wait never returns error code */
-    SYSCALL_ARG(int, 0) = 0;
+    /* Return success */
+    return 0;
 }
 
 static void pthread_once_cleanup_handler(void)
@@ -2350,18 +2134,13 @@ static void pthread_once_cleanup_handler(void)
     wake_up_all(&once_control->wq);
 }
 
-void sys_pthread_once(void)
+static int sys_pthread_once(pthread_once_t *_once_control,
+                            void (*init_routine)(void))
 {
-    typedef void (*init_routine_t)(void);
-
-    /* Read syscall arguments */
-    pthread_once_t *_once_control = SYSCALL_ARG(pthread_once_t *, 0);
-    init_routine_t init_routine = SYSCALL_ARG(init_routine_t, 1);
-
     struct thread_once *once_control = (struct thread_once *) _once_control;
 
     if (once_control->finished)
-        return;
+        return 0;
 
     if (once_control->wq.next == NULL || once_control->wq.prev == NULL) {
         /* The first time to execute pthread_once() */
@@ -2369,76 +2148,59 @@ void sys_pthread_once(void)
     } else {
         /* pthread_once() is already called */
         prepare_to_wait(&once_control->wq, &running_thread->list, THREAD_WAIT);
-        return;
+        return 0;
     }
 
     running_thread->once_control = once_control;
     stage_temporary_handler(running_thread, (uint32_t) init_routine,
                             (uint32_t) thread_once_return_handler, NULL);
+    return 0;
 }
 
-void sys_sem_post(void)
+static int sys_sem_post(sem_t *sem)
 {
-    /* Read syscall arguments */
-    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
-
-    int retval = up((struct semaphore *) sem);
-    SYSCALL_ARG(int, 0) = retval;
+    return up((struct semaphore *) sem);
 }
 
-void sys_sem_trywait(void)
+static int sys_sem_trywait(sem_t *sem)
 {
-    /* Read syscall arguments */
-    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
-
-    int retval = down_trylock((struct semaphore *) sem);
-    SYSCALL_ARG(int, 0) = retval;
+    return down_trylock((struct semaphore *) sem);
 }
 
-void sys_sem_wait(void)
+static int sys_sem_wait(sem_t *sem)
 {
-    /* Read syscall arguments */
-    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
-
     int retval = down((struct semaphore *) sem);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
         /* Turn on the syscall pending flag */
         set_syscall_pending(running_thread);
+        return -ERESTARTSYS;
     } else {
         /* Turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
         /* Return sucesss */
-        SYSCALL_ARG(int, 0) = retval;
+        return retval;
     }
 }
 
-void sys_sem_getvalue(void)
+static int sys_sem_getvalue(sem_t *sem, int *sval)
 {
-    /* Read syscall arguments */
-    sem_t *sem = SYSCALL_ARG(sem_t *, 0);
-    int *sval = SYSCALL_ARG(int *, 0);
-
     *sval = ((struct semaphore *) sem)->count;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_sigaction(void)
+static int sys_sigaction(int signum,
+                         const struct sigaction *act,
+                         struct sigaction *oldact)
 {
-    /* Read syscall arguments */
-    int signum = SYSCALL_ARG(int, 0);
-    struct sigaction *act = SYSCALL_ARG(struct sigaction *, 1);
-    struct sigaction *oldact = SYSCALL_ARG(struct sigaction *, 2);
-
     /* Check if the signal number is defined */
     if (!is_signal_defined(signum)) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Get the pointer of the signal action from the table */
@@ -2461,8 +2223,7 @@ void sys_sigaction(void)
         /* Failed to allocate memory */
         if (new_act == NULL) {
             /* Return error */
-            SYSCALL_ARG(int, 0) = -ENOMEM;
-            return;
+            return -ENOMEM;
         }
 
         /* Register signal action on the table */
@@ -2471,15 +2232,11 @@ void sys_sigaction(void)
     }
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_sigwait(void)
+static int sys_sigwait(const sigset_t *set, int *sig)
 {
-    /* Read syscall arguments */
-    sigset_t *set = SYSCALL_ARG(sigset_t *, 0);
-    int *sig = SYSCALL_ARG(int *, 1);
-
     sigset_t invalid_mask =
         ~(sig2bit(SIGUSR1) | sig2bit(SIGUSR2) | sig2bit(SIGPOLL) |
           sig2bit(SIGSTOP) | sig2bit(SIGCONT) | sig2bit(SIGKILL));
@@ -2487,8 +2244,7 @@ void sys_sigwait(void)
     /* Reject waiting request of an undefined signal */
     if (*set & invalid_mask) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Record the signals to wait */
@@ -2498,28 +2254,24 @@ void sys_sigwait(void)
 
     /* Enqueue the thread into the signal waiting list */
     prepare_to_wait(&suspend_list, &running_thread->list, THREAD_WAIT);
+
+    return 0;
 }
 
-void sys_kill(void)
+static int sys_kill(pid_t pid, int sig)
 {
-    /* Read syscall arguments */
-    pid_t pid = SYSCALL_ARG(pid_t, 0);
-    int sig = SYSCALL_ARG(int, 1);
-
     struct task_struct *task = acquire_task(pid);
 
     /* Failed to find the task */
     if (!task) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(sig)) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     struct list_head *curr, *next;
@@ -2530,28 +2282,23 @@ void sys_kill(void)
     }
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_raise(void)
+int sys_raise(int sig)
 {
-    /* Read syscall arguments */
-    int sig = SYSCALL_ARG(int, 0);
-
     struct task_struct *task = current_task_info();
 
     /* Failed to find the task */
     if (!task) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ESRCH;
-        return;
+        return -ESRCH;
     }
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(sig)) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     struct list_head *curr, *next;
@@ -2562,43 +2309,33 @@ void sys_raise(void)
     }
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_clock_gettime(void)
+static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
 {
-    /* Read syscall arguments */
-    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
-    struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
-
     if (clockid != CLOCK_MONOTONIC) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     get_sys_time(tp);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_clock_settime(void)
+static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
 {
-    /* Read syscall arguments */
-    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
-    struct timespec *tp = SYSCALL_ARG(struct timespec *, 1);
-
     if (clockid != CLOCK_REALTIME) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     set_sys_time(tp);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
 static struct timer *acquire_timer(int timerid)
@@ -2614,25 +2351,18 @@ static struct timer *acquire_timer(int timerid)
     return NULL; /* Not found */
 }
 
-void sys_timer_create(void)
+int sys_timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid)
 {
-    /* Read syscall arguments */
-    clockid_t clockid = SYSCALL_ARG(clockid_t, 0);
-    struct sigevent *sevp = SYSCALL_ARG(struct sigevent *, 1);
-    timer_t *timerid = SYSCALL_ARG(timer_t *, 2);
-
     /* Unsupported clock source */
     if (clockid != CLOCK_MONOTONIC) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     if (sevp->sigev_notify != SIGEV_NONE &&
         sevp->sigev_notify != SIGEV_SIGNAL) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Allocate memory for the new timer */
@@ -2641,8 +2371,7 @@ void sys_timer_create(void)
     /* Failed to allocate memory */
     if (new_tm == NULL) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -ENOMEM;
-        return;
+        return -ENOMEM;
     }
 
     /* Record timer settings */
@@ -2666,22 +2395,18 @@ void sys_timer_create(void)
     running_thread->timer_cnt++;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_timer_delete(void)
+static int sys_timer_delete(timer_t timerid)
 {
-    /* Read syscall arguments */
-    timer_t timerid = SYSCALL_ARG(timer_t, 0);
-
     /* Aquire the timer with given ID */
     struct timer *timer = acquire_timer(timerid);
 
     /* Failed to acquire the timer */
     if (timer == NULL) {
         /* Invalid timer ID, return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Remove the timer from the lists and free the memory */
@@ -2690,30 +2415,25 @@ void sys_timer_delete(void)
     kfree(timer);
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_timer_settime(void)
+static int sys_timer_settime(timer_t timerid,
+                             int flags,
+                             const struct itimerspec *new_value,
+                             struct itimerspec *old_value)
 {
-    /* Read syscall arguments */
-    timer_t timerid = SYSCALL_ARG(timer_t, 0);
-    int flags = SYSCALL_ARG(int, 1);
-    struct itimerspec *new_value = SYSCALL_ARG(struct itimerspec *, 2);
-    struct itimerspec *old_value = SYSCALL_ARG(struct itimerspec *, 3);
-
     /* Bad arguments */
     if (new_value->it_value.tv_sec < 0 || new_value->it_value.tv_nsec < 0 ||
         new_value->it_value.tv_nsec > 999999999) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* The thread has no timer */
     if (running_thread->timer_cnt == 0) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Acquire the timer with given ID */
@@ -2722,8 +2442,7 @@ void sys_timer_settime(void)
     /* Failed to acquire the timer */
     if (timer == NULL) {
         /* Return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
 
     /* Return old setting of the timer */
@@ -2740,55 +2459,37 @@ void sys_timer_settime(void)
     timer->enabled = true;
 
     /* Return sucesss */
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_timer_gettime(void)
+static int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 {
-    /* Read syscall arguments */
-    timer_t timerid = SYSCALL_ARG(timer_t, 0);
-    struct itimerspec *curr_value = SYSCALL_ARG(struct itimerspec *, 1);
-
     /* Acquire the timer with given ID */
     struct timer *timer = acquire_timer(timerid);
 
     /* Failed to acquire the timer */
     if (timer == NULL) {
         /* invalid timer ID, return error */
-        SYSCALL_ARG(int, 0) = -EINVAL;
-        return;
+        return -EINVAL;
     }
+
+    *curr_value = timer->ret_time;
 
     /* Return sucesss */
-    *curr_value = timer->ret_time;
-    SYSCALL_ARG(int, 0) = 0;
+    return 0;
 }
 
-void sys_malloc(void)
+static void *sys_malloc(size_t size)
 {
-    /* Read syscall arguments */
-    size_t size = SYSCALL_ARG(size_t, 0);
-
-    void *ptr;
-
     /* Return NULL if the size is zero */
-    if (size == 0) {
-        SYSCALL_ARG(void *, 0) = NULL;
-        return;
-    }
+    if (size == 0)
+        return NULL;
 
-    /* Allocate new memory */
-    ptr = __malloc(size);
-
-    /* Return the allocated memory */
-    SYSCALL_ARG(void *, 0) = ptr;
+    return __malloc(size);
 }
 
-void sys_free(void)
+static void sys_free(void *ptr)
 {
-    /* Read syscall arguments */
-    void *ptr = SYSCALL_ARG(void *, 0);
-
     /* Free the memory */
     __free(ptr);
 }
@@ -2873,12 +2574,16 @@ static void thread_return_event_handler(void)
     if (running_thread == task->main_thread) {
         /* Returned from the main thread, thus the whole task should
          * be terminated */
-        sys_exit();
+        int status = SYSCALL_ARG(running_thread, int, 0);
+        sys_exit(status);
     } else {
-        running_thread->retval = (void *) *running_thread->syscall_args[0];
+        running_thread->retval = SYSCALL_ARG(running_thread, void *, 0);
         thread_join_handler();
     }
 }
+
+/* Syscall table */
+static struct syscall_info syscall_table[] = {SYSCALL_TABLE_INIT};
 
 static void syscall_handler(void)
 {
@@ -2902,7 +2607,9 @@ static void syscall_handler(void)
         for (int i = 0; i < SYSCALL_CNT; i++) {
             if (syscall_num == syscall_table[i].num) {
                 /* Execute the syscall service */
-                syscall_table[i].syscall_handler();
+                syscall(syscall_table[i].handler_func,
+                        running_thread->syscall_args,
+                        &running_thread->syscall_pending);
                 return;
             }
         }

@@ -1062,7 +1062,7 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
     return blk_addr;
 }
 
-void request_create_file(int reply_fd, char *path, uint8_t file_type)
+void request_create_file(int reply_fd, const char *path, uint8_t file_type)
 {
     int fs_cmd = FS_CREATE_FILE;
     const size_t overhead =
@@ -1086,7 +1086,7 @@ void request_create_file(int reply_fd, char *path, uint8_t file_type)
     fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
-void request_open_file(int reply_fd, char *path)
+void request_open_file(int reply_fd, const char *path)
 {
     int fs_cmd = FS_OPEN_FILE;
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
@@ -1106,7 +1106,7 @@ void request_open_file(int reply_fd, char *path)
     fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
-void request_open_directory(int reply_fd, char *path)
+void request_open_directory(int reply_fd, const char *path)
 {
     int fs_cmd = FS_OPEN_DIR;
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
@@ -1126,7 +1126,7 @@ void request_open_directory(int reply_fd, char *path)
     fifo_write(files[filesysd_id], buf, buf_size, 0);
 }
 
-void request_mount(int reply_fd, char *source, char *target)
+void request_mount(int reply_fd, const char *source, const char *target)
 {
     int fs_cmd = FS_MOUNT;
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) +

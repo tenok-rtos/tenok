@@ -19,13 +19,13 @@ struct mpool {
  * @param  mem: The contiguous memory space to provide.
  * @param  size: The size of the provided memory space.
  */
-void mpool_init(struct mpool *mem_pool, uint8_t *mem, size_t size);
+void mpool_init(struct mpool *mpool, uint8_t *mem, size_t size);
 
 /**
  * @brief  Allocate a memory space from the memory pool
  * @param  mem_pool: The memory pool object to provide.
  * @param  size: The size of the memory space to allocate.
  */
-void *mpool_alloc(struct mpool *mem_pool, size_t size);
+void *mpool_alloc(struct mpool *mpool, size_t size);
 
 #endif

@@ -115,10 +115,10 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
-void request_create_file(int reply_fd, char *path, uint8_t file_type);
-void request_open_file(int reply_fd, char *path);
-void request_open_directory(int reply_fd, char *path);
-void request_mount(int reply_fd, char *source, char *path);
+void request_create_file(int reply_fd, const char *path, uint8_t file_type);
+void request_open_file(int reply_fd, const char *path);
+void request_open_directory(int reply_fd, const char *path);
+void request_mount(int reply_fd, const char *source, const char *target);
 void request_getcwd(int reply_fd, char *buf, size_t len);
 void request_chdir(int reply_fd, const char *path);
 

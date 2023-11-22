@@ -55,6 +55,8 @@ mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr);
  */
 int mq_close(mqd_t mqdes);
 
+int mq_unlink(const char *name);
+
 /**
  * @brief  Remove the oldest message from the message queue referred to by the
  *         message queue descriptor mqdes and places it in the buffer pointed

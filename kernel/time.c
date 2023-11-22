@@ -57,12 +57,12 @@ void get_sys_time(struct timespec *tp)
     *tp = sys_time;
 }
 
-void set_sys_time(struct timespec *tp)
+void set_sys_time(const struct timespec *tp)
 {
     sys_time = *tp;
 }
 
-int clock_getres(clockid_t clk_id, struct timespec *res)
+int clock_getres(clockid_t clockid, struct timespec *res)
 {
     // TODO: Check clock ID
 

@@ -98,6 +98,50 @@ ENTRY(jump_to_thread)
     bx    lr
 ENDPROC(jump_to_thread)
 
+ENTRY(syscall)
+    /* Arguments:
+     * r0 (input): Function pointer to the syscall handler 
+     * r1 (input): Pointers to the syscall arguments
+     * r2 (input): Pointer to the syscall pending flag */
+
+    push {r4, r5, r6, r7, lr}
+    mov r4, r0
+    mov r5, r1
+    mov r6, r2
+
+    /* Load first syscall argument */
+    ldr r0, [r5, #0]
+    mov r7, r0 /* Preserve address of r0 in thread stack */
+    ldr r0, [r0]
+
+    /* Load second syscall argument */
+    ldr r1, [r5, #4]
+    ldr r1, [r1]
+
+    /* Load third syscall argument */
+    ldr r2, [r5, #8]
+    ldr r2, [r2]
+
+    /* Load fourth syscall argument */
+    ldr r3, [r5, #12]
+    ldr r3, [r3]
+
+    blx r4       /* Jump to the syscall handler */
+    mov r5, r0   /* Store syscall return value to r5 */
+
+    /* Save syscall retval back to r0 in thread stack
+     * if the pending flag is reset */
+    ldr r6, [r6]
+    cmp r6, #0
+    it  eq 
+    streq r5, [r7] /* Save return value to r0 in thread stack */
+
+    pop {r4, r5, r6, r7, lr}
+
+    /* Function return */
+    bx lr
+ENDPROC(syscall)
+
 ENTRY(os_env_init)
     /* Arguments:
      * r0 (input): Stack address */

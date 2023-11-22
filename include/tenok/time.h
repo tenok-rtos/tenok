@@ -27,7 +27,7 @@ struct itimerspec {
  * @param  res: The time object for returning the clock resolution.
  * @retval int: The write number on sucess and nonzero error number on error.
  */
-int clock_getres(clockid_t clk_id, struct timespec *res);
+int clock_getres(clockid_t clockid, struct timespec *res);
 
 /**
  * @brief  Retrieve the time of the specified clock clockid
@@ -43,7 +43,7 @@ int clock_gettime(clockid_t clockid, struct timespec *tp);
  * @param  tp: The time object for setting the clock.
  * @retval int: The write number on sucess and nonzero error number on error.
  */
-int clock_settime(clockid_t clk_id, const struct timespec *tp);
+int clock_settime(clockid_t clockid, const struct timespec *tp);
 
 /**
  * @brief  Create a new per-thread interval timer

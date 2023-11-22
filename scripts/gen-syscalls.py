@@ -103,18 +103,15 @@ for i in range(0, reserved_events_cnt):
     value = i + syscall_cnt + 1
     print('#define %s %d' % (event, value))
 
-print('\n#define SYSCALL_TABLE_INIT { \\')
+print('\n#define SYSCALL_TABLE_INIT \\')
 
 for i in range(0, syscall_cnt):
     syscall = syscalls[i]
     id = syscalls[i].upper()
     if i == syscall_cnt - 1:
-        print('    DEF_SYSCALL(%s, %s) \\\n    }\n' % (syscall, id))
+        print('    DEF_SYSCALL(%s, %s) \\\n' % (syscall, id))
     else:
         print('    DEF_SYSCALL(%s, %s), \\' % (syscall, id))
 
-for i in range(0, syscall_cnt):
-    print("void sys_%s(void);" % (syscalls[i]))
-
-print('\n#endif')
+print('#endif')
 print('/* clang-format on */')

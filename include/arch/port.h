@@ -88,6 +88,17 @@ bool check_systick_event(void *sp);
 unsigned long get_syscall_info(void *sp, unsigned long *pargs[4]);
 
 /**
+ * @brief  Execute a syscall handler and handle arguments and return value
+ *         passing of the thread stack
+ * @param  func: The syscall handler function to execute.
+ * @param  args: The pointers to the syscall arguments.
+ * @param  syscall_pending: The pointer to the syscall pending flag of
+ *         the thread.
+ * @retval None
+ */
+void syscall(unsigned long func, unsigned long *args[4], bool *syscall_pending);
+
+/**
  * @brief  Trigger platform-specific idling
  * @param  None
  * @retval None
