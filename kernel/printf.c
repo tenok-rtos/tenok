@@ -313,3 +313,15 @@ int fprintf(FILE *stream, const char *format, ...)
 
     return retval;
 }
+
+int vfprintf(FILE *stream, const char *format, va_list ap)
+{
+    char buf[PRINT_SIZE_MAX];
+    vsnprintf(buf, PRINT_SIZE_MAX, format, ap);
+
+    __FILE *_stream = (__FILE *) stream;
+    size_t len = strlen(buf);
+    int retval = write(_stream->fd, buf, len);
+
+    return retval;
+}
