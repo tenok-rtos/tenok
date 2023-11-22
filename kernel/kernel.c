@@ -832,6 +832,10 @@ static void sys_exit(int status)
 
 static int sys_mount(const char *source, const char *target)
 {
+    /* Check the length of the pathname */
+    if (strlen(source) >= PATH_LEN_MAX || strlen(target) >= PATH_LEN_MAX)
+        return -ENAMETOOLONG;
+
     int tid = running_thread->tid;
 
     /* Send mount request to the file system daemon */
@@ -857,6 +861,10 @@ static int sys_mount(const char *source, const char *target)
 
 static int sys_open(const char *pathname, int flags)
 {
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_LEN_MAX)
+        return -ENAMETOOLONG;
+
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1226,6 +1234,10 @@ static int sys_fstat(int fd, struct stat *statbuf)
 
 static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_LEN_MAX)
+        return -ENAMETOOLONG;
+
     int tid = running_thread->tid;
 
     /* Send directory open request to the file system daemon */
@@ -1324,6 +1336,10 @@ static int sys_getpid(void)
 
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_LEN_MAX)
+        return -ENAMETOOLONG;
+
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
@@ -1355,6 +1371,10 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 
 static int sys_mkfifo(const char *pathname, mode_t mode)
 {
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_LEN_MAX)
+        return -ENAMETOOLONG;
+
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
