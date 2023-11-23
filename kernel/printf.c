@@ -284,13 +284,7 @@ int dprintf(int fd, const char *format, ...)
     va_list args;
 
     va_start(args, format);
-
-    char buf[PRINT_SIZE_MAX];
-    vsnprintf(buf, PRINT_SIZE_MAX, format, args);
-
-    size_t len = strlen(buf);
-    int retval = write(fd, buf, len);
-
+    int retval = vdprintf(fd, format, args);
     va_end(args);
 
     return retval;
@@ -312,24 +306,6 @@ int printf(const char *format, ...)
     return retval;
 }
 
-int fprintf(FILE *stream, const char *format, ...)
-{
-    va_list args;
-
-    va_start(args, format);
-
-    char buf[PRINT_SIZE_MAX];
-    vsnprintf(buf, PRINT_SIZE_MAX, format, args);
-
-    __FILE *_stream = (__FILE *) stream;
-    size_t len = strlen(buf);
-    int retval = write(_stream->fd, buf, len);
-
-    va_end(args);
-
-    return retval;
-}
-
 int vfprintf(FILE *stream, const char *format, va_list ap)
 {
     char buf[PRINT_SIZE_MAX];
@@ -338,6 +314,17 @@ int vfprintf(FILE *stream, const char *format, va_list ap)
     __FILE *_stream = (__FILE *) stream;
     size_t len = strlen(buf);
     int retval = write(_stream->fd, buf, len);
+
+    return retval;
+}
+
+int fprintf(FILE *stream, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    int retval = vfprintf(stream, format, args);
+    va_end(args);
 
     return retval;
 }
