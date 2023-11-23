@@ -9,21 +9,14 @@
 #include <time.h>
 #include <unistd.h>
 
-static int serial_fd;
-
 void timer_callback(union sigval sv)
 {
-    dprintf(serial_fd, "timer: time's up.\n\r");
+    printf("timer: time's up.\n\r");
 }
 
 void timer_task(void)
 {
     setprogname("timer-ex");
-
-    serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
 
     timer_t timerid;
     struct sigevent sev;
@@ -37,7 +30,7 @@ void timer_task(void)
 
     /* Create a timer */
     if (timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
-        dprintf(serial_fd, "failed to create timer.\n\r");
+        printf("failed to create timer.\n\r");
         exit(1);
     }
 
@@ -51,7 +44,7 @@ void timer_task(void)
 
     /* Arm the timer */
     if (timer_settime(timerid, 0, &its, NULL) == -1) {
-        dprintf(serial_fd, "failed to set the timer.\n\r");
+        printf("failed to set the timer.\n\r");
     }
 
     /* Sleep */

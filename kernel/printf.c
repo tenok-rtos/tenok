@@ -296,6 +296,22 @@ int dprintf(int fd, const char *format, ...)
     return retval;
 }
 
+int vprintf(const char *format, va_list ap)
+{
+    return vdprintf(STDOUT_FILENO, format, ap);
+}
+
+int printf(const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    int retval = vprintf(format, args);
+    va_end(args);
+
+    return retval;
+}
+
 int fprintf(FILE *stream, const char *format, ...)
 {
     va_list args;

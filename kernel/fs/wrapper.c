@@ -37,7 +37,6 @@ FILE *_fopen(const char *pathname, const char *mode)
         return NULL;
     }
 
-    pthread_mutex_init(&_stream->lock, NULL);
     _stream->fd = fd;
 
     return stream;
@@ -54,9 +53,6 @@ int _fclose(FILE *stream)
 size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
-
-    /* Start the critical section */
-    pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_READ_SIZE + 1;
@@ -75,18 +71,12 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
         }
     }
 
-    /* End the critical section */
-    pthread_mutex_unlock(&_stream->lock);
-
     return total;
 }
 
 size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
-
-    /* Start the critical section */
-    pthread_mutex_lock(&_stream->lock);
 
     size_t nbytes = size * nmemb;
     int times = (nbytes - 1) / MAX_WRITE_SIZE + 1;
@@ -105,9 +95,6 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
             break; /* EOF or write error */
         }
     }
-
-    /* End the critical section */
-    pthread_mutex_unlock(&_stream->lock);
 
     return total;
 }

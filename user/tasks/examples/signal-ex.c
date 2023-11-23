@@ -9,11 +9,10 @@
 #include <unistd.h>
 
 static int task1_pid;
-static int serial_fd;
 
 void sig_handler(int signum)
 {
-    dprintf(serial_fd, "received signal %d.\n\r", signum);
+    printf("received signal %d.\n\r", signum);
 }
 
 void signal_task1(void)
@@ -21,11 +20,6 @@ void signal_task1(void)
     task1_pid = getpid();
 
     setprogname("signal-ex-1");
-
-    serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
 
     /* Register a signal handler */
     struct sigaction sa;
@@ -42,7 +36,7 @@ void signal_task1(void)
     sigwait(&set, &sig);
 
     /* Print after the signal arrived */
-    dprintf(serial_fd, "signal %d is captured.\n\r", sig);
+    printf("signal %d is captured.\n\r", sig);
 
     /* Sleep */
     while (1) {

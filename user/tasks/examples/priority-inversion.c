@@ -26,13 +26,7 @@ void mutex_task_high(void)
 #endif
     pthread_mutex_init(&mutex, &attr);
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
-    dprintf(serial_fd,
-            "[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
+    printf("[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
 
     sleep(5);
 
@@ -40,9 +34,9 @@ void mutex_task_high(void)
         /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
-        dprintf(serial_fd,
-                "[mutex high] highest-priority thread locked the mutex "
-                "successfully.\n\r");
+        printf(
+            "[mutex high] highest-priority thread locked the mutex "
+            "successfully.\n\r");
 
         /* End the critical section */
         pthread_mutex_unlock(&mutex);
@@ -58,20 +52,12 @@ void mutex_task_median(void)
 
     struct timespec start_time, curr_time;
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
     /* Occupy the CPU to block the lowest-prioiry thread after 3 seconds */
-    dprintf(
-        serial_fd,
-        "[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
+    printf("[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
     sleep(3);
 
     /* Occupy the CPU for 10 seconds */
-    dprintf(
-        serial_fd,
+    printf(
         "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -93,18 +79,13 @@ void mutex_task_low(void)
 {
     setprogname("pri-inv-low");
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
     while (1) {
         /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
-        dprintf(serial_fd,
-                "[mutex low] lowest-priority thread locked the mutex "
-                "successfully.\n\r");
+        printf(
+            "[mutex low] lowest-priority thread locked the mutex "
+            "successfully.\n\r");
 
         /* Simulate some works */
         sleep(2);

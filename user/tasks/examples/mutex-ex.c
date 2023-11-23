@@ -21,12 +21,6 @@ static pthread_mutex_t mutex;
 static pthread_cond_t cond_producer;
 static pthread_cond_t cond_consumer;
 
-static void print(int fd, char *str)
-{
-    int len = strlen(str);
-    write(fd, str, len);
-}
-
 void mutex_task1(void)
 {
     setprogname("mutex-ex-1");
@@ -35,11 +29,6 @@ void mutex_task1(void)
     pthread_cond_init(&cond_producer, 0);
     pthread_cond_init(&cond_consumer, 0);
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
     int item = 1;
 
     while (1) {
@@ -47,14 +36,13 @@ void mutex_task1(void)
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == BUFFER_SIZE) {
-            dprintf(serial_fd,
-                    "[task 1] buffer is full. producer is waiting...\n\r");
+            printf("[task 1] buffer is full. producer is waiting...\n\r");
             pthread_cond_wait(&cond_producer, &mutex);
         }
 
         /* Produce an item and add it to the buffer */
         my_buffer[my_cnt++] = item;
-        dprintf(serial_fd, "[task 1] produced item %d\n\r", item);
+        printf("[task 1] produced item %d\n\r", item);
         item++;
 
         /* Signal to consumers that an item is available */
@@ -72,24 +60,18 @@ void mutex_task2(void)
 {
     setprogname("mutex-ex-2");
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
     while (1) {
         /* Start the critical section */
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == 0) {
-            dprintf(serial_fd,
-                    "[task 2] buffer is empty. consumer is waiting...\n\r");
+            printf("[task 2] buffer is empty. consumer is waiting...\n\r");
             pthread_cond_wait(&cond_consumer, &mutex);
         }
 
         /* Consume an item from the buffer */
         int item = my_buffer[--my_cnt];
-        dprintf(serial_fd, "[task 2] consumed item %d\n\r", item);
+        printf("[task 2] consumed item %d\n\r", item);
 
         /* Signal to producers that there is space in the buffer */
         pthread_cond_signal(&cond_producer);

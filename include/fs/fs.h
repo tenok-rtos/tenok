@@ -15,11 +15,36 @@
 
 #include "kconfig.h"
 
-#if FILE_DESC_CNT_MAX > 0xffff
-#error "FILE_DESC_CNT_MAX should not exceed 65535"
-#endif
-
 #define RDEV_ROOTFS 0
+
+#define FILE_RESERVED_NUM (THREAD_CNT_MAX + 3)
+#define THREAD_PIPE_FD(thread_id) (thread_id + 3)
+
+/* +---------------------------+
+ * |     File table layout     |
+ * +-----------+---------------+
+ * |     0     |     stdin     |
+ * +-----------+---------------+
+ * |     1     |     stdout    |
+ * +-----------+---------------+
+ * |     2     |     stderr    |
+ * +-----------+---------------+
+ * |     3     | Thread pipe 1 |
+ * +-----------+---------------+
+ * |    ...    |      ...      |
+ * +-----------+---------------+
+ * |   N + 2   | Thread pipe N |
+ * +-----------+---------------+
+ * |   N + 3   |     File 1    |
+ * +-----------+---------------+
+ * |    ...    |      ...      |
+ * +-----------+---------------+
+ * | N + M + 3 |     File M    |
+ * +-----------+---------------+
+ *
+ * N = THREAD_CNT_MAX
+ * M = OPEN_MAX
+ */
 
 typedef void (*drv_init_func_t)(void);
 
@@ -108,6 +133,10 @@ struct fdtable {
 
 void rootfs_init(void);
 
+void link_stdin_dev(char *path);
+void link_stdout_dev(char *path);
+void link_stderr_dev(char *path);
+
 int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
@@ -115,12 +144,12 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
-void request_create_file(int reply_fd, const char *path, uint8_t file_type);
-void request_open_file(int reply_fd, const char *path);
+void request_create_file(int thread_id, const char *path, uint8_t file_type);
+void request_open_file(int thread_id, const char *path);
 void request_open_directory(int reply_fd, const char *path);
-void request_mount(int reply_fd, const char *source, const char *target);
-void request_getcwd(int reply_fd, char *buf, size_t len);
-void request_chdir(int reply_fd, const char *path);
+void request_mount(int thread_id, const char *source, const char *target);
+void request_getcwd(int thread_id, char *buf, size_t len);
+void request_chdir(int thread_id, const char *path);
 
 void filesysd(void);
 

@@ -29,6 +29,10 @@ typedef union {
     uint32_t __align;
 } FILE;
 
+extern FILE *stdin;
+extern FILE *stdout;
+extern FILE *stderr;
+
 /**
  * @brief  Open the file whose name is the string pointed to by pathname and
  *         associates a stream with it
@@ -86,12 +90,12 @@ int fseek(FILE *stream, long offset, int whence);
  */
 int fileno(FILE *stream);
 
-int printf(const char *format, ...); /* TODO */
+int printf(const char *format, ...);
 int fprintf(FILE *stream, const char *format, ...);
 int dprintf(int fd, const char *format, ...);
 int sprintf(char *str, const char *format, ...);
 int snprintf(char *str, size_t size, const char *format, ...);
-int vprintf(const char *format, va_list ap); /* TODO */
+int vprintf(const char *format, va_list ap);
 int vfprintf(FILE *stream, const char *format, va_list ap);
 int vdprintf(int fd, const char *format, va_list ap);
 int vsprintf(char *str, const char *format, va_list ap);

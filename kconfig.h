@@ -29,11 +29,17 @@
 /* Signals */
 #define SIGNAL_QUEUE_SIZE    5
 
+/* Standard I/O */
+#define STDIN_DEV_PATH       "/dev/serial0"
+#define STDOUT_DEV_PATH      "/dev/serial0"
+#define STDERR_DEV_PATH      "/dev/serial0"
+
 /* File system */
 #define FILE_CNT_MAX         100   /* The maximum number of the files can be *
                                     * created, which includes directories.   */
 #define FILE_NAME_LEN_MAX    30
-#define FILE_DESC_CNT_MAX    100   /* Size of the file descriptor table */
+#define OPEN_MAX             100   /* The maximum number of files a task can *
+                                    * open                                   */
 
 #define PATH_LEN_MAX         128
 

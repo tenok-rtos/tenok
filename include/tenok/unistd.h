@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#define STDIN_FILENO 0  /* Standard input file descriptor */
+#define STDOUT_FILENO 1 /* Standard output file descriptor */
+#define STDERR_FILENO 2 /* Standard error file descriptor */
+
 /**
  * @brief  To cause the calling thread to sleep either until the number of
            real-time seconds specified in seconds have elapsed or until a

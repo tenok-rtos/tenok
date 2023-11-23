@@ -8,12 +8,10 @@
 #include <tenok.h>
 #include <unistd.h>
 
-static int serial_fd;
-
 void *my_thread(void *arg)
 {
     for (int i = 0; i < 10; i++) {
-        dprintf(serial_fd, "hello new thread.\n\r");
+        printf("hello new thread.\n\r");
         sleep(1);
     }
 
@@ -24,14 +22,9 @@ void pthread_task(void)
 {
     setprogname("pthread-ex");
 
-    serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
-    dprintf(serial_fd,
-            "a new thread will be created and"
-            " canceled after 10 seconds.\n\r");
+    printf(
+        "a new thread will be created and"
+        " canceled after 10 seconds.\n\r");
 
     pthread_attr_t attr;
     struct sched_param param;

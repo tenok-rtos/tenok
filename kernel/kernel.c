@@ -77,12 +77,12 @@ static char *deamon_names[] = {DAEMON_LIST};
 #undef DECLARE_DAEMON
 
 /* Files */
-struct file *files[TASK_CNT_MAX + FILE_CNT_MAX];
+struct file *files[FILE_RESERVED_NUM + FILE_CNT_MAX];
 int file_cnt = 0;
 
 /* File descriptor table */
-static struct fdtable fdtable[FILE_DESC_CNT_MAX];
-static uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
+static struct fdtable fdtable[OPEN_MAX];
+static uint32_t bitmap_fds[BITMAP_SIZE(OPEN_MAX)];
 
 /* Message queue descriptor table */
 static struct mq_desc mqd_table[MQUEUE_CNT_MAX];
@@ -283,7 +283,7 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 
     kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_DEPTH);
     pipe->fifo = pipe_fifo;
-    fifo_init(tid, (struct file **) &files, NULL, pipe);
+    fifo_init(THREAD_PIPE_FD(tid), (struct file **) &files, NULL, pipe);
 
     return (void *) buf;
 }
@@ -452,7 +452,7 @@ static void task_delete(struct task_struct *task)
     list_del(&task->list);
     bitmap_clear_bit(bitmap_tasks, task->pid);
 
-    for (int i = 0; i < BITMAP_SIZE(FILE_DESC_CNT_MAX); i++) {
+    for (int i = 0; i < BITMAP_SIZE(OPEN_MAX); i++) {
         bitmap_fds[i] &= ~task->bitmap_fds[i];
     }
 
@@ -844,8 +844,8 @@ static int sys_mount(const char *source, const char *target)
 
     /* Read mount result from the file system daemon */
     int mnt_result;
-    int retval =
-        fifo_read(files[tid], (char *) &mnt_result, sizeof(mnt_result), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &mnt_result,
+                           sizeof(mnt_result), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -877,7 +877,8 @@ static int sys_open(const char *pathname, int flags)
 
     /* Read the file index from the file system daemon */
     int file_idx;
-    int retval = fifo_read(files[tid], (char *) &file_idx, sizeof(file_idx), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
+                           sizeof(file_idx), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -896,8 +897,8 @@ static int sys_open(const char *pathname, int flags)
     }
 
     /* Find a free entry on the file descriptor entry table */
-    int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
-    if (fdesc_idx >= FILE_DESC_CNT_MAX) {
+    int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
+    if (fdesc_idx >= OPEN_MAX) {
         /* Return error */
         return -ENOMEM;
     }
@@ -925,7 +926,7 @@ static int sys_open(const char *pathname, int flags)
     filp->f_op->open(filp->f_inode, filp);
 
     /* Return the file descriptor number */
-    int fd = fdesc_idx + TASK_CNT_MAX;
+    int fd = fdesc_idx + FILE_RESERVED_NUM;
     return fd;
 }
 
@@ -935,11 +936,11 @@ static int sys_close(int fd)
     struct task_struct *task = current_task_info();
 
     /* Invalid file descriptor number */
-    if (fd < TASK_CNT_MAX)
+    if (fd < FILE_RESERVED_NUM)
         return -EBADF;
 
     /* Calculate the index number of the file descriptor */
-    int fdesc_idx = fd - TASK_CNT_MAX;
+    int fdesc_idx = fd - FILE_RESERVED_NUM;
 
     /* Check if the file descriptor belongs to current task */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -957,11 +958,11 @@ static int sys_close(int fd)
 
 static int sys_dup(int oldfd)
 {
-    if (oldfd < TASK_CNT_MAX)
+    if (oldfd < FILE_RESERVED_NUM)
         return -EBADF;
 
     /* Convert oldfd to the index numbers on the table */
-    int old_fdesc_idx = oldfd - TASK_CNT_MAX;
+    int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -973,8 +974,8 @@ static int sys_dup(int oldfd)
     }
 
     /* Find a free entry on the file descriptor table */
-    int fdesc_idx = find_first_zero_bit(bitmap_fds, FILE_DESC_CNT_MAX);
-    if (fdesc_idx >= FILE_DESC_CNT_MAX) {
+    int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
+    if (fdesc_idx >= OPEN_MAX) {
         /* Return error */
         return -ENOMEM;
     }
@@ -985,17 +986,17 @@ static int sys_dup(int oldfd)
     fdtable[fdesc_idx] = fdtable[old_fdesc_idx];
 
     /* Return new file descriptor number */
-    int fd = fdesc_idx + TASK_CNT_MAX;
+    int fd = fdesc_idx + FILE_RESERVED_NUM;
     return fd;
 }
 
 static int sys_dup2(int oldfd, int newfd)
 {
     /* Convert fds to the index numbers on the table */
-    int old_fdesc_idx = oldfd - TASK_CNT_MAX;
-    int new_fdesc_idx = newfd - TASK_CNT_MAX;
+    int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
+    int new_fdesc_idx = newfd - FILE_RESERVED_NUM;
 
-    if (oldfd < TASK_CNT_MAX || newfd < TASK_CNT_MAX)
+    if (oldfd < FILE_RESERVED_NUM || newfd < FILE_RESERVED_NUM)
         return -EBADF;
 
     /* Acquire the running task */
@@ -1023,13 +1024,13 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
 
     /* Get the file to read */
     struct file *filp;
-    if (fd < TASK_CNT_MAX) {
+    if (fd < FILE_RESERVED_NUM) {
         /* Read target is the anonymous pipe of a thread */
         filp = files[fd];
     } else {
         /* Calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - FILE_RESERVED_NUM;
 
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -1069,13 +1070,13 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
 
     /* Get the file pointer */
     struct file *filp;
-    if (fd < TASK_CNT_MAX) {
+    if (fd < FILE_RESERVED_NUM) {
         /* Write target is the anonymous pipe of a thread */
         filp = files[fd];
     } else {
         /* Calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - FILE_RESERVED_NUM;
 
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -1115,13 +1116,13 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
 
     /* Get the file pointer */
     struct file *filp;
-    if (fd < TASK_CNT_MAX) {
+    if (fd < FILE_RESERVED_NUM) {
         /* I/O control target is the anonymous pipe of a thread */
         filp = files[fd];
     } else {
         /* calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - FILE_RESERVED_NUM;
 
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -1160,13 +1161,13 @@ static off_t sys_lseek(int fd, long offset, int whence)
 
     /* Get the file pointer */
     struct file *filp;
-    if (fd < TASK_CNT_MAX) {
+    if (fd < FILE_RESERVED_NUM) {
         /* lseek target is the anonymous pipe of a thread */
         filp = files[fd];
     } else {
         /* Calculate the index number of the file descriptor
          * on the table */
-        int fdesc_idx = fd - TASK_CNT_MAX;
+        int fdesc_idx = fd - FILE_RESERVED_NUM;
 
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -1203,12 +1204,12 @@ static int sys_fstat(int fd, struct stat *statbuf)
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
-    if (fd < TASK_CNT_MAX)
+    if (fd < FILE_RESERVED_NUM)
         return -EBADF;
 
     /* Calculate the index number of the file descriptor
      * on the table */
-    int fdesc_idx = fd - TASK_CNT_MAX;
+    int fdesc_idx = fd - FILE_RESERVED_NUM;
 
     /* Check if the file descriptor is invalid */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
@@ -1246,8 +1247,8 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 
     /* Read the directory inode from the file system daemon */
     struct inode *inode_dir;
-    int retval =
-        fifo_read(files[tid], (char *) &inode_dir, sizeof(inode_dir), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
+                           sizeof(inode_dir), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1289,7 +1290,8 @@ static char *sys_getcwd(char *buf, size_t size)
 
     /* Read getcwd result from the file system daemon */
     char *path;
-    int retval = fifo_read(files[tid], (char *) &path, sizeof(path), 0);
+    int retval =
+        fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path, sizeof(path), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1313,8 +1315,8 @@ static int sys_chdir(const char *path)
 
     /* Read chdir result from the file system daemon */
     int chdir_result;
-    int retval =
-        fifo_read(files[tid], (char *) &chdir_result, sizeof(chdir_result), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
+                           sizeof(chdir_result), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1348,7 +1350,8 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 
     /* Read file index from the file system daemon  */
     int file_idx;
-    int retval = fifo_read(files[tid], (char *) &file_idx, sizeof(file_idx), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
+                           sizeof(file_idx), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1383,7 +1386,8 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 
     /* Read the file index from the file system daemon */
     int file_idx = 0;
-    int retval = fifo_read(files[tid], (char *) &tid, sizeof(file_idx), 0);
+    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &tid,
+                           sizeof(file_idx), 0);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1440,7 +1444,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         bool no_event = true;
 
         for (int i = 0; i < nfds; i++) {
-            int fd = fds[i].fd - TASK_CNT_MAX;
+            int fd = fds[i].fd - FILE_RESERVED_NUM;
             filp = fdtable[fd].file;
 
             uint32_t events = filp->f_events;
@@ -1475,7 +1479,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
         /* Record all files for polling */
         for (int i = 0; i < nfds; i++) {
-            int fd = fds[i].fd - TASK_CNT_MAX;
+            int fd = fds[i].fd - FILE_RESERVED_NUM;
             filp = fdtable[fd].file;
             list_add(&filp->list, &running_thread->poll_files_list);
         }
@@ -2729,6 +2733,9 @@ void init(void)
         print_platform_info();
         __board_init();
         rom_dev_init();
+        link_stdin_dev(STDIN_DEV_PATH);
+        link_stdout_dev(STDOUT_DEV_PATH);
+        link_stderr_dev(STDERR_DEV_PATH);
     }
     preempt_enable();
 

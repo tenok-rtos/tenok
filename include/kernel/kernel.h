@@ -74,7 +74,7 @@ struct task_struct {
     struct thread_info *main_thread; /* The main thread belongs to the task */
 
     /* For recording for the file descriptors belongs to the task */
-    uint32_t bitmap_fds[BITMAP_SIZE(FILE_DESC_CNT_MAX)];
+    uint32_t bitmap_fds[BITMAP_SIZE(OPEN_MAX)];
 
     /* For recording message queue descriptors belongs to the task */
     uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];

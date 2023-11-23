@@ -7,7 +7,6 @@
 #include <pthread.h>
 
 typedef struct {
-    pthread_mutex_t lock;
     int fd;
 } __FILE;
 
