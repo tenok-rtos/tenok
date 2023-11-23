@@ -90,15 +90,15 @@ unsigned long get_page_total_free_size(void)
 {
     unsigned size = 0;
 
-    /* iterate through all page orders */
+    /* Iterate through all page orders */
     for (int i = 0; i <= PAGE_ORDER_MAX; i++) {
         int bit_num = 0;
 
-        /* count the set bit of the bitmap */
+        /* Count the set bit of the bitmap */
         for (int j = 0; j < (page_bitmap_sz[i] / 8); j++)
             bit_num += __builtin_popcount(((uint8_t *) page_bitmap[i])[j]);
 
-        /* use bit count to calculate the free memory */
+        /* Use bit count to calculate the free memory */
         size += bit_num * order_to_page_size(i);
     }
 
@@ -107,12 +107,12 @@ unsigned long get_page_total_free_size(void)
 
 static long find_first_free_page(unsigned long order)
 {
-    /* find the first free page on the bitmap as its bit is marked
+    /* Find the first free page on the bitmap as its bit is marked
      * as 1 on the bitmap */
     unsigned long page_idx =
         find_first_bit(page_bitmap[order], page_bitmap_sz[order]);
 
-    /* invalid page index number */
+    /* Invalid page index number */
     if (page_idx >= page_bitmap_sz[order]) {
         return -1;
     }
@@ -122,14 +122,14 @@ static long find_first_free_page(unsigned long order)
 
 static void split_first_free_page(unsigned long order)
 {
-    /* find index number of the first page with the given order */
+    /* Find index number of the first page with the given order */
     unsigned long page_idx =
         find_first_bit(page_bitmap[order], page_bitmap_sz[order]);
 
-    /* clear bitmap of the first page in current order */
+    /* Clear bitmap of the first page in current order */
     bitmap_clear_bit(page_bitmap[order], page_idx);
 
-    /* split the page into two pages and mark the bitmap of them in
+    /* Split the page into two pages and mark the bitmap of them in
      * smaller order */
     bitmap_set_bit(page_bitmap[order - 1], page_idx * 2);
     bitmap_set_bit(page_bitmap[order - 1], page_idx * 2 + 1);
@@ -160,27 +160,27 @@ void *alloc_pages(unsigned long order)
 {
     unsigned long page_idx, i;
 
-    /* iterate from current order to higher order until a free page is found */
+    /* Iterate from current order to higher order until a free page is found */
     for (i = order; (i <= PAGE_ORDER_MAX) && (find_first_free_page(i) < 0); i++)
         ;
 
-    /* invalid order number */
+    /* Invalid order number */
     if (i > PAGE_ORDER_MAX)
         return NULL;
 
-    /* split the found free page multiple times until the order
+    /* Split the found free page multiple times until the order
      * requirement is met */
     for (; i > order; i--)
         split_first_free_page(i);
 
-    /* retrieve the free page to allocate by finding the first set bit on
+    /* Retrieve the free page to allocate by finding the first set bit on
      * the bitmap with respect to the order */
     page_idx = find_first_bit(page_bitmap[order], page_bitmap_sz[order]);
 
-    /* clear the bit to indicate that the page is used */
+    /* Clear the bit to indicate that the page is used */
     bitmap_clear_bit(page_bitmap[order], page_idx);
 
-    /* return page address */
+    /* Return page address */
     return page_idx_to_addr(page_idx, order);
 }
 
@@ -188,30 +188,30 @@ void free_pages(unsigned long addr, unsigned long order)
 {
     unsigned long page_idx, buddy_idx, mask;
 
-    /* attempt to coalesce pages from current order to the maximal order */
+    /* Attempt to coalesce pages from current order to the maximal order */
     for (; order < PAGE_ORDER_MAX; order++) {
-        /* get indices of current page and buddy page */
+        /* Get indices of current page and buddy page */
         page_idx = addr_to_page_idx(addr, order);
         buddy_idx = get_buddy_index(page_idx);
 
-        /* is the buddy page free now? (bitmap == 1) */
+        /* Is the buddy page free now? (bitmap == 1) */
         if (bitmap_get_bit(page_bitmap[order], buddy_idx)) {
-            /* yes, reset the bitmap to coalesce it */
+            /* Yes, reset the bitmap to coalesce it */
             bitmap_clear_bit(page_bitmap[order], buddy_idx);
 
-            /* generate all one's mask with respect to the order */
+            /* Generate all one's mask with respect to the order */
             mask = ~((1 << (order + 1 + ilog2(PAGE_SIZE_MIN))) - 1);
             addr &= mask;
         } else {
-            /* set the page bitmap at this order and end the
-             * coalescence. multiple pages are now coalesced
+            /* Set the page bitmap at this order and end the
+             * coalescence. Multiple pages are now coalesced
              * and free to use. */
             bitmap_set_bit(page_bitmap[order], page_idx);
             return;
         }
     }
 
-    /* all lower order pages are now coalesced, set the bitmap map of
+    /* All lower order pages are now coalesced, set the bitmap map of
      * this big page to mark it as free to use */
     bitmap_set_bit(page_bitmap[order], addr_to_page_idx(addr, order));
 }

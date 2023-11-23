@@ -17,11 +17,11 @@ extern char _user_stack_start;
 extern char _user_stack_end;
 
 struct malloc_info {
-    /* header */
+    /* Header */
     uint32_t block_info; /* [31]   - 0 as not free, 1 as free          *
-                          * [30:0] - block length including the header */
+                          * [30:0] - Block length including the header */
     struct list_head list;
-    /* data */
+    /* Data */
     char data[0];
 };
 
@@ -61,10 +61,10 @@ unsigned long heap_get_free_size(void)
 {
     unsigned long total_size = 0;
 
-    /* interate through the whole malloc list */
+    /* Iterate through the whole malloc list */
     struct malloc_info *blk = NULL;
     list_for_each_entry (blk, &malloc_list, list) {
-        /* accumuate the size of all free pages */
+        /* Accumuate the size of all free pages */
         if (malloc_block_is_free(blk))
             total_size += malloc_get_block_length(blk);
     }
@@ -74,7 +74,7 @@ unsigned long heap_get_free_size(void)
 
 void heap_init(void)
 {
-    /* initialize the whole heap memory section as a free block */
+    /* Initialize the whole heap memory section as a free block */
     struct malloc_info *first_blk = (struct malloc_info *) &_user_stack_start;
     size_t len = (size_t) ((uintptr_t) &_user_stack_end -
                            (uintptr_t) &_user_stack_start);
@@ -87,36 +87,36 @@ void *__malloc(size_t size)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    /* calculate the allocation size */
+    /* Calculate the allocation size */
     size_t alloc_size = ALIGN(size + sizeof(struct malloc_info), sizeof(long));
 
-    /* interate through the block list */
+    /* Iterate through the block list */
     struct malloc_info *blk = NULL;
     list_for_each_entry (blk, &malloc_list, list) {
-        /* check if the block is free or not */
+        /* Check if the block is free or not */
         if (malloc_block_is_free(blk)) {
-            /* acquire the block length */
+            /* Acquire the block length */
             size_t blk_len = malloc_get_block_length(blk);
 
-            /* find the first fit block */
+            /* Find the first fit block */
             if (blk_len < alloc_size) {
-                /* the free block is not large enough */
+                /* The free block is not large enough */
                 continue;
             } else if (blk_len < alloc_size + sizeof(struct malloc_info)) {
-                /* a free block is found but can not be further splitted */
+                /* A free block is found but can not be further splitted */
                 malloc_set_block_free(blk, false);
 
-                /* return the memory address */
+                /* Return the memory address */
                 return blk->data;
             } else {
-                /* a free block is found, which not only has enough size
+                /* A free block is found, which not only has enough size
                  * but also can be further splitted */
 
-                /* split the free block by schrinking the size */
+                /* Split the free block by schrinking the size */
                 malloc_set_block_length(
                     blk, malloc_get_block_length(blk) - alloc_size);
 
-                /* the splitted part are now ready to use */
+                /* The splitted part are now ready to use */
                 struct malloc_info *new_blk =
                     (struct malloc_info *) ((uintptr_t) blk +
                                             malloc_get_block_length(blk));
@@ -124,13 +124,13 @@ void *__malloc(size_t size)
                 malloc_set_block_length(new_blk, alloc_size);
                 list_add(&new_blk->list, &malloc_list);
 
-                /* return the memory address */
+                /* Return the memory address */
                 return new_blk->data;
             }
         }
     }
 
-    /* failed to allocate memory */
+    /* Failed to allocate memory */
     printk("malloc(): not enough heap space (name: %s, pid: %d)",
            curr_thread->name, curr_thread->task->pid);
 
@@ -147,14 +147,14 @@ void __free(void *ptr)
     struct malloc_info *curr_blk = container_of(ptr, struct malloc_info, data);
     struct malloc_info *prev_blk, *next_blk;
 
-    /* free the current block */
+    /* Free the current block */
     malloc_set_block_free(curr_blk, true);
 
-    /* check if previous block exists */
+    /* Check if previous block exists */
     if (curr_blk->list.prev != &malloc_list) {
         prev_blk = list_prev_entry(curr_blk, list);
 
-        /* merge the previous block if it is free */
+        /* Merge the previous block if it is free */
         if (malloc_block_is_free(prev_blk)) {
             size_t len = malloc_get_block_length(prev_blk) +
                          malloc_get_block_length(curr_blk);
@@ -164,11 +164,11 @@ void __free(void *ptr)
         }
     }
 
-    /* check if next block exists */
+    /* Check if next block exists */
     if (curr_blk->list.next != &malloc_list) {
         next_blk = list_next_entry(curr_blk, list);
 
-        /* merge the next block if it is free */
+        /* Merge the next block if it is free */
         if (malloc_block_is_free(next_blk)) {
             size_t len = malloc_get_block_length(curr_blk) +
                          malloc_get_block_length(next_blk);
@@ -185,17 +185,17 @@ NACKED void free(void *ptr)
 
 void *calloc(size_t nmemb, size_t size)
 {
-    /* calculate the allocation size and detect the overflow */
+    /* Calculate the allocation size and detect the overflow */
     size_t total_size;
     if (__builtin_mul_overflow(nmemb, size, &total_size))
         return NULL;
 
-    /* allocate new memory */
+    /* Allocate new memory */
     void *mem = malloc(total_size);
     if (!mem)
         return NULL;
 
-    /* reset the memory data */
+    /* Reset the memory data */
     memset(mem, 0, nmemb * size);
     return mem;
 }
@@ -205,8 +205,8 @@ NACKED int minfo(int name)
     SYSCALL(MINFO);
 }
 
-/* not implemented. the function is defined only
- * to supress the newlib warning
+/* Not implemented. The function is defined only
+ * to supress the newlib warning.
  */
 void *_sbrk(int incr)
 {

@@ -97,7 +97,7 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
         }
     }
 
-    /* pop data from the pipe */
+    /* Pop data from the pipe */
     for (int i = 0; i < size; i++)
         kfifo_out(fifo, &buf[i], sizeof(char));
 

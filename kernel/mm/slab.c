@@ -10,7 +10,7 @@
 #define OBJS_PER_SLAB(page_size, objsize) \
     ((page_size - sizeof(struct slab)) / objsize)
 
-/* cache of caches */
+/* Cache of caches */
 static struct kmem_cache cache_caches = {
     .objsize = sizeof(struct kmem_cache),
     .objnum = OBJS_PER_SLAB(PAGE_SIZE_MIN, sizeof(struct kmem_cache)),
@@ -23,18 +23,18 @@ static struct kmem_cache cache_caches = {
     .opts = CACHE_OPT_NONE,
 };
 
-/* caches list */
+/* Caches list */
 static LIST_HEAD(caches);
 
 static inline struct slab *get_slab_from_obj(void *obj, size_t page_size)
 {
-    /* calculate the slab address from object by doing round-down alignment */
+    /* Calculate the slab address from object by doing round-down alignment */
     return (struct slab *) ALIGN((unsigned long) obj, page_size);
 }
 
 static inline int obj_index_in_slab(void *obj, struct kmem_cache *cache)
 {
-    /* mask out the base address and divide it by the object size */
+    /* Mask out the base address and divide it by the object size */
     return (((unsigned long) obj & ((1 << 8) - 1)) - sizeof(struct slab)) /
            cache->objsize;
 }
@@ -47,7 +47,7 @@ struct kmem_cache *kmem_cache_create(const char *name,
 {
     struct kmem_cache *cache;
 
-    /* find a suitable page order for the slab. one
+    /* Find a suitable page order for the slab. one
      * single page should at least contains 2 slabs */
     int order = size_to_page_order(size);
     int page_size = page_order_to_size(order);
@@ -59,18 +59,18 @@ struct kmem_cache *kmem_cache_create(const char *name,
         objnum = OBJS_PER_SLAB(page_size, size);
     }
 
-    /* the request size is too large */
+    /* The request size is too large */
     if (order > PAGE_ORDER_MAX)
         return NULL;
 
-    /* allocate new cache memory */
+    /* Allocate new cache memory */
     cache = kmem_cache_alloc(&cache_caches, 0);
 
-    /* failed to allocate cache memory */
+    /* Failed to allocate cache memory */
     if (!cache)
         return NULL;
 
-    /* initialize the new cache */
+    /* Initialize the new cache */
     cache->objsize = size;
     cache->objnum = objnum;
     cache->page_order = order;
@@ -86,20 +86,20 @@ struct kmem_cache *kmem_cache_create(const char *name,
 
 static struct slab *kmem_cache_grow(struct kmem_cache *cache)
 {
-    /* allocate a new page for the slab */
+    /* Allocate a new page for the slab */
     struct slab *slab = alloc_pages(cache->page_order);
 
-    /* failed to allocate new page */
+    /* Failed to allocate new page */
     if (!slab) {
         return NULL;
     }
 
-    /* initialize the new slab */
+    /* Initialize the new slab */
     slab->free_bitmap[0] = 0;
     slab->free_objects = cache->objnum;
     list_add(&slab->list, &cache->slabs_free);
 
-    /* return the address of new slab */
+    /* Return the address of new slab */
     return slab;
 }
 
@@ -108,54 +108,54 @@ void *kmem_cache_alloc(struct kmem_cache *cache, unsigned long flags)
     struct slab *slab = NULL;
     void *mem;
 
-    /* check if the partial list contains space for new slab */
+    /* Check if the partial list contains space for new slab */
     if (list_empty(&cache->slabs_partial)) {
-        /* no, check if the free list contains space for new slab */
+        /* No, check if the free list contains space for new slab */
         if (list_empty(&cache->slabs_free)) {
-            /* no, grow the cache by allocating new page */
+            /* No, grow the cache by allocating new page */
             cache->alloc_fail++;
             slab = kmem_cache_grow(cache);
 
-            /* failed to grow the cache by allocating new page */
+            /* Failed to grow the cache by allocating new page */
             if (!slab) {
                 return NULL;
             }
         } else {
-            /* yes, acquire the new slab from the free list */
+            /* Yes, acquire the new slab from the free list */
             cache->alloc_succeed++;
             slab = list_first_entry(&cache->slabs_free, struct slab, list);
         }
 
-        /* move the slab into the partial list */
+        /* Move the slab into the partial list */
         list_move(&slab->list, &cache->slabs_partial);
     } else {
-        /* yes, obtain the slab from the partial list */
+        /* Yes, obtain the slab from the partial list */
         cache->alloc_succeed++;
         slab = list_first_entry(&cache->slabs_partial, struct slab, list);
     }
 
-    /* mark the bitmap of the slab */
+    /* Mark the bitmap of the slab */
     int bit = find_first_zero_bit(slab->free_bitmap, cache->objnum);
     bitmap_set_bit(slab->free_bitmap, bit);
 
-    /* calculate the memory of the acquired slab memory */
+    /* Calculate the memory of the acquired slab memory */
     mem = slab->data + bit * cache->objsize;
 
-    /* update free objects count of the slab */
+    /* Update free objects count of the slab */
     slab->free_objects--;
 
-    /* move the slab into the full list if the page has no space for
+    /* Move the slab into the full list if the page has no space for
      * more new slabs */
     if (!slab->free_objects) {
         list_move(&slab->list, &cache->slabs_full);
     }
-    /* return the address of the allocated slab memory */
+    /* Return the address of the allocated slab memory */
     return mem;
 }
 
 static int slab_destroy(struct kmem_cache *cache, struct slab *slab)
 {
-    /* remove the slab from its current list and free the page */
+    /* Remove the slab from its current list and free the page */
     list_del(&slab->list);
     free_pages((unsigned long) slab, 0);
 
@@ -167,31 +167,31 @@ void kmem_cache_free(struct kmem_cache *cache, void *obj)
     struct slab *slab;
     int bit;
 
-    /* obtain the slab from object and its bitmap index */
+    /* Acquire the slab from object and its bitmap index */
     slab = get_slab_from_obj(obj, 256);
     bit = obj_index_in_slab(obj, cache);
 
-    /* reset the bitmap of the object in the slab */
+    /* Reset the bitmap of the object in the slab */
     bitmap_clear_bit(slab->free_bitmap, bit);
 
-    /* update free objects count of the slab */
+    /* Update free objects count of the slab */
     slab->free_objects++;
 
-    /* check the free object count of the slab */
+    /* Check the free object count of the slab */
     if (slab->free_objects == cache->objnum) {
-        /* free the whole page since it contains no more slab */
+        /* Free the whole page since it contains no more slab */
         slab_destroy(cache, slab);
     } else if (slab->free_objects == 1) {
-        /* move the slab from full list into the partial list */
+        /* Move the slab from full list into the partial list */
         list_move(&slab->list, &cache->slabs_partial);
     }
 }
 
 void kmem_cache_init(void)
 {
-    /* add the cache-cache into the cache list */
+    /* Add the cache-cache into the cache list */
     list_add(&cache_caches.list, &caches);
 
-    /* allocate space for the cache-cache */
+    /* Allocate space for the cache-cache */
     kmem_cache_grow(&cache_caches);
 }
