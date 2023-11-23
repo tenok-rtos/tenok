@@ -133,8 +133,7 @@ OBJS += ./tools/mkromfs/romfs.o
 DEPEND = $(SRC:.c=.d)
 
 ASM := ./platform/startup_stm32f4xx.s \
-       ./kernel/arch/context_switch.S \
-       ./kernel/arch/spinlock.S
+       ./kernel/arch/v7m_entry.S
 
 all: gen_syscalls msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile

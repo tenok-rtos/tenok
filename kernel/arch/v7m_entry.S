@@ -3,8 +3,6 @@
 .syntax unified
 
 ENTRY(PendSV_Handler)
-    /*Note: ISR always uses msp */
-
     /* Disable interrupts */
     cpsid i
     cpsid f
@@ -35,8 +33,6 @@ ENTRY(PendSV_Handler)
 ENDPROC(PendSV_Handler)
 
 ENTRY(SVC_Handler)
-    /*Note: ISR always uses msp */
-
     /* Disable interrupts */
     cpsid i
     cpsid f
@@ -68,7 +64,8 @@ ENTRY(jump_to_thread)
     /* Arguments:
      * r0 (input) : Stack address of the thread 
      * r1 (input) : Run user thread with priviledge or not
-     * r0 (return): Stack address after loading the user stack */
+     * r0 (return): Stack address after loading the user stack
+     */
 
     /* Save kernel state */
     mrs   ip, psr /* Save psr to the ip */
@@ -102,7 +99,8 @@ ENTRY(syscall)
     /* Arguments:
      * r0 (input): Function pointer to the syscall handler 
      * r1 (input): Pointers to the syscall arguments
-     * r2 (input): Pointer to the syscall pending flag */
+     * r2 (input): Pointer to the syscall pending flag
+     */
 
     push {r4, r5, r6, r7, lr}
     mov r4, r0
@@ -144,7 +142,8 @@ ENDPROC(syscall)
 
 ENTRY(os_env_init)
     /* Arguments:
-     * r0 (input): Stack address */
+     * r0 (input): Stack address
+     */
 
     /* Save kernel state */
     mrs  ip, psr /* Save psr to the ip */
@@ -169,3 +168,34 @@ ENTRY(os_env_init)
     /* Function return */
     bx lr
 ENDPROC(os_env_init)
+
+/* Spinlock is implemented with ARM load/store exclusive instructions */
+ENTRY(spinlock)
+    /* Arguments:
+     * r0 (input): Address of the lock variable
+     */
+
+loop:
+    ldrex r2, [r0]     /* Assign *lock value to r2 */
+    cmp   r2, #1       /* Check if r2 equals 1 */
+    beq   loop         /* If true then jump to loop */
+
+    mov   r1, #1       /* Assign 1 to r1 */
+    strex r2, r1, [r0] /* [r0] = r1, r2 = strex result (success:0, failed:1) */
+    cmp   r2, #1       /* Check if r2 equals 1 */
+    beq   loop         /* If true then jump to loop */
+
+    bx    lr           /* Function return */
+ENDPROC(spinlock)
+
+/* Unlock is fairly easy as it only requires to reset the lock variable */
+ENTRY(spin_unlock)
+    /* Arguments:
+     * r0 (input): Address of the lock variable
+     */
+
+    mov   r1, #0       /* Assign 0 to r1 */
+    str   r1, [r0]     /* Write r1 to the lock variable ([r0]) */
+
+    bx    lr           /* Function return */
+ENDPROC(spin_unlock)
