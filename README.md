@@ -54,7 +54,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 
 ## Related Projects
 
-`Tenok` is influenced by the following projects during the development:
+`Tenok` is heavily influenced by the following projects during the development:
 
 1. [rtenv](https://github.com/embedded2014/rtenv) / [rtenv+](https://github.com/embedded2014/rtenv-plus)
 2. [mini-arm-os](https://github.com/jserv/mini-arm-os)
