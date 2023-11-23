@@ -23,6 +23,7 @@
 #include <common/list.h>
 #include <common/util.h>
 #include <fs/fs.h>
+#include <fs/null_dev.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
@@ -2733,6 +2734,7 @@ void init(void)
         print_platform_info();
         __board_init();
         rom_dev_init();
+        null_dev_init();
         link_stdin_dev(STDIN_DEV_PATH);
         link_stdout_dev(STDOUT_DEV_PATH);
         link_stderr_dev(STDERR_DEV_PATH);

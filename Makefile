@@ -113,6 +113,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/fs/wrapper.c \
        ./kernel/fs/reg_file.c \
        ./kernel/fs/rom_dev.c \
+       ./kernel/fs/null_dev.c \
        ./kernel/mm/mpool.c \
        ./kernel/mm/mm.c \
        ./kernel/mm/page.c \
