@@ -19,7 +19,7 @@ def serial_ports():
 
 def main(msg_dir_path):
     # List YAML files under the input path
-    msg_files = glob.glob("%s/tenok_*_msg.yaml" % (msg_dir_path))
+    msg_files = glob.glob("%s/debug_link_*_msg.yaml" % (msg_dir_path))
     msg_arr = []
 
     msg_manager = TenokMsgManager()
@@ -28,7 +28,7 @@ def main(msg_dir_path):
     for i in range(0, len(msg_files)):
         # Use regex to extract msg name from the file name
         msg_file = os.path.basename(msg_files[i])
-        msg_name = re.findall(r'tenok_(.*)_msg.yaml', msg_file)[0]
+        msg_name = re.findall(r'debug_link_(.*)_msg.yaml', msg_file)[0]
         msg_arr = msg_arr + [msg_name]
 
         # Load msg YAML file

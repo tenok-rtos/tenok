@@ -1,17 +1,19 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tenok_link.h"
+#include "debug_link.h"
 
-#define TENOK_HEADER_SIZE 3
+#define DEBUG_LINK_HEADER_SIZE 3
 
-void pack_tenok_msg_header(tenok_payload_t *payload, int message_id)
+void pack_debug_link_msg_header(debug_link_payload_t *payload, int message_id)
 {
-    payload->size = TENOK_HEADER_SIZE;
+    payload->size = DEBUG_LINK_HEADER_SIZE;
     payload->data[2] = message_id;
 }
 
-void pack_tenok_msg_field_bool(bool *data, tenok_payload_t *payload, size_t n)
+void pack_debug_link_msg_bool(bool *data,
+                              debug_link_payload_t *payload,
+                              size_t n)
 {
     while (n--) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) data,
@@ -21,9 +23,9 @@ void pack_tenok_msg_field_bool(bool *data, tenok_payload_t *payload, size_t n)
 }
 
 
-void pack_tenok_msg_field_uint8_t(uint8_t *data,
-                                  tenok_payload_t *payload,
-                                  size_t n)
+void pack_debug_link_msg_uint8_t(uint8_t *data,
+                                 debug_link_payload_t *payload,
+                                 size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -32,9 +34,9 @@ void pack_tenok_msg_field_uint8_t(uint8_t *data,
     }
 }
 
-void pack_tenok_msg_field_int8_t(int8_t *data,
-                                 tenok_payload_t *payload,
-                                 size_t n)
+void pack_debug_link_msg_int8_t(int8_t *data,
+                                debug_link_payload_t *payload,
+                                size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -43,9 +45,9 @@ void pack_tenok_msg_field_int8_t(int8_t *data,
     }
 }
 
-void pack_tenok_msg_field_uint16_t(uint16_t *data,
-                                   tenok_payload_t *payload,
-                                   size_t n)
+void pack_debug_link_msg_uint16_t(uint16_t *data,
+                                  debug_link_payload_t *payload,
+                                  size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -54,9 +56,9 @@ void pack_tenok_msg_field_uint16_t(uint16_t *data,
     }
 }
 
-void pack_tenok_msg_field_int16_t(int16_t *data,
-                                  tenok_payload_t *payload,
-                                  size_t n)
+void pack_debug_link_msg_int16_t(int16_t *data,
+                                 debug_link_payload_t *payload,
+                                 size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -65,9 +67,9 @@ void pack_tenok_msg_field_int16_t(int16_t *data,
     }
 }
 
-void pack_tenok_msg_field_uint32_t(uint32_t *data,
-                                   tenok_payload_t *payload,
-                                   size_t n)
+void pack_debug_link_msg_uint32_t(uint32_t *data,
+                                  debug_link_payload_t *payload,
+                                  size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -76,9 +78,9 @@ void pack_tenok_msg_field_uint32_t(uint32_t *data,
     }
 }
 
-void pack_tenok_msg_field_int32_t(int32_t *data,
-                                  tenok_payload_t *payload,
-                                  size_t n)
+void pack_debug_link_msg_int32_t(int32_t *data,
+                                 debug_link_payload_t *payload,
+                                 size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -87,9 +89,9 @@ void pack_tenok_msg_field_int32_t(int32_t *data,
     }
 }
 
-void pack_tenok_msg_field_uint64_t(uint64_t *data,
-                                   tenok_payload_t *payload,
-                                   size_t n)
+void pack_debug_link_msg_uint64_t(uint64_t *data,
+                                  debug_link_payload_t *payload,
+                                  size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -98,9 +100,9 @@ void pack_tenok_msg_field_uint64_t(uint64_t *data,
     }
 }
 
-void pack_tenok_msg_field_int64_t(int64_t *data,
-                                  tenok_payload_t *payload,
-                                  size_t n)
+void pack_debug_link_msg_int64_t(int64_t *data,
+                                 debug_link_payload_t *payload,
+                                 size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -109,7 +111,9 @@ void pack_tenok_msg_field_int64_t(int64_t *data,
     }
 }
 
-void pack_tenok_msg_field_float(float *data, tenok_payload_t *payload, size_t n)
+void pack_debug_link_msg_float(float *data,
+                               debug_link_payload_t *payload,
+                               size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) &data[i],
@@ -118,9 +122,9 @@ void pack_tenok_msg_field_float(float *data, tenok_payload_t *payload, size_t n)
     }
 }
 
-void pack_tenok_msg_field_double(double *data,
-                                 tenok_payload_t *payload,
-                                 size_t n)
+void pack_debug_link_msg_double(double *data,
+                                debug_link_payload_t *payload,
+                                size_t n)
 {
     for (int i = 0; i < n; i++) {
         memcpy((uint8_t *) payload->data + payload->size, (uint8_t *) data,
@@ -129,10 +133,10 @@ void pack_tenok_msg_field_double(double *data,
     }
 }
 
-void generate_tenok_msg_checksum(tenok_payload_t *payload)
+void generate_debug_link_msg_checksum(debug_link_payload_t *payload)
 {
-    uint8_t *data = payload->data + TENOK_HEADER_SIZE;
-    size_t size = payload->size - TENOK_HEADER_SIZE;
+    uint8_t *data = payload->data + DEBUG_LINK_HEADER_SIZE;
+    size_t size = payload->size - DEBUG_LINK_HEADER_SIZE;
     uint8_t checksum = 0;
 
     for (int i = 0; i < size; i++)

@@ -5,7 +5,7 @@
 #include <tenok.h>
 #include <unistd.h>
 
-#include "tenok_test_msg.h"
+#include "debug_link_test_msg.h"
 #include "uart.h"
 
 #define INC 1
@@ -19,7 +19,7 @@ void debug_link_task(void)
 
     int dir = INC;
 
-    tenok_msg_test_t msg = {
+    debug_link_msg_test_t msg = {
         .time = 0,
         .accel = {1.0f, 2.0f, 3.0f},
         .q = {1.0f, 0.0f, 0.0f, 0.0f},
@@ -28,7 +28,7 @@ void debug_link_task(void)
     uint8_t buf[100];
 
     while (1) {
-        size_t size = pack_tenok_test_msg(&msg, buf);
+        size_t size = pack_debug_link_test_msg(&msg, buf);
         write(debug_link_fd, buf, size);
 
         if (dir == INC) {

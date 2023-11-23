@@ -320,7 +320,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     /* Create C header file */
     char *c_header_name =
         calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
-    sprintf(c_header_name, "%s/tenok_%s_msg.h", output_dir, msg_name);
+    sprintf(c_header_name, "%s/debug_link_%s_msg.h", output_dir, msg_name);
 
     FILE *output_c_header = fopen(c_header_name, "wb");
     if (output_c_header == NULL) {
@@ -332,7 +332,7 @@ int codegen(char *file_name, char *msgs, char *output_dir)
     /* Create YAML file  */
     char *yaml_name =
         calloc(sizeof(char), strlen(msg_name) + strlen(output_dir) + 50);
-    sprintf(yaml_name, "%s/tenok_%s_msg.yaml", output_dir, msg_name);
+    sprintf(yaml_name, "%s/debug_link_%s_msg.yaml", output_dir, msg_name);
 
     FILE *output_yaml = fopen(yaml_name, "wb");
     if (output_yaml == NULL) {
@@ -520,12 +520,12 @@ int codegen(char *file_name, char *msgs, char *output_dir)
         /* Generate preprocessing code */
         fprintf(output_c_header,
                 "#pragma once\n\n"
-                "#include \"tenok_link.h\"\n\n"
-                "#define TENOK_MSG_ID_%s %d\n\n",
+                "#include \"debug_link.h\"\n\n"
+                "#define DEBUG_LINK_MSG_ID_%s %d\n\n",
                 msg_name, msg_cnt);
 
         /* Generarte message structure */
-        fprintf(output_c_header, "typedef struct __tenok_msg_%s_t {\n",
+        fprintf(output_c_header, "typedef struct __debug_link_msg_%s_t {\n",
                 msg_name);
 
         struct list_head *curr;
@@ -552,15 +552,17 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             }
         }
 
-        fprintf(output_c_header, "} tenok_msg_%s_t;\n\n", msg_name);
+        fprintf(output_c_header, "} debug_link_msg_%s_t;\n\n", msg_name);
 
         /* Generate message functions */
-        fprintf(output_c_header,
-                "static inline size_t pack_tenok_%s_msg(tenok_msg_%s_t *msg, "
-                "uint8_t *data)\n{\n"
-                "    tenok_payload_t payload = {.data = data};\n"
-                "    pack_tenok_msg_header(&payload, TENOK_MSG_ID_%s);\n",
-                msg_name, msg_name, msg_name);
+        fprintf(
+            output_c_header,
+            "static inline size_t pack_debug_link_%s_msg(debug_link_msg_%s_t "
+            "*msg, "
+            "uint8_t *data)\n{\n"
+            "    debug_link_payload_t payload = {.data = data};\n"
+            "    pack_debug_link_msg_header(&payload, DEBUG_LINK_MSG_ID_%s);\n",
+            msg_name, msg_name, msg_name);
 
         list_for_each (curr, &msg_var_list) {
             struct msg_var_entry *msg_var =
@@ -569,20 +571,20 @@ int codegen(char *file_name, char *msgs, char *output_dir)
             /* Generate functions to pack data fields */
             if (strlen(msg_var->array_size) > 0) {
                 fprintf(output_c_header,
-                        "    pack_tenok_msg_field_%s(msg->%s, &payload, %s);\n",
+                        "    pack_debug_link_msg_%s(msg->%s, &payload, %s);\n",
                         msg_var->c_type, msg_var->var_name,
                         msg_var->array_size);
             } else {
                 fprintf(output_c_header,
-                        "    pack_tenok_msg_field_%s(&msg->%s, &payload, 1);\n",
+                        "    pack_debug_link_msg_%s(&msg->%s, &payload, 1);\n",
                         msg_var->c_type, msg_var->var_name);
             }
         }
 
         fprintf(output_c_header,
-                "    generate_tenok_msg_checksum(&payload);\n");
+                "    generate_debug_link_msg_checksum(&payload);\n");
 
-        fprintf(output_c_header, "return payload.size;\n}\n");
+        fprintf(output_c_header, "    return payload.size;\n}\n");
 
         /*======================*
          * YAML file generation *

@@ -120,7 +120,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/mm/slab.c \
        ./main.c
 
-SRC += ./user/debug-link/tenok_link.c 
+SRC += ./user/debug-link/debug_link.c 
 
 -include ./drivers/drivers.mk
 -include ./user/shell/shell.mk

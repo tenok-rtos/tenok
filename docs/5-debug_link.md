@@ -114,7 +114,7 @@ The following code illustrates a basic C code implementation for sending message
 
 ```c
 ...
-#include "tenok_test_msg.h"
+#include "debug_link_test_msg.h"
 
 ...
 void debug_link_task(void)
@@ -123,7 +123,7 @@ void debug_link_task(void)
 
     int debug_link_fd = open("/dev/serial2", O_RDWR);
 ...
-    tenok_msg_test_t msg = {
+    debug_link_msg_test_t msg = {
         .time = 0,
         .accel = {1.0f, 2.0f, 3.0f},
         .q = {1.0f, 0.0f, 0.0f, 0.0f}
@@ -132,7 +132,7 @@ void debug_link_task(void)
     uint8_t buf[100];
 
     while(1) {
-        size_t size = pack_tenok_test_msg(&msg, buf);
+        size_t size = pack_debug_link_test_msg(&msg, buf);
         write(debug_link_fd, buf, size);
 ...
         usleep(10000); //100Hz (10ms)
