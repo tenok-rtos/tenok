@@ -199,6 +199,26 @@ Tenok API List
 
 * chdir()
 
+* printf()
+
+* fprintf()
+
+* dprintf()
+
+* sprintf()
+
+* snprintf()
+
+* vprintf()
+
+* vfprintf()
+
+* vdprintf()
+
+* vsprintf()
+
+* vsnprintf()
+
 ### Signals:
 
 * sigaction()
