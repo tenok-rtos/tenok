@@ -2778,9 +2778,9 @@ void sched_start(void)
     }
 
     /* Create kernel threads for basic services */
-    kthread_create(init, 0, 2048);
-    kthread_create(softirqd, KTHREAD_PRI_MAX, 2048);
-    kthread_create(filesysd, KTHREAD_PRI_MAX - 1, 2048);
+    kthread_create(init, 0, IDLE_STACK_SIZE);
+    kthread_create(softirqd, KTHREAD_PRI_MAX, SOFTIRQD_STACK_SIZE);
+    kthread_create(filesysd, KTHREAD_PRI_MAX - 1, FILESYSD_STACK_SIZE);
 
     /* Dequeue thread 0 (Idle) to execute */
     running_thread = &threads[0];

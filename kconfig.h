@@ -12,6 +12,11 @@
 /* The minimum stack size recommended for creating task and thread */
 #define STACK_SIZE_MIN 1024 /* Bytes */
 
+/* Daemons */
+#define IDLE_STACK_SIZE 2048
+#define SOFTIRQD_STACK_SIZE 2048
+#define FILESYSD_STACK_SIZE 2048
+
 /* Task */
 #define TASK_MAX 64 /* Max number of tasks in the system */
 
