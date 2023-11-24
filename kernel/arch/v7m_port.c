@@ -32,26 +32,26 @@ enum {
 
 struct context {
     /* Pushed by the OS */
-    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
+    uint32_t r4_to_r11[8]; /* R4, ..., R11 */
     uint32_t _lr;
-    uint32_t _r7; /* r7 (Syscall number) */
+    uint32_t _r7; /* R7 (Syscall number) */
 
     /* Pushed by exception entry */
     uint32_t r0, r1, r2, r3;
-    uint32_t r12_lr_pc_xpsr[4]; /* r12, lr, pc, xpsr */
+    uint32_t r12_lr_pc_xpsr[4]; /* R12, LR, PC, PSR */
 };
 
 struct context_fpu {
     /* Pushed by the OS */
-    uint32_t r4_to_r11[8]; /* r4, ..., r11 */
+    uint32_t r4_to_r11[8]; /* R4, ..., R11 */
     uint32_t _lr;
-    uint32_t _r7;            /* r7 (syscall number) */
-    uint32_t s16_to_s31[16]; /* s16, ..., s31 */
+    uint32_t _r7;            /* R7 (Syscall number) */
+    uint32_t s16_to_s31[16]; /* S16, ..., S31 */
 
     /* Pushed by exception entry: */
     uint32_t r0, r1, r2, r3;
-    uint32_t r12_lr_pc_xpsr[4];   /* r12, lr, pc, xpsr */
-    uint32_t s0_to_s15_fpscr[17]; /* s0, ..., s15, fpscr */
+    uint32_t r12_lr_pc_xpsr[4];   /* R12, LR, PC, PSR */
+    uint32_t s0_to_s15_fpscr[17]; /* S0, ..., S15, FPSCR */
 };
 
 uint32_t get_proc_mode(void)
@@ -91,21 +91,32 @@ void __stack_init(uint32_t **stack_top,
                   uint32_t args[4])
 {
     /* The stack design contains three parts:
-     * xpsr, pc, lr, r12, r3, r2, r1, r0, (for setup exception return),
-     * _r7 (for passing system call number), and
-     * _lr, r11, r10, r9, r8, r7, r6, r5, r4 (for context switch).
+     * XPSR, PC, LR, R12, R3, R2, R1, R0, (for setup exception return),
+     * _R7 (for passing system call number), and
+     * _LR, R11, R10, R9, R8, R7, R6, R5, R4 (for context switch).
      */
     uint32_t *sp = *stack_top - 18;
     *stack_top = sp;
     memset(sp, 0, sizeof(uint32_t) * 18);
-    sp[17] = INITIAL_XPSR;    // psr
-    sp[16] = func;            // pc
-    sp[15] = return_handler;  // lr
-    sp[13] = args[3];         // r3
-    sp[12] = args[2];         // r2
-    sp[11] = args[1];         // r1
-    sp[10] = args[0];         // r0
-    sp[8] = THREAD_PSP;       //_lr
+    sp[17] = INITIAL_XPSR;       // PSR
+    sp[16] = func & 0xfffffffe;  // PC
+    sp[15] = return_handler;     // LR
+    sp[13] = args[3];            // R3
+    sp[12] = args[2];            // R2
+    sp[11] = args[1];            // R1
+    sp[10] = args[0];            // R0
+    sp[8] = THREAD_PSP;          //_LR
+
+    /* Note: The reason for clearing the LSB of the PC with 0xfffffffe is
+     * because, by observation, the compiler may set the LSB of the function
+     * pointer to indicate the Thumb state. However, this is an undefined
+     * behavior on ARM Cortex-M processors, but most hardware ignores it
+     * during execution. However, PC with 1 on the LSB can trigger a warning
+     * in QEMU with the "-d guest_errors" option. This additional masking is
+     * intended to clear such a warning in QEMU.
+     * For detailed information, please refer to:
+     * https://lists.gnu.org/archive/html/qemu-devel/2017-09/msg06469.html
+     */
 }
 
 void __platform_init(void)
