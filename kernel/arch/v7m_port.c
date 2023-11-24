@@ -213,15 +213,18 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
-    bool imprecise_error = false;
+    char *fault_location = "";
     uint32_t *fault_stack = NULL;
 
     if (lr == 0xfffffff1 || lr == 0xffffffe1) {
-        imprecise_error = true;
+        fault_stack = msp;
+        fault_location = "Fault location: IRQ Handler (sp = msp)\n";
     } else if (lr == 0xfffffff9 || lr == 0xffffffe9) {
         fault_stack = msp;
+        fault_location = "Fault location: Kernel (sp = msp)\n";
     } else if (lr == 0xfffffffd || lr == 0xffffffed) {
         fault_stack = psp;
+        fault_location = "Fault location: Thread (sp = psp)\n";
     }
 
     char *fault_type_s = "";
@@ -248,21 +251,15 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
 
     char reg_info_s[200] = {0};
     char fault_msg_s[100] = {0};
-    if (!imprecise_error) {
-        dump_registers(reg_info_s, sizeof(reg_info_s), fault_stack);
-        snprintf(fault_msg_s, sizeof(fault_msg_s),
-                 "Faulting instruction address = 0x%08lx\n\r", fault_stack[6]);
-    } else {
-        snprintf(fault_msg_s, sizeof(fault_msg_s),
-                 "Imprecise fault detected\n\r"
-                 "Unable to dump registers\n\r");
-    }
+    dump_registers(reg_info_s, sizeof(reg_info_s), fault_stack);
+    snprintf(fault_msg_s, sizeof(fault_msg_s),
+             "Faulting instruction address = 0x%08lx\n\r", fault_stack[6]);
 
     panic(
-        "%s%s%s%s"
+        "%s%s%s%s%s"
         "Halting system\n\r"
         "==============================================",
-        fault_type_s, thread_info_s, reg_info_s, fault_msg_s);
+        fault_type_s, thread_info_s, reg_info_s, fault_location, fault_msg_s);
 
     while (1)
         ;
