@@ -12,8 +12,8 @@ void shell_cmd_file(int argc, char *argv[])
     char str[PRINT_SIZE_MAX] = {0};
 
     /* Get current directory path */
-    char path[PATH_LEN_MAX] = {0};
-    getcwd(path, PATH_LEN_MAX);
+    char path[PATH_MAX] = {0};
+    getcwd(path, PATH_MAX);
 
     if (argc == 1) {
         shell_puts("Usage: file <file>\n\r");
@@ -29,7 +29,7 @@ void shell_cmd_file(int argc, char *argv[])
         snprintf(&path[pos], PRINT_SIZE_MAX, "%s", argv[1]);
     } else {
         /* Input filename using absolute path */
-        strncpy(path, argv[1], PATH_LEN_MAX);
+        strncpy(path, argv[1], PATH_MAX);
     }
 
     /* Open the file */

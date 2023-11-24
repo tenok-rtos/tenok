@@ -16,7 +16,7 @@ ssize_t reg_file_write(struct file *filp,
                        off_t offset);
 int reg_file_open(struct inode *inode, struct file *file);
 
-extern struct mount mount_points[MOUNT_CNT_MAX + 1];
+extern struct mount mount_points[MOUNT_MAX + 1];
 
 static struct file_operations reg_file_ops = {
     .lseek = reg_file_lseek,

@@ -17,7 +17,7 @@
 
 #define RDEV_ROOTFS 0
 
-#define FILE_RESERVED_NUM (THREAD_CNT_MAX + 3)
+#define FILE_RESERVED_NUM (THREAD_MAX + 3)
 #define THREAD_PIPE_FD(thread_id) (thread_id + 3)
 
 /* +---------------------------+
@@ -42,7 +42,7 @@
  * | N + M + 3 |     File M    |
  * +-----------+---------------+
  *
- * N = THREAD_CNT_MAX
+ * N = THREAD_MAX
  * M = OPEN_MAX
  */
 
@@ -100,9 +100,9 @@ struct inode {
 
 /* Directory entry */
 struct dentry {
-    char d_name[FILE_NAME_LEN_MAX]; /* File name */
-    uint32_t d_inode;               /* The inode of the file */
-    uint32_t d_parent;              /* The inode of the parent directory */
+    char d_name[NAME_MAX]; /* File name */
+    uint32_t d_inode;      /* The inode of the file */
+    uint32_t d_parent;     /* The inode of the parent directory */
 
     struct list_head d_list;
 };

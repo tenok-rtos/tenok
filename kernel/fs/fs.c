@@ -30,17 +30,17 @@ ssize_t rootfs_write(struct file *filp,
                      size_t size,
                      off_t offset);
 
-extern struct file *files[FILE_RESERVED_NUM + FILE_CNT_MAX];
+extern struct file *files[FILE_RESERVED_NUM + FILE_MAX];
 extern int file_cnt;
 
-struct inode inodes[INODE_CNT_MAX];
+struct inode inodes[INODE_MAX];
 uint8_t rootfs_blks[FS_BLK_CNT][FS_BLK_SIZE];
 
-uint32_t bitmap_inodes[FS_BITMAP_INODE] = {0};
-uint32_t bitmap_blks[FS_BITMAP_BLK] = {0};
+uint32_t bitmap_inodes[BITMAP_SIZE(INODE_MAX)];
+uint32_t bitmap_blks[BITMAP_SIZE(FS_BLK_CNT)];
 
-struct mount mount_points[MOUNT_CNT_MAX + 1]; /* 0 is reserved for the rootfs */
-int mount_cnt = 0;
+struct mount mount_points[MOUNT_MAX + 1]; /* 0 is reserved for the rootfs */
+int mount_cnt;
 
 __FILE __stdin = {.fd = STDIN_FILENO};
 __FILE __stdout = {.fd = STDOUT_FILENO};
@@ -85,7 +85,7 @@ void link_stderr_dev(char *path)
 int register_chrdev(char *name, struct file_operations *fops)
 {
     char dev_path[100] = {0};
-    snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
+    snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new character device file */
     int fd = fs_create_file(dev_path, S_IFCHR);
@@ -99,7 +99,7 @@ int register_chrdev(char *name, struct file_operations *fops)
 int register_blkdev(char *name, struct file_operations *fops)
 {
     char dev_path[100] = {0};
-    snprintf(dev_path, PATH_LEN_MAX, "/dev/%s", name);
+    snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new block device file */
     int fd = fs_create_file(dev_path, S_IFBLK);
@@ -125,8 +125,8 @@ static struct inode *fs_alloc_inode(void)
     struct inode *new_inode = NULL;
 
     /* Find the first free inode */
-    int free_idx = find_first_zero_bit(bitmap_inodes, INODE_CNT_MAX);
-    if (free_idx < INODE_CNT_MAX) {
+    int free_idx = find_first_zero_bit(bitmap_inodes, INODE_MAX);
+    if (free_idx < INODE_MAX) {
         /* Allocate new inode */
         new_inode = &inodes[free_idx];
         new_inode->i_ino = free_idx;
@@ -202,7 +202,7 @@ static bool rootfs_mem_check(uint32_t addr)
 
     uint32_t inode_start_addr = (uint32_t) inodes;
     uint32_t inode_end_addr =
-        (uint32_t) inodes + (sizeof(struct inode) * INODE_CNT_MAX);
+        (uint32_t) inodes + (sizeof(struct inode) * INODE_MAX);
 
     if ((addr >= inode_start_addr) && (addr <= inode_end_addr))
         pass = true;
@@ -289,11 +289,11 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
         return NULL;
 
     /* Return current inode */
-    if (strncmp(".", file_name, FILE_NAME_LEN_MAX) == 0)
+    if (strncmp(".", file_name, NAME_MAX) == 0)
         return inode_dir;
 
     /* Return parent inode */
-    if (strncmp("..", file_name, FILE_NAME_LEN_MAX) == 0)
+    if (strncmp("..", file_name, NAME_MAX) == 0)
         return &inodes[inode_dir->i_parent];
 
     /* Mount directory to synchronize it */
@@ -399,11 +399,11 @@ static struct inode *fs_add_file(struct inode *inode_dir,
                                  int file_type)
 {
     /* inodes table is full */
-    if (mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
+    if (mount_points[0].super_blk.s_inode_cnt >= INODE_MAX)
         goto failed;
 
     /* File table is full */
-    if (file_cnt >= FILE_CNT_MAX)
+    if (file_cnt >= FILE_MAX)
         goto failed;
 
     /* Dispatch new file descriptor number */
@@ -418,9 +418,9 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 
     /* Configure new dentry */
     struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-    new_dentry->d_inode = new_inode->i_ino;  /* file inode */
-    new_dentry->d_parent = inode_dir->i_ino; /* parent inode */
-    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX); /* file name */
+    new_dentry->d_inode = new_inode->i_ino;           /* file inode */
+    new_dentry->d_parent = inode_dir->i_ino;          /* parent inode */
+    strncpy(new_dentry->d_name, file_name, NAME_MAX); /* file name */
 
     /* File instantiation */
     int result = 0;
@@ -429,7 +429,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     case S_IFIFO: {
         /* Named pipe */
         struct pipe *pipe = kmalloc(sizeof(struct pipe));
-        struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_DEPTH);
+        struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_BUF);
 
         /* Allocation failure */
         if (!pipe || !pipe_fifo)
@@ -547,7 +547,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
                                    struct dentry *mnt_dentry)
 {
     /* inodes table is full */
-    if (mount_points[0].super_blk.s_inode_cnt >= INODE_CNT_MAX)
+    if (mount_points[0].super_blk.s_inode_cnt >= INODE_MAX)
         return NULL;
 
     /* Dispatch new file descriptor number */
@@ -570,8 +570,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
     struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
     new_dentry->d_inode = new_inode->i_ino;  /* File inode */
     new_dentry->d_parent = inode_dir->i_ino; /* Parent inode */
-    strncpy(new_dentry->d_name, mnt_dentry->d_name,
-            FILE_NAME_LEN_MAX); /* File name */
+    strncpy(new_dentry->d_name, mnt_dentry->d_name, NAME_MAX); /* File name */
 
     /* Update inode count */
     mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
@@ -603,7 +602,7 @@ static bool fs_sync_file(struct inode *inode)
         return false;
 
     /* The file table is full */
-    if (file_cnt >= FILE_CNT_MAX)
+    if (file_cnt >= FILE_MAX)
         return false;
 
     /* Dispatch new file descriptor number */
@@ -677,8 +676,7 @@ static void fs_mount_directory(struct inode *inode_src,
             (off_t) list_entry(dentry.d_list.next, struct dentry, d_list);
 
         /* Stop looping when returned back to the list head */
-        if ((uint32_t) dentry.d_list.next <
-            (sb_size + inode_size * INODE_CNT_MAX))
+        if ((uint32_t) dentry.d_list.next < (sb_size + inode_size * INODE_MAX))
             break; /* no more dentry to read */
     }
 
@@ -732,8 +730,8 @@ static int fs_create_file(char *pathname, uint8_t file_type)
     struct inode *inode_curr = &inodes[0];
     struct inode *inode;
 
-    char file_name[FILE_NAME_LEN_MAX];
-    char entry[PATH_LEN_MAX];
+    char file_name[NAME_MAX];
+    char entry[PATH_MAX];
     char *path = pathname;
 
     /* get rid of the first '/' */
@@ -754,7 +752,7 @@ static int fs_create_file(char *pathname, uint8_t file_type)
 
         /* The last non-empty entry is the file name */
         if (entry[0] != '\0')
-            strncpy(file_name, entry, FILE_NAME_LEN_MAX);
+            strncpy(file_name, entry, NAME_MAX);
 
         /* Search the entry and get the inode */
         inode = fs_search_file(inode_curr, entry);
@@ -808,7 +806,7 @@ static int fs_open_file(char *pathname)
     struct inode *inode_curr = &inodes[0];
     struct inode *inode;
 
-    char entry[PATH_LEN_MAX] = {0};
+    char entry[PATH_MAX] = {0};
     char *path = pathname;
 
     /* Get rid of the first '/' */
@@ -880,7 +878,7 @@ struct inode *fs_open_directory(char *pathname)
     struct inode *inode_curr = &inodes[0];
     struct inode *inode;
 
-    char entry_curr[PATH_LEN_MAX] = {0};
+    char entry_curr[PATH_MAX] = {0};
     char *path = pathname;
 
     /* Get rid of the first '/' */
@@ -975,8 +973,8 @@ static int fs_mount(char *source, char *target)
 
 char *fs_getcwd(char *buf, size_t len)
 {
-    char old_path[PATH_LEN_MAX] = {0};
-    char new_path[PATH_LEN_MAX] = {0};
+    char old_path[PATH_MAX] = {0};
+    char new_path[PATH_MAX] = {0};
 
     struct inode *inode = shell_dir_curr;
 
@@ -995,9 +993,8 @@ char *fs_getcwd(char *buf, size_t len)
         struct dentry *dentry;
         list_for_each_entry (dentry, &inode->i_dentry, d_list) {
             if (dentry->d_inode == inode_prev) {
-                strncpy(old_path, new_path, PATH_LEN_MAX);
-                snprintf(new_path, PATH_LEN_MAX, "%s/%s", dentry->d_name,
-                         old_path);
+                strncpy(old_path, new_path, PATH_MAX);
+                snprintf(new_path, PATH_MAX, "%s/%s", dentry->d_name, old_path);
                 break;
             }
         }
@@ -1010,23 +1007,23 @@ char *fs_getcwd(char *buf, size_t len)
 
 int fs_chdir(const char *path)
 {
-    char path_tmp[PATH_LEN_MAX] = {0};
+    char path_tmp[PATH_MAX] = {0};
 
-    if (strncmp("..", path, SHELL_CMD_LEN_MAX) == 0) {
+    if (strncmp("..", path, PATH_MAX) == 0) {
         /* Handle cd .. */
-        fs_getcwd(path_tmp, PATH_LEN_MAX);
+        fs_getcwd(path_tmp, PATH_MAX);
         int pos = strlen(path_tmp);
-        snprintf(&path_tmp[pos], PATH_LEN_MAX, "..");
+        snprintf(&path_tmp[pos], PATH_MAX, "..");
     } else {
         /* Handle regular path */
         if (path[0] == '/') {
             /* Handle absolute path */
-            strncpy(path_tmp, path, PATH_LEN_MAX);
+            strncpy(path_tmp, path, PATH_MAX);
         } else {
             /* Handle relative path */
-            fs_getcwd(path_tmp, PATH_LEN_MAX);
+            fs_getcwd(path_tmp, PATH_MAX);
             int pos = strlen(path_tmp);
-            snprintf(&path_tmp[pos], PATH_LEN_MAX, "%s", path);
+            snprintf(&path_tmp[pos], PATH_MAX, "%s", path);
         }
     }
 
@@ -1061,7 +1058,7 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent)
     /* Copy dirent data */
     dirent->d_ino = dentry->d_inode;
     dirent->d_type = inodes[dentry->d_inode].i_mode;
-    strncpy(dirent->d_name, dentry->d_name, FILE_NAME_LEN_MAX);
+    strncpy(dirent->d_name, dentry->d_name, NAME_MAX);
 
     /* Update the dentry pointer */
     dirp->dentry_list = dirp->dentry_list->next;
@@ -1324,7 +1321,7 @@ void fs_print_inode_bitmap(void)
 
     shell_puts("inodes bitmap:\n\r");
 
-    for (int i = 0; i < INODE_CNT_MAX; i++) {
+    for (int i = 0; i < INODE_MAX; i++) {
         for (int j = 0; j < 8; j++) {
             int bit = (bitmap_inodes[i] >> j) & (~1l);
             buf[j] = bit ? 'x' : '-';
@@ -1343,7 +1340,7 @@ void fs_print_block_bitmap(void)
 
     shell_puts("fs blocks bitmap:\n\r");
 
-    for (int i = 0; i < FS_BITMAP_BLK; i++) {
+    for (int i = 0; i < BITMAP_SIZE(FS_BLK_CNT); i++) {
         for (int j = 0; j < 8; j++) {
             int bit = (bitmap_blks[i] >> j) & (~1l);
             buf[j] = bit ? 'x' : '-';

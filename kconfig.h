@@ -1,65 +1,56 @@
-/* clang-format off */
 #ifndef __KCONFIG_H__
 #define __KCONFIG_H__
 
 /* Scheduler */
-#define OS_TICK_FREQ         1000  /* Hz */
+#define OS_TICK_FREQ 1000 /* Hz */
 
-/* Page memory */
-#define PAGE_SIZE_32K        0
-#define PAGE_SIZE_64K        1
-#define PAGE_SIZE_SELECT     PAGE_SIZE_64K
+/* Page allocator size */
+#define PAGE_SIZE_32K 0 /* Use 32 KiB */
+#define PAGE_SIZE_64K 1 /* Use 64 KiB */
+#define PAGE_SIZE_SELECT PAGE_SIZE_64K
 
-/* The minimum stack size recommended for task and thread creation. since *
- * every thread consumes a part of it own stack as overhead, stack size   *
- * lower than this value may cause the system to be unstable.             */
-#define STACK_SIZE_MIN       1024  /* Bytes */
+/* The minimum stack size recommended for creating task and thread */
+#define STACK_SIZE_MIN 1024 /* Bytes */
+
+/* Task */
+#define TASK_MAX 64 /* Max number of tasks in the system */
 
 /* Thread */
-#define THREAD_PRIORITY_MAX  8     /* Max priority for user threads */
-#define THREAD_NAME_MAX      50
+#define THREAD_PRIORITY_MAX 8 /* Max priority of user threads */
+#define THREAD_NAME_MAX 50    /* Max length of thread names */
+#define THREAD_MAX 64         /* Max number of threads in the system */
 
 /* Message queue and pipe */
-#define MQUEUE_CNT_MAX       50
+#define MQUEUE_MAX 50 /* Max number of message queue can be allocated */
 
-/* Thread anonymous pipe size. Ff the depth is too small, the file server * 
- * may not handle the request properly.                                   */
-#define PIPE_DEPTH           100   /* Bytes */
+/* Pipe size. Note that if the size is too small, the file system daemon *
+ * may not work properly                                                 */
+#define PIPE_BUF 100 /* Bytes */
 
 /* Signals */
-#define SIGNAL_QUEUE_SIZE    5
+#define SIGNAL_QUEUE_SIZE 5
 
-/* Standard I/O */
-#define STDIN_DEV_PATH       "/dev/serial0"
-#define STDOUT_DEV_PATH      "/dev/serial0"
-#define STDERR_DEV_PATH      "/dev/serial0"
+/* Standard I/O (Use /dev/null if not implemented) */
+#define STDIN_DEV_PATH "/dev/serial0"
+#define STDOUT_DEV_PATH "/dev/serial0"
+#define STDERR_DEV_PATH "/dev/serial0"
+
+#define PRINT_SIZE_MAX 100 /* Buffer size of the printf and printk */
+
+#define USE_TENOK_PRINTF 0 /* 1: Use Tenok printf, 0: Use NewlibC printf */
 
 /* File system */
-#define FILE_CNT_MAX         100   /* The maximum number of the files can be *
-                                    * created, which includes directories.   */
-#define FILE_NAME_LEN_MAX    30
-#define OPEN_MAX             100   /* The maximum number of files a task can *
-                                    * open                                   */
-
-#define PATH_LEN_MAX         128
-
-#define MOUNT_CNT_MAX        5
-#define INODE_CNT_MAX        100
-
-#define FS_BLK_SIZE          128   /* Bytes. Block size of the file system */
-#define FS_BLK_CNT           100   /* Block count of the file system       */
-
-#define FS_BITMAP_INODE      50    /* Word */
-#define FS_BITMAP_BLK        50    /* Word */
+#define NAME_MAX 30     /* Max length of files in bytes */
+#define PATH_MAX 128    /* Max length of pathname in bytes */
+#define OPEN_MAX 100    /* Max number of files a task can open */
+#define FILE_MAX 100    /* Max number of the files can be created */
+#define MOUNT_MAX 5     /* Max number of storages can be mounted */
+#define INODE_MAX 100   /* Max number of the inode can have */
+#define FS_BLK_SIZE 128 /* Block size of the file system in bytes */
+#define FS_BLK_CNT 100  /* Block number of the file system */
 
 /* Shell */
-#define SHELL_HISTORY_MAX    20
-#define SHELL_CMD_LEN_MAX    50
-#define SHELL_PROMPT_LEN_MAX 50
-
-#define PRINT_SIZE_MAX       100
-
-#define USE_TENOK_PRINTF     0
+#define LINE_MAX 50
+#define SHELL_HISTORY_MAX 20
 
 #endif
-/* clang-format on */

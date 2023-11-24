@@ -16,9 +16,9 @@ typedef struct dirstream {
 
 /* Return type of the readdir() syscall */
 struct dirent {
-    char d_name[FILE_NAME_LEN_MAX]; /* File name */
-    uint32_t d_ino;                 /* The inode of the file */
-    uint8_t d_type;                 /* File type */
+    char d_name[NAME_MAX]; /* File name */
+    uint32_t d_ino;        /* The inode of the file */
+    uint8_t d_type;        /* File type */
 };
 
 /**

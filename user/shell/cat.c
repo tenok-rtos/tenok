@@ -7,17 +7,17 @@
 
 void shell_cmd_cat(int argc, char *argv[])
 {
-    char path[PATH_LEN_MAX] = {0};
+    char path[PATH_MAX] = {0};
 
     if (argv[1][0] != '/') {
         /* Input filename using relative path */
-        char pwd[PATH_LEN_MAX] = {0};
-        getcwd(pwd, PATH_LEN_MAX);
+        char pwd[PATH_MAX] = {0};
+        getcwd(pwd, PATH_MAX);
 
-        snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
+        snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
     } else {
         /* Input filename using absolute path */
-        strncpy(path, argv[1], PATH_LEN_MAX);
+        strncpy(path, argv[1], PATH_MAX);
     }
 
     char str[PRINT_SIZE_MAX] = {0};

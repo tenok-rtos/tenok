@@ -46,8 +46,8 @@ static void shell_ctrl_c_handler(struct shell *shell)
 
 static void shell_unknown_cmd_handler(int argc, char *argv[])
 {
-    char s[50 + SHELL_CMD_LEN_MAX];
-    snprintf(s, 50 + SHELL_CMD_LEN_MAX, "unknown command: %s\n\r", argv[0]);
+    char s[50 + LINE_MAX];
+    snprintf(s, 50 + LINE_MAX, "unknown command: %s\n\r", argv[0]);
     shell_puts(s);
 }
 
@@ -110,7 +110,7 @@ void shell_init_minimal(struct shell *shell)
 
 void shell_set_prompt(struct shell *shell, char *new_prompt)
 {
-    strncpy(shell->prompt, new_prompt, SHELL_PROMPT_LEN_MAX - 1);
+    strncpy(shell->prompt, new_prompt, LINE_MAX - 1);
     shell->prompt_len = strlen(shell->prompt);
 }
 
@@ -151,8 +151,8 @@ static void shell_insert_char(struct shell *shell, char c)
 
 static void shell_refresh_line(struct shell *shell)
 {
-    char s[SHELL_PROMPT_LEN_MAX * 5];
-    snprintf(s, SHELL_PROMPT_LEN_MAX * 5,
+    char s[LINE_MAX * 5];
+    snprintf(s, LINE_MAX * 5,
              "\33[2K\r"  /* Clear current line */
              "%s%s\r"    /* Show prompt message */
              "\033[%dC", /* Move cursor position */
@@ -202,7 +202,7 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 
         /* Push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
-        strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
+        strncpy(history_new->cmd, shell->buf, LINE_MAX);
         list_add(history_list, &shell->history_head);
     } else {
         /* History list is full, remove the oldest record */
@@ -211,7 +211,7 @@ static void shell_push_new_history(struct shell *shell, char *cmd)
 
         /* Push new history record into the list */
         history_new = list_entry(history_list, struct shell_history, list);
-        strncpy(history_new->cmd, shell->buf, SHELL_CMD_LEN_MAX);
+        strncpy(history_new->cmd, shell->buf, LINE_MAX);
         list_add(history_list, &shell->history_head);
     }
 
@@ -316,7 +316,7 @@ static void shell_autocomplete(struct shell *shell)
     /* Check if the autocomple has been initialized */
     if (shell->show_autocompl == false) {
         /* Backup the user input */
-        strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
+        strncpy(shell->input_backup, shell->buf, LINE_MAX);
 
         /* Generate the recommendation word dictionary */
         shell_generate_suggest_words(shell, argv0_start, argv0_end);
@@ -331,12 +331,12 @@ static void shell_autocomplete(struct shell *shell)
     /* Check if there are more candidate words or not */
     if (shell->autocompl_curr == shell->autocompl_cnt) {
         /* Restore the user input */
-        strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, shell->input_backup, LINE_MAX);
         shell_reset_autocomplete(shell);
     } else {
         /* Overwrite the user input with autocomplete result */
         char *suggestion = shell->autocompl[shell->autocompl_curr].cmd;
-        strncpy(shell->buf, suggestion, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, suggestion, LINE_MAX);
     }
 
     /* Prepare the next candidate word to show */
@@ -353,7 +353,7 @@ void shell_print_history(struct shell *shell)
         return;
     }
 
-    char s[SHELL_CMD_LEN_MAX * 3];
+    char s[LINE_MAX * 3];
 
     struct list_head *list_curr;
     struct shell_history *history;
@@ -362,7 +362,7 @@ void shell_print_history(struct shell *shell)
     list_for_each (list_curr, &shell->history_head) {
         history = list_entry(list_curr, struct shell_history, list);
 
-        snprintf(s, SHELL_CMD_LEN_MAX * 3, "%d %s\n\r", ++i, history->cmd);
+        snprintf(s, LINE_MAX * 3, "%d %s\n\r", ++i, history->cmd);
         shell_puts(s);
     }
 }
@@ -402,7 +402,7 @@ static void shell_up_arrow_handler(struct shell *shell)
 
     if (shell->show_history == false) {
         /* Backup the user input */
-        strncpy(shell->input_backup, shell->buf, SHELL_CMD_LEN_MAX);
+        strncpy(shell->input_backup, shell->buf, LINE_MAX);
 
         /* History reading mode is now on */
         shell->show_history = true;
@@ -414,13 +414,13 @@ static void shell_up_arrow_handler(struct shell *shell)
     /* Check if there is more hisotry to show */
     if (shell->history_curr == &shell->history_head) {
         /* Restore user input if traversal of history list is done */
-        strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, shell->input_backup, LINE_MAX);
         shell->show_history = false;
     } else {
         /* Display the history to the user */
         struct shell_history *history =
             list_entry(shell->history_curr, struct shell_history, list);
-        strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, history->cmd, LINE_MAX);
     }
 
     /* Refresh the line */
@@ -445,13 +445,13 @@ static void shell_down_arrow_handler(struct shell *shell)
     /* Check if the traversal of history list is done */
     if (shell->history_curr == &shell->history_head) {
         /* Restore user input */
-        strncpy(shell->buf, shell->input_backup, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, shell->input_backup, LINE_MAX);
         shell->show_history = false;
     } else {
         /* Display history to the user */
         struct shell_history *history =
             list_entry(shell->history_curr, struct shell_history, list);
-        strncpy(shell->buf, history->cmd, SHELL_CMD_LEN_MAX);
+        strncpy(shell->buf, history->cmd, LINE_MAX);
     }
 
     /* Refresh the line */
@@ -629,7 +629,7 @@ void shell_listen(struct shell *shell)
             break;
         case SPACE:
         default: {
-            if (shell->char_cnt != (SHELL_CMD_LEN_MAX - 1)) {
+            if (shell->char_cnt != (LINE_MAX - 1)) {
                 shell_reset_autocomplete(shell);
                 shell_reset_history_scrolling(shell);
                 shell_insert_char(shell, c);

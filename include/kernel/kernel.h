@@ -20,9 +20,6 @@
 
 #include "kconfig.h"
 
-#define TASK_CNT_MAX 32
-#define THREAD_CNT_MAX 64
-
 #define DEF_SYSCALL(func, _num)                                 \
     {                                                           \
         .handler_func = (unsigned long) sys_##func, .num = _num \
@@ -77,7 +74,7 @@ struct task_struct {
     uint32_t bitmap_fds[BITMAP_SIZE(OPEN_MAX)];
 
     /* For recording message queue descriptors belongs to the task */
-    uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+    uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_MAX)];
 
     struct list_head threads_list; /* List of all threads of the task */
     struct list_head list;         /* Link to the global task list */

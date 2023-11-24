@@ -63,12 +63,12 @@ enum {
 } KEYS;
 
 struct shell_history {
-    char cmd[SHELL_CMD_LEN_MAX];
+    char cmd[LINE_MAX];
     struct list_head list;
 };
 
 struct shell_autocompl {
-    char cmd[SHELL_CMD_LEN_MAX];
+    char cmd[LINE_MAX];
 };
 
 struct shell {
@@ -76,9 +76,9 @@ struct shell {
     int char_cnt;
     int prompt_len;
 
-    char buf[SHELL_CMD_LEN_MAX];
-    char prompt[SHELL_PROMPT_LEN_MAX];
-    char input_backup[SHELL_CMD_LEN_MAX];
+    char buf[LINE_MAX];
+    char prompt[LINE_MAX];
+    char input_backup[LINE_MAX];
 
     /* Autocomplete */
     bool show_autocompl;
@@ -102,7 +102,7 @@ struct shell {
 
 struct shell_cmd {
     void (*handler)(int argc, char *argv[SHELL_ARG_CNT]);
-    char name[SHELL_PROMPT_LEN_MAX];
+    char name[LINE_MAX];
 };
 
 /* Serial I/O */

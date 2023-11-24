@@ -16,8 +16,8 @@ struct shell shell;
 static struct shell_history history[SHELL_HISTORY_MAX];
 static struct shell_autocompl autocompl[100]; /* FIXME */
 
-static char shell_path[PATH_LEN_MAX];
-static char prompt[SHELL_PROMPT_LEN_MAX];
+static char shell_path[PATH_MAX];
+static char prompt[LINE_MAX];
 
 void shell_task(void)
 {
@@ -34,9 +34,9 @@ void shell_task(void)
     shell_puts("type `help' for help\n\r");
 
     while (1) {
-        getcwd(shell_path, PATH_LEN_MAX);
-        snprintf(prompt, SHELL_PROMPT_LEN_MAX, __USER_NAME__ "@%s:%s$ ",
-                 __BOARD_NAME__, shell_path);
+        getcwd(shell_path, PATH_MAX);
+        snprintf(prompt, LINE_MAX, __USER_NAME__ "@%s:%s$ ", __BOARD_NAME__,
+                 shell_path);
         shell_set_prompt(&shell, prompt);
 
         shell_listen(&shell);

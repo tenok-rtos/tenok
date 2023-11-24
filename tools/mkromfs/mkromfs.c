@@ -1,3 +1,6 @@
+/* Resolve confliction between linux/limits.h and kconfig.h */
+#define _LINUX_LIMITS_H
+
 #include <dirent.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -63,7 +66,7 @@ struct inode {
 
 /* Directory entry */
 struct dentry {
-    char d_name[FILE_NAME_LEN_MAX]; /* File name */
+    char d_name[NAME_MAX]; /* File name */
 
     uint32_t d_inode;  /* The inode of the file */
     uint32_t d_parent; /* The inode of the parent directory */
@@ -72,7 +75,7 @@ struct dentry {
 };
 
 struct super_block romfs_sb;
-struct inode inodes[INODE_CNT_MAX];
+struct inode inodes[INODE_MAX];
 uint8_t romfs_blk[FS_BLK_CNT][FS_BLK_SIZE];
 
 int verbose(const char *restrict format, ...)
@@ -106,7 +109,7 @@ void romfs_init(void)
     romfs_sb.s_sb_addr = 0;
     romfs_sb.s_ino_addr = sizeof(struct super_block);
     romfs_sb.s_blk_addr =
-        romfs_sb.s_ino_addr + (sizeof(struct inode) * INODE_CNT_MAX);
+        romfs_sb.s_ino_addr + (sizeof(struct inode) * INODE_MAX);
 }
 
 struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
@@ -146,7 +149,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
                           int file_type)
 {
     /* inodes numbers is full */
-    if (romfs_sb.s_inode_cnt >= INODE_CNT_MAX)
+    if (romfs_sb.s_inode_cnt >= INODE_MAX)
         return NULL;
 
     /* Calculate how many dentries a block can hold */
@@ -176,9 +179,9 @@ struct inode *fs_add_file(struct inode *inode_dir,
 
     /* Configure the new dentry */
     struct dentry *new_dentry = (struct dentry *) dir_data_p;
-    new_dentry->d_inode = romfs_sb.s_inode_cnt; /* File inode */
-    new_dentry->d_parent = inode_dir->i_ino;    /* Parent inode */
-    strncpy(new_dentry->d_name, file_name, FILE_NAME_LEN_MAX); /* File name */
+    new_dentry->d_inode = romfs_sb.s_inode_cnt;       /* File inode */
+    new_dentry->d_parent = inode_dir->i_ino;          /* Parent inode */
+    strncpy(new_dentry->d_name, file_name, NAME_MAX); /* File name */
 
     /* Configure the new file inode */
     struct inode *new_inode = &inodes[romfs_sb.s_inode_cnt];
@@ -269,8 +272,8 @@ static struct inode *fs_create_file(char *pathname, uint8_t file_type)
     struct inode *inode_curr = &inodes[0];
     struct inode *inode;
 
-    char file_name[FILE_NAME_LEN_MAX];
-    char entry[PATH_LEN_MAX];
+    char file_name[NAME_MAX];
+    char entry[NAME_MAX];
     char *path = pathname;
 
     /* Get rid of the first '/' */
@@ -286,7 +289,7 @@ static struct inode *fs_create_file(char *pathname, uint8_t file_type)
 
         /* The last non-empty entry string is the file name */
         if (entry[0] != '\0')
-            strncpy(file_name, entry, FILE_NAME_LEN_MAX);
+            strncpy(file_name, entry, NAME_MAX);
 
         /* Search the entry and get the inode */
         inode = fs_search_file(inode_curr, entry);

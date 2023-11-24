@@ -84,17 +84,17 @@ void shell_cmd_xxd(int argc, char *argv[])
         return;
     }
 
-    char path[PATH_LEN_MAX] = {0};
+    char path[PATH_MAX] = {0};
 
     if (argv[1][0] != '/') {
         /* Input is a relative path */
-        char pwd[PATH_LEN_MAX] = {0};
-        getcwd(pwd, PATH_LEN_MAX);
+        char pwd[PATH_MAX] = {0};
+        getcwd(pwd, PATH_MAX);
 
-        snprintf(path, PATH_LEN_MAX, "%s%s", pwd, argv[1]);
+        snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
     } else {
         /* Input is a absolute path */
-        strncpy(path, argv[1], PATH_LEN_MAX);
+        strncpy(path, argv[1], PATH_MAX);
     }
 
     /* Open file */

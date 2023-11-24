@@ -62,13 +62,13 @@ static LIST_HEAD(mqueue_list);  /* List of all posix message queues */
 struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 
 /* Tasks and threads */
-static struct task_struct tasks[TASK_CNT_MAX];
+static struct task_struct tasks[TASK_MAX];
 
-static struct thread_info threads[THREAD_CNT_MAX];
+static struct thread_info threads[THREAD_MAX];
 static struct thread_info *running_thread = NULL;
 
-static uint32_t bitmap_tasks[BITMAP_SIZE(TASK_CNT_MAX)];
-static uint32_t bitmap_threads[BITMAP_SIZE(THREAD_CNT_MAX)];
+static uint32_t bitmap_tasks[BITMAP_SIZE(TASK_MAX)];
+static uint32_t bitmap_threads[BITMAP_SIZE(THREAD_MAX)];
 
 /* Daemons information */
 static int daemon_id_table[DAEMON_CNT];
@@ -78,7 +78,7 @@ static char *deamon_names[] = {DAEMON_LIST};
 #undef DECLARE_DAEMON
 
 /* Files */
-struct file *files[FILE_RESERVED_NUM + FILE_CNT_MAX];
+struct file *files[FILE_RESERVED_NUM + FILE_MAX];
 int file_cnt = 0;
 
 /* File descriptor table */
@@ -86,8 +86,8 @@ static struct fdtable fdtable[OPEN_MAX];
 static uint32_t bitmap_fds[BITMAP_SIZE(OPEN_MAX)];
 
 /* Message queue descriptor table */
-static struct mq_desc mqd_table[MQUEUE_CNT_MAX];
-static uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_CNT_MAX)];
+static struct mq_desc mqd_table[MQUEUE_MAX];
+static uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_MAX)];
 
 /* Memory allocators */
 static struct kmalloc_slab_info kmalloc_slab_info[] = {
@@ -276,13 +276,13 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 {
     size_t pipe_size = ALIGN(sizeof(struct pipe), sizeof(long));
     size_t kfifo_size = ALIGN(sizeof(struct kfifo), sizeof(long));
-    size_t buf_size = ALIGN(sizeof(char) * PIPE_DEPTH, sizeof(long));
+    size_t buf_size = ALIGN(sizeof(char) * PIPE_BUF, sizeof(long));
 
     struct pipe *pipe = (struct pipe *) ((uintptr_t) stack_top - pipe_size);
     struct kfifo *pipe_fifo = (struct kfifo *) ((uintptr_t) pipe - kfifo_size);
     char *buf = (char *) ((uintptr_t) pipe_fifo - buf_size);
 
-    kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_DEPTH);
+    kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_BUF);
     pipe->fifo = pipe_fifo;
     fifo_init(THREAD_PIPE_FD(tid), (struct file **) &files, NULL, pipe);
 
@@ -330,8 +330,8 @@ static int thread_create(struct thread_info **new_thread,
         return -EINVAL;
 
     /* Allocate new thread Id */
-    int tid = find_first_zero_bit(bitmap_threads, THREAD_CNT_MAX);
-    if (tid >= THREAD_CNT_MAX)
+    int tid = find_first_zero_bit(bitmap_threads, THREAD_MAX);
+    if (tid >= THREAD_MAX)
         return -EAGAIN;
     bitmap_set_bit(bitmap_threads, tid);
 
@@ -419,8 +419,8 @@ static int _task_create(thread_func_t task_func,
         return retval;
 
     /* Allocate new task ID */
-    int pid = find_first_zero_bit(bitmap_tasks, TASK_CNT_MAX);
-    if (pid >= TASK_CNT_MAX)
+    int pid = find_first_zero_bit(bitmap_tasks, TASK_MAX);
+    if (pid >= TASK_MAX)
         return -1;
     bitmap_set_bit(bitmap_tasks, pid);
 
@@ -457,7 +457,7 @@ static void task_delete(struct task_struct *task)
         bitmap_fds[i] &= ~task->bitmap_fds[i];
     }
 
-    for (int i = 0; i < BITMAP_SIZE(MQUEUE_CNT_MAX); i++) {
+    for (int i = 0; i < BITMAP_SIZE(MQUEUE_MAX); i++) {
         bitmap_mqds[i] &= ~task->bitmap_mqds[i];
     }
 }
@@ -655,7 +655,7 @@ static struct thread_info *thread_info_find_next(struct thread_info *curr)
               sizeof(struct thread_info);
 
     /* Find the next thread */
-    for (int i = tid + 1; i < THREAD_CNT_MAX; i++) {
+    for (int i = tid + 1; i < THREAD_MAX; i++) {
         if (bitmap_get_bit(bitmap_threads, i)) {
             thread = &threads[i];
             break;
@@ -672,7 +672,7 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
 
     if (next == NULL) {
         /* Assign the first thread */
-        tid = find_first_bit(bitmap_threads, THREAD_CNT_MAX);
+        tid = find_first_bit(bitmap_threads, THREAD_MAX);
         thread = &threads[tid];
     } else {
         /* Don't use thread->tid as the thread may be terminated */
@@ -834,7 +834,7 @@ static void sys_exit(int status)
 static int sys_mount(const char *source, const char *target)
 {
     /* Check the length of the pathname */
-    if (strlen(source) >= PATH_LEN_MAX || strlen(target) >= PATH_LEN_MAX)
+    if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX)
         return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
@@ -863,7 +863,7 @@ static int sys_mount(const char *source, const char *target)
 static int sys_open(const char *pathname, int flags)
 {
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_LEN_MAX)
+    if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
     /* Acquire the running task */
@@ -1237,7 +1237,7 @@ static int sys_fstat(int fd, struct stat *statbuf)
 static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_LEN_MAX)
+    if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
@@ -1340,7 +1340,7 @@ static int sys_getpid(void)
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_LEN_MAX)
+    if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
@@ -1376,7 +1376,7 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 static int sys_mkfifo(const char *pathname, mode_t mode)
 {
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_LEN_MAX)
+    if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
@@ -1565,7 +1565,7 @@ struct mqueue *acquire_mqueue(const char *name)
     /* Find the message queue with the given name */
     struct mqueue *mq;
     list_for_each_entry (mq, &mqueue_list, list) {
-        if (!strncmp(name, mq->name, FILE_NAME_LEN_MAX))
+        if (!strncmp(name, mq->name, NAME_MAX))
             return mq; /* Found */
     }
 
@@ -1582,8 +1582,8 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
     struct mqueue *mq = acquire_mqueue(name);
 
     /* Check if new message queue descriptor can be dispatched */
-    int mqdes = find_first_zero_bit(bitmap_mqds, MQUEUE_CNT_MAX);
-    if (mqdes >= MQUEUE_CNT_MAX)
+    int mqdes = find_first_zero_bit(bitmap_mqds, MQUEUE_MAX);
+    if (mqdes >= MQUEUE_MAX)
         return -ENOMEM;
 
     /* Attribute is not provided */
@@ -1632,7 +1632,7 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
 
     /* Set up the message queue */
     new_mq->pipe = pipe;
-    strncpy(new_mq->name, name, FILE_NAME_LEN_MAX);
+    strncpy(new_mq->name, name, NAME_MAX);
     list_add(&new_mq->list, &mqueue_list);
 
     /* Register new message queue descriptor */
@@ -1666,7 +1666,7 @@ static int sys_mq_close(mqd_t mqdes)
 static int sys_mq_unlink(const char *name)
 {
     /* Check the length of the message queue name */
-    if (strlen(name) >= FILE_NAME_LEN_MAX)
+    if (strlen(name) >= NAME_MAX)
         return -ENAMETOOLONG;
 
     /* Search the message with the given name */

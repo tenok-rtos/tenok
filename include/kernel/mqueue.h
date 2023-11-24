@@ -9,7 +9,7 @@
 #include <kernel/pipe.h>
 
 struct mqueue {
-    char name[FILE_NAME_LEN_MAX];
+    char name[NAME_MAX];
     struct pipe *pipe;
     struct list_head list;
 };
