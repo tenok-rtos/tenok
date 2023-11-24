@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: install arm-none-eabi-gcc
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+      with:
+        release: '12.3.Rel1'
+    - name: install dependencies
+      run: sudo apt install gcc-multilib
+    - name: checkout 
+      uses: actions/checkout@v3
+    - name: build default 
+      run: |
+           git submodule update --init --recursive
+           make
+
+  code-check:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: install dependencies
+      run: sudo apt -y install cppcheck clang-format-12
+    - name: coding style check
+      run: .ci/check-format.sh
+    - name: cppcheck
+      run: make check
