@@ -48,7 +48,7 @@ void panic(char *format, ...)
     va_start(args, format);
 
     vsnprintf(buf, sizeof(buf), format, args);
-    early_tty_print(buf, strlen(buf));
+    early_write(buf, strlen(buf));
 
     va_end(args);
 
