@@ -260,7 +260,7 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
 
     panic(
         "%s%s%s%s"
-        ">>> Halting system <<<\n\r"
+        "Halting system\n\r"
         "==============================================",
         fault_type_s, thread_info_s, reg_info_s, fault_msg_s);
 
