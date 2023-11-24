@@ -1,12 +1,27 @@
 #include <common/linkage.h>
 
+#define PRI_THRESHOLD #1
+
 .syntax unified
+
+.macro irq_disable
+    push {r0}
+    mov r0, PRI_THRESHOLD /* Set priority threshold to 1 */
+    msr basepri, r0
+    pop {r0}
+.endm
+
+.macro irq_enable
+    push {r0}
+    mov r0, #0 /* No priority threshold is set */ 
+    msr basepri, r0
+    pop {r0}
+.endm
 
 ENTRY(PendSV_Handler)
     /* Disable interrupts */
-    cpsid i
-    cpsid f
-    
+    irq_disable
+
     neg   r7,  r7 /* Negate _r7 to indicate that the returning is triggered by SysTick */
 
     /* Save user state */
@@ -34,8 +49,7 @@ ENDPROC(PendSV_Handler)
 
 ENTRY(SVC_Handler)
     /* Disable interrupts */
-    cpsid i
-    cpsid f
+    irq_disable
 
     /* Save user state */
     mrs   r0, psp /* Load psp to the r0 */
@@ -59,6 +73,16 @@ ENTRY(SVC_Handler)
     /* Exception return (back to the kernel) */
     bx    lr
 ENDPROC(SVC_Handler)
+
+ENTRY(preempt_disable)
+    irq_disable
+    bx lr
+ENDPROC(preempt_disable)
+
+ENTRY(preempt_enable)
+    irq_enable
+    bx lr
+ENDPROC(preempt_enable)
 
 ENTRY(jump_to_thread)
     /* Arguments:
@@ -88,8 +112,7 @@ ENTRY(jump_to_thread)
     msr   psp, r0 /* psp = r0 */
 
     /* Enable interrupts */
-    cpsie i
-    cpsie f
+    irq_enable
 
     /* Jump to user space */
     bx    lr
@@ -162,8 +185,7 @@ ENTRY(os_env_init)
     pop  {r7}   /* Resume old r7 value */
 
     /* Disable interrupts */
-    cpsid i 
-    cpsid f
+    irq_disable
 
     /* Function return */
     bx lr

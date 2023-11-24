@@ -66,20 +66,6 @@ uint32_t get_proc_mode(void)
     return mode & 0x1ff; /* return ipsr[8:0] */
 }
 
-void preempt_disable(void)
-{
-    asm volatile(
-        "cpsid i \n"
-        "cpsid f \n");
-}
-
-void preempt_enable(void)
-{
-    asm volatile(
-        "cpsie i \n"
-        "cpsie f \n");
-}
-
 void jump_to_kernel(void)
 {
     SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
