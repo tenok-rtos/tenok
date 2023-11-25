@@ -1,19 +1,26 @@
 #include <common/linkage.h>
 
-#define PRI_THRESHOLD #1
+/* NVIC Priority Group 4:
+ * Group priority bits: PRI_M[7:4]
+ * Subpriority bits: None
+ * By setting BASEPRI to 16 (1 << 4),
+ * All interrupts with priority value lower than 0 will be disable.
+ * (Lower priority value has higher priority)
+ */
+#define PRI_THRESHOLD #16
 
 .syntax unified
 
 .macro irq_disable
     push {r0}
-    mov r0, PRI_THRESHOLD /* Set priority threshold to 1 */
+    mov r0, PRI_THRESHOLD
     msr basepri, r0
     pop {r0}
 .endm
 
 .macro irq_enable
     push {r0}
-    mov r0, #0 /* No priority threshold is set */ 
+    mov r0, #0 
     msr basepri, r0
     pop {r0}
 .endm
