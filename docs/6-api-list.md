@@ -273,6 +273,10 @@ Tenok API List
 
 ## Kernel-space API
 
+### Kernel Thread
+
+* kthread_create()
+
 ### Logging:
 
 * printk()

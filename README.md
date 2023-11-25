@@ -13,7 +13,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 ## Key Features
 
 * POSIX compliant RTOS
-* Linux-like design: Wait queue, tasklet, kfifo, and printk
+* Linux-like design: Wait queue, kthread, tasklet, kfifo, printk, and more
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
