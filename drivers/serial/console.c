@@ -9,7 +9,7 @@
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
 #include <kernel/printk.h>
-#include <kernel/softirq.h>
+#include <kernel/tty.h>
 #include <kernel/wait.h>
 
 #include "stm32f4xx.h"
@@ -21,7 +21,6 @@
 #define UART1_ISR_PRIORITY 14
 
 static int uart1_dma_puts(const char *data, size_t size);
-ssize_t console_write(const char *buf, size_t size);
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t serial0_write(struct file *filp,
@@ -33,18 +32,12 @@ int serial0_open(struct inode *inode, struct file *file);
 void USART1_IRQHandler(void);
 void DMA2_Stream7_IRQHandler(void);
 
-void uart1_tx_tasklet_handler(unsigned long data);
-
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
     .tx_dma_ready = false,
     .tx_state = UART_TX_IDLE,
 };
-
-static struct kfifo *uart1_tx_fifo;
-static struct tasklet_struct uart1_tx_tasklet;
-static LIST_HEAD(uart1_tx_wait_list);
 
 static struct file_operations serial0_file_ops = {
     .read = serial0_read,
@@ -83,6 +76,9 @@ void uart1_init(uint32_t baudrate)
     };
     USART_Init(USART1, &USART_InitStruct);
     USART_Cmd(USART1, ENABLE);
+#if (ENABLE_UART1_DMA != 0)
+    USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);
+#endif
     USART_ClearFlag(USART1, USART_FLAG_TC);
 
     /* Initialize interrupt of the UART1 */
@@ -116,17 +112,9 @@ void tty_init(void)
 
     /* Initialize mutex, kfifo, and tasklet for UART1 tx */
     mutex_init(&uart1.tx_mtx);
-    uart1_tx_fifo = kfifo_alloc(PRINT_SIZE_MAX, UART1_TX_FIFO_SIZE);
-    tasklet_init(&uart1_tx_tasklet, uart1_tx_tasklet_handler, 0);
 
     /* Initialize UART1 */
     uart1_init(115200);
-
-#ifndef BUILD_QEMU
-    /* Clean screen */
-    char *cls_str = "\x1b[H\x1b[2J";
-    console_write(cls_str, strlen(cls_str));
-#endif
 }
 
 void serial0_init(void)
@@ -155,28 +143,16 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
     }
 }
 
-ssize_t console_write(const char *buf, size_t size)
-{
-    kfifo_in(uart1_tx_fifo, buf, size);
-    tasklet_schedule(&uart1_tx_tasklet);
-    return size;
-}
-
 ssize_t serial0_write(struct file *filp,
                       const char *buf,
                       size_t size,
                       off_t offset)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
-    if (kfifo_avail(uart1_tx_fifo) > 0) {
-        kfifo_in(uart1_tx_fifo, buf, size);
-        tasklet_schedule(&uart1_tx_tasklet);
-        return size;
-    } else {
-        prepare_to_wait(&uart1_tx_wait_list, &curr_thread->list, THREAD_WAIT);
-        return -ERESTARTSYS;
-    }
+#if (ENABLE_UART1_DMA != 0)
+    return uart1_dma_puts(buf, size);
+#else
+    return uart_puts(USART1, buf, size);
+#endif
 }
 
 void early_write(char *buf, size_t size)
@@ -224,6 +200,7 @@ static int uart1_dma_puts(const char *data, size_t size)
         /* Wait until DMA completed data transfer */
         init_wait(uart1.tx_wait);
         prepare_to_wait(&uart1.tx_wq, uart1.tx_wait, THREAD_WAIT);
+
         return -ERESTARTSYS;
     }
     case UART_TX_DMA_BUSY: {
@@ -236,6 +213,7 @@ static int uart1_dma_puts(const char *data, size_t size)
         }
 
         /* Notified by the DMA ISR, the data transfer is now complete */
+        DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
         uart1.tx_state = UART_TX_IDLE;
         return size;
     }
@@ -243,23 +221,6 @@ static int uart1_dma_puts(const char *data, size_t size)
         return -EIO;
     }
     }
-}
-
-void uart1_tx_tasklet_handler(unsigned long data)
-{
-    char *buf;
-    size_t size;
-
-    kfifo_dma_out_prepare(uart1_tx_fifo, &buf, &size);
-    uart_puts(USART1, buf, size);
-    kfifo_dma_out_finish(uart1_tx_fifo);
-
-    /* Wake up a write-waiting thread */
-    wake_up(&uart1_tx_wait_list);
-
-    /* Schedule the tasklet again if the fifo is not cleared */
-    if (!kfifo_is_empty(uart1_tx_fifo))
-        tasklet_schedule(&uart1_tx_tasklet);
 }
 
 void USART1_IRQHandler(void)

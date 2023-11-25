@@ -55,7 +55,8 @@ void softirqd(void)
             softirqd_sleep();
         } else {
             preempt_disable();
-
+            while (1)
+                ;
             /* Retrieve the next tasklet */
             t = list_first_entry(&tasklet_list, struct tasklet_struct, list);
             list_del(&t->list);

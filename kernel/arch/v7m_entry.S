@@ -3,9 +3,8 @@
 /* NVIC Priority Group 4:
  * Group priority bits: PRI_M[7:4]
  * Subpriority bits: None
- * By setting BASEPRI to 16 (1 << 4),
- * All interrupts with priority value lower than 0 will be disable.
- * (Lower priority value has higher priority)
+ * By setting BASEPRI to 16 (1 << 4), all interrupts with priority value
+ * lower than 0 will be disable (Lower priority value has higher priority).
  */
 #define PRI_THRESHOLD #16
 

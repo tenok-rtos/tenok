@@ -2685,6 +2685,11 @@ static void schedule(void)
 
 static void print_platform_info(void)
 {
+#ifndef BUILD_QEMU
+    /* Clear screen */
+    char *cls_str = "\x1b[H\x1b[2J";
+    console_write("\x1b[H\x1b[2J", strlen(cls_str));
+#endif
     printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
     printk("Machine model: %s", __BOARD_NAME__);
 }
@@ -2738,6 +2743,7 @@ void init(void)
         link_stdin_dev(STDIN_DEV_PATH);
         link_stdout_dev(STDOUT_DEV_PATH);
         link_stderr_dev(STDERR_DEV_PATH);
+        printkd_start();
     }
     preempt_enable();
 
@@ -2770,6 +2776,7 @@ void sched_start(void)
     slab_init();
     heap_init();
     tty_init();
+    printkd_init();
     rootfs_init();
 
     /* Initialize ready lists */
@@ -2781,6 +2788,7 @@ void sched_start(void)
     kthread_create(init, 0, IDLE_STACK_SIZE);
     kthread_create(softirqd, KTHREAD_PRI_MAX, SOFTIRQD_STACK_SIZE);
     kthread_create(filesysd, KTHREAD_PRI_MAX - 1, FILESYSD_STACK_SIZE);
+    kthread_create(printkd, KTHREAD_PRI_MAX - 1, PRINTKD_STACK_SIZE);
 
     /* Dequeue thread 0 (Idle) to execute */
     running_thread = &threads[0];

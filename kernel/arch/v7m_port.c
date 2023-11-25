@@ -204,13 +204,13 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
 
     if (lr == 0xfffffff1 || lr == 0xffffffe1) {
         fault_stack = msp;
-        fault_location = "Fault location: IRQ Handler (sp = msp)\n";
+        fault_location = "Fault location: IRQ Handler (sp = msp)\n\r";
     } else if (lr == 0xfffffff9 || lr == 0xffffffe9) {
         fault_stack = msp;
-        fault_location = "Fault location: Kernel (sp = msp)\n";
+        fault_location = "Fault location: Kernel (sp = msp)\n\r";
     } else if (lr == 0xfffffffd || lr == 0xffffffed) {
         fault_stack = psp;
-        fault_location = "Fault location: Thread (sp = psp)\n";
+        fault_location = "Fault location: Thread (sp = psp)\n\r";
     }
 
     char *fault_type_s = "";

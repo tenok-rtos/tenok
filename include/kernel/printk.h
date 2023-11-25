@@ -23,4 +23,8 @@ void printk(char *format, ...);
  */
 void panic(char *format, ...);
 
+void printkd_init(void);
+void printkd_start(void);
+void printkd(void);
+
 #endif

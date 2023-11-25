@@ -8,6 +8,7 @@
 #include <kernel/kernel.h>
 #include <kernel/pipe.h>
 #include <kernel/printk.h>
+#include <kernel/tty.h>
 #include <kernel/wait.h>
 
 #include "stm32f4xx.h"

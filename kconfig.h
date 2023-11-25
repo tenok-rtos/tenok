@@ -16,6 +16,7 @@
 #define IDLE_STACK_SIZE 2048
 #define SOFTIRQD_STACK_SIZE 2048
 #define FILESYSD_STACK_SIZE 2048
+#define PRINTKD_STACK_SIZE 1024
 
 /* Task */
 #define TASK_MAX 64 /* Max number of tasks in the system */
