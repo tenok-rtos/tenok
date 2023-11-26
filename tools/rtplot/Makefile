@@ -1,5 +1,5 @@
 install:
-	sudo pip install . -r requirements.txt
+	pip3 install . -r requirements.txt
 
 rtplot:
 	rtplot ../../build/msg/
