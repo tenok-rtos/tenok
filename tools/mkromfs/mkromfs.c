@@ -24,55 +24,40 @@
 bool _verbose = false;
 
 struct super_block {
+    bool s_rd_only;       /* Read-only flag */
     uint32_t s_blk_cnt;   /* number of the used blocks */
     uint32_t s_inode_cnt; /* number of the used inodes */
-
-    bool s_rd_only; /* Read-only flag */
-
-    uint32_t s_sb_addr;  /* Start address of the super block */
-    uint32_t s_ino_addr; /* Start address of the inode table */
-    uint32_t s_blk_addr; /* Start address of the blocks region */
-};
+    uint64_t s_sb_addr;   /* Start address of the super block */
+    uint64_t s_ino_addr;  /* Start address of the inode table */
+    uint64_t s_blk_addr;  /* Start address of the blocks region */
+} __attribute__((aligned(4)));
 
 /* Block header will be placed to the top of every blocks of the regular file */
 struct block_header {
-    uint32_t b_next; /* Virtual address of the next block */
-};
-
-struct mount {
-    struct file *dev_file; /* Driver file of the mounted storage device */
-    struct super_block
-        super_blk; /* Super block of the mounted storage device */
-};
+    uint64_t b_next; /* Virtual address of the next block */
+} __attribute__((aligned(4)));
 
 /* index node */
 struct inode {
-    uint8_t i_mode; /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
-
-    uint8_t i_rdev; /* The device on which this file system is mounted */
-    bool i_sync;    /* The mounted file is loaded into the rootfs or not */
-
+    uint8_t i_mode;    /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
+    uint8_t i_rdev;    /* The device on which this file system is mounted */
+    bool i_sync;       /* The mounted file is loaded into the rootfs or not */
     uint32_t i_ino;    /* inode number */
     uint32_t i_parent; /* inode number of the parent directory */
-
-    uint32_t i_fd; /* File descriptor number */
-
+    uint32_t i_fd;     /* File descriptor number */
     uint32_t i_size;   /* File size (bytes) */
     uint32_t i_blocks; /* Block_numbers = file_size / block_size */
-    uint32_t i_data;   /* Virtual address for accessing the storage */
-
+    uint64_t i_data;   /* Virtual address for accessing the storage */
     struct list_head i_dentry; /* List head of the dentry table */
-};
+} __attribute__((aligned(4)));
 
 /* Directory entry */
 struct dentry {
-    char d_name[NAME_MAX]; /* File name */
-
-    uint32_t d_inode;  /* The inode of the file */
-    uint32_t d_parent; /* The inode of the parent directory */
-
-    struct list_head d_list;
-};
+    char d_name[NAME_MAX];   /* File name */
+    uint32_t d_inode;        /* The inode of the file */
+    uint32_t d_parent;       /* The inode of the parent directory */
+    struct list_head d_list; /* List head of the dentry */
+} __attribute__((aligned(4)));
 
 struct super_block romfs_sb;
 struct inode inodes[INODE_MAX];
@@ -100,7 +85,7 @@ void romfs_init(void)
     inode_root->i_ino = 0;
     inode_root->i_size = 0;
     inode_root->i_blocks = 0;
-    inode_root->i_data = (uint32_t) NULL;
+    inode_root->i_data = (uint64_t) NULL;
     INIT_LIST_HEAD(&inode_root->i_dentry);
 
     romfs_sb.s_inode_cnt = 1;
@@ -197,7 +182,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
         new_inode->i_mode = S_IFREG;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL; /* Empty file */
+        new_inode->i_data = (uint64_t) NULL; /* Empty file */
 
         break;
     }
@@ -205,7 +190,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
         new_inode->i_mode = S_IFDIR;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL; /* Empty directory */
+        new_inode->i_data = (uint64_t) NULL; /* Empty directory */
         INIT_LIST_HEAD(&new_inode->i_dentry);
 
         break;
@@ -220,7 +205,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
     /* Currently no files is under the directory */
     if (list_empty(&inode_dir->i_dentry) == true) {
         /* Add the first dentry */
-        inode_dir->i_data = (uint32_t) new_dentry;
+        inode_dir->i_data = (uint64_t) new_dentry;
     }
 
     /* Insert the new file under the current directory */
@@ -338,7 +323,7 @@ void romfs_address_conversion_dir(struct inode *inode)
 
     /* Adjust the address stored in the inode.i_data (which is in the block
      * region) */
-    inode->i_data = (uint32_t) (inode->i_data - (uintptr_t) romfs_blk +
+    inode->i_data = (uint64_t) (inode->i_data - (uintptr_t) romfs_blk +
                                 sb_size + inodes_size);
 
     struct list_head *list_start = &inode->i_dentry;
@@ -409,11 +394,10 @@ void romfs_address_conversion_file(struct inode *inode)
         blocks++;
 
     struct block_header *blk_head;
-    uint32_t next_blk_addr;
+    uint64_t next_blk_addr;
 
     /* Adjust the block headers of the file */
-    int i;
-    for (i = 0; i < blocks; i++) {
+    for (int i = 0; i < blocks; i++) {
         if (i == 0) {
             /* Get the address of the firt block from inode.i_data */
             blk_head = (struct block_header *) inode->i_data;
@@ -425,21 +409,21 @@ void romfs_address_conversion_file(struct inode *inode)
         }
 
         /* The last block header requires no adjustment */
-        if (blk_head->b_next == (uint32_t) NULL)
+        if (blk_head->b_next == (uintptr_t) NULL)
             break;
 
         /* Adjust block_head.b_next (the address in in the block region) */
         blk_head->b_next =
-            (uint32_t) (blk_head->b_next - (uintptr_t) romfs_blk + sb_size +
+            (uint64_t) (blk_head->b_next - (uintptr_t) romfs_blk + sb_size +
                         inodes_size);
 
         verbose("[inode: #%d, block #%d, next:%d]\n", inode->i_ino, i + 1,
-                (uint32_t) blk_head->b_next);
+                (uint64_t) blk_head->b_next);
     }
 
     /* Adjust the address stored in the inode.i_data (which is in the block
      * region) */
-    inode->i_data = (uint32_t) (inode->i_data - (uintptr_t) romfs_blk +
+    inode->i_data = (uint64_t) (inode->i_data - (uintptr_t) romfs_blk +
                                 sb_size + inodes_size);
 
     verbose("[inode: #%d, block #0, next:%d]\n", inode->i_ino, inode->i_data);
@@ -552,14 +536,14 @@ void romfs_import_file(char *host_path, char *romfs_path)
 
         /* First block to write */
         if (i == 0) {
-            inode->i_data = (uint32_t) block_addr;
+            inode->i_data = (uint64_t) block_addr;
         }
 
         /* Update the block header for the last block */
         if (i > 0) {
             struct block_header *blk_head_last =
                 (struct block_header *) last_blk_addr;
-            blk_head_last->b_next = (uint32_t) block_addr;
+            blk_head_last->b_next = (uint64_t) block_addr;
         }
 
         int blk_pos = 0;
@@ -576,7 +560,7 @@ void romfs_import_file(char *host_path, char *romfs_path)
         }
 
         /* Write the block header */
-        struct block_header blk_head = {.b_next = (uint32_t) NULL};
+        struct block_header blk_head = {.b_next = (uint64_t) NULL};
         memcpy(&block_addr[blk_pos], &blk_head, blk_head_size);
         blk_pos += blk_head_size;
 

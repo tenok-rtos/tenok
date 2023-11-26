@@ -5,8 +5,6 @@ ROMFS_OBJ := ./romfs.o
 
 CFLAGS :=
 CFLAGS += -g
-CFLAGS += -m32 # To make the pointer be 4 bytes instead of 8 bytes
-#CFLAGS += -Wpadded
 
 CFLAGS += -I ../../ \
           -I ../../include/common
