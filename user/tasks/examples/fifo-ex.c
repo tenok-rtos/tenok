@@ -41,11 +41,6 @@ void fifo_task2(void)
         exit(1);
     }
 
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
-
     while (1) {
         char data[50] = {0};
 
@@ -53,7 +48,7 @@ void fifo_task2(void)
         read(fifo_fd, &data, LEN);
 
         /* Write serial */
-        write(serial_fd, data, LEN);
+        write(STDOUT_FILENO, data, LEN);
     }
 }
 
