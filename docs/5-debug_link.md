@@ -62,7 +62,9 @@ make rtplot
 ```
 
 After the rtplot window shows up, select `/dev/pts/Y` port, `test` message then click the connect button.
-The user should expect to see some real-time plotting on the screen.
+The user should expect to see some real-time data plotting on the screen.
+
+![rtplot](/docs/images/rtplot.png)
 
 ### 3. Define debug-link message
 
