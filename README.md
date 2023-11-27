@@ -1,19 +1,20 @@
 Tenok
 =====
 
-The project [Tenok](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) designed for robotic applications and the 
-Internet of Things (IoT). The name originated from the language of an indigenous tribe called Amis in Taiwan, where the term "tenok" means
-"kernel" in their language. It resembles various designs from Linux and maintains a small code footprint for ARM Cortex-M processors. Unlike 
-NuttX, Tenok does not implement a set of low-level hardware drivers as a part of the system but instead adopts an approach similar to FreeRTOS 
-by treating the RTOS as a third-party library, and the user can choose their favorite library of the hardware abstraction layer (HAL).
+The [Tenok project](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) designed for robotic applications and the
+Internet of Things (IoT). The name originated from the language of an indigenous tribe called Amis in Taiwan, where "tenok" means
+"kernel" in their language. It resembles various designs from Linux and maintains a small code footprint for ARM Cortex-M processors. In
+contrast to NuttX, Tenok does not implement a set of low-level hardware drivers as a part of the system. Instead, it adopts an approach
+similar to FreeRTOS by treating the RTOS as a third-party library. Users user can choose their preferred library for the hardware abstraction
+layer (HAL).
 
-Tenok also integrates the MAVLink communication protocol and offers several utilities for robotics, including a debug visualization tool 
+Tenok also integrates the MAVLink communication protocol and provides several utilities for robotics, including a debug visualization tool 
 and a facility tool for supporting software-in-the-loop simulation with the Gazebo simulator.
 
 ## Key Features
 
 * POSIX compliant RTOS
-* Linux-like design: Wait queue, kthread, tasklet, kfifo, printk, and more
+* Linux-like designs: Wait queue, kthread, tasklet, kfifo, printk, and more
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
@@ -22,9 +23,9 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * Software timer and clock
 * Built-in Shell with command completion and history saving
 * Root and ROM file systems
-* Real-time plotting and customizable debug messaging with metalanguage
+* Real-time plotting and customizable debug messaging with a metalanguage
 * Integrated with MAVLink communication protocol
-* Software-in-the-loop (SIL) simulation with Gazebo simulator
+* Software-in-the-loop (SIL) simulation with the Gazebo simulator
 
 ## Tools
 
@@ -50,11 +51,11 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 
 ## License
 
-`Tenok` is released under the BSD 2-Clause License, for detailed information please read [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
+`Tenok` is released under the BSD 2-Clause License. For detailed information please read the [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
 
 ## Related Projects
 
-`Tenok` is heavily influenced by the following projects during the development:
+`Tenok` is heavily influenced by the following projects during its development:
 
 1. [rtenv](https://github.com/embedded2014/rtenv) / [rtenv+](https://github.com/embedded2014/rtenv-plus)
 2. [mini-arm-os](https://github.com/jserv/mini-arm-os)
