@@ -64,7 +64,7 @@ int mq_unlink(const char *name);
  * @param  mqdes: The message queue descriptor to provide.
  * @param  msg_ptr: The buffer to provide for storing the received message.
  * @param  msg_len: The length of the buffer pointed to by msg_ptr.
- * @param  msg_prio: Not implemented.
+ * @param  msg_prio: The priority of the received message.
  * @retval ssize_t: The number of bytes in the received message.
  */
 ssize_t mq_receive(mqd_t mqdes,
@@ -78,7 +78,7 @@ ssize_t mq_receive(mqd_t mqdes,
  * @param  mqdes: The message queue descriptor to provide.
  * @param  msg_ptr: The message to provide for sending to the message queue.
  * @param  msg_len: The length of the message pointed to by msg_ptr.
- * @param  msg_prio: Not implemented.
+ * @param  msg_prio: The priority of the message to send.
  * @retval int: 0 on sucess and nonzero error number on error.
  */
 int mq_send(mqd_t mqdes,

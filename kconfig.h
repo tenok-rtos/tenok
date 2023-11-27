@@ -9,7 +9,7 @@
 #define PAGE_SIZE_64K 1 /* Use 64 KiB */
 #define PAGE_SIZE_SELECT PAGE_SIZE_64K
 
-/* The minimum stack size recommended for creating task and thread */
+/* Min stack size recommended for task and thread */
 #define STACK_SIZE_MIN 1024 /* Bytes */
 
 /* Daemons */
@@ -28,6 +28,7 @@
 
 /* Message queue and pipe */
 #define MQUEUE_MAX 50 /* Max number of message queue can be allocated */
+#define MQ_PRIO_MAX 5 /* Max message queue priority number */
 
 /* Pipe size. Note that if the size is too small, the file system daemon *
  * may not work properly                                                 */

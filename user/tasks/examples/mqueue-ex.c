@@ -16,7 +16,7 @@ void message_queue_task1(void)
 {
     setprogname("mqueue-ex-1");
 
-    char *str = "mqueue: greeting\n\r";
+    char *str = "mqueue: greeting";
 
     struct mq_attr attr = {
         .mq_maxmsg = 100,
@@ -29,7 +29,7 @@ void message_queue_task1(void)
     }
 
     while (1) {
-        mq_send(mqdes_print, (char *) str, strlen(str), 0);
+        mq_send(mqdes_print, (char *) str, strlen(str), 3);
         sleep(1);
     }
 }
@@ -37,11 +37,6 @@ void message_queue_task1(void)
 void message_queue_task2(void)
 {
     setprogname("mqueue-ex-2");
-
-    int serial_fd = open("/dev/serial0", O_RDWR);
-    if (serial_fd < 0) {
-        exit(1);
-    }
 
     struct mq_attr attr = {
         .mq_maxmsg = 100,
@@ -57,10 +52,11 @@ void message_queue_task2(void)
 
     while (1) {
         /* Read message queue */
-        mq_receive(mqdes_print, str, MSG_SIZE_MAX, 0);
+        unsigned int msg_prio = -1;
+        mq_receive(mqdes_print, str, MSG_SIZE_MAX, &msg_prio);
 
-        /* Write serial */
-        write(serial_fd, str, strlen(str));
+        /* Print received message */
+        printf("received message \"%s\", priority = %d\n\r", str, msg_prio);
     }
 }
 

@@ -1520,7 +1520,7 @@ static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
     attr->mq_flags = mqd_table[mqdes].attr.mq_flags;
     attr->mq_maxmsg = mqd_table[mqdes].attr.mq_maxmsg;
     attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
-    attr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
+    attr->mq_curmsgs = __mq_len(mqd_table[mqdes].mq);
 
     /* Return sucesss */
     return 0;
@@ -1551,7 +1551,7 @@ static int sys_mq_setattr(mqd_t mqdes,
     oldattr->mq_flags = curr_attr->mq_flags;
     oldattr->mq_maxmsg = curr_attr->mq_maxmsg;
     oldattr->mq_msgsize = curr_attr->mq_msgsize;
-    oldattr->mq_curmsgs = kfifo_len(mqd_table[mqdes].mq->pipe->fifo);
+    oldattr->mq_curmsgs = __mq_len(mqd_table[mqdes].mq);
 
     /* Save new mq_flags attribute */
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
@@ -1621,17 +1621,15 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
     }
 
     /* Allocate new message queue */
-    struct pipe *pipe = __mq_open(attr);
-    struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
+    struct mqueue *new_mq = __mq_allocate(attr);
 
     /* Memory allocation failure */
-    if (!pipe || !new_mq) {
+    if (!new_mq) {
         /* Return error */
         return -ENOMEM;
     }
 
     /* Set up the message queue */
-    new_mq->pipe = pipe;
     strncpy(new_mq->name, name, NAME_MAX);
     list_add(&new_mq->list, &mqueue_list);
 
@@ -1675,8 +1673,7 @@ static int sys_mq_unlink(const char *name)
     /* Check if the message queue exists */
     if (mq) {
         /* Remove the message queue from the system */
-        list_del(&mq->list);
-        kfree(mq);
+        __mq_free(mq);
 
         /* Return sucesss */
         return 0;
@@ -1700,7 +1697,6 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 
     /* Acquire the message queue */
     struct mqueue *mq = mqd_table[mqdes].mq;
-    struct pipe *pipe = mq->pipe;
 
     /* Check if msg_len exceeds maximum size */
     if (msg_len > mqd_table[mqdes].attr.mq_msgsize)
@@ -1708,7 +1704,7 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 
     /* Read message */
     ssize_t retval =
-        __mq_receive(pipe, msg_ptr, msg_len, &mqd_table[mqdes].attr);
+        __mq_receive(mq, msg_ptr, msg_len, msg_prio, &mqd_table[mqdes].attr);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1727,6 +1723,10 @@ static int sys_mq_send(mqd_t mqdes,
                        size_t msg_len,
                        unsigned int msg_prio)
 {
+    /* Check if the message priority exceeds the max value */
+    if (msg_prio > MQ_PRIO_MAX)
+        return -EINVAL;
+
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
@@ -1736,14 +1736,14 @@ static int sys_mq_send(mqd_t mqdes,
 
     /* Acquire the message queue */
     struct mqueue *mq = mqd_table[mqdes].mq;
-    struct pipe *pipe = mq->pipe;
 
     /* Check if msg_len exceeds maximum size */
     if (msg_len > mqd_table[mqdes].attr.mq_msgsize)
         return -EMSGSIZE;
 
     /* Send message */
-    ssize_t retval = __mq_send(pipe, msg_ptr, msg_len, &mqd_table[mqdes].attr);
+    ssize_t retval =
+        __mq_send(mq, msg_ptr, msg_len, msg_prio, &mqd_table[mqdes].attr);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -2754,12 +2754,13 @@ void init(void)
     extern char _tasks_start;
     extern char _tasks_end;
 
-    int func_list_size = ((uintptr_t) &_tasks_end - (uintptr_t) &_tasks_start);
-    int hook_task_cnt = func_list_size / sizeof(struct task_hook);
+    size_t func_list_size =
+        (size_t) ((uintptr_t) &_tasks_end - (uintptr_t) &_tasks_start);
+    size_t hook_task_cnt = func_list_size / sizeof(struct task_hook);
 
     struct task_hook *hook_task = (struct task_hook *) &_tasks_start;
 
-    for (int i = 0; i < hook_task_cnt; i++) {
+    for (size_t i = 0; i < hook_task_cnt; i++) {
         task_create(hook_task[i].task_func, hook_task[i].priority,
                     hook_task[i].stacksize);
     }

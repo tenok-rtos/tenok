@@ -2,8 +2,10 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <stddef.h>
+#include <string.h>
 
 #include <arch/port.h>
+#include <common/list.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
@@ -12,31 +14,111 @@
 #include <kernel/wait.h>
 #include <mm/mm.h>
 
-struct pipe *__mq_open(struct mq_attr *attr)
+struct mqueue *__mq_allocate(struct mq_attr *attr)
 {
-    /* Allocate new pipe */
-    struct pipe *pipe = kmalloc(sizeof(struct pipe));
-    struct kfifo *pipe_fifo = kfifo_alloc(attr->mq_msgsize, attr->mq_maxmsg);
+    /* allocate new message queue */
+    struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
 
-    /* Failed to allocate new pipe */
-    if (pipe == NULL || pipe_fifo == NULL)
+    /* allocate message buffers */
+    size_t element_size = sizeof(struct mqueue_data) + attr->mq_msgsize;
+    size_t buf_size = element_size * attr->mq_maxmsg;
+    char *buf = kmalloc(buf_size);
+
+    /* Failed to allocate message queue */
+    if (!new_mq) {
         return NULL;
+    } else if (!buf) {
+        kfree(new_mq);
+        return NULL;
+    }
 
-    /* Initialize the pipe */
-    pipe->fifo = pipe_fifo;
-    INIT_LIST_HEAD(&pipe->r_wait_list);
-    INIT_LIST_HEAD(&pipe->w_wait_list);
+    /* Initialize message queue size and buffer */
+    new_mq->size = attr->mq_maxmsg;
+    new_mq->buf = buf;
 
-    return pipe;
+    /* Initialize message queue list heads */
+    INIT_LIST_HEAD(&new_mq->free_list);
+    INIT_LIST_HEAD(&new_mq->r_wait_list);
+    INIT_LIST_HEAD(&new_mq->w_wait_list);
+    for (int i = 0; i <= MQ_PRIO_MAX; i++)
+        INIT_LIST_HEAD(&new_mq->used_list[i]);
+
+    /* Link all message buffers to the free list */
+    for (int i = 0; i < new_mq->size; i++) {
+        struct mqueue_data *entry =
+            (struct mqueue_data *) ((uintptr_t) buf + (i * element_size));
+        list_add(&entry->list, &new_mq->free_list);
+    }
+
+    /* Return the allocated message queue */
+    return new_mq;
 }
 
-ssize_t __mq_receive(struct pipe *pipe,
+void __mq_free(struct mqueue *mq)
+{
+    kfree(mq->buf);
+    kfree(mq);
+}
+
+size_t __mq_len(struct mqueue *mq)
+{
+    /* Return the number of the messages in the queue */
+    return mq->cnt;
+}
+
+static size_t __mq_avail(struct mqueue *mq)
+{
+    /* Return the free space number of the queue */
+    return mq->size - mq->cnt;
+}
+
+static size_t __mq_out(struct mqueue *mq, void *buf, unsigned int *msg_prio)
+{
+    /* Find the message list with highest prioity that contains message */
+    int prio = MQ_PRIO_MAX;
+    for (; prio >= 0; prio--) {
+        if (!list_empty(&mq->used_list[prio]))
+            break;
+    }
+
+    /* Read message from the selected list */
+    struct mqueue_data *element =
+        list_first_entry(&mq->used_list[prio], struct mqueue_data, list);
+    memcpy(buf, element->data, element->size);
+    mq->cnt--;
+    if (msg_prio)
+        *msg_prio = prio;
+
+    /* Move the message from used list to the free list */
+    list_move(&element->list, &mq->free_list);
+
+    /* Return the read size */
+    return element->size;
+}
+
+static void __mq_in(struct mqueue *mq,
+                    const char *data,
+                    size_t n,
+                    unsigned int msg_prio)
+{
+    /* Save new message into the queue */
+    struct mqueue_data *element =
+        list_first_entry(&mq->free_list, struct mqueue_data, list);
+    memcpy(element->data, data, n);
+    element->size = n;
+    mq->cnt++;
+
+    /* Move the message from free list to the used list */
+    list_move(&element->list, &mq->used_list[msg_prio]);
+}
+
+ssize_t __mq_receive(struct mqueue *mq,
                      char *buf,
                      size_t msg_len,
+                     unsigned int *msg_prio,
                      const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
-    struct kfifo *fifo = pipe->fifo;
 
     /* The message queue descriptor is not open with reading flag */
     if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
@@ -46,37 +128,34 @@ ssize_t __mq_receive(struct pipe *pipe,
     if (msg_len < attr->mq_msgsize)
         return -EMSGSIZE;
 
-    /* Check if the FIFO has message to read */
-    if (kfifo_len(fifo) <= 0) {
+    /* Check if the queue has message to read */
+    if (__mq_len(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* Non-block mode */
             /* Return immediately */
             return -EAGAIN;
         } else { /* Block mode */
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
+            prepare_to_wait(&mq->r_wait_list, &curr_thread->list, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
-    /* Read data from the FIFO */
-    size_t read_size = kfifo_peek_len(fifo);
-    kfifo_out(fifo, buf, read_size);
+    /* Read message from the queue */
+    size_t read_size = __mq_out(mq, buf, msg_prio);
 
     /* Wake up the highest-priority thread from the waiting list */
-    wake_up(&pipe->w_wait_list);
+    wake_up(&mq->w_wait_list);
 
     return read_size;
 }
 
-ssize_t __mq_send(struct pipe *pipe,
+ssize_t __mq_send(struct mqueue *mq,
                   const char *buf,
                   size_t msg_len,
+                  unsigned int msg_prio,
                   const struct mq_attr *attr)
 {
     CURRENT_THREAD_INFO(curr_thread);
-
-    struct kfifo *fifo = pipe->fifo;
 
     /* The message queue descriptor is not open with writing flag */
     if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
@@ -87,24 +166,23 @@ ssize_t __mq_send(struct pipe *pipe,
         return -EMSGSIZE;
     }
 
-    /* Check if the FIFO has space to write */
-    if (kfifo_avail(fifo) <= 0) {
+    /* Check if the queue has space to write */
+    if (__mq_avail(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
             /* Return immediately */
             return -EAGAIN;
         } else { /* block mode */
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
+            prepare_to_wait(&mq->w_wait_list, &curr_thread->list, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
 
-    /* Write data to the FIFO */
-    kfifo_in(fifo, buf, msg_len);
+    /* Save message into the queue */
+    __mq_in(mq, buf, msg_len, msg_prio);
 
     /* Wake up the highest-priority thread from the waiting list */
-    wake_up(&pipe->r_wait_list);
+    wake_up(&mq->r_wait_list);
 
     return 0;
 }
