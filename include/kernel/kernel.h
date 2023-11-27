@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/limits.h>
 #include <sys/resource.h>
 #include <task.h>
 

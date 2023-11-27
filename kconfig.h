@@ -27,12 +27,12 @@
 #define THREAD_MAX 64         /* Max number of threads in the system */
 
 /* Message queue and pipe */
-#define MQUEUE_MAX 50 /* Max number of message queue can be allocated */
-#define MQ_PRIO_MAX 5 /* Max message queue priority number */
+#define MQUEUE_MAX 50  /* Max number of message queue can be allocated */
+#define _MQ_PRIO_MAX 5 /* Max message queue priority number */
 
 /* Pipe size. Note that if the size is too small, the file system daemon *
  * may not work properly                                                 */
-#define PIPE_BUF 100 /* Bytes */
+#define _PIPE_BUF 100 /* Bytes */
 
 /* Signals */
 #define SIGNAL_QUEUE_SIZE 5
@@ -47,9 +47,9 @@
 #define USE_TENOK_PRINTF 0 /* 1: Use Tenok printf, 0: Use NewlibC printf */
 
 /* File system */
-#define NAME_MAX 30     /* Max length of files in bytes */
-#define PATH_MAX 128    /* Max length of pathname in bytes */
-#define OPEN_MAX 100    /* Max number of files a task can open */
+#define _NAME_MAX 30    /* Max length of files in bytes */
+#define _PATH_MAX 128   /* Max length of pathname in bytes */
+#define _OPEN_MAX 100   /* Max number of files a task can open */
 #define FILE_MAX 100    /* Max number of the files can be created */
 #define MOUNT_MAX 5     /* Max number of storages can be mounted */
 #define INODE_MAX 100   /* Max number of the inode can have */
@@ -57,7 +57,7 @@
 #define FS_BLK_CNT 100  /* Block number of the file system */
 
 /* Shell */
-#define LINE_MAX 50
+#define _LINE_MAX 50
 #define SHELL_HISTORY_MAX 20
 
 #endif

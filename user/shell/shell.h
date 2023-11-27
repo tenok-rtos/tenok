@@ -2,9 +2,11 @@
 #define __SHELL_H__
 
 #include <stdbool.h>
+#include <sys/limits.h>
+
+#include <common/list.h>
 
 #include "kconfig.h"
-#include "list.h"
 
 #define SHELL_ARG_CNT 10
 

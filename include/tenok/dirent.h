@@ -5,6 +5,7 @@
 #define __DIRENT_H__
 
 #include <stdint.h>
+#include <sys/limits.h>
 
 #include "kconfig.h"
 

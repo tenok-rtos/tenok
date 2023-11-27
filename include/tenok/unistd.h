@@ -8,6 +8,10 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "kconfig.h"
+
+#define MQ_PRIO_MAX _MQ_PRIO_MAX
+
 #define STDIN_FILENO 0  /* Standard input file descriptor */
 #define STDOUT_FILENO 1 /* Standard output file descriptor */
 #define STDERR_FILENO 2 /* Standard error file descriptor */

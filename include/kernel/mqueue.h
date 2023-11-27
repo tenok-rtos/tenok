@@ -5,6 +5,7 @@
 #define __KERNEL_MQUEUE_H__
 
 #include <stddef.h>
+#include <unistd.h>
 
 #include <kernel/pipe.h>
 
