@@ -2,14 +2,15 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
-#include <kernel/pipe.h>
 #include <kernel/syscall.h>
 #include <kernel/wait.h>
 #include <mm/mm.h>

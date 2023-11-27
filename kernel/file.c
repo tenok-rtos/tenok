@@ -1,8 +1,10 @@
+#include <dirent.h>
 #include <poll.h>
+#include <stddef.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <arch/port.h>
-#include <fs/fs.h>
 #include <kernel/syscall.h>
 
 NACKED int mount(const char *source, const char *target)

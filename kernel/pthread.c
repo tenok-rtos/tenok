@@ -1,9 +1,10 @@
 #include <errno.h>
 #include <pthread.h>
+#include <sched.h>
 #include <string.h>
-#include <tenok.h>
 
 #include <arch/port.h>
+#include <common/list.h>
 #include <kernel/mutex.h>
 #include <kernel/syscall.h>
 #include <kernel/thread.h>

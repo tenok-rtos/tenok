@@ -1,8 +1,9 @@
 #include <errno.h>
-#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/resource.h>
+#include <sys/limits.h>
 #include <sys/stat.h>
 #include <tenok.h>
 #include <unistd.h>
@@ -13,12 +14,8 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/pipe.h>
-#include <kernel/wait.h>
 #include <mm/mm.h>
 #include <mm/slab.h>
-
-#include "rom_dev.h"
-#include "uart.h"
 
 static void fs_mount_directory(struct inode *inode_src,
                                struct inode *inode_target);

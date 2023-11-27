@@ -1,16 +1,17 @@
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <mpool.h>
 #include <mqueue.h>
 #include <poll.h>
 #include <pthread.h>
+#include <sched.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/limits.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -25,9 +26,11 @@
 #include <common/util.h>
 #include <fs/fs.h>
 #include <fs/null_dev.h>
+#include <fs/rom_dev.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/kfifo.h>
 #include <kernel/mqueue.h>
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
@@ -43,7 +46,6 @@
 #include <mm/mm.h>
 #include <mm/page.h>
 #include <mm/slab.h>
-#include <rom_dev.h>
 
 #include "kconfig.h"
 

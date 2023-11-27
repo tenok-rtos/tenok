@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+#include <sys/limits.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 #define XXD_N_BYTES 16     /* The Byte number for xxd to print per line */

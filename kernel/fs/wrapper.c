@@ -1,19 +1,9 @@
-#include <errno.h>
 #include <fcntl.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <time.h>
+#include <sys/reent.h>
 #include <unistd.h>
-
-#include <fs/fs.h>
-#include <fs/reg_file.h>
-#include <kernel/kernel.h>
-
-#include "kconfig.h"
 
 #define MAX_READ_SIZE 100
 #define MAX_WRITE_SIZE 100

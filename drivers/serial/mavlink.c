@@ -1,17 +1,15 @@
-#include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include <fs/fs.h>
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/pipe.h>
+#include <kernel/kfifo.h>
 #include <kernel/printk.h>
-#include <kernel/tty.h>
-#include <kernel/wait.h>
 
-#include "stm32f4xx.h"
+#include "stm32f4xx_conf.h"
 #include "uart.h"
 
 #define UART2_RX_BUF_SIZE 100

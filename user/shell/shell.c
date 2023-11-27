@@ -1,12 +1,11 @@
-#include <dirent.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "kconfig.h"
+#include <common/list.h>
+
 #include "shell.h"
 
 void shell_path_init(void);

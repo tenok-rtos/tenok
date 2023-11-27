@@ -2,9 +2,10 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <stddef.h>
-#include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
 
+#include <common/list.h>
 #include <fs/fs.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
@@ -12,7 +13,6 @@
 #include <kernel/pipe.h>
 #include <kernel/poll.h>
 #include <kernel/wait.h>
-#include <mm/mm.h>
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t fifo_write(struct file *filp,

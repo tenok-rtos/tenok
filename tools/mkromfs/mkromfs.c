@@ -18,6 +18,8 @@
 #define ROMFS_OUTPUT_DIR "/rom_data/"
 #define OUTPUT_BIN "./romfs.bin"
 
+#define NAME_MAX _NAME_MAX
+
 #define S_IFREG 3 /* Regular file */
 #define S_IFDIR 4 /* Directory */
 

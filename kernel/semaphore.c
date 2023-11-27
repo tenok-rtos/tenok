@@ -1,12 +1,15 @@
 #include <errno.h>
 #include <semaphore.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <arch/port.h>
+#include <common/list.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/semaphore.h>
 #include <kernel/syscall.h>
+#include <kernel/wait.h>
 
 void sema_init(struct semaphore *sem, int val)
 {

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <tenok.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 static void stack_usage(char *buf,

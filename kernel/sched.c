@@ -1,9 +1,10 @@
 #include <errno.h>
+#include <stdint.h>
+#include <sys/types.h>
 #include <tenok.h>
 #include <time.h>
 
 #include <arch/port.h>
-#include <kernel/kernel.h>
 #include <kernel/syscall.h>
 
 #include "kconfig.h"

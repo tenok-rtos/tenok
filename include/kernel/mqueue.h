@@ -4,10 +4,9 @@
 #ifndef __KERNEL_MQUEUE_H__
 #define __KERNEL_MQUEUE_H__
 
+#include <mqueue.h>
 #include <stddef.h>
 #include <unistd.h>
-
-#include <kernel/pipe.h>
 
 struct mqueue_data {
     struct list_head list;

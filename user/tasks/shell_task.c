@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/resource.h>
+#include <sys/limits.h>
 #include <task.h>
 #include <tenok.h>
-#include <time.h>
 #include <unistd.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 extern char _shell_cmds_start;

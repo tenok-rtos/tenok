@@ -1,5 +1,5 @@
 #include "serial.h"
-#include "stm32f4xx_gpio.h"
+#include "stm32f4xx_conf.h"
 
 void led_init(void)
 {

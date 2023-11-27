@@ -1,9 +1,12 @@
 #include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
 
+#include <common/list.h>
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/mutex.h>
+#include <kernel/wait.h>
 
 void mutex_init(struct mutex *mtx)
 {

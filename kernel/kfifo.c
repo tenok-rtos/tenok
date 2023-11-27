@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <common/list.h>
 #include <kernel/kfifo.h>
 #include <mm/mm.h>
 

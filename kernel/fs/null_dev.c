@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <sys/types.h>
 
 #include <fs/fs.h>
 

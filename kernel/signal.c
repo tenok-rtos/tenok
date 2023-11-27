@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include <arch/port.h>
 #include <kernel/syscall.h>

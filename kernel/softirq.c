@@ -1,6 +1,4 @@
-#include <sched.h>
 #include <tenok.h>
-#include <unistd.h>
 
 #include <arch/port.h>
 #include <common/list.h>
@@ -8,8 +6,6 @@
 #include <kernel/kernel.h>
 #include <kernel/softirq.h>
 #include <kernel/wait.h>
-
-#include "kconfig.h"
 
 static LIST_HEAD(tasklet_list);
 static LIST_HEAD(softirqd_wait);

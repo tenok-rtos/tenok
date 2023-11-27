@@ -1,12 +1,9 @@
 #include <stdint.h>
-#include <sys/types.h>
+#include <task.h>
 #include <tenok.h>
 
 #include <arch/port.h>
-#include <kernel/kernel.h>
 #include <kernel/syscall.h>
-
-#include "kconfig.h"
 
 NACKED void *thread_info(struct thread_stat *info, void *next)
 {

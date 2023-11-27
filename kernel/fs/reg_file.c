@@ -1,12 +1,12 @@
-#include <errno.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <common/list.h>
 #include <fs/fs.h>
+#include <fs/reg_file.h>
 
 #include "kconfig.h"
-#include "reg_file.h"
 
 off_t reg_file_lseek(struct file *filp, off_t offset, int whence);
 ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);

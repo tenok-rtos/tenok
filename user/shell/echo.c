@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 void shell_cmd_echo(int argc, char *argv[])

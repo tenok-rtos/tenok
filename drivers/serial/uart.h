@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>

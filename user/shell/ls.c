@@ -1,9 +1,11 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/limits.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 void shell_cmd_ls(int argc, char *argv[])

@@ -1,11 +1,8 @@
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
 #include <time.h>
 
 #include <arch/port.h>
-#include <kernel/kernel.h>
 #include <kernel/syscall.h>
+#include <kernel/time.h>
 
 #include "kconfig.h"
 

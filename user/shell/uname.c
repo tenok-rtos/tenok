@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <unistd.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 void shell_cmd_uname(int argc, char *argv[])

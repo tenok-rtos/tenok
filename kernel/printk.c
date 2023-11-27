@@ -1,19 +1,20 @@
 #include <stdarg.h>
-#include <stddef.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tenok.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/kfifo.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
 #include <kernel/tty.h>
+#include <kernel/wait.h>
 
 #include "kconfig.h"
 

@@ -1,7 +1,6 @@
-#include <errno.h>
 #include <fcntl.h>
 #include <mqueue.h>
-#include <sys/resource.h>
+#include <stdint.h>
 #include <task.h>
 #include <tenok.h>
 #include <unistd.h>

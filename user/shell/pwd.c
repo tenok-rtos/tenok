@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <sys/limits.h>
 #include <unistd.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 void shell_cmd_pwd(int argc, char *argv[])

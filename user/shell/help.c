@@ -1,5 +1,5 @@
-#include <stdint.h>
 #include <string.h>
+#include <sys/limits.h>
 
 #include "shell.h"
 

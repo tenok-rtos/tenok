@@ -1,12 +1,10 @@
 #include <errno.h>
-#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <fs/fs.h>
 #include <kernel/printk.h>
-
-#include "uart.h"
 
 extern char _rom_start;
 extern char _rom_end;

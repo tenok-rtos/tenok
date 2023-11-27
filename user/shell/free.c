@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <tenok.h>
 
+#include "kconfig.h"
 #include "shell.h"
 
 void shell_cmd_free(int argc, char *argv[])
