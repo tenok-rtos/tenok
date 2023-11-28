@@ -2720,7 +2720,7 @@ static void check_thread_stack(void)
     if ((uintptr_t) running_thread->stack_top < lower_bound ||
         (uintptr_t) running_thread->stack_top > upper_bound) {
         panic(
-            "\r================ STACK FAULT =================\n\r"
+            "\r=============== STACK OVERFLOW ===============\n\r"
             "Current thread: %p (%s)\n\r"
             "Stack range: [0x%08x-0x%08x]\n\r"
             "Stack size: %d\n\r"
