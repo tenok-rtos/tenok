@@ -5,6 +5,7 @@
 #include <arch/port.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
+#include <kernel/thread.h>
 
 #include "kconfig.h"
 #include "stm32f4xx.h"

@@ -11,6 +11,7 @@
 #include <common/bitops.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
+#include <kernel/daemon.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/pipe.h>

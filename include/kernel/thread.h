@@ -5,9 +5,11 @@
 #define __KERNEL_THREAD_H__
 
 #include <stddef.h>
-
-#include <kernel/wait.h>
 #include <sys/sched.h>
+
+#include <common/list.h>
+
+#define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
 
 struct thread_attr {
     struct sched_param schedparam;
@@ -18,8 +20,11 @@ struct thread_attr {
 };
 
 struct thread_once {
-    wait_queue_head_t wq;
+    struct list_head wq;
     bool finished;
 };
+
+struct thread_info *current_thread_info(void);
+struct thread_info *acquire_thread(int tid);
 
 #endif

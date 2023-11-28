@@ -9,6 +9,7 @@
 #include <kernel/kernel.h>
 #include <kernel/semaphore.h>
 #include <kernel/syscall.h>
+#include <kernel/thread.h>
 #include <kernel/wait.h>
 
 void sema_init(struct semaphore *sem, int val)

@@ -12,6 +12,7 @@
 #include <kernel/kfifo.h>
 #include <kernel/pipe.h>
 #include <kernel/poll.h>
+#include <kernel/thread.h>
 #include <kernel/wait.h>
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);

@@ -2,9 +2,11 @@
 
 #include <arch/port.h>
 #include <common/list.h>
+#include <kernel/daemon.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/softirq.h>
+#include <kernel/thread.h>
 #include <kernel/wait.h>
 
 static LIST_HEAD(tasklet_list);

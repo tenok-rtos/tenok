@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include <common/list.h>
+#include <kernel/thread.h>
 
 #define init_waitqueue_head(wq) INIT_LIST_HEAD(wq)
 

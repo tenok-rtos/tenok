@@ -28,22 +28,6 @@
 
 #define SYSCALL_ARG(thread, type, idx) *((type *) thread->syscall_args[idx])
 
-#define CURRENT_TASK_INFO(var) struct task_struct *var = current_task_info()
-#define CURRENT_THREAD_INFO(var) struct thread_info *var = current_thread_info()
-
-/* clang-format off */
-#define DAEMON_LIST \
-    DECLARE_DAEMON(SOFTIRQD), \
-    DECLARE_DAEMON(FILESYSD)
-/* clang-format on */
-
-#define DECLARE_DAEMON(x) x
-enum {
-    DAEMON_LIST,
-    DAEMON_CNT,
-};
-#undef DECLARE_DAEMON
-
 struct syscall_info {
     unsigned long handler_func;
     uint32_t num;
@@ -131,12 +115,5 @@ struct thread_info {
     struct list_head join_list; /* Link to another thread waiting for join */
     struct list_head list;      /* Link to a scheduling list */
 };
-
-struct task_struct *current_task_info(void);
-struct thread_info *current_thread_info(void);
-struct thread_info *acquire_thread(int tid);
-
-void set_daemon_id(int daemon);
-uint16_t get_daemon_id(int daemon);
 
 #endif

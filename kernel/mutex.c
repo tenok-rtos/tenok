@@ -6,6 +6,7 @@
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/mutex.h>
+#include <kernel/thread.h>
 #include <kernel/wait.h>
 
 void mutex_init(struct mutex *mtx)

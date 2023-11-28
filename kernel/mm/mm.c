@@ -10,6 +10,7 @@
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
 #include <kernel/syscall.h>
+#include <kernel/thread.h>
 
 #define MALLOC_BLK_FREE_MASK (1 << 30)
 #define MALLOC_BLK_LEN_MASK (~(1 << 30))

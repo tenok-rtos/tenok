@@ -27,6 +27,7 @@
 #include <fs/fs.h>
 #include <fs/null_dev.h>
 #include <fs/rom_dev.h>
+#include <kernel/daemon.h>
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
@@ -220,7 +221,7 @@ static inline void reset_syscall_pending(struct thread_info *thread)
     thread->syscall_pending = false;
 }
 
-inline struct task_struct *current_task_info(void)
+static inline struct task_struct *current_task_info(void)
 {
     return running_thread->task;
 }
@@ -602,7 +603,7 @@ void wake_up_all(struct list_head *wait_list)
 
 void finish_wait(struct list_head *wait)
 {
-    if(!wait)
+    if (!wait)
         return;
 
     struct thread_info *thread = list_entry(wait, struct thread_info, list);
@@ -1340,7 +1341,7 @@ static int sys_chdir(const char *path)
 static int sys_getpid(void)
 {
     /* Return the task ID */
-    return running_thread->task->pid;
+    return current_task_info()->pid;
 }
 
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
@@ -1791,7 +1792,7 @@ static int sys_pthread_create(pthread_t *pthread,
 
     /* Set task ownership to the thread */
     thread->task = current_task_info();
-    list_add(&thread->task_list, &running_thread->task->threads_list);
+    list_add(&thread->task_list, &current_task_info()->threads_list);
 
     /* Return thread ID */
     *pthread = thread->tid;

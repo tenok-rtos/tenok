@@ -12,6 +12,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
+#include <kernel/thread.h>
 #include <kernel/time.h>
 #include <kernel/tty.h>
 #include <kernel/wait.h>

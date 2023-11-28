@@ -12,6 +12,7 @@
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
 #include <kernel/syscall.h>
+#include <kernel/thread.h>
 #include <kernel/wait.h>
 #include <mm/mm.h>
 
