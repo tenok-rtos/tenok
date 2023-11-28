@@ -602,6 +602,9 @@ void wake_up_all(struct list_head *wait_list)
 
 void finish_wait(struct list_head *wait)
 {
+    if(!wait)
+        return;
+
     struct thread_info *thread = list_entry(wait, struct thread_info, list);
 
     if (thread == running_thread)
