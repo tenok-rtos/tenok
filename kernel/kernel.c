@@ -1778,7 +1778,7 @@ static int sys_pthread_create(pthread_t *pthread,
     /* Create new thread */
     struct thread_info *thread;
     int retval = thread_create(&thread, (thread_func_t) start_routine, attr,
-                               arg, USER_THREAD);
+                               arg, running_thread->privilege);
     if (retval != 0) {
         /* Failed to create new thread, return error */
         return retval;
@@ -2379,7 +2379,9 @@ static struct timer *acquire_timer(int timerid)
     return NULL; /* Not found */
 }
 
-int sys_timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid)
+static int sys_timer_create(clockid_t clockid,
+                            struct sigevent *sevp,
+                            timer_t *timerid)
 {
     /* Unsupported clock source */
     if (clockid != CLOCK_MONOTONIC) {
@@ -2732,10 +2734,8 @@ static void check_thread_stack(void)
     }
 }
 
-void init(void)
+static void *init(void *arg)
 {
-    setprogname("idle");
-
     /* Bring up drivers */
     preempt_disable();
     {
@@ -2753,22 +2753,48 @@ void init(void)
     /* Mount rom file system */
     mount("/dev/rom", "/");
 
+    /* Acquire list of all hooked user tasks */
+    extern char _tasks_start, _tasks_end;
+    struct task_hook *tasks = (struct task_hook *) &_tasks_start;
+    size_t task_cnt = ((uintptr_t) &_tasks_end - (uintptr_t) &_tasks_start) /
+                      sizeof(struct task_hook);
+
     /* Launched all hooked user tasks */
-    extern char _tasks_start;
-    extern char _tasks_end;
+    for (size_t i = 0; i < task_cnt; i++)
+        task_create(tasks[i].task_func, tasks[i].priority, tasks[i].stacksize);
 
-    size_t func_list_size =
-        (size_t) ((uintptr_t) &_tasks_end - (uintptr_t) &_tasks_start);
-    size_t hook_task_cnt = func_list_size / sizeof(struct task_hook);
+    return 0;
+}
 
-    struct task_hook *hook_task = (struct task_hook *) &_tasks_start;
+static void start_init_thread(void)
+{
+    /* Launch OS initialization thread */
+    pthread_attr_t attr;
+    struct sched_param param;
+    param.sched_priority = KTHREAD_PRI_MAX;
+    pthread_attr_init(&attr);
+    pthread_attr_setschedparam(&attr, &param);
+    pthread_attr_setschedpolicy(&attr, SCHED_RR);
+    pthread_attr_setstacksize(&attr, INIT_STACK_SIZE);
 
-    for (size_t i = 0; i < hook_task_cnt; i++) {
-        task_create(hook_task[i].task_func, hook_task[i].priority,
-                    hook_task[i].stacksize);
+    pthread_t tid;
+    if (pthread_create(&tid, &attr, init, NULL) < 0) {
+        while (1)
+            ; /* Unexpected error */
     }
 
-    /* Run idle loop with lowest thread priority */
+    /* Wait until initialization finished */
+    pthread_join(tid, NULL);
+}
+
+static void idle(void)
+{
+    setprogname("idle");
+
+    /* Perform OS initialization */
+    start_init_thread();
+
+    /* Run idle loop when nothing to do */
     while (1) {
         __idle();
     }
@@ -2789,7 +2815,7 @@ void sched_start(void)
     }
 
     /* Create kernel threads for basic services */
-    kthread_create(init, 0, IDLE_STACK_SIZE);
+    kthread_create(idle, 0, IDLE_STACK_SIZE);
     kthread_create(softirqd, KTHREAD_PRI_MAX, SOFTIRQD_STACK_SIZE);
     kthread_create(filesysd, KTHREAD_PRI_MAX - 1, FILESYSD_STACK_SIZE);
     kthread_create(printkd, KTHREAD_PRI_MAX - 1, PRINTKD_STACK_SIZE);
