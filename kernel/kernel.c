@@ -2163,7 +2163,7 @@ static void pthread_once_cleanup_handler(void)
     /* Wake up all waiting threads and mark once variable as complete */
     struct thread_once *once_control = running_thread->once_control;
     once_control->finished = true;
-    wake_up_all(&once_control->wq);
+    wake_up_all(&once_control->wait_list);
 }
 
 static int sys_pthread_once(pthread_once_t *_once_control,
@@ -2174,12 +2174,14 @@ static int sys_pthread_once(pthread_once_t *_once_control,
     if (once_control->finished)
         return 0;
 
-    if (once_control->wq.next == NULL || once_control->wq.prev == NULL) {
+    if (once_control->wait_list.next == NULL ||
+        once_control->wait_list.prev == NULL) {
         /* The first time to execute pthread_once() */
-        init_waitqueue_head(&once_control->wq);
+        INIT_LIST_HEAD(&once_control->wait_list);
     } else {
         /* pthread_once() is already called */
-        prepare_to_wait(&once_control->wq, &running_thread->list, THREAD_WAIT);
+        prepare_to_wait(&once_control->wait_list, &running_thread->list,
+                        THREAD_WAIT);
         return 0;
     }
 

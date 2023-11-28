@@ -20,7 +20,7 @@ struct thread_attr {
 };
 
 struct thread_once {
-    struct list_head wq;
+    struct list_head wait_list;
     bool finished;
 };
 
