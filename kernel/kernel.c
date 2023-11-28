@@ -1707,7 +1707,7 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 
     /* Read message */
     ssize_t retval =
-        __mq_receive(mq, msg_ptr, msg_len, msg_prio, &mqd_table[mqdes].attr);
+        __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {
@@ -1746,7 +1746,7 @@ static int sys_mq_send(mqd_t mqdes,
 
     /* Send message */
     ssize_t retval =
-        __mq_send(mq, msg_ptr, msg_len, msg_prio, &mqd_table[mqdes].attr);
+        __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
 
     /* Check if the syscall need to be restarted */
     if (retval == -ERESTARTSYS) {

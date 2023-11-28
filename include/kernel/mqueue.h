@@ -35,14 +35,14 @@ struct mqueue *__mq_allocate(struct mq_attr *attr);
 void __mq_free(struct mqueue *mq);
 size_t __mq_len(struct mqueue *mq);
 ssize_t __mq_receive(struct mqueue *mq,
-                     char *buf,
+                     const struct mq_attr *attr,
+                     char *msg_ptr,
                      size_t msg_len,
-                     unsigned int *priority,
-                     const struct mq_attr *attr);
+                     unsigned int *priority);
 ssize_t __mq_send(struct mqueue *mq,
-                  const char *buf,
+                  const struct mq_attr *attr,
+                  const char *msg_ptr,
                   size_t msg_len,
-                  unsigned int priority,
-                  const struct mq_attr *attr);
+                  unsigned int priority);
 
 #endif

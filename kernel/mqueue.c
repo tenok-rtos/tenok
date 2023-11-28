@@ -73,7 +73,7 @@ static size_t __mq_avail(struct mqueue *mq)
     return mq->size - mq->cnt;
 }
 
-static size_t __mq_out(struct mqueue *mq, void *buf, unsigned int *msg_prio)
+static size_t __mq_out(struct mqueue *mq, char *msg_ptr, unsigned int *msg_prio)
 {
     /* Find the message list with highest prioity that contains message */
     int prio = MQ_PRIO_MAX;
@@ -85,7 +85,7 @@ static size_t __mq_out(struct mqueue *mq, void *buf, unsigned int *msg_prio)
     /* Read message from the selected list */
     struct mqueue_data *element =
         list_first_entry(&mq->used_list[prio], struct mqueue_data, list);
-    memcpy(buf, element->data, element->size);
+    memcpy(msg_ptr, element->data, element->size);
     mq->cnt--;
     if (msg_prio)
         *msg_prio = prio;
@@ -98,15 +98,15 @@ static size_t __mq_out(struct mqueue *mq, void *buf, unsigned int *msg_prio)
 }
 
 static void __mq_in(struct mqueue *mq,
-                    const char *data,
-                    size_t n,
+                    const char *msg_ptr,
+                    size_t msg_len,
                     unsigned int msg_prio)
 {
     /* Save new message into the queue */
     struct mqueue_data *element =
         list_first_entry(&mq->free_list, struct mqueue_data, list);
-    memcpy(element->data, data, n);
-    element->size = n;
+    memcpy(element->data, msg_ptr, msg_len);
+    element->size = msg_len;
     mq->cnt++;
 
     /* Move the message from free list to the used list */
@@ -114,10 +114,10 @@ static void __mq_in(struct mqueue *mq,
 }
 
 ssize_t __mq_receive(struct mqueue *mq,
-                     char *buf,
+                     const struct mq_attr *attr,
+                     char *msg_ptr,
                      size_t msg_len,
-                     unsigned int *msg_prio,
-                     const struct mq_attr *attr)
+                     unsigned int *msg_prio)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -142,7 +142,7 @@ ssize_t __mq_receive(struct mqueue *mq,
     }
 
     /* Read message from the queue */
-    size_t read_size = __mq_out(mq, buf, msg_prio);
+    size_t read_size = __mq_out(mq, msg_ptr, msg_prio);
 
     /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mq->w_wait_list);
@@ -151,10 +151,10 @@ ssize_t __mq_receive(struct mqueue *mq,
 }
 
 ssize_t __mq_send(struct mqueue *mq,
-                  const char *buf,
+                  const struct mq_attr *attr,
+                  const char *msg_ptr,
                   size_t msg_len,
-                  unsigned int msg_prio,
-                  const struct mq_attr *attr)
+                  unsigned int msg_prio)
 {
     CURRENT_THREAD_INFO(curr_thread);
 
@@ -180,7 +180,7 @@ ssize_t __mq_send(struct mqueue *mq,
     }
 
     /* Save message into the queue */
-    __mq_in(mq, buf, msg_len, msg_prio);
+    __mq_in(mq, msg_ptr, msg_len, msg_prio);
 
     /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mq->r_wait_list);
