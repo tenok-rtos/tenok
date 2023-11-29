@@ -35,8 +35,8 @@ static void softirqd_sleep(void)
 {
     preempt_disable();
     prepare_to_wait(&softirqd_wait, current_thread_info(), THREAD_WAIT);
-    jump_to_kernel();
     preempt_enable();
+    jump_to_kernel();
 }
 
 void softirqd(void)
