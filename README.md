@@ -19,7 +19,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
 * Kernel-space memory allocation: Buddy allocator and Slab allocator
-* User-space memory allocation: Memory pool and First-Fit Free List
+* User-space memory allocation: Dynamic allocation (First-Fit Free List) and Memory pool
 * Software timer and clock
 * Built-in Shell with command completion and history saving
 * Root and ROM file systems
