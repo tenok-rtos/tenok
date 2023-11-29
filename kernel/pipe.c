@@ -67,7 +67,7 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     }
 
     if (highest_pri_thread)
-        finish_wait(&highest_pri_thread->list);
+        __finish_wait(highest_pri_thread);
 }
 
 static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
@@ -92,8 +92,7 @@ static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
             curr_thread->file_request_size = size;
 
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&pipe->r_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
+            prepare_to_wait(&pipe->r_wait_list, curr_thread, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -130,8 +129,7 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
             curr_thread->file_request_size = size;
 
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&pipe->w_wait_list, &curr_thread->list,
-                            THREAD_WAIT);
+            prepare_to_wait(&pipe->w_wait_list, curr_thread, THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }

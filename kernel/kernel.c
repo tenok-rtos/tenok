@@ -521,18 +521,16 @@ static void check_pending_signals(void)
 
 static void thread_suspend(struct thread_info *thread)
 {
-    if (thread->status == THREAD_SUSPENDED) {
+    if (thread->status == THREAD_SUSPENDED)
         return;
-    }
 
-    prepare_to_wait(&suspend_list, &thread->list, THREAD_SUSPENDED);
+    prepare_to_wait(&suspend_list, thread, THREAD_SUSPENDED);
 }
 
 static void thread_resume(struct thread_info *thread)
 {
-    if (thread->status != THREAD_SUSPENDED) {
+    if (thread->status != THREAD_SUSPENDED)
         return;
-    }
 
     thread->status = THREAD_READY;
     list_move(&thread->list, &ready_list[thread->priority]);
@@ -559,12 +557,10 @@ static void thread_delete(struct thread_info *thread)
 }
 
 void prepare_to_wait(struct list_head *wait_list,
-                     struct list_head *wait,
+                     struct thread_info *thread,
                      int state)
 {
-    list_add(wait, wait_list);
-
-    struct thread_info *thread = list_entry(wait, struct thread_info, list);
+    list_add(&thread->list, wait_list);
     thread->status = state;
 }
 
@@ -601,18 +597,24 @@ void wake_up_all(struct list_head *wait_list)
     }
 }
 
-void finish_wait(struct list_head *wait)
+void __finish_wait(struct thread_info *thread)
 {
-    if (!wait)
-        return;
-
-    struct thread_info *thread = list_entry(wait, struct thread_info, list);
-
     if (thread == running_thread)
         return;
 
     thread->status = THREAD_READY;
-    list_move(wait, &ready_list[thread->priority]);
+    list_move(&thread->list, &ready_list[thread->priority]);
+}
+
+void finish_wait(struct thread_info **wait)
+{
+    if (!wait)
+        return;
+
+    struct thread_info *thread = *wait;
+    __finish_wait(thread);
+
+    *wait = NULL;
 }
 
 static inline void signal_cleanup_handler(void)
@@ -634,7 +636,7 @@ static inline void thread_join_handler(void)
             *thread->retval_join = running_thread->retval;
         }
 
-        finish_wait(&thread->list);
+        __finish_wait(thread);
     }
 
     /* Remove the task from the system if it contains no more thread */
@@ -802,7 +804,7 @@ static int sys_minfo(int name)
 static int sys_sched_yield(void)
 {
     /* Suspend current thread */
-    prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+    prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
 
     /* Return success */
     return 0;
@@ -1427,7 +1429,7 @@ void poll_notify(struct file *notify_file)
         struct file *file;
         list_for_each_entry (file, &thread->poll_files_list, list) {
             if (file == notify_file)
-                finish_wait(curr_thread_l);
+                __finish_wait(thread);
         }
     }
 }
@@ -1479,7 +1481,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         set_syscall_pending(running_thread);
 
         /* Suspend current thread */
-        prepare_to_wait(&poll_list, &running_thread->list, THREAD_WAIT);
+        prepare_to_wait(&poll_list, running_thread, THREAD_WAIT);
 
         /* Add current thread into the timeout monitoring list */
         if (timeout > 0)
@@ -1935,7 +1937,7 @@ static int sys_pthread_getschedparam(pthread_t tid,
 static int sys_pthread_yield(void)
 {
     /* Yield the time quatum to other threads */
-    prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+    prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
 
     /* Return success */
     return 0;
@@ -1951,7 +1953,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         thread->wait_for_signal = false;
 
         /* Wake up the thread and set the return values */
-        finish_wait(&thread->list);
+        __finish_wait(thread);
         *thread->ret_sig = signum;
         SYSCALL_ARG(thread, int, 0) = 0;
     }
@@ -2145,8 +2147,8 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
         ((struct mutex *) mutex)->owner = NULL;
 
         /* Enqueue current thread into the read waiting list */
-        prepare_to_wait(&((struct cond *) cond)->task_wait_list,
-                        &running_thread->list, THREAD_WAIT);
+        prepare_to_wait(&((struct cond *) cond)->task_wait_list, running_thread,
+                        THREAD_WAIT);
     }
 
     /* Return success */
@@ -2180,8 +2182,7 @@ static int sys_pthread_once(pthread_once_t *_once_control,
         INIT_LIST_HEAD(&once_control->wait_list);
     } else {
         /* pthread_once() is already called */
-        prepare_to_wait(&once_control->wait_list, &running_thread->list,
-                        THREAD_WAIT);
+        prepare_to_wait(&once_control->wait_list, running_thread, THREAD_WAIT);
         return 0;
     }
 
@@ -2287,7 +2288,7 @@ static int sys_sigwait(const sigset_t *set, int *sig)
     running_thread->wait_for_signal = true;
 
     /* Enqueue the thread into the signal waiting list */
-    prepare_to_wait(&suspend_list, &running_thread->list, THREAD_WAIT);
+    prepare_to_wait(&suspend_list, running_thread, THREAD_WAIT);
 
     return 0;
 }
@@ -2591,7 +2592,7 @@ static void syscall_timeout_update(void)
         if (tp.tv_sec >= thread->syscall_timeout.tv_sec &&
             tp.tv_nsec >= thread->syscall_timeout.tv_nsec) {
             thread->syscall_is_timeout = true;
-            finish_wait(&thread->list);
+            __finish_wait(thread);
         }
     }
 }
@@ -2665,7 +2666,7 @@ static void schedule(void)
 {
     /* Stop current thread */
     if (running_thread->status == THREAD_RUNNING)
-        prepare_to_wait(&sleep_list, &running_thread->list, THREAD_WAIT);
+        prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
 
     /* Wake up threads that the sleep tick is exhausted */
     struct list_head *curr, *next;

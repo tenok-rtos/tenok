@@ -9,47 +9,40 @@
 #include <common/list.h>
 #include <kernel/thread.h>
 
-#define init_waitqueue_head(wq) INIT_LIST_HEAD(wq)
-
-#define init_wait(wait)                       \
-    do {                                      \
-        CURRENT_THREAD_INFO(__curr_thread__); \
-        wait = &__curr_thread__->list;        \
-    } while (0)
-
-typedef struct list_head wait_queue_head_t;
-typedef struct list_head wait_queue_t;
-
 /**
- * @brief  Suspend the current thread and place it into a wait list with a new
-           state
- * @param  q: The thread list
- * @param  wait: The thread wait list
- * @param  state: The new state of the thread
+ * @brief  Suspend current thread and place it into a wait list with a new
+ *         state
+ * @param  wait_list: Thread waiting list.
+ * @param  thread: The thread to to place in the wait list.
+ * @param  state: The new state of the thread.
  * @retval None
  */
-void prepare_to_wait(struct list_head *q, struct list_head *wait, int state);
+void prepare_to_wait(struct list_head *wait_list,
+                     struct thread_info *thread,
+                     int state);
 
 /**
- * @brief  Wake up the highest priority thread from the wait_list
- * @param  wait_list: The wait list that contains suspended threads
+ * @brief  Wake up the highest priority thread from the wait list
+ * @param  wait_list: The wait list that contains suspended threads.
  * @retval None
  */
 void wake_up(struct list_head *wait_list);
 
 /**
- * @brief  Wake up all threads from the wait_list
- * @param  wait_list: The wait list that contains suspended threads
+ * @brief  Wake up all threads from the wait list
+ * @param  wait_list: The wait list that contains suspended threads.
  * @retval None
  */
 void wake_up_all(struct list_head *wait_list);
 
 /**
- * @brief  Move the thread from a waiting list into the ready list and
-           set it to ready state
- * @param  thread_list: The list head of the thread.
+ * @brief  Move the thread from a wait list into a ready list and
+ *         set it to be ready
+ * @param  wait: The pointer that point to the thread to wake up.
  * @retval None
  */
-void finish_wait(struct list_head *thread_list);
+void finish_wait(struct thread_info **wait);
+
+void __finish_wait(struct thread_info *thread);
 
 #endif

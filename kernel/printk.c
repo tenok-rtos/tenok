@@ -126,10 +126,8 @@ void printkd_start(void)
 
 static void printkd_sleep(void)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     preempt_disable();
-    prepare_to_wait(&printkd_wait, &curr_thread->list, THREAD_WAIT);
+    prepare_to_wait(&printkd_wait, current_thread_info(), THREAD_WAIT);
     jump_to_kernel();
     preempt_enable();
 }

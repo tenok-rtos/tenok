@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>
 #include <kernel/wait.h>
@@ -17,15 +18,17 @@ enum {
 } UART_TX_STATE;
 
 typedef struct {
-    wait_queue_head_t tx_wq;
-    wait_queue_head_t rx_wq;
-    wait_queue_t *tx_wait;
-    wait_queue_t *rx_wait;
+    /* Tx */
+    struct list_head tx_wait_list;
+    struct thread_info *tx_wait;
     struct mutex tx_mtx;
+    uint8_t tx_state;
+
+    /* Rx */
+    struct list_head rx_wait_list;
+    struct thread_info *rx_wait;
     struct kfifo *rx_fifo;
     size_t rx_wait_size;
-    bool tx_dma_ready;
-    uint8_t tx_state;
 } uart_dev_t;
 
 void uart_putc(USART_TypeDef *uart, char c);

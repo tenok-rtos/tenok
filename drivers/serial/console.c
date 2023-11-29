@@ -35,7 +35,6 @@ void DMA2_Stream7_IRQHandler(void);
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_dma_ready = false,
     .tx_state = UART_TX_IDLE,
 };
 
@@ -104,8 +103,8 @@ void uart1_init(uint32_t baudrate)
 void tty_init(void)
 {
     /* Create wait queues for synchronization */
-    init_waitqueue_head(&uart1.tx_wq);
-    init_waitqueue_head(&uart1.rx_wq);
+    INIT_LIST_HEAD(&uart1.tx_wait_list);
+    INIT_LIST_HEAD(&uart1.rx_wait_list);
 
     /* Create kfifo for UART1 rx */
     uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
@@ -136,8 +135,8 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
         kfifo_out(uart1.rx_fifo, buf, size);
         return size;
     } else {
-        init_wait(uart1.rx_wait);
-        prepare_to_wait(&uart1.rx_wq, uart1.rx_wait, THREAD_WAIT);
+        uart1.rx_wait = current_thread_info();
+        prepare_to_wait(&uart1.rx_wait_list, uart1.rx_wait, THREAD_WAIT);
         uart1.rx_wait_size = size;
         return -ERESTARTSYS;
     }
@@ -195,11 +194,10 @@ static int uart1_dma_puts(const char *data, size_t size)
         DMA_Cmd(DMA2_Stream7, ENABLE);
 
         uart1.tx_state = UART_TX_DMA_BUSY;
-        uart1.tx_dma_ready = false;
 
         /* Wait until DMA completed data transfer */
-        init_wait(uart1.tx_wait);
-        prepare_to_wait(&uart1.tx_wq, uart1.tx_wait, THREAD_WAIT);
+        uart1.tx_wait = current_thread_info();
+        prepare_to_wait(&uart1.tx_wait_list, uart1.tx_wait, THREAD_WAIT);
 
         return -ERESTARTSYS;
     }
@@ -231,7 +229,7 @@ void USART1_IRQHandler(void)
 
         if (uart1.rx_wait_size &&
             kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
-            finish_wait(uart1.rx_wait);
+            finish_wait(&uart1.rx_wait);
             uart1.rx_wait_size = 0;
         }
     }
@@ -243,7 +241,6 @@ void DMA2_Stream7_IRQHandler(void)
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 
-        finish_wait(uart1.tx_wait);
-        uart1.tx_dma_ready = true;
+        finish_wait(&uart1.tx_wait);
     }
 }

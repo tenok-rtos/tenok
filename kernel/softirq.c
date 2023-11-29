@@ -28,15 +28,13 @@ void tasklet_schedule(struct tasklet_struct *t)
     /* Wake up the SoftIRQ daemon */
     int softirqd_tid = get_daemon_id(SOFTIRQD);
     struct thread_info *thread = acquire_thread(softirqd_tid);
-    finish_wait(&thread->list);
+    __finish_wait(thread);
 }
 
 static void softirqd_sleep(void)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     preempt_disable();
-    prepare_to_wait(&softirqd_wait, &curr_thread->list, THREAD_WAIT);
+    prepare_to_wait(&softirqd_wait, current_thread_info(), THREAD_WAIT);
     jump_to_kernel();
     preempt_enable();
 }

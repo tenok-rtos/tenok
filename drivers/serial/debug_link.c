@@ -32,7 +32,6 @@ void DMA1_Stream4_IRQHandler(void);
 uart_dev_t uart3 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_dma_ready = false,
     .tx_state = UART_TX_IDLE,
 };
 
@@ -101,8 +100,8 @@ void serial2_init(void)
     register_chrdev("serial2", &serial2_file_ops);
 
     /* Create wait queues for synchronization */
-    init_waitqueue_head(&uart3.tx_wq);
-    init_waitqueue_head(&uart3.rx_wq);
+    INIT_LIST_HEAD(&uart3.tx_wait_list);
+    INIT_LIST_HEAD(&uart3.rx_wait_list);
 
     /* Create kfifo for UART3 rx */
     uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
@@ -124,8 +123,8 @@ ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
         kfifo_out(uart3.rx_fifo, buf, size);
         return size;
     } else {
-        init_wait(uart3.rx_wait);
-        prepare_to_wait(&uart3.rx_wq, uart3.rx_wait, THREAD_WAIT);
+        uart3.rx_wait = current_thread_info();
+        prepare_to_wait(&uart3.rx_wait_list, uart3.rx_wait, THREAD_WAIT);
         uart3.rx_wait_size = size;
         return -ERESTARTSYS;
     }
@@ -172,11 +171,10 @@ static int uart3_dma_puts(const char *data, size_t size)
         DMA_Cmd(DMA1_Stream4, ENABLE);
 
         uart3.tx_state = UART_TX_DMA_BUSY;
-        uart3.tx_dma_ready = false;
 
         /* Wait until DMA complete data transfer */
-        init_wait(uart3.tx_wait);
-        prepare_to_wait(&uart3.tx_wq, uart3.tx_wait, THREAD_WAIT);
+        uart3.tx_wait = current_thread_info();
+        prepare_to_wait(&uart3.tx_wait_list, uart3.tx_wait, THREAD_WAIT);
         return -ERESTARTSYS;
     }
     case UART_TX_DMA_BUSY: {
@@ -197,7 +195,7 @@ void USART3_IRQHandler(void)
         kfifo_put(uart3.rx_fifo, &c);
 
         if (kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
-            finish_wait(uart3.rx_wait);
+            finish_wait(&uart3.rx_wait);
             uart3.rx_wait_size = 0;
         }
     }
@@ -209,7 +207,6 @@ void DMA1_Stream4_IRQHandler(void)
         DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4);
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 
-        finish_wait(uart3.tx_wait);
-        uart3.tx_dma_ready = true;
+        finish_wait(&uart3.tx_wait);
     }
 }

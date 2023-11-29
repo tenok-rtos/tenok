@@ -120,8 +120,6 @@ ssize_t __mq_receive(struct mqueue *mq,
                      size_t msg_len,
                      unsigned int *msg_prio)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     /* The message queue descriptor is not open with reading flag */
     if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
         return -EBADF;
@@ -137,7 +135,8 @@ ssize_t __mq_receive(struct mqueue *mq,
             return -EAGAIN;
         } else { /* Block mode */
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&mq->r_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&mq->r_wait_list, current_thread_info(),
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }
@@ -157,8 +156,6 @@ ssize_t __mq_send(struct mqueue *mq,
                   size_t msg_len,
                   unsigned int msg_prio)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     /* The message queue descriptor is not open with writing flag */
     if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
         return -EBADF;
@@ -175,7 +172,8 @@ ssize_t __mq_send(struct mqueue *mq,
             return -EAGAIN;
         } else { /* block mode */
             /* Enqueue the thread into the waiting list */
-            prepare_to_wait(&mq->w_wait_list, &curr_thread->list, THREAD_WAIT);
+            prepare_to_wait(&mq->w_wait_list, current_thread_info(),
+                            THREAD_WAIT);
             return -ERESTARTSYS;
         }
     }

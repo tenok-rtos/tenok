@@ -20,12 +20,10 @@ void sema_init(struct semaphore *sem, int val)
 
 int down(struct semaphore *sem)
 {
-    CURRENT_THREAD_INFO(curr_thread);
-
     if (sem->count <= 0) {
         /* Failed to acquire the semaphore, enqueue the current thread into the
          * waiting list */
-        prepare_to_wait(&sem->wait_list, &curr_thread->list, THREAD_WAIT);
+        prepare_to_wait(&sem->wait_list, current_thread_info(), THREAD_WAIT);
 
         return -ERESTARTSYS;
     } else {

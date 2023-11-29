@@ -28,7 +28,6 @@ void USART2_IRQHandler(void);
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_dma_ready = false,
     .tx_state = UART_TX_IDLE,
 };
 
@@ -82,8 +81,8 @@ void serial1_init(void)
     register_chrdev("serial1", &serial1_file_ops);
 
     /* Create wait queues for synchronization */
-    init_waitqueue_head(&uart2.tx_wq);
-    init_waitqueue_head(&uart2.rx_wq);
+    INIT_LIST_HEAD(&uart2.tx_wait_list);
+    INIT_LIST_HEAD(&uart2.rx_wait_list);
 
     /* Create kfifo for UART2 rx */
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
@@ -105,8 +104,8 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
         kfifo_out(uart2.rx_fifo, buf, size);
         return size;
     } else {
-        init_wait(uart2.rx_wait);
-        prepare_to_wait(&uart2.rx_wq, uart2.rx_wait, THREAD_WAIT);
+        uart2.rx_wait = current_thread_info();
+        prepare_to_wait(&uart2.rx_wait_list, uart2.rx_wait, THREAD_WAIT);
         uart2.rx_wait_size = size;
         return -ERESTARTSYS;
     }
@@ -128,7 +127,7 @@ void USART2_IRQHandler(void)
 
         if (uart2.rx_wait_size &&
             kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
-            finish_wait(uart2.rx_wait);
+            finish_wait(&uart2.rx_wait);
             uart2.rx_wait_size = 0;
         }
     }

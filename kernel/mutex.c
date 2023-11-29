@@ -27,7 +27,7 @@ int mutex_lock(struct mutex *mtx)
     /* Check if the mutex is occupied */
     if (mtx->owner != NULL) {
         /* Enqueue current thread into the waiting list */
-        prepare_to_wait(&mtx->wait_list, &curr_thread->list, THREAD_WAIT);
+        prepare_to_wait(&mtx->wait_list, curr_thread, THREAD_WAIT);
 
         return -ERESTARTSYS;
     } else {
