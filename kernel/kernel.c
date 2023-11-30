@@ -2750,9 +2750,9 @@ static void *init(void *arg)
         __board_init();
         rom_dev_init();
         null_dev_init();
-        link_stdin_dev(STDIN_DEV_PATH);
-        link_stdout_dev(STDOUT_DEV_PATH);
-        link_stderr_dev(STDERR_DEV_PATH);
+        link_stdin_dev(STDIN_PATH);
+        link_stdout_dev(STDOUT_PATH);
+        link_stderr_dev(STDERR_PATH);
         printkd_start();
     }
     preempt_enable();
