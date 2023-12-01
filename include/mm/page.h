@@ -19,8 +19,7 @@ unsigned long get_page_total_size(void);
 unsigned long get_page_total_free_size(void);
 
 /**
- * @brief  Calculate the proper page order by giving memory
- *         size.
+ * @brief  Calculate the page order by giving the size of a memory
  * @param  size: The memory size in bytes.
  * @retval long: The page order.
  */
@@ -36,15 +35,14 @@ unsigned long page_order_to_size(long order);
 /**
  * @brief  Allocate a new memory page
  * @param  long: The page order.
- * @retval void *: Null if the allocation failed; otherwise
- *                 the function returns the address of the
- *                 allocated memory page.
+ * @retval void *: The function returns NULL if the allocation failed;
+           otherwise it returns the address of the allocated memory page.
  */
 void *alloc_pages(unsigned long order);
 
 /**
  * @brief  Free an allocated memory page
- * @param  addr: The address of the memory page.
+ * @param  addr: Pointer to the memory page.
  * @param  order: The order of the memory page.
  * @retval None
  */

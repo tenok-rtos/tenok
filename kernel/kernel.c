@@ -1279,7 +1279,7 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
         /* Return error */
         return -ENOENT;
     } else {
-        /* Return sucesss */
+        /* Return success */
         return 0;
     }
 }
@@ -1377,7 +1377,7 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
         /* Failed to create file */
         return -1; /* TODO: Specify the failed reason */
     } else {
-        /* Return sucesss */
+        /* Return success */
         return 0;
     }
 }
@@ -1413,7 +1413,7 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
         /* Failed to create FIFO */
         return -1; /* TODO: Specify the failed reason */
     } else {
-        /* Return sucesss */
+        /* Return success */
         return 0;
     }
 }
@@ -1467,7 +1467,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         }
 
         if (!no_event) {
-            /* Return sucesss */
+            /* Return success */
             return 0;
         }
 
@@ -1510,7 +1510,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
             /* Return error */
             return -1; /* TODO: Specify the failed reason */
         } else {
-            /* Return sucesss */
+            /* Return success */
             return 0;
         }
     }
@@ -1531,7 +1531,7 @@ static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
     attr->mq_msgsize = mqd_table[mqdes].attr.mq_msgsize;
     attr->mq_curmsgs = __mq_len(mqd_table[mqdes].mq);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1565,7 +1565,7 @@ static int sys_mq_setattr(mqd_t mqdes,
     /* Save new mq_flags attribute */
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1666,7 +1666,7 @@ static int sys_mq_close(mqd_t mqdes)
     bitmap_clear_bit(bitmap_mqds, mqdes);
     bitmap_clear_bit(task->bitmap_mqds, mqdes);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1684,7 +1684,7 @@ static int sys_mq_unlink(const char *name)
         /* Remove the message queue from the system */
         __mq_free(mq);
 
-        /* Return sucesss */
+        /* Return success */
         return 0;
     } else {
         /* Return error */
@@ -1799,7 +1799,7 @@ static int sys_pthread_create(pthread_t *pthread,
     /* Return thread ID */
     *pthread = thread->tid;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1837,7 +1837,7 @@ static int sys_pthread_join(pthread_t tid, void **retval)
     list_add(&running_thread->list, &thread->join_list);
     running_thread->status = THREAD_WAIT;
 
-    /* Return sucesss (after the thread is awakened) */
+    /* Return success (after the thread is awakened) */
     return 0;
 }
 
@@ -1857,7 +1857,7 @@ static int sys_pthread_cancel(pthread_t tid)
 
     thread_delete(thread);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1871,7 +1871,7 @@ static int sys_pthread_detach(pthread_t tid)
 
     threads[tid].detached = true;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1904,7 +1904,7 @@ static int sys_pthread_setschedparam(pthread_t tid,
     else
         thread->priority = param->sched_priority;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -1930,7 +1930,7 @@ static int sys_pthread_getschedparam(pthread_t tid,
     else
         param->sched_priority = thread->priority;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2035,7 +2035,7 @@ static int sys_pthread_kill(pthread_t tid, int sig)
 
     handle_signal(thread, sig);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2103,7 +2103,7 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
         /* Turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
-        /* Return sucesss */
+        /* Return success */
         return retval;
     }
 }
@@ -2117,7 +2117,7 @@ static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
         /* Failed to lock the mutex */
         return -EBUSY;
     } else {
-        /* Return sucesss */
+        /* Return success */
         return retval;
     }
 }
@@ -2215,7 +2215,7 @@ static int sys_sem_wait(sem_t *sem)
         /* Turn off the syscall pending flag */
         reset_syscall_pending(running_thread);
 
-        /* Return sucesss */
+        /* Return success */
         return retval;
     }
 }
@@ -2224,7 +2224,7 @@ static int sys_sem_getvalue(sem_t *sem, int *sval)
 {
     *sval = ((struct semaphore *) sem)->count;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2266,7 +2266,7 @@ static int sys_sigaction(int signum,
         *new_act = *act;
     }
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2316,7 +2316,7 @@ static int sys_kill(pid_t pid, int sig)
         handle_signal(thread, sig);
     }
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2343,7 +2343,7 @@ int sys_raise(int sig)
         handle_signal(thread, sig);
     }
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2356,7 +2356,7 @@ static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
 
     get_sys_time(tp);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2369,7 +2369,7 @@ static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
 
     set_sys_time(tp);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2431,7 +2431,7 @@ static int sys_timer_create(clockid_t clockid,
     /* Increase timer count */
     running_thread->timer_cnt++;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2451,7 +2451,7 @@ static int sys_timer_delete(timer_t timerid)
     list_del(&timer->list);
     kfree(timer);
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2495,7 +2495,7 @@ static int sys_timer_settime(timer_t timerid,
     timer->counter = timer->setting.it_value;
     timer->enabled = true;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 
@@ -2512,7 +2512,7 @@ static int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 
     *curr_value = timer->ret_time;
 
-    /* Return sucesss */
+    /* Return success */
     return 0;
 }
 

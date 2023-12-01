@@ -16,11 +16,10 @@ struct task_hook {
 };
 
 /**
- * @brief  Register a user task to be launch at the bootup
- *         stage
- * @param  task_func: The task function to launch.
- * @param  priority: The task priority to set.
- * @param  stacksize: The stack size to allocate for the task.
+ * @brief  Register a user task to be launched at the start of the OS
+ * @param  task_func: The task function to run.
+ * @param  priority: The priority of the task.
+ * @param  stacksize: The stack size of the task.
  * @retval None
  */
 #define HOOK_USER_TASK(_task_func, _priority, _stacksize) \
@@ -33,12 +32,11 @@ struct task_hook {
 
 /**
  * @brief  Create new task
- * @param  task_func: Task function to run.
- * @param  priority: Priority of the task.
- * @param  stack_size: Stack size of the task.
- * @retval int: The function return positive task pid number if
- *              success; otherwise it returns a negative error
- *              number.
+ * @param  task_func: The task function to run.
+ * @param  priority: The priority of the task.
+ * @param  stack_size: The stack size of the task.
+ * @retval int: The function returns positive task PID number on
+ *         success; otherwise it returns a negative error number.
  */
 int task_create(task_func_t task_func, uint8_t priority, int stack_size);
 

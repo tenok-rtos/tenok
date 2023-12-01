@@ -35,7 +35,7 @@ extern FILE *stderr;
 
 /**
  * @brief  Open the file whose name is the string pointed to by pathname and
- *         associates a stream with it
+ *         associate a stream with it
  * @param  pathname: The pathname of the file to open.
  * @param  mode: Not used.
  * @retval FILE *: File stream object.
@@ -45,7 +45,7 @@ FILE *fopen(const char *pathname, const char *mode);
 /**
  * @brief  Close the given file stream
  * @param  stream: The file stream to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int fclose(FILE *stream);
 
@@ -56,19 +56,19 @@ int fclose(FILE *stream);
  * @param  size: The number of nmemb bytes to read.
  * @param  nmemb: The bytes number to read at once.
  * @param  stream: The file stream to provide.
- * @retval int: The read number on sucess and nonzero error number on error.
+ * @retval int: The read number on success and nonzero error number on error.
  */
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 /**
  * @brief  Write nmemb items of data, each size bytes long, to the stream
  *         pointed to by stream, obtaining them  from  the  location given by
- * ptr
+ *         ptr
  * @param  ptr: The data to write to the file.
  * @param  size: The number of nmemb bytes to write.
  * @param  nmemb: The byte number to write at once.
  * @param  stream: The file stream to provide.
- * @retval int: The write number on sucess and nonzero error number on error.
+ * @retval int: The write number on success and nonzero error number on error.
  */
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
@@ -77,8 +77,8 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
  * @param  stream: The file stream to provide.
  * @param  offset: The new offset to the position specified by whence.
  * @param  whence: The start position of the new offset.
- * @retval int: The new file position on sucess and nonzero error number on
- * error.
+ * @retval int: The new file position on success and nonzero error number on
+ *         error.
  */
 int fseek(FILE *stream, long offset, int whence);
 

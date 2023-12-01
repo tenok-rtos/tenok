@@ -38,17 +38,17 @@ void sched_start(void);
 
 /**
  * @brief  Get the thread information iteratively
- * @param  info: For returning thread information
+ * @param  info: For returning thread information.
  * @param  next: The pointer to the next thread. Initially the argument
- *         should be set as NULL.
+ *         should be set with NULL.
  * @retval void *: The pointer to the next thread. The function returns
- *         NULL if the next thread does not exist.
+ *         NULL if next thread does not exist.
  */
 void *thread_info(struct thread_stat *info, void *next);
 
 /**
  * @brief  Set the name of the running thread
- * @param  name: The name of the program to provide.
+ * @param  name: The name of the program.
  * @retval None
  */
 void setprogname(const char *name);
@@ -56,14 +56,14 @@ void setprogname(const char *name);
 /**
  * @brief  To cause the calling thread to sleep for the given ticks
  * @param  ticks: The ticks of time to sleep
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int delay_ticks(uint32_t ticks);
 
 /**
- * @brief  Get information about OS memory management
- * @param  name: One of the value from the MINFO_NAMES enum.
- * @retval int: For returning the acquiring information.
+ * @brief  Get memory information of the system
+ * @param  name: The information to acquire (check MINFO_NAMES).
+ * @retval int: For returning the acquired information.
  */
 int minfo(int name);
 

@@ -9,7 +9,7 @@
  * @param  fd: The file descriptor number of the file.
  * @param  request: The request command to perform.
  * @param  arg: The argument to pass with the request.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int ioctl(int fd, unsigned int request, unsigned long arg);
 

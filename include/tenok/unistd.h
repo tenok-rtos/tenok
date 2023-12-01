@@ -21,14 +21,15 @@
            real-time seconds specified in seconds have elapsed or until a
            signal arrives which is not ignored.
  * @param  seconds: The sleep seconds to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 unsigned int sleep(unsigned int seconds);
 
 /**
- * @brief  Suspend execution of the calling thread for usec microseconds
+ * @brief  Suspend execution of the calling thread for a given time in
+ *         microseconds
  * @param  usec: The sleep microseconds to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int usleep(useconds_t usec);
 
@@ -36,7 +37,7 @@ int usleep(useconds_t usec);
  * @brief  Close a file descriptor, so that it no longer refers to any file
  *         and may be reused
  * @param  fd: The file descriptor to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int close(int fd);
 
@@ -44,7 +45,8 @@ int close(int fd);
  * @brief  Create a copy of the file descriptor oldfd, using the lowest-numbered
  *         unused file descriptor for the new descriptor
  * @param  oldfd: The file descriptor to duplicate.
- * @retval int: New file descriptor on sucess and nonzero error number on error.
+ * @retval int: New file descriptor on success and nonzero error number on
+ * error.
  */
 int dup(int oldfd);
 
@@ -53,7 +55,8 @@ int dup(int oldfd);
  *         specified by newfd.
  * @param  oldfd: The file descriptor to duplicate.
  * @param  newfd: The number to specify the new file descriptor.
- * @retval int: New file descriptor on sucess and nonzero error number on error.
+ * @retval int: New file descriptor on success and nonzero error number on
+ * error.
  */
 int dup2(int oldfd, int newfd);
 
@@ -63,7 +66,7 @@ int dup2(int oldfd, int newfd);
  * @param  fd: The file descriptor to provide.
  * @param  buf: The memory space for storing read data.
  * @param  count: The number of bytes to read.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 ssize_t read(int fd, void *buf, size_t count);
 
@@ -73,7 +76,7 @@ ssize_t read(int fd, void *buf, size_t count);
  * @param  fd: The file descriptor to provide.
  * @param  buf: The data to write.
  * @param  count: The number of bytes to write.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 ssize_t write(int fd, const void *buf, size_t count);
 
@@ -83,7 +86,7 @@ ssize_t write(int fd, const void *buf, size_t count);
  * @param  fd: The file descriptor to provide.
  * @param  offset: The new offset to the position specified by whence.
  * @param  whence: The start position of the new offset.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 off_t lseek(int fd, long offset, int whence);
 
@@ -107,7 +110,7 @@ char *getcwd(char *buf, size_t size);
 /**
  * @brief  Change working directory
  * @param  path: Pathname of the new working directory.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int chdir(const char *path);
 

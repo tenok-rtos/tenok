@@ -12,11 +12,11 @@
 #define O_NONBLOCK 00004000
 
 /**
- * @brief  Open the file specified by pathname
+ * @brief  Open the file specified by the pathname
  * @param  pathname: The pathname of the file.
  * @param  flags: Flags for opening the file.
- * @retval int: File descriptor number of the file on success and nonzero error
-                number on error.
+ * @retval int: The function returns file descriptor number of the
+ *         file on success and nonzero error number on error.
  */
 int open(const char *pathname, int flags);
 

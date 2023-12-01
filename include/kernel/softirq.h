@@ -11,10 +11,10 @@ struct tasklet_struct {
 };
 
 /**
- * @brief  Initialize the given tasklet
- * @param  t: Tasklet to provide.
+ * @brief  Initialize the tasklet
+ * @param  t: Pointer to the tasklet.
  * @param  func: The tasklet function to execute if scheduled.
- * @param  data: The data pass to the tasklet function if scheduled.
+ * @param  data: The data passed with the tasklet function.
  * @retval None
  */
 void tasklet_init(struct tasklet_struct *t,
@@ -22,8 +22,8 @@ void tasklet_init(struct tasklet_struct *t,
                   unsigned long data);
 
 /**
- * @brief  Schedule the given tasklet to execute by softirqd
- * @param  t: Tasklet to provide.
+ * @brief  Schedule the tasklet
+ * @param  t: Pointer to the tasklet.
  * @retval None
  */
 void tasklet_schedule(struct tasklet_struct *t);

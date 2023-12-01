@@ -30,11 +30,11 @@ uint32_t get_proc_mode(void);
 void os_env_init(void *stack);
 
 /**
- * @brief  Jump to the thread given by the stack (context switch)
- * @param  stack: The thread stack to provide.
- * @param  stack: Specify the thread privilege. True as kernel thread and false
- *         as user thread.
- * @retval uint32_t*: New stack pointer after returning back to the kernel.
+ * @brief  Jump to the thread with given stack
+ * @param  stack: The thread stack for jumping.
+ * @param  privileged: The thread privilege; true for kernel thread and
+           false for user thread.
+ * @retval uint32_t*: New stack pointer after returning to the kernel.
  */
 void *jump_to_thread(void *stack, bool privileged);
 
@@ -61,7 +61,7 @@ void __board_init(void);
 
 /**
  * @brief  Initialize thread stack
- * @param  stack_top: The pointer of the stack pointer.
+ * @param  stack_top: The pointer to the stack pointer.
  * @param  func: The function to execute after context switch.
  * @param  return_handler: The return handler function after fuc returned.
  * @param  args[4]: The arguments for func.
@@ -75,7 +75,7 @@ void __stack_init(uint32_t **stack_top,
 /**
  * @brief  Check if the kernel is returned from user space via systick
  * @param  sp: The stack pointer points to the top of the thread stack.
- * @retval bool: true if is returned via systick; otherwise false.
+ * @retval bool: true if it is returned via systick; otherwise false.
  */
 bool check_systick_event(void *sp);
 
@@ -88,8 +88,8 @@ bool check_systick_event(void *sp);
 unsigned long get_syscall_info(void *sp, unsigned long *pargs[4]);
 
 /**
- * @brief  Execute a syscall handler and handle arguments and return value
- *         passing of the thread stack
+ * @brief  Execute a syscall handler. The function passes syscall arguments
+           and return value to the thread stack
  * @param  func: The syscall handler function to execute.
  * @param  args: The pointers to the syscall arguments.
  * @param  syscall_pending: The pointer to the syscall pending flag of

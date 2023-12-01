@@ -62,7 +62,7 @@ struct task_struct {
     uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_MAX)];
 
     struct list_head threads_list; /* List of all threads of the task */
-    struct list_head list;         /* Link to the global task list */
+    struct list_head list;         /* Linked to the global task list */
 };
 
 struct thread_info {
@@ -77,16 +77,16 @@ struct thread_info {
 
     /* Syscall */
     unsigned long *syscall_args[4];  /* Pointer to the syscall arguments */
-    struct timespec syscall_timeout; /* For setting timeout for syscall */
+    struct timespec syscall_timeout; /* For setting timeout of the syscall */
     bool syscall_pending;    /* Indicate if the syscall is pending or not */
     bool syscall_is_timeout; /* Indicate if the syscall waiting time is up */
 
     /* Thread */
     void *retval;               /* For passing retval after the thread end */
-    void **retval_join;         /* To receive retval from a thread to join */
+    void **retval_join;         /* To getting retval from a thread to join */
     size_t file_request_size;   /* Size of the thread requesting to a file */
     uint32_t sleep_ticks;       /* Remained ticks to sleep */
-    uint16_t tid;               /* Thread id */
+    uint16_t tid;               /* Thread ID */
     uint16_t timer_cnt;         /* The number of timers that the thread has */
     uint8_t privilege;          /* Kernel thread or user thread */
     uint8_t status;             /* Thread status */
@@ -101,7 +101,7 @@ struct thread_info {
     /* Signals */
     struct sigaction *sig_table[SIGNAL_CNT];
     struct kfifo signal_queue; /* The queue for pending signals */
-    sigset_t sig_wait_set;     /* The signal set to wait */
+    sigset_t sig_wait_set;     /* The set of the signals to wait */
     uint32_t signal_cnt;       /* The number of pending signals in the queue */
     int *ret_sig;              /* For storing retval of the sigwait */
     bool wait_for_signal;      /* Indicates the thread is waiting for signal */
@@ -109,11 +109,11 @@ struct thread_info {
     /* Lists */
     struct list_head timers_list;     /* List of timers belongs to the thread */
     struct list_head poll_files_list; /* List of all files polling for */
-    struct list_head task_list;       /* Link to the thread list of the task */
-    struct list_head thread_list;     /* Link to the global thread list */
-    struct list_head timeout_list;    /* Link to the global timeout list */
-    struct list_head join_list; /* Link to another thread waiting for join */
-    struct list_head list;      /* Link to a scheduling list */
+    struct list_head task_list;       /* Linked to the task thread list */
+    struct list_head thread_list;     /* Linked to the global thread list */
+    struct list_head timeout_list;    /* Linked to the global timeout list */
+    struct list_head join_list; /* Linked to another thread waiting for join */
+    struct list_head list;      /* Linked to a scheduling list */
 };
 
 #endif

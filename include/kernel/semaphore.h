@@ -14,37 +14,33 @@ struct semaphore {
 };
 
 /**
- * @brief  Initialize the semaphore at the address pointed to by sem.
- *         The function should only be called inside the kernel space
- * @param  sem: The semaphore object to initialize.
- * @param  val: The value specifies the initial value for the semaphore.
+ * @brief  Initialize the semaphore
+ * @param  sem: Pointer to the semaphore.
+ * @param  val: Initial value of the semaphore.
  * @retval None
  */
 void sema_init(struct semaphore *sem, int val);
 
 /**
- * @brief  Decrements (locks) the semaphore pointed to by sem. The function
- *         should only be called inside the kernel space
- * @param  sem: The semaphore object to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Decrease the number of the semaphore
+ * @param  sem: Pointer to the semaphore.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int down(struct semaphore *sem);
 
 /**
  * @brief  The same as down(), except that if the decrement cannot be
  *         immediately performed, then call returns an error instead
- *         of blocking. The function should only be called inside the
- *         kernel space
- * @param  sem: The semaphore object to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ *         of blocking
+ * @param  sem: Pointer to the semaphore.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int down_trylock(struct semaphore *sem);
 
 /**
- * @brief  Increments (unlocks) the semaphore pointed to by sem. The
- *         function should only be called inside the kernel space
- * @param  sem: The semaphore object to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Increase the number of the semaphore
+ * @param  sem: Pointer to the semaphore.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int up(struct semaphore *sem);
 

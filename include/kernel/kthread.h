@@ -7,13 +7,12 @@
 #include <kernel/task.h>
 
 /**
- * @brief  Create new kernel task
+ * @brief  Create new kernel thread
  * @param  task_func: Task function to run.
- * @param  priority: Priority of the task.
- * @param  stack_size: Stack size of the task.
- * @retval int: The function return positive task pid number if
- *              success; otherwise it returns a negative error
- *              number.
+ * @param  priority: Priority of the kernel thread.
+ * @param  stack_size: Stack size of the kernel thread.
+ * @retval int: The function returns positive task PID on success;
+ *         otherwise it returns a negative error number.
  */
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size);
 

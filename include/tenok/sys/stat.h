@@ -24,7 +24,7 @@ struct stat {
 /**
  * @brief  Return information about a file, in the buffer pointed to by statbuf
  * @param  fd: The file descriptor to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int fstat(int fd, struct stat *statbuf);
 
@@ -34,7 +34,7 @@ int fstat(int fd, struct stat *statbuf);
  * @param  pathname: The pathname to create the new file.
  * @param  mode: Not used.
  * @param  dev: The file type to provide (S_IFIFO, S_IFCHR, ...).
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int mknod(const char *pathname, mode_t mode, dev_t dev);
 
@@ -42,7 +42,7 @@ int mknod(const char *pathname, mode_t mode, dev_t dev);
  * @brief  makes a FIFO special file with name pathname.
  * @param  pathname: The path name to create the new fifo file.
  * @param  mode: Not used.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int mkfifo(const char *pathname, mode_t mode);
 

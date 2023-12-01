@@ -12,36 +12,32 @@
 void exit(int status);
 
 /**
- * @brief  Allocate size bytes and returns a pointer to the allocated
- *         memory
- * @param  size: The number of bytes to allocate for the memory.
+ * @brief  Allocate a memory space.
+ * @param  size: The number of bytes for allocating a memory space.
  * @retval void *: The pointer to the allocated memory. If the allocation
  *         failed, the function returns NULL.
  */
 void *malloc(size_t size);
 
 /**
- * @brief  Free the memory space pointed to by ptr, which must have
-           been returned by a previous call to malloc()
- * @param  ptr: The memory space to provide.
+ * @brief  Free a memory space
+ * @param  ptr: Pointer to the allocated memory.
  * @retval None
  */
 void free(void *ptr);
 
 /**
- * @brief  Allocate memory of an array of nmemb elements of size bytes.
- *         The newly allocated memory will be set to zero.
+ * @brief  Allocate and reset a memory space of an array.
  * @param  nmemb: Size of the array element.
- * @param  size: The number of of the nmemb to allocate.
+ * @param  size: The number of array elements.
  * @retval void *: The pointer to the allocated memory. If the allocation
  *         failed, the function returns NULL.
  */
 void *calloc(size_t nmemb, size_t size);
 
 /**
- * Currently not implemented yet:
+ * Currently not implementedx yevt:
  */
-
 #if 0
 int atexit(void (*function)(void));
 void abort(void);
@@ -55,7 +51,6 @@ char *getenv(const char *name);
 /**
  * Non-standard extensions:
  */
-
 char *itoa(int value, char *buffer, int radix);
 char *utoa(unsigned int value, char *buffer, int radix);
 char *ltoa(long value, char *buffer, int radix);
@@ -64,7 +59,6 @@ char *ultoa(unsigned long value, char *buffer, int radix);
 /**
  * Functions provided by the compiler:
  */
-
 typedef struct {
     int quot;
     int rem;

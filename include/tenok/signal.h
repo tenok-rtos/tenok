@@ -54,86 +54,84 @@ struct sigevent {
 };
 
 /**
- * @brief  Initialize the signal set given by set  to  empty, with all signals
+ * @brief  Initialize the signal set given by set to empty, with all signals
  *         excluded from the set
- * @param  set: The signal set object to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @param  set: Pointer to the signal set.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigemptyset(sigset_t *set);
 
 /**
- * @brief  Initialize set to full, including all signals
- * @param  set: The signal set object to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Initialize the signal set to full, including all signals
+ * @param  set: Pointer to the signal set.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigfillset(sigset_t *set);
 
 /**
- * @brief  Add signal signum to set
- * @param  set: The signal set object to provide.
- * @param  signum: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Add a signal into the set
+ * @param  set: Pointer to the signal set.
+ * @param  signum: The number of the signal to add into the set.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigaddset(sigset_t *set, int signum);
 
 /**
- * @brief  Delete signal sugnum from set
- * @param  set: The signal set object to provide.
- * @param  signum: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Delete a signal from the set
+ * @param  set: Pointer to the signal set
+ * @param  signum: The number of the signal to delete from the set
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigdelset(sigset_t *set, int signum);
 
 /**
- * @brief  Test whether sugnum is a member of set
- * @param  set: The signal set object to provide.
- * @param  signum: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @brief  Test whether sugnum is a member of the set
+ * @param  set: Pointer to the signal set.
+ * @param  signum: The number of the signal to check.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigismember(const sigset_t *set, int signum);
 
 /**
- * @brief  Signal a task to change the action taken by a task on receipt of a
- *         specific signal
- * @param  signum: The signal set object to provide.
- * @param  act: The new action to provide.
+ * @brief  Set up a signal for the task to catch.
+ * @param  signum: The number of the signal to attach.
+ * @param  act: Pointer of the new action setting.
  * @param  oldact: For preserving old action.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigaction(int signum,
               const struct sigaction *act,
               struct sigaction *oldact);
 
 /**
- * @brief  Suspend execution of the calling thread until one of the signals
+ * @brief  Suspend execution of the calling task until one of the signals
  *         specified in the signal set becomes pending
- * @param  set: The signal set object to provide.
- * @param  signum: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @param  set: Pointer to the signal set.
+ * @param  sig: For returning the caught signal.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int sigwait(const sigset_t *set, int *sig);
 
 /**
- * @brief  Cause the calling task (or thread) to sleep until a signal is
+ * @brief  To cause the calling task (or thread) to sleep until a signal is
  *         delivered that either terminate the task or cause the invocation
  *         of a signal-catching function
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int pause(void);
 
 /**
- * @brief  Send a signal sig to the task specified with pid
+ * @brief  Send a signal to a task
  * @param  pid: The task ID to provide.
  * @param  sig: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int kill(pid_t pid, int sig);
 
 /**
  * @brief  Send a signal to the calling task
- * @param  pid: The task ID to provide.
  * @param  sig: The signal number to provide.
- * @retval int: 0 on sucess and nonzero error number on error.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int raise(int sig);
 

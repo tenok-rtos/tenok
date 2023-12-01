@@ -66,7 +66,7 @@ struct super_block {
     uint64_t s_blk_addr;  /* Start address of the blocks region */
 };
 
-/* Block header will be placed at the top of every blocks of the regular file */
+/* Block header will be placed at the top of every blocks of regular files */
 struct block_header {
     /* Virtual address of the next block */
     uint32_t b_next;
@@ -80,7 +80,7 @@ struct mount {
 
 /* index node */
 struct inode {
-    /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
+    /* File type: S_IFIFO, S_IFCHR, etc. */
     uint8_t i_mode;
     /* The device on which the file is mounted */
     uint8_t i_rdev;
