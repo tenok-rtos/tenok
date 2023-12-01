@@ -92,7 +92,16 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_spi.c \
        $(ST_LIB)/src/stm32f4xx_i2c.c
 
-SRC += ./kernel/arch/v7m_port.c \
+SRC += ./arch/v7m_port.c \
+       ./fs/fs.c \
+       ./fs/wrapper.c \
+       ./fs/reg_file.c \
+       ./fs/rom_dev.c \
+       ./fs/null_dev.c \
+       ./kernel/mm/mpool.c \
+       ./kernel/mm/mm.c \
+       ./kernel/mm/page.c \
+       ./kernel/mm/slab.c \
        ./kernel/kfifo.c \
        ./kernel/list.c \
        ./kernel/kernel.c \
@@ -109,15 +118,6 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/printf.c \
        ./kernel/printk.c \
        ./kernel/softirq.c \
-       ./kernel/fs/fs.c \
-       ./kernel/fs/wrapper.c \
-       ./kernel/fs/reg_file.c \
-       ./kernel/fs/rom_dev.c \
-       ./kernel/fs/null_dev.c \
-       ./kernel/mm/mpool.c \
-       ./kernel/mm/mm.c \
-       ./kernel/mm/page.c \
-       ./kernel/mm/slab.c \
        ./main.c
 
 SRC += ./user/debug-link/debug_link.c 
@@ -132,8 +132,8 @@ OBJS += ./tools/mkromfs/romfs.o
 
 DEPEND = $(SRC:.c=.d)
 
-ASM := ./platform/startup_stm32f4xx.s \
-       ./kernel/arch/v7m_entry.S
+ASM := ./arch/v7m_entry.S \
+       ./platform/startup_stm32f4xx.s
 
 all: gen_syscalls msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
