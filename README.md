@@ -11,6 +11,8 @@ layer (HAL).
 Tenok also integrates the MAVLink communication protocol and provides several utilities for robotics, including a debug visualization tool 
 and a facility tool for supporting software-in-the-loop simulation with the Gazebo simulator.
 
+<img src="docs/images/logo.png" width="40%" height="40%"/>
+
 ## Key Features
 
 * POSIX compliant RTOS
