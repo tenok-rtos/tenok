@@ -39,7 +39,7 @@ void sched_start(void);
 /**
  * @brief  Get the thread information iteratively
  * @param  info: For returning thread information.
- * @param  next: The pointer to the next thread. Initially the argument
+ * @param  next: The pointer to the the next thread. The initial argument
  *         should be set with NULL.
  * @retval void *: The pointer to the next thread. The function returns
  *         NULL if next thread does not exist.

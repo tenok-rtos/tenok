@@ -16,7 +16,7 @@ struct task_hook {
 };
 
 /**
- * @brief  Register a user task to be launched at the start of the OS
+ * @brief  Register a user task to be launched at the start of the system
  * @param  task_func: The task function to run.
  * @param  priority: The priority of the task.
  * @param  stacksize: The stack size of the task.

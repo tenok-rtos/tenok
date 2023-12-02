@@ -35,9 +35,10 @@ void free(void *ptr);
  */
 void *calloc(size_t nmemb, size_t size);
 
-/**
- * Currently not implementedx yevt:
+/*
+ * Currently not implemented:
  */
+
 #if 0
 int atexit(void (*function)(void));
 void abort(void);
@@ -48,17 +49,19 @@ int putenv(char *string);
 char *getenv(const char *name);
 #endif
 
-/**
+/*
  * Non-standard extensions:
  */
+
 char *itoa(int value, char *buffer, int radix);
 char *utoa(unsigned int value, char *buffer, int radix);
 char *ltoa(long value, char *buffer, int radix);
 char *ultoa(unsigned long value, char *buffer, int radix);
 
-/**
+/*
  * Functions provided by the compiler:
  */
+
 typedef struct {
     int quot;
     int rem;

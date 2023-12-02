@@ -39,7 +39,7 @@ int fstat(int fd, struct stat *statbuf);
 int mknod(const char *pathname, mode_t mode, dev_t dev);
 
 /**
- * @brief  makes a FIFO special file with name pathname.
+ * @brief  Makes a FIFO special file with name pathname.
  * @param  pathname: The path name to create the new fifo file.
  * @param  mode: Not used.
  * @retval int: 0 on success and nonzero error number on error.
