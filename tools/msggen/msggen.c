@@ -40,12 +40,12 @@ int split_tokens(char *token[3],
                  char *file_name,
                  int line_num)
 {
-    enum {
+    enum SplitSteps {
         SPLIT_TYPE = 0,
         SPLIT_VAR_NAME = 1,
         SPLIT_DESCRIPTION = 2,
         SPLIT_OVER_LENGTH = 3
-    } SplitSteps;
+    };
 
     int step = SPLIT_TYPE;
     int token_cnt = 0;
@@ -161,13 +161,13 @@ int type_check(char *type)
 
 int parse_variable_name(char *input, char *var_name, char *array_size)
 {
-    enum {
+    enum VarNameParserStates {
         PARSER_WAIT_NAME = 0,
         PARSER_WAIT_NAME_OR_LB = 1,
         PARSER_WAIT_INDEX = 2,
         PARSER_WAIT_INDEX_OR_RB = 3,
         PARSER_OVER_LENGTH = 4
-    } VarNameParserStates;
+    };
 
     int var_name_len = 0;
     int array_size_len = 0;
@@ -343,7 +343,6 @@ int codegen(char *file_name, char *msgs, char *output_dir)
 
     /* Parse the message declaration*/
     char *line_start = msgs;
-    char *line_end = msgs;
 
     int var_cnt = 0;
 
