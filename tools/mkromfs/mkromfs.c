@@ -177,8 +177,6 @@ struct inode *fs_add_file(struct inode *inode_dir,
     new_inode->i_fd = 0;
 
     /* File instantiation */
-    int result = 0;
-
     switch (file_type) {
     case S_IFREG: {
         new_inode->i_mode = S_IFREG;
@@ -321,7 +319,6 @@ void romfs_address_conversion_dir(struct inode *inode)
 {
     uint32_t sb_size = sizeof(romfs_sb);
     uint32_t inodes_size = sizeof(inodes);
-    uint32_t blocks_size = sizeof(romfs_blk);
 
     /* Adjust the address stored in the inode.i_data (which is in the block
      * region) */
@@ -385,7 +382,6 @@ void romfs_address_conversion_file(struct inode *inode)
 
     uint32_t sb_size = sizeof(romfs_sb);
     uint32_t inodes_size = sizeof(inodes);
-    uint32_t blocks_size = sizeof(romfs_blk);
 
     uint32_t blk_head_size = sizeof(struct block_header);
     uint32_t blk_free_size = FS_BLK_SIZE - blk_head_size;
@@ -581,7 +577,7 @@ void romfs_import_file(char *host_path, char *romfs_path)
 }
 
 #define PATH_BUF_SIZE 500
-char romfs_import_dir(const char *host_path, const char *romfs_path)
+void romfs_import_dir(const char *host_path, const char *romfs_path)
 {
     /* Open the directory */
     DIR *dir = opendir(host_path);

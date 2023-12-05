@@ -5,6 +5,7 @@ ROMFS_OBJ := ./romfs.o
 
 CFLAGS :=
 CFLAGS += -g
+CFLAGS += -Wall
 
 CFLAGS += -I ../../ \
           -I ../../include/common
