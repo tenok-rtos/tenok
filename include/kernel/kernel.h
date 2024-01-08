@@ -76,10 +76,12 @@ struct thread_info {
     size_t stack_size;                 /* Stack size of the thread in bytes */
 
     /* Syscall */
-    unsigned long *syscall_args[4];  /* Pointer to the syscall arguments */
-    struct timespec syscall_timeout; /* For setting timeout of the syscall */
+    unsigned long *syscall_args[4]; /* Pointer to the syscall arguments */
+    unsigned long *syscall_stack_top;
+    bool syscall_mode;
     bool syscall_pending;    /* Indicate if the syscall is pending or not */
     bool syscall_is_timeout; /* Indicate if the syscall waiting time is up */
+    struct timespec syscall_timeout; /* For setting timeout of the syscall */
 
     /* Thread */
     void *retval;               /* For passing retval after the thread end */

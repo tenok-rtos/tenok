@@ -71,6 +71,7 @@ syscalls = \
      'free']
 
 reserved_events = [
+    'SYSCALL_RETURN_EVENT',
     'SIGNAL_CLEANUP_EVENT',
     'THREAD_RETURN_EVENT',
     'THREAD_ONCE_EVENT']

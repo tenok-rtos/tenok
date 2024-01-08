@@ -110,6 +110,11 @@ static struct kmalloc_slab_info kmalloc_slab_info[] = {
 
 static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
+NACKED void syscall_return_handler(void)
+{
+    SYSCALL(SYSCALL_RETURN_EVENT);
+}
+
 NACKED void thread_return_handler(void)
 {
     SYSCALL(THREAD_RETURN_EVENT);
@@ -219,6 +224,16 @@ static inline void set_syscall_pending(struct thread_info *thread)
 static inline void reset_syscall_pending(struct thread_info *thread)
 {
     thread->syscall_pending = false;
+}
+
+static inline void sched_lock(void)
+{
+    preempt_disable();
+}
+
+static inline void sched_unlock(void)
+{
+    preempt_enable();
 }
 
 static inline struct task_struct *current_task_info(void)
@@ -479,6 +494,15 @@ static void stage_temporary_handler(struct thread_info *thread,
     __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
 }
 
+static void stage_syscall_handler(struct thread_info *thread,
+                                  uint32_t func,
+                                  uint32_t return_handler,
+                                  uint32_t args[4])
+{
+    thread->syscall_stack_top = thread->stack_top;
+    __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
+}
+
 static void stage_signal_handler(struct thread_info *thread,
                                  uint32_t func,
                                  uint32_t args[4])
@@ -735,7 +759,9 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
 
 static void sys_setprogname(const char *name)
 {
+    sched_lock();
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
+    sched_unlock();
 }
 
 static int sys_delay_ticks(uint32_t ticks)
@@ -2630,6 +2656,12 @@ static void syscall_handler(void)
     switch (syscall_num) {
     case 0:
         break;
+    case SYSCALL_RETURN_EVENT:
+        // XXX
+        running_thread->stack_top =
+            (unsigned long *) running_thread->syscall_stack_top;
+        running_thread->syscall_mode = false;
+        break;
     case SIGNAL_CLEANUP_EVENT:
         signal_cleanup_handler();
         break;
@@ -2643,10 +2675,23 @@ static void syscall_handler(void)
         /* Check syscall table */
         for (int i = 0; i < SYSCALL_CNT; i++) {
             if (syscall_num == syscall_table[i].num) {
-                /* Execute the syscall service */
-                syscall(syscall_table[i].handler_func,
-                        running_thread->syscall_args,
-                        &running_thread->syscall_pending);
+                /* XXX */
+                if (running_thread->syscall_mode) {
+                    return;
+                }
+
+                if (syscall_num == SETPROGNAME) {
+                    stage_syscall_handler(running_thread,
+                                          syscall_table[i].handler_func,
+                                          (uint32_t) syscall_return_handler,
+                                          *running_thread->syscall_args);
+                    running_thread->syscall_mode = true;
+                } else {
+                    /* Execute the syscall service */
+                    syscall(syscall_table[i].handler_func,
+                            running_thread->syscall_args,
+                            &running_thread->syscall_pending);
+                }
                 return;
             }
         }
@@ -2842,17 +2887,22 @@ void sched_start(void)
         /* Select new thread */
         schedule();
 
-        /* Jump to the syscall handler as a thread with pending
-         * syscall is selected */
-        if (running_thread->syscall_pending)
-            continue;
-
-        /* Check if the selected thread has pending signals */
-        check_pending_signals();
-
         /* Jump to the selected thread */
-        running_thread->stack_top = jump_to_thread(running_thread->stack_top,
-                                                   running_thread->privilege);
+        if (running_thread->syscall_mode) {
+            running_thread->stack_top =
+                jump_to_thread(running_thread->stack_top, KERNEL_THREAD);
+        } else {
+            /* Jump to the syscall handler as a thread with pending
+             * syscall is selected */
+            if (running_thread->syscall_pending)
+                continue;
+
+            /* Check if the selected thread has pending signals */
+            check_pending_signals();
+
+            running_thread->stack_top = jump_to_thread(
+                running_thread->stack_top, running_thread->privilege);
+        }
 
         /* Check thread stack pointer after it returned to the kernel */
         check_thread_stack();
