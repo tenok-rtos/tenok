@@ -112,6 +112,7 @@ static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
 NACKED void syscall_return_handler(void)
 {
+    asm volatile("mov %0, r0" : "=r"(*running_thread->syscall_args[0]));
     SYSCALL(SYSCALL_RETURN_EVENT);
 }
 
@@ -806,6 +807,8 @@ static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
 
 static int sys_minfo(int name)
 {
+    sched_lock();
+
     int retval = -1;
 
     switch (name) {
@@ -822,6 +825,8 @@ static int sys_minfo(int name)
         retval = heap_get_free_size();
         break;
     }
+
+    sched_unlock();
 
     /* Return the inquired information */
     return retval;
@@ -2650,8 +2655,10 @@ static struct syscall_info syscall_table[] = {SYSCALL_TABLE_INIT};
 
 static void syscall_handler(void)
 {
-    unsigned long syscall_num = get_syscall_info(running_thread->stack_top,
-                                                 running_thread->syscall_args);
+    // XXX
+    unsigned long *syscall_args[4];
+    unsigned long syscall_num =
+        get_syscall_info(running_thread->stack_top, syscall_args);
 
     switch (syscall_num) {
     case 0:
@@ -2675,12 +2682,16 @@ static void syscall_handler(void)
         /* Check syscall table */
         for (int i = 0; i < SYSCALL_CNT; i++) {
             if (syscall_num == syscall_table[i].num) {
-                /* XXX */
+                // XXX
                 if (running_thread->syscall_mode) {
                     return;
                 }
 
-                if (syscall_num == SETPROGNAME) {
+                // XXX
+                memcpy(running_thread->syscall_args, syscall_args,
+                       sizeof(running_thread->syscall_args));
+
+                if (syscall_num == SETPROGNAME || syscall_num == MINFO) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
@@ -2903,8 +2914,8 @@ void sched_start(void)
             running_thread->stack_top = jump_to_thread(
                 running_thread->stack_top, running_thread->privilege);
         }
-
-        /* Check thread stack pointer after it returned to the kernel */
-        check_thread_stack();
     }
+
+    /* Check thread stack pointer after it returned to the kernel */
+    check_thread_stack();
 }
