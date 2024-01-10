@@ -761,18 +761,24 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
 static void sys_setprogname(const char *name)
 {
     sched_lock();
+
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
+
     sched_unlock();
 }
 
 static int sys_delay_ticks(uint32_t ticks)
 {
+    sched_lock();
+
     /* Reconfigure the tick to sleep */
     running_thread->sleep_ticks = ticks;
 
     /* Enqueue the thread into the sleep list */
     running_thread->status = THREAD_WAIT;
     list_add(&(running_thread->list), &sleep_list);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -782,9 +788,13 @@ static int sys_task_create(task_func_t task_func,
                            uint8_t priority,
                            int stack_size)
 {
+    sched_lock();
+
     int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
     if (retval < 0)
         printk("task_create(): failed to create new task");
+
+    sched_unlock();
 
     /* Return task creation result */
     return retval;
@@ -792,6 +802,8 @@ static int sys_task_create(task_func_t task_func,
 
 static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
 {
+    sched_lock();
+
     void *ptr = NULL;
     size_t alloc_size = ALIGN(size, sizeof(long));
 
@@ -800,6 +812,8 @@ static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
         ptr = (void *) ((uintptr_t) mpool->mem + mpool->offset);
         mpool->offset += alloc_size;
     }
+
+    sched_unlock();
 
     /* Return the allocated memory */
     return ptr;
@@ -834,8 +848,12 @@ static int sys_minfo(int name)
 
 static int sys_sched_yield(void)
 {
+    sched_lock();
+
     /* Suspend current thread */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -843,6 +861,8 @@ static int sys_sched_yield(void)
 
 static void sys_exit(int status)
 {
+    sched_lock();
+
     /* Acquire the current running task */
     struct task_struct *task = current_task_info();
 
@@ -869,6 +889,8 @@ static void sys_exit(int status)
 
     /* Remove the task from the system */
     task_delete(task);
+
+    sched_unlock();
 }
 
 static int sys_mount(const char *source, const char *target)
@@ -1317,8 +1339,13 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 
 static int sys_readdir(DIR *dirp, struct dirent *dirent)
 {
-    /* Return the direcotry entry structure */
-    return fs_read_dir(dirp, dirent);
+    sched_lock();
+
+    int retval = fs_read_dir(dirp, dirent);
+
+    sched_unlock();
+
+    return retval;
 }
 
 static char *sys_getcwd(char *buf, size_t size)
@@ -1373,8 +1400,13 @@ static int sys_chdir(const char *path)
 
 static int sys_getpid(void)
 {
-    /* Return the task ID */
-    return current_task_info()->pid;
+    sched_lock();
+
+    int pid = current_task_info()->pid;
+
+    sched_unlock();
+
+    return pid;
 }
 
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
@@ -1836,8 +1868,13 @@ static int sys_pthread_create(pthread_t *pthread,
 
 static pthread_t sys_pthread_self(void)
 {
-    /* Return thread ID */
-    return running_thread->tid;
+    sched_lock();
+
+    int tid = running_thread->tid;
+
+    sched_unlock();
+
+    return tid;
 }
 
 static int sys_pthread_join(pthread_t tid, void **retval)
@@ -2072,8 +2109,12 @@ static int sys_pthread_kill(pthread_t tid, int sig)
 
 static void sys_pthread_exit(void *retval)
 {
+    sched_lock();
+
     running_thread->retval = retval;
     thread_join_handler();
+
+    sched_unlock();
 }
 
 static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
@@ -2385,7 +2426,11 @@ static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
         return -EINVAL;
     }
 
+    sched_lock();
+
     get_sys_time(tp);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2398,7 +2443,11 @@ static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
         return -EINVAL;
     }
 
+    sched_lock();
+
     set_sys_time(tp);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2553,13 +2602,23 @@ static void *sys_malloc(size_t size)
     if (size == 0)
         return NULL;
 
-    return __malloc(size);
+    sched_lock();
+
+    void *ptr = __malloc(size);
+
+    sched_unlock();
+
+    return ptr;
 }
 
 static void sys_free(void *ptr)
 {
+    sched_lock();
+
     /* Free the memory */
     __free(ptr);
+
+    sched_unlock();
 }
 
 static void threads_ticks_update(void)
@@ -2691,7 +2750,15 @@ static void syscall_handler(void)
                 memcpy(running_thread->syscall_args, syscall_args,
                        sizeof(running_thread->syscall_args));
 
-                if (syscall_num == SETPROGNAME || syscall_num == MINFO) {
+                if (syscall_num == SETPROGNAME || syscall_num == MINFO ||
+                    syscall_num == DELAY_TICKS || syscall_num == TASK_CREATE ||
+                    syscall_num == MPOOL_ALLOC || syscall_num == SCHED_YIELD ||
+                    syscall_num == EXIT || syscall_num == READDIR ||
+                    syscall_num == GETPID || syscall_num == PTHREAD_SELF ||
+                    syscall_num == PTHREAD_EXIT ||
+                    syscall_num == CLOCK_GETTIME ||
+                    syscall_num == CLOCK_SETTIME || syscall_num == MALLOC ||
+                    syscall_num == FREE) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
