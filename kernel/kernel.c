@@ -701,6 +701,10 @@ static struct thread_info *thread_info_find_next(struct thread_info *curr)
 
 static void *sys_thread_info(struct thread_stat *info, void *next)
 {
+    sched_lock();
+
+    void *retval;
+
     int tid;
     struct thread_info *thread = NULL;
 
@@ -722,8 +726,10 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
             thread = thread_info_find_next(next);
 
             /* No more alive thread */
-            if (!thread)
-                return NULL;
+            if (!thread) {
+                retval = NULL;
+                goto leave;
+            }
         }
     }
 
@@ -754,8 +760,13 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
         break;
     }
 
+    retval = thread_info_find_next(thread);
+
+leave:
+    sched_unlock();
+
     /* Return the pointer of the next thread */
-    return thread_info_find_next(thread);
+    return retval;
 }
 
 static void sys_setprogname(const char *name)
@@ -995,12 +1006,18 @@ static int sys_open(const char *pathname, int flags)
 
 static int sys_close(int fd)
 {
+    sched_lock();
+
+    int retval;
+
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
     /* Invalid file descriptor number */
-    if (fd < FILE_RESERVED_NUM)
-        return -EBADF;
+    if (fd < FILE_RESERVED_NUM) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* Calculate the index number of the file descriptor */
     int fdesc_idx = fd - FILE_RESERVED_NUM;
@@ -1008,7 +1025,8 @@ static int sys_close(int fd)
     /* Check if the file descriptor belongs to current task */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Free the file descriptor */
@@ -1016,13 +1034,23 @@ static int sys_close(int fd)
     bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_dup(int oldfd)
 {
-    if (oldfd < FILE_RESERVED_NUM)
-        return -EBADF;
+    sched_lock();
+
+    int retval;
+
+    if (oldfd < FILE_RESERVED_NUM) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* Convert oldfd to the index numbers on the table */
     int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
@@ -1033,14 +1061,15 @@ static int sys_dup(int oldfd)
     /* Check if the file descriptor is invalid */
     if (!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Find a free entry on the file descriptor table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
     if (fdesc_idx >= OPEN_MAX) {
-        /* Return error */
-        return -ENOMEM;
+        retval = -ENOMEM;
+        goto leave;
     }
     bitmap_set_bit(bitmap_fds, fdesc_idx);
     bitmap_set_bit(task->bitmap_fds, fdesc_idx);
@@ -1049,18 +1078,27 @@ static int sys_dup(int oldfd)
     fdtable[fdesc_idx] = fdtable[old_fdesc_idx];
 
     /* Return new file descriptor number */
-    int fd = fdesc_idx + FILE_RESERVED_NUM;
-    return fd;
+    retval = fdesc_idx + FILE_RESERVED_NUM;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_dup2(int oldfd, int newfd)
 {
+    sched_lock();
+
+    int retval;
+
     /* Convert fds to the index numbers on the table */
     int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
     int new_fdesc_idx = newfd - FILE_RESERVED_NUM;
 
-    if (oldfd < FILE_RESERVED_NUM || newfd < FILE_RESERVED_NUM)
-        return -EBADF;
+    if (oldfd < FILE_RESERVED_NUM || newfd < FILE_RESERVED_NUM) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1070,14 +1108,19 @@ static int sys_dup2(int oldfd, int newfd)
         !bitmap_get_bit(bitmap_fds, new_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, new_fdesc_idx)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Copy the old file descriptor content to the new one */
     fdtable[new_fdesc_idx] = fdtable[old_fdesc_idx];
 
     /* Return new file descriptor */
-    return newfd;
+    retval = newfd;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static ssize_t sys_read(int fd, void *buf, size_t count)
@@ -1264,11 +1307,17 @@ static off_t sys_lseek(int fd, long offset, int whence)
 
 static int sys_fstat(int fd, struct stat *statbuf)
 {
+    int retval;
+
+    sched_lock();
+
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
-    if (fd < FILE_RESERVED_NUM)
-        return -EBADF;
+    if (fd < FILE_RESERVED_NUM) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* Calculate the index number of the file descriptor
      * on the table */
@@ -1277,14 +1326,15 @@ static int sys_fstat(int fd, struct stat *statbuf)
     /* Check if the file descriptor is invalid */
     if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
         !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Get file inode */
     struct inode *inode = fdtable[fdesc_idx].file->f_inode;
 
     /* Check if the inode exists */
-    if (inode != NULL) {
+    if (inode != NULL) { /* XXX */
         statbuf->st_mode = inode->i_mode;
         statbuf->st_ino = inode->i_ino;
         statbuf->st_rdev = inode->i_rdev;
@@ -1293,7 +1343,11 @@ static int sys_fstat(int fd, struct stat *statbuf)
     }
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
@@ -1581,11 +1635,16 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
 static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
 {
+    sched_lock();
+
+    int retval;
+
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Return attributes */
@@ -1595,17 +1654,26 @@ static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
     attr->mq_curmsgs = __mq_len(mqd_table[mqdes].mq);
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_mq_setattr(mqd_t mqdes,
                           const struct mq_attr *newattr,
                           struct mq_attr *oldattr)
 {
+    sched_lock();
+
+    int retval;
+
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Acquire message queue attributes from the table */
@@ -1616,7 +1684,8 @@ static int sys_mq_setattr(mqd_t mqdes,
         newattr->mq_maxmsg != curr_attr->mq_maxmsg ||
         newattr->mq_msgsize != curr_attr->mq_msgsize) {
         /* Return error */
-        return -EINVAL;
+        retval = -EINVAL;
+        goto leave;
     }
 
     /* Preserve old attributes */
@@ -1629,7 +1698,11 @@ static int sys_mq_setattr(mqd_t mqdes,
     curr_attr->mq_flags = (~O_NONBLOCK) & newattr->mq_flags;
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 struct mqueue *acquire_mqueue(const char *name)
@@ -1718,11 +1791,16 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
 
 static int sys_mq_close(mqd_t mqdes)
 {
+    sched_lock();
+
+    int retval;
+
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
-        return -EBADF;
+        retval = -EBADF;
+        goto leave;
     }
 
     /* Free the message queue descriptor */
@@ -1730,29 +1808,43 @@ static int sys_mq_close(mqd_t mqdes)
     bitmap_clear_bit(task->bitmap_mqds, mqdes);
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_mq_unlink(const char *name)
 {
+    sched_lock();
+
+    int retval;
+
     /* Check the length of the message queue name */
-    if (strlen(name) >= NAME_MAX)
-        return -ENAMETOOLONG;
+    if (strlen(name) >= NAME_MAX) {
+        retval = -ENAMETOOLONG;
+        goto leave;
+    }
 
     /* Search the message with the given name */
     struct mqueue *mq = acquire_mqueue(name);
 
     /* Check if the message queue exists */
-    if (mq) {
-        /* Remove the message queue from the system */
-        __mq_free(mq);
-
-        /* Return success */
-        return 0;
-    } else {
-        /* Return error */
-        return -ENOENT;
+    if (!mq) {
+        retval = -ENOENT;
+        goto leave;
     }
+
+    /* Remove the message queue from the system */
+    __mq_free(mq);
+
+    /* Return success */
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static ssize_t sys_mq_receive(mqd_t mqdes,
@@ -1877,17 +1969,23 @@ static pthread_t sys_pthread_self(void)
     return tid;
 }
 
-static int sys_pthread_join(pthread_t tid, void **retval)
+static int sys_pthread_join(pthread_t tid, void **pthread_retval)
 {
+    sched_lock();
+
+    int retval;
+
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     if (thread->detached || !thread->joinable) {
         /* Return error */
-        return -EINVAL;
+        retval = -EINVAL;
+        goto leave;
     }
 
     /* Check deadlock (threads should not join on each other) */
@@ -1896,74 +1994,105 @@ static int sys_pthread_join(pthread_t tid, void **retval)
         /* Check if the thread is waiting to join the running thread */
         if (check_thread == thread) {
             /* Deadlock identified, return error */
-            return -EDEADLK;
+            retval = -EDEADLK;
+            goto leave;
         }
     }
 
-    running_thread->retval_join = retval;
+    running_thread->retval_join = pthread_retval;
 
     list_add(&running_thread->list, &thread->join_list);
     running_thread->status = THREAD_WAIT;
 
-    /* Return success (after the thread is awakened) */
-    return 0;
+    /* Return success */
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_pthread_cancel(pthread_t tid)
 {
+    sched_lock();
+
+    int retval;
+
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     /* kthread can only be canceled by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        return -EPERM;
+        retval = -EPERM;
+        goto leave;
     }
 
     thread_delete(thread);
 
     /* Return success */
     return 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_pthread_detach(pthread_t tid)
 {
+    sched_lock();
+
+    int retval;
+
     /* Check if the thread exists */
     if (!bitmap_get_bit(bitmap_threads, tid)) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     threads[tid].detached = true;
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_pthread_setschedparam(pthread_t tid,
                                      int policy,
                                      const struct sched_param *param)
 {
+    sched_lock();
+
+    int retval;
+
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     /* kthread can only be configured by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        return -EPERM;
+        retval = -EPERM;
+        goto leave;
     }
 
     /* Invalid priority parameter */
     if (param->sched_priority < 0 ||
         param->sched_priority > THREAD_PRIORITY_MAX) {
         /* Return error */
-        return -EINVAL;
+        retval = -EINVAL;
+        goto leave;
     }
 
     /* Apply settings */
@@ -1973,23 +2102,33 @@ static int sys_pthread_setschedparam(pthread_t tid,
         thread->priority = param->sched_priority;
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_pthread_getschedparam(pthread_t tid,
                                      int *policy,
                                      struct sched_param *param)
 {
+    sched_lock();
+
+    int retval;
+
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     /* kthread can only be set by the kernel */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        return -EPERM;
+        retval = -EPERM;
+        goto leave;
     }
 
     /* Return settings */
@@ -1999,13 +2138,21 @@ static int sys_pthread_getschedparam(pthread_t tid,
         param->sched_priority = thread->priority;
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_pthread_yield(void)
 {
+    sched_lock();
+
     /* Yield the time quatum to other threads */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2081,30 +2228,41 @@ static void handle_signal(struct thread_info *thread, int signum)
 
 static int sys_pthread_kill(pthread_t tid, int sig)
 {
+    sched_lock();
+
+    int retval;
+
     struct thread_info *thread = acquire_thread(tid);
 
     /* Failed to find the thread */
     if (!thread) {
         /* Return error */
-        return -ESRCH;
+        retval = -ESRCH;
+        goto leave;
     }
 
     /* kthread does not receive signals */
     if (thread->privilege == KERNEL_THREAD) {
         /* Return error */
-        return -EPERM;
+        retval = -EPERM;
+        goto leave;
     }
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(sig)) {
         /* Return error */
-        return -EINVAL;
+        retval = -EINVAL;
+        goto leave;
     }
 
     handle_signal(thread, sig);
 
     /* Return success */
-    return 0;
+    retval = 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static void sys_pthread_exit(void *retval)
@@ -2196,8 +2354,12 @@ static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 static int sys_pthread_cond_signal(pthread_cond_t *cond)
 {
+    sched_lock();
+
     /* Wake up a thread from the wait list */
     wake_up(&((struct cond *) cond)->task_wait_list);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2205,8 +2367,12 @@ static int sys_pthread_cond_signal(pthread_cond_t *cond)
 
 static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 {
+    sched_lock();
+
     /* Wake up all threads from the wait list */
     wake_up_all(&((struct cond *) cond)->task_wait_list);
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2214,6 +2380,8 @@ static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 
 static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
+    sched_lock();
+
     if (((struct mutex *) mutex)->owner) {
         /* Release the mutex */
         ((struct mutex *) mutex)->owner = NULL;
@@ -2222,6 +2390,8 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
         prepare_to_wait(&((struct cond *) cond)->task_wait_list, running_thread,
                         THREAD_WAIT);
     }
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2294,7 +2464,11 @@ static int sys_sem_wait(sem_t *sem)
 
 static int sys_sem_getvalue(sem_t *sem, int *sval)
 {
+    sched_lock();
+
     *sval = ((struct semaphore *) sem)->count;
+
+    sched_unlock();
 
     /* Return success */
     return 0;
@@ -2758,7 +2932,22 @@ static void syscall_handler(void)
                     syscall_num == PTHREAD_EXIT ||
                     syscall_num == CLOCK_GETTIME ||
                     syscall_num == CLOCK_SETTIME || syscall_num == MALLOC ||
-                    syscall_num == FREE) {
+                    syscall_num == FREE || syscall_num == THREAD_INFO ||
+                    syscall_num == DUP || syscall_num == DUP2 ||
+                    syscall_num == FSTAT || syscall_num == CLOSE ||
+                    syscall_num == MQ_GETATTR || syscall_num == MQ_SETATTR ||
+                    syscall_num == MQ_CLOSE || syscall_num == MQ_UNLINK ||
+                    syscall_num == PTHREAD_JOIN ||
+                    syscall_num == PTHREAD_CANCEL ||
+                    syscall_num == PTHREAD_DETACH ||
+                    syscall_num == PTHREAD_SETSCHEDPARAM ||
+                    syscall_num == PTHREAD_GETSCHEDPARAM ||
+                    syscall_num == PTHREAD_YIELD ||
+                    syscall_num == PTHREAD_KILL ||
+                    syscall_num == PTHREAD_COND_SIGNAL ||
+                    syscall_num == PTHREAD_COND_BROADCAST ||
+                    syscall_num == PTHREAD_COND_WAIT ||
+                    syscall_num == SEM_GETVALUE) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
