@@ -3355,19 +3355,22 @@ void sched_start(void)
         /* Select new thread */
         schedule();
 
-        /* Jump to the selected thread */
+        /* Check execution mode is in user thread or syscall? */
+        uint32_t privilege;
         if (running_thread->syscall_mode) {
-            running_thread->stack_top =
-                jump_to_thread(running_thread->stack_top, KERNEL_THREAD);
+            privilege = KERNEL_THREAD;
         } else {
             /* Check if the selected thread has pending signals */
             check_pending_signals();
 
-            running_thread->stack_top = jump_to_thread(
-                running_thread->stack_top, running_thread->privilege);
+            privilege = running_thread->privilege;
         }
-    }
 
-    /* Check thread stack pointer after it returned to the kernel */
-    check_thread_stack();
+        /* Jump to the selected thread */
+        running_thread->stack_top =
+            jump_to_thread(running_thread->stack_top, privilege);
+
+        /* Check thread stack pointer after it returned to the kernel */
+        check_thread_stack();
+    }
 }
