@@ -2421,52 +2421,56 @@ static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
     return retval;
 }
 
+static void raise_thread_priority_of_mutex_owner(struct mutex *mutex)
+{
+    /* Handle priority inheritance */
+    if (mutex->protocol == PTHREAD_PRIO_INHERIT &&
+        mutex->owner->priority < running_thread->priority) {
+        /* Raise the priority of the owner thread */
+        uint8_t old_priority = mutex->owner->priority;
+        uint8_t new_priority = running_thread->priority;
+
+        /* Move the owner thread from the ready list with lower priority to
+         * the new list with raised priority  */
+        struct list_head *curr, *next;
+        list_for_each_safe (curr, next, &ready_list[old_priority]) {
+            struct thread_info *thread =
+                list_entry(curr, struct thread_info, list);
+            if (thread == mutex->owner) {
+                list_move(&thread->list, &ready_list[new_priority]);
+            }
+        }
+
+        /* Set new priority and mark the priority inherited flag */
+        mutex->owner->priority = new_priority;
+        mutex->owner->priority_inherited = true;
+    }
+}
+
+// XXX
 static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 {
     struct mutex *mutex = (struct mutex *) _mutex;
-    int retval = mutex_lock(mutex);
 
-    /* Check if the syscall need to be restarted */
-    if (retval == -ERESTARTSYS) { /* Failed to acquire the mutex */
-        /* Handle priority inheritance */
-        if (mutex->protocol == PTHREAD_PRIO_INHERIT &&
-            mutex->owner->priority < running_thread->priority) {
-            /* Raise the priority of the owner thread */
-            uint8_t old_priority = mutex->owner->priority;
-            uint8_t new_priority = running_thread->priority;
+    int retval;
+    do {
+        sched_lock();
 
-            /* Move the owner thread from the ready list with lower priority to
-             * the new list with raised priority  */
-            struct list_head *curr, *next;
-            list_for_each_safe (curr, next, &ready_list[old_priority]) {
-                struct thread_info *thread =
-                    list_entry(curr, struct thread_info, list);
-                if (thread == mutex->owner) {
-                    list_move(&thread->list, &ready_list[new_priority]);
-                }
-            }
+        retval = mutex_lock(mutex);
+        if (retval == -ERESTARTSYS)
+            raise_thread_priority_of_mutex_owner(mutex);
 
-            /* Set new priority and mark the priority inherited flag */
-            mutex->owner->priority = new_priority;
-            mutex->owner->priority_inherited = true;
-        }
+        sched_unlock();
 
-        /* Turn on the syscall pending flag */
-        set_syscall_pending(running_thread);
-        return -ERESTARTSYS;
-    } else { /* Acquired the mutex successfully */
-        /* Handle priority inheritance */
-        if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
-            /* Preserve thread priority */
-            running_thread->original_priority = running_thread->priority;
-        }
+        jump_to_kernel();  // XXX
+    } while (retval == -ERESTARTSYS);
 
-        /* Turn off the syscall pending flag */
-        reset_syscall_pending(running_thread);
-
-        /* Return success */
-        return retval;
+    if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
+        /* Preserve thread priority in case priority inheritance happens */
+        running_thread->original_priority = running_thread->priority;
     }
+
+    return retval;
 }
 
 static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
@@ -3199,7 +3203,8 @@ static void syscall_handler(void)
                     syscall_num == TIMER_CREATE ||
                     syscall_num == TIMER_DELETE ||
                     syscall_num == TIMER_SETTIME ||
-                    syscall_num == TIMER_GETTIME) {
+                    syscall_num == TIMER_GETTIME ||
+                    syscall_num == PTHREAD_MUTEX_LOCK) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
