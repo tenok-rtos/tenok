@@ -217,16 +217,6 @@ void kfree(void *ptr)
     preempt_enable();
 }
 
-static inline void set_syscall_pending(struct thread_info *thread)
-{
-    thread->syscall_pending = true;
-}
-
-static inline void reset_syscall_pending(struct thread_info *thread)
-{
-    thread->syscall_pending = false;
-}
-
 static inline void sched_lock(void)
 {
     preempt_disable();
@@ -3164,59 +3154,12 @@ static void syscall_handler(void)
                 memcpy(running_thread->syscall_args, syscall_args,
                        sizeof(running_thread->syscall_args));
 
-                if (syscall_num == SETPROGNAME || syscall_num == MINFO ||
-                    syscall_num == DELAY_TICKS || syscall_num == TASK_CREATE ||
-                    syscall_num == MPOOL_ALLOC || syscall_num == SCHED_YIELD ||
-                    syscall_num == EXIT || syscall_num == READDIR ||
-                    syscall_num == GETPID || syscall_num == PTHREAD_SELF ||
-                    syscall_num == PTHREAD_EXIT ||
-                    syscall_num == CLOCK_GETTIME ||
-                    syscall_num == CLOCK_SETTIME || syscall_num == MALLOC ||
-                    syscall_num == FREE || syscall_num == THREAD_INFO ||
-                    syscall_num == DUP || syscall_num == DUP2 ||
-                    syscall_num == FSTAT || syscall_num == CLOSE ||
-                    syscall_num == MQ_GETATTR || syscall_num == MQ_SETATTR ||
-                    syscall_num == MQ_CLOSE || syscall_num == MQ_UNLINK ||
-                    syscall_num == PTHREAD_JOIN ||
-                    syscall_num == PTHREAD_CANCEL ||
-                    syscall_num == PTHREAD_DETACH ||
-                    syscall_num == PTHREAD_SETSCHEDPARAM ||
-                    syscall_num == PTHREAD_GETSCHEDPARAM ||
-                    syscall_num == PTHREAD_YIELD ||
-                    syscall_num == PTHREAD_KILL ||
-                    syscall_num == PTHREAD_COND_SIGNAL ||
-                    syscall_num == PTHREAD_COND_BROADCAST ||
-                    syscall_num == PTHREAD_COND_WAIT ||
-                    syscall_num == SEM_GETVALUE || syscall_num == MOUNT ||
-                    syscall_num == OPEN || syscall_num == READ ||
-                    syscall_num == WRITE || syscall_num == IOCTL ||
-                    syscall_num == LSEEK || syscall_num == OPENDIR ||
-                    syscall_num == GETCWD || syscall_num == CHDIR ||
-                    syscall_num == MKNOD || syscall_num == MKFIFO ||
-                    syscall_num == MQ_OPEN || syscall_num == MQ_RECEIVE ||
-                    syscall_num == MQ_SEND || syscall_num == PTHREAD_CREATE ||
-                    syscall_num == PTHREAD_MUTEX_UNLOCK ||
-                    syscall_num == PTHREAD_MUTEX_TRYLOCK ||
-                    syscall_num == PTHREAD_ONCE || syscall_num == SEM_POST ||
-                    syscall_num == SEM_TRYWAIT || syscall_num == SEM_WAIT ||
-                    syscall_num == SIGACTION || syscall_num == SIGWAIT ||
-                    syscall_num == KILL || syscall_num == RAISE ||
-                    syscall_num == TIMER_CREATE ||
-                    syscall_num == TIMER_DELETE ||
-                    syscall_num == TIMER_SETTIME ||
-                    syscall_num == TIMER_GETTIME ||
-                    syscall_num == PTHREAD_MUTEX_LOCK || syscall_num == POLL) {
-                    stage_syscall_handler(running_thread,
-                                          syscall_table[i].handler_func,
-                                          (uint32_t) syscall_return_handler,
-                                          *running_thread->syscall_args);
-                    running_thread->syscall_mode = true;
-                } else {
-                    /* Execute the syscall service */
-                    syscall(syscall_table[i].handler_func,
-                            running_thread->syscall_args,
-                            &running_thread->syscall_pending);
-                }
+                stage_syscall_handler(running_thread,
+                                      syscall_table[i].handler_func,
+                                      (uint32_t) syscall_return_handler,
+                                      *running_thread->syscall_args);
+
+                running_thread->syscall_mode = true;
                 return;
             }
         }
@@ -3417,11 +3360,6 @@ void sched_start(void)
             running_thread->stack_top =
                 jump_to_thread(running_thread->stack_top, KERNEL_THREAD);
         } else {
-            /* Jump to the syscall handler as a thread with pending
-             * syscall is selected */
-            if (running_thread->syscall_pending)
-                continue;
-
             /* Check if the selected thread has pending signals */
             check_pending_signals();
 
