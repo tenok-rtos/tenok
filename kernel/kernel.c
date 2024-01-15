@@ -1144,8 +1144,13 @@ leave:
     return retval;
 }
 
+// XXX
 static ssize_t sys_read(int fd, void *buf, size_t count)
 {
+    ssize_t retval;
+
+    sched_lock();
+
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
@@ -1162,7 +1167,8 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
         /* Check if the file descriptor is invalid */
         if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
             !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            return -EBADF;
+            retval = -EBADF;
+            goto err;
         }
 
         filp = fdtable[fdesc_idx].file;
@@ -1172,22 +1178,26 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
     /* Check if the file operation is undefined */
     if (!filp->f_op->read) {
         /* Return error */
-        return -ENXIO;
+        retval = -ENXIO;
+        goto err;
     }
+
+    sched_unlock();
 
     /* Call read operation */
-    ssize_t retval = filp->f_op->read(filp, buf, count, 0);
+    // XXX
+    do {
+        sched_lock();
+        retval = filp->f_op->read(filp, buf, count, 0);
+        sched_unlock();
+        jump_to_kernel();  // XXX
+    } while (retval == -ERESTARTSYS);
 
-    /* Check if the syscall need to be restarted */
-    if (retval == -ERESTARTSYS) {
-        /* Reading is not yet finish */
-        set_syscall_pending(running_thread);
-        return -ERESTARTSYS;
-    } else {
-        /* Reading is finish, return the result */
-        reset_syscall_pending(running_thread);
-        return retval;
-    }
+    return retval;
+
+err:
+    sched_unlock();
+    return retval;
 }
 
 static ssize_t sys_write(int fd, const void *buf, size_t count)
@@ -2969,7 +2979,7 @@ static void syscall_handler(void)
                     syscall_num == PTHREAD_COND_BROADCAST ||
                     syscall_num == PTHREAD_COND_WAIT ||
                     syscall_num == SEM_GETVALUE || syscall_num == MOUNT ||
-                    syscall_num == OPEN) {
+                    syscall_num == OPEN || syscall_num == READ) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
