@@ -942,9 +942,15 @@ err:
 
 static int sys_open(const char *pathname, int flags)
 {
+    int err_val;
+
+    sched_lock();
+
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_MAX)
-        return -ENAMETOOLONG;
+    if (strlen(pathname) >= PATH_MAX) {
+        err_val = -ENAMETOOLONG;
+        goto err;
+    }
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -953,35 +959,36 @@ static int sys_open(const char *pathname, int flags)
     int tid = running_thread->tid;
 
     /* Send file open request to the file system daemon */
-    if (running_thread->syscall_pending == false)
-        request_open_file(tid, pathname);
+    request_open_file(tid, pathname);
+
+    sched_unlock();
 
     /* Read the file index from the file system daemon */
     int file_idx;
-    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
-                           sizeof(file_idx), 0);
+    int fifo_retval;
+    do {
+        sched_lock();
+        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
+                                sizeof(file_idx), 0);
+        sched_unlock();
+        jump_to_kernel();  // XXX
+    } while (fifo_retval == -ERESTARTSYS);
 
-    /* Check if the syscall need to be restarted */
-    if (retval == -ERESTARTSYS) {
-        /* The request is not yet processed */
-        set_syscall_pending(running_thread);
-        return -ERESTARTSYS;
-    }
-
-    /* The request is complete */
-    reset_syscall_pending(running_thread);
+    sched_lock();
 
     /* File not found */
     if (file_idx == -1) {
         /* Return error */
-        return -ENOENT;
+        err_val = -ENOENT;
+        goto err;
     }
 
     /* Find a free entry on the file descriptor entry table */
     int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
     if (fdesc_idx >= OPEN_MAX) {
         /* Return error */
-        return -ENOMEM;
+        err_val = -ENOMEM;
+        goto err;
     }
     bitmap_set_bit(bitmap_fds, fdesc_idx);
     bitmap_set_bit(task->bitmap_fds, fdesc_idx);
@@ -1000,8 +1007,11 @@ static int sys_open(const char *pathname, int flags)
         bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
         /* Return error */
-        return -ENXIO;
+        err_val = -ENXIO;
+        goto err;
     }
+
+    sched_unlock();
 
     /* Call open operation  */
     filp->f_op->open(filp->f_inode, filp);
@@ -1009,6 +1019,10 @@ static int sys_open(const char *pathname, int flags)
     /* Return the file descriptor number */
     int fd = fdesc_idx + FILE_RESERVED_NUM;
     return fd;
+
+err:
+    sched_lock();
+    return err_val;
 }
 
 static int sys_close(int fd)
@@ -2954,7 +2968,8 @@ static void syscall_handler(void)
                     syscall_num == PTHREAD_COND_SIGNAL ||
                     syscall_num == PTHREAD_COND_BROADCAST ||
                     syscall_num == PTHREAD_COND_WAIT ||
-                    syscall_num == SEM_GETVALUE || syscall_num == MOUNT) {
+                    syscall_num == SEM_GETVALUE || syscall_num == MOUNT ||
+                    syscall_num == OPEN) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
