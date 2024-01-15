@@ -1640,84 +1640,85 @@ void poll_notify(struct file *notify_file)
 
 static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-    if (running_thread->syscall_pending == false) {
-        /* Set polling deadline */
-        if (timeout > 0) {
-            struct timespec tp;
-            get_sys_time(&tp);
-            time_add(&tp, 0, timeout * 1000000);
-            running_thread->syscall_timeout = tp;
-        }
+    int retval;
 
-        /* Initialize the polling file list */
-        INIT_LIST_HEAD(&running_thread->poll_files_list);
-        running_thread->syscall_is_timeout = false;
+    sched_lock();
 
-        /* Check file events */
-        struct file *filp;
-        bool no_event = true;
-
-        for (int i = 0; i < nfds; i++) {
-            int fd = fds[i].fd - FILE_RESERVED_NUM;
-            filp = fdtable[fd].file;
-
-            uint32_t events = filp->f_events;
-            if (~fds[i].events & events) {
-                no_event = false;
-            }
-
-            /* Return file events */
-            fds[i].revents |= events;
-        }
-
-        if (!no_event) {
-            /* Return success */
-            return 0;
-        }
-
-        /* No events is observed and no timeout is set, return immediately */
-        if (timeout == 0) {
-            /* return error */
-            return -1; /* TODO: Specify the failed reason */
-        }
-
-        /* Turn on the syscall pending flag */
-        set_syscall_pending(running_thread);
-
-        /* Suspend current thread */
-        prepare_to_wait(&poll_list, running_thread, THREAD_WAIT);
-
-        /* Add current thread into the timeout monitoring list */
-        if (timeout > 0)
-            list_add(&running_thread->timeout_list, &timeout_list);
-
-        /* Record all files for polling */
-        for (int i = 0; i < nfds; i++) {
-            int fd = fds[i].fd - FILE_RESERVED_NUM;
-            filp = fdtable[fd].file;
-            list_add(&filp->list, &running_thread->poll_files_list);
-        }
-
-        return -ERESTARTSYS;
-    } else {
-        /* Turn off the syscall pending flag */
-        reset_syscall_pending(running_thread);
-
-        /* clear list of poll files */
-        INIT_LIST_HEAD(&running_thread->poll_files_list);
-
-        /* Remove the thread from the polling list */
-        if (timeout > 0)
-            list_del(&running_thread->timeout_list);
-
-        if (running_thread->syscall_is_timeout) {
-            /* Return error */
-            return -1; /* TODO: Specify the failed reason */
-        } else {
-            /* Return success */
-            return 0;
-        }
+    /* Set polling deadline */
+    if (timeout > 0) {
+        struct timespec tp;
+        get_sys_time(&tp);
+        time_add(&tp, 0, timeout * 1000000);
+        running_thread->syscall_timeout = tp;
     }
+
+    /* Initialize the polling file list */
+    INIT_LIST_HEAD(&running_thread->poll_files_list);
+
+    /* Check file events */
+    struct file *filp;
+    bool no_event = true;
+
+    for (int i = 0; i < nfds; i++) {
+        int fd = fds[i].fd - FILE_RESERVED_NUM;
+        filp = fdtable[fd].file;
+
+        uint32_t events = filp->f_events;
+        if (~fds[i].events & events) {
+            no_event = false;
+        }
+
+        /* Return file events */
+        fds[i].revents |= events;
+    }
+
+    if (!no_event) {
+        /* Return success */
+        retval = 0;
+        goto leave;
+    }
+
+    /* No events is observed and no timeout is set, return immediately */
+    if (timeout == 0) {
+        /* return error */
+        retval = -1; /* TODO: Specify the failed reason */
+        goto leave;
+    }
+
+    /* Suspend current thread */
+    prepare_to_wait(&poll_list, running_thread, THREAD_WAIT);
+
+    /* Add current thread into the timeout monitoring list */
+    if (timeout > 0)
+        list_add(&running_thread->timeout_list, &timeout_list);
+
+    /* Record all files for polling */
+    for (int i = 0; i < nfds; i++) {
+        int fd = fds[i].fd - FILE_RESERVED_NUM;
+        filp = fdtable[fd].file;
+        list_add(&filp->list, &running_thread->poll_files_list);
+    }
+
+    sched_unlock();
+
+    /* Wait until the file event happens */
+    jump_to_kernel();
+
+    sched_lock();
+
+    /* clear list of poll files */
+    INIT_LIST_HEAD(&running_thread->poll_files_list);
+
+    /* Remove the thread from the polling list */
+    if (timeout > 0)
+        list_del(&running_thread->timeout_list);
+
+    /* TODO: Specify the failed reason */
+    retval = (running_thread->syscall_is_timeout) ? -1 : 0;
+
+leave:
+    sched_unlock();
+    return retval;
 }
 
 static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
@@ -3204,7 +3205,7 @@ static void syscall_handler(void)
                     syscall_num == TIMER_DELETE ||
                     syscall_num == TIMER_SETTIME ||
                     syscall_num == TIMER_GETTIME ||
-                    syscall_num == PTHREAD_MUTEX_LOCK) {
+                    syscall_num == PTHREAD_MUTEX_LOCK || syscall_num == POLL) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
