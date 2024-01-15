@@ -906,31 +906,38 @@ static void sys_exit(int status)
 
 static int sys_mount(const char *source, const char *target)
 {
+    int err_val;
+
+    sched_lock();
+
     /* Check the length of the pathname */
-    if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX)
-        return -ENAMETOOLONG;
+    if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX) {
+        err_val = -ENAMETOOLONG;
+        goto err;
+    }
 
     int tid = running_thread->tid;
 
     /* Send mount request to the file system daemon */
-    if (running_thread->syscall_pending == false)
-        request_mount(tid, source, target);
+    request_mount(tid, source, target);
+
+    sched_unlock();
 
     /* Read mount result from the file system daemon */
-    int mnt_result;
-    int retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &mnt_result,
-                           sizeof(mnt_result), 0);
+    int fifo_retval, mnt_result;
+    do {
+        sched_lock();
+        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
+                                (char *) &mnt_result, sizeof(mnt_result), 0);
+        sched_unlock();
+        jump_to_kernel();  // XXX
+    } while (fifo_retval == -ERESTARTSYS);
 
-    /* Check if the syscall need to be restarted */
-    if (retval == -ERESTARTSYS) {
-        /* The request is not yet processed */
-        set_syscall_pending(running_thread);
-        return -ERESTARTSYS;
-    } else {
-        /* The request is complete */
-        reset_syscall_pending(running_thread);
-        return mnt_result;
-    }
+    return mnt_result;
+
+err:
+    sched_unlock();
+    return err_val;
 }
 
 static int sys_open(const char *pathname, int flags)
@@ -2947,7 +2954,7 @@ static void syscall_handler(void)
                     syscall_num == PTHREAD_COND_SIGNAL ||
                     syscall_num == PTHREAD_COND_BROADCAST ||
                     syscall_num == PTHREAD_COND_WAIT ||
-                    syscall_num == SEM_GETVALUE) {
+                    syscall_num == SEM_GETVALUE || syscall_num == MOUNT) {
                     stage_syscall_handler(running_thread,
                                           syscall_table[i].handler_func,
                                           (uint32_t) syscall_return_handler,
