@@ -8,6 +8,7 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include <arch/port.h>
 #include <common/bitops.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
@@ -59,24 +60,24 @@ static struct file_operations rootfs_file_ops = {
 void link_stdin_dev(char *path)
 {
     int fd = fs_open_file(path);
-    while (fd < 0)
-        ;
+    if (fd < 0)
+        halt();
     files[STDIN_FILENO] = files[fd];
 }
 
 void link_stdout_dev(char *path)
 {
     int fd = fs_open_file(path);
-    while (fd < 0)
-        ;
+    if (fd < 0)
+        halt();
     files[STDOUT_FILENO] = files[fd];
 }
 
 void link_stderr_dev(char *path)
 {
     int fd = fs_open_file(path);
-    while (fd < 0)
-        ;
+    if (fd < 0)
+        halt();
     files[STDERR_FILENO] = files[fd];
 }
 
