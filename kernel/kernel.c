@@ -3110,6 +3110,7 @@ static void syscall_return_event_handler(void)
     running_thread->privilege =
         running_thread->kernel_thread ? KERNEL_THREAD : USER_THREAD;
     running_thread->syscall_mode = false;
+
     schedule();
 }
 
@@ -3215,6 +3216,10 @@ void schedule(void)
         list_first_entry(&ready_list[pri], struct thread_info, list);
     running_thread->status = THREAD_RUNNING;
     list_del(&running_thread->list);
+
+    /* Check if the thread has pending signals */
+    if (!running_thread->syscall_mode)
+        check_pending_signals();
 }
 
 static void print_platform_info(void)
@@ -3359,8 +3364,6 @@ void sched_start(void)
         if (check_systick_event(running_thread->stack_top)) {
             system_ticks_update();
             schedule();
-            /* Check if the thread has pending signals */
-            check_pending_signals();
         } else {
             syscall_handler();
         }
