@@ -16,7 +16,7 @@ struct thread_stat {
     int tid;
     int priority;
     char *status;
-    bool privileged;
+    bool kernel_thread;
     size_t stack_usage;
     size_t stack_size;
     char name[THREAD_NAME_MAX];

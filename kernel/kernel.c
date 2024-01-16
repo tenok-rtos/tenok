@@ -317,7 +317,7 @@ static int thread_create(struct thread_info **new_thread,
                          thread_func_t thread_func,
                          struct thread_attr *attr,
                          void *thread_arg,
-                         uint32_t privilege)
+                         bool kernel_thread)
 {
     /* Check if the detach state setting is invalid */
     bool bad_detach_state = attr->detachstate != PTHREAD_CREATE_DETACHED &&
@@ -325,7 +325,7 @@ static int thread_create(struct thread_info **new_thread,
 
     /* Check if the thread priority is invalid */
     bool bad_priority;
-    if (privilege == KERNEL_THREAD) {
+    if (kernel_thread) {
         bad_priority = attr->schedparam.sched_priority < 0 ||
                        attr->schedparam.sched_priority > KTHREAD_PRI_MAX;
     } else {
@@ -382,7 +382,8 @@ static int thread_create(struct thread_info **new_thread,
     thread->status = THREAD_WAIT;
     thread->tid = tid;
     thread->priority = attr->schedparam.sched_priority;
-    thread->privilege = privilege;
+    thread->kernel_thread = kernel_thread;
+    thread->privilege = kernel_thread ? KERNEL_THREAD : USER_THREAD;
 
     if (attr->detachstate == PTHREAD_CREATE_DETACHED) {
         thread->joinable = false;
@@ -413,7 +414,7 @@ static int thread_create(struct thread_info **new_thread,
 static int _task_create(thread_func_t task_func,
                         uint8_t priority,
                         int stack_size,
-                        uint32_t privilege)
+                        bool kernel_thread)
 {
     struct thread_attr attr = {
         .schedparam.sched_priority = priority,
@@ -424,7 +425,7 @@ static int _task_create(thread_func_t task_func,
     };
 
     struct thread_info *thread;
-    int retval = thread_create(&thread, task_func, &attr, NULL, privilege);
+    int retval = thread_create(&thread, task_func, &attr, NULL, kernel_thread);
     if (retval != 0)
         return retval;
 
@@ -451,7 +452,7 @@ static int _task_create(thread_func_t task_func,
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
-    int retval = _task_create(task_func, priority, stack_size, KERNEL_THREAD);
+    int retval = _task_create(task_func, priority, stack_size, true);
     if (retval < 0)
         printk("kthread_create(): failed to create new task");
 
@@ -728,7 +729,7 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
     info->pid = thread->task->pid;
     info->tid = thread->tid;
     info->priority = thread->priority;
-    info->privileged = thread->privilege == KERNEL_THREAD;
+    info->kernel_thread = thread->kernel_thread;
     info->stack_usage =
         (size_t) ((uintptr_t) thread->stack + thread->stack_size -
                   (uintptr_t) thread->stack_top);
@@ -791,7 +792,7 @@ static int sys_task_create(task_func_t task_func,
 {
     sched_lock();
 
-    int retval = _task_create(task_func, priority, stack_size, USER_THREAD);
+    int retval = _task_create(task_func, priority, stack_size, false);
     if (retval < 0)
         printk("task_create(): failed to create new task");
 
@@ -2058,7 +2059,7 @@ static int sys_pthread_create(pthread_t *pthread,
     /* Create new thread */
     struct thread_info *thread;
     int retval = thread_create(&thread, (thread_func_t) start_routine, attr,
-                               arg, running_thread->privilege);
+                               arg, running_thread->kernel_thread);
 
     /* Thread is created sucessfully */
     if (retval == 0) {
@@ -3106,6 +3107,8 @@ static void syscall_return_event_handler(void)
 {
     running_thread->stack_top =
         (unsigned long *) running_thread->syscall_stack_top;
+    running_thread->privilege =
+        running_thread->kernel_thread ? KERNEL_THREAD : USER_THREAD;
     running_thread->syscall_mode = false;
     schedule();
 }
@@ -3165,6 +3168,7 @@ static void syscall_handler(void)
                                   (uint32_t) syscall_return_handler,
                                   *running_thread->syscall_args);
 
+            running_thread->privilege = KERNEL_THREAD;
             running_thread->syscall_mode = true;
 
             return;
@@ -3365,13 +3369,8 @@ void sched_start(void)
         /* Check if the thread has pending signals */
         check_pending_signals();
 
-        /* Check execution mode is in user thread or syscall? */
-        uint32_t privilege = running_thread->syscall_mode
-                                 ? KERNEL_THREAD
-                                 : running_thread->privilege;
-
         /* Jump to the selected thread */
-        running_thread->stack_top =
-            jump_to_thread(running_thread->stack_top, privilege);
+        running_thread->stack_top = jump_to_thread(running_thread->stack_top,
+                                                   running_thread->privilege);
     }
 }

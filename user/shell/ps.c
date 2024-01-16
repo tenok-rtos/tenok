@@ -30,7 +30,7 @@ static void ps(void)
         char s_stack_usage[10] = {0};
         stack_usage(s_stack_usage, 10, info.stack_usage, info.stack_size);
 
-        if (info.privileged) {
+        if (info.kernel_thread) {
             snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r", info.pid,
                      info.priority, info.status, s_stack_usage, info.name);
         } else {
