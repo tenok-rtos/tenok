@@ -121,7 +121,7 @@ NACKED void thread_return_handler(void)
     SYSCALL(THREAD_RETURN_EVENT);
 }
 
-NACKED void sig_return_handler(void)
+NACKED void signal_cleanup_handler(void)
 {
     SYSCALL(SIGNAL_CLEANUP_EVENT);
 }
@@ -516,7 +516,7 @@ static void stage_signal_handler(struct thread_info *thread,
 
 static void check_pending_signals(void)
 {
-    if (running_thread->signal_cnt == 0 ||
+    if (running_thread->syscall_mode || running_thread->signal_cnt == 0 ||
         running_thread->stack_top_preserved) {
         return;
     }
@@ -528,7 +528,7 @@ static void check_pending_signals(void)
 
     /* Stage the signal handler into the thread stack */
     stage_temporary_handler(running_thread, info.func,
-                            (uint32_t) sig_return_handler, info.args);
+                            (uint32_t) signal_cleanup_handler, info.args);
 
     /* Update the number of total pending signals */
     running_thread->signal_cnt = kfifo_len(&running_thread->signal_queue);
@@ -632,11 +632,12 @@ void finish_wait(struct thread_info **wait)
     *wait = NULL;
 }
 
-static inline void signal_cleanup_handler(void)
+static inline void signal_cleanup_event_handler(void)
 {
     running_thread->stack_top =
         (unsigned long *) running_thread->stack_top_preserved;
     running_thread->stack_top_preserved = (unsigned long) NULL;
+    //    schedule();
 }
 
 static inline void thread_join_handler(void)
@@ -2520,7 +2521,7 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     return 0;
 }
 
-static void pthread_once_cleanup_handler(void)
+static void pthread_once_event_handler(void)
 {
     /* Restore the stack */
     running_thread->stack_top =
@@ -2531,6 +2532,8 @@ static void pthread_once_cleanup_handler(void)
     struct thread_once *once_control = running_thread->once_control;
     once_control->finished = true;
     wake_up_all(&once_control->wait_list);
+
+    schedule();
 }
 
 static int sys_pthread_once(pthread_once_t *_once_control,
@@ -3099,6 +3102,14 @@ static void system_ticks_update(void)
     syscall_timeout_update();
 }
 
+static void syscall_return_event_handler(void)
+{
+    running_thread->stack_top =
+        (unsigned long *) running_thread->syscall_stack_top;
+    running_thread->syscall_mode = false;
+    schedule();
+}
+
 static void thread_return_event_handler(void)
 {
     struct task_struct *task = current_task_info();
@@ -3111,6 +3122,9 @@ static void thread_return_event_handler(void)
         running_thread->retval = SYSCALL_ARG(running_thread, void *, 0);
         thread_join_handler();
     }
+
+    /* Select next thread to run */
+    schedule();
 }
 
 /* Syscall table */
@@ -3118,64 +3132,56 @@ static struct syscall_info syscall_table[] = {SYSCALL_TABLE_INIT};
 
 static void syscall_handler(void)
 {
-    // XXX
-    unsigned long *syscall_args[4];
-    unsigned long syscall_num =
-        get_syscall_info(running_thread->stack_top, syscall_args);
+    unsigned long syscall_num = get_syscall_num(running_thread->stack_top);
 
+    /* Match request with system event table */
     switch (syscall_num) {
     case 0:
-        break;
+        return;
     case SYSCALL_RETURN_EVENT:
-        // XXX
-        running_thread->stack_top =
-            (unsigned long *) running_thread->syscall_stack_top;
-        running_thread->syscall_mode = false;
-        break;
+        syscall_return_event_handler();
+        return;
     case SIGNAL_CLEANUP_EVENT:
-        signal_cleanup_handler();
-        break;
+        signal_cleanup_event_handler();
+        return;
     case THREAD_RETURN_EVENT:
         thread_return_event_handler();
-        break;
+        return;
     case THREAD_ONCE_EVENT:
-        pthread_once_cleanup_handler();
-        break;
-    default:
-        /* Check syscall table */
-        for (int i = 0; i < SYSCALL_CNT; i++) {
-            if (syscall_num == syscall_table[i].num) {
-                // XXX
-                if (running_thread->syscall_mode) {
-                    return;
-                }
-
-                // XXX
-                memcpy(running_thread->syscall_args, syscall_args,
-                       sizeof(running_thread->syscall_args));
-
-                stage_syscall_handler(running_thread,
-                                      syscall_table[i].handler_func,
-                                      (uint32_t) syscall_return_handler,
-                                      *running_thread->syscall_args);
-
-                running_thread->syscall_mode = true;
-                return;
-            }
-        }
-
-        /* Unknown supervisor request */
-        panic(
-            "\r=============== SYSCALL FAULT ================\n\r"
-            "Current thread: %p (%s)\n\r"
-            "Faulting syscall number = %d\n\r"
-            "Halting system\n\r"
-            "==============================================",
-            running_thread, running_thread->name, syscall_num);
+        pthread_once_event_handler();
+        return;
     }
+
+    /* Match request with system call table */
+    for (int i = 0; i < SYSCALL_CNT; i++) {
+        if (syscall_num == syscall_table[i].num) {
+            if (running_thread->syscall_mode)
+                return;
+
+            get_syscall_args(running_thread->stack_top,
+                             running_thread->syscall_args);
+
+            stage_syscall_handler(running_thread, syscall_table[i].handler_func,
+                                  (uint32_t) syscall_return_handler,
+                                  *running_thread->syscall_args);
+
+            running_thread->syscall_mode = true;
+
+            return;
+        }
+    }
+
+    /* Unknown request */
+    panic(
+        "\r=============== SYSCALL FAULT ================\n\r"
+        "Current thread: %p (%s)\n\r"
+        "Faulting syscall number = %d\n\r"
+        "Halting system\n\r"
+        "==============================================",
+        running_thread, running_thread->name, syscall_num);
 }
 
-static void schedule(void)
+void schedule(void)
 {
     /* Stop current thread */
     if (running_thread->status == THREAD_RUNNING)
@@ -3348,29 +3354,24 @@ void sched_start(void)
     while (1) {
         if (check_systick_event(running_thread->stack_top)) {
             system_ticks_update();
+            schedule();
         } else {
             syscall_handler();
         }
 
-        /* Select new thread */
-        schedule();
+        /* Check thread stack pointer to detect stack overflow */
+        check_thread_stack();
+
+        /* Check if the thread has pending signals */
+        check_pending_signals();
 
         /* Check execution mode is in user thread or syscall? */
-        uint32_t privilege;
-        if (running_thread->syscall_mode) {
-            privilege = KERNEL_THREAD;
-        } else {
-            /* Check if the selected thread has pending signals */
-            check_pending_signals();
-
-            privilege = running_thread->privilege;
-        }
+        uint32_t privilege = running_thread->syscall_mode
+                                 ? KERNEL_THREAD
+                                 : running_thread->privilege;
 
         /* Jump to the selected thread */
         running_thread->stack_top =
             jump_to_thread(running_thread->stack_top, privilege);
-
-        /* Check thread stack pointer after it returned to the kernel */
-        check_thread_stack();
     }
 }

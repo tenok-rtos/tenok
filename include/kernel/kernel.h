@@ -89,10 +89,11 @@ struct thread_info {
     uint32_t sleep_ticks;       /* Remained ticks to sleep */
     uint16_t tid;               /* Thread ID */
     uint16_t timer_cnt;         /* The number of timers that the thread has */
-    uint8_t privilege;          /* Kernel thread or user thread */
+    uint8_t privilege;          /* Current execution privilege level */
     uint8_t status;             /* Thread status */
     uint8_t priority;           /* Thread priority */
     uint8_t original_priority;  /* Original priority before inheritance */
+    bool kernel_thread;         /* Kernel thread or user thread */
     bool priority_inherited;    /* True if current priority is inherited */
     bool detached;              /* Thread is detached or not */
     bool joinable;              /* Thread is joinable or not */
@@ -116,5 +117,7 @@ struct thread_info {
     struct list_head join_list; /* Linked to another thread waiting for join */
     struct list_head list;      /* Linked to a scheduling list */
 };
+
+void schedule(void);
 
 #endif

@@ -148,7 +148,7 @@ bool check_systick_event(void *sp)
     return false;
 }
 
-unsigned long get_syscall_info(void *sp, unsigned long *pargs[4])
+unsigned long get_syscall_num(void *sp)
 {
     uint32_t lr = ((uint32_t *) sp)[8];
     unsigned long syscall_num;
@@ -157,20 +157,32 @@ unsigned long get_syscall_info(void *sp, unsigned long *pargs[4])
     if (lr & 0x10) {
         struct context *context = (struct context *) sp;
         syscall_num = context->_r7;
+    } else {
+        struct context_fpu *context = (struct context_fpu *) sp;
+        syscall_num = context->_r7;
+    }
+
+    return syscall_num;
+}
+
+void get_syscall_args(void *sp, unsigned long *pargs[4])
+{
+    uint32_t lr = ((uint32_t *) sp)[8];
+
+    /* EXC_RETURN[4]: 0 = FPU used / 1 = FPU unused */
+    if (lr & 0x10) {
+        struct context *context = (struct context *) sp;
         pargs[0] = &context->r0;
         pargs[1] = &context->r1;
         pargs[2] = &context->r2;
         pargs[3] = &context->r3;
     } else {
         struct context_fpu *context = (struct context_fpu *) sp;
-        syscall_num = context->_r7;
         pargs[0] = &context->r0;
         pargs[1] = &context->r1;
         pargs[2] = &context->r2;
         pargs[3] = &context->r3;
     }
-
-    return syscall_num;
 }
 
 void __idle(void)
