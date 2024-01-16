@@ -106,6 +106,13 @@ void get_syscall_args(void *sp, unsigned long *pargs[4]);
 void syscall(unsigned long func, unsigned long *args[4], bool *syscall_pending);
 
 /**
+ * @brief  Halt the system by trapping into an infinity loop
+ * @param  None
+ * @retval None
+ */
+void halt(void);
+
+/**
  * @brief  Trigger platform-specific idling
  * @param  None
  * @retval None

@@ -265,8 +265,7 @@ void set_daemon_id(int daemon)
 
     /* Calling thread is not the daemon itself */
     if (strcasecmp(deamon_names[daemon], running_thread->name)) {
-        while (1)
-            ;
+        halt();
     }
 
     daemon_id_table[daemon] = running_thread->tid;
@@ -3309,8 +3308,7 @@ static void start_init_thread(void)
 
     pthread_t tid;
     if (pthread_create(&tid, &attr, init, NULL) < 0) {
-        while (1)
-            ; /* Unexpected error */
+        halt(); /* Unexpected error */
     }
 
     /* Wait until initialization finished */

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <arch/port.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
 #include <kernel/thread.h>
@@ -190,6 +191,13 @@ void __idle(void)
     asm volatile("wfi");
 }
 
+void halt(void)
+{
+    preempt_disable();
+    while (1)
+        ;
+}
+
 static int dump_registers(char *buf, size_t buf_size, uint32_t *fault_stack)
 {
     unsigned int r0 = fault_stack[0];
@@ -260,8 +268,7 @@ void fault_dump(uint32_t fault_type, uint32_t *msp, uint32_t *psp, uint32_t lr)
         "==============================================",
         fault_type_s, thread_info_s, reg_info_s, fault_location, fault_msg_s);
 
-    while (1)
-        ;
+    halt();
 }
 
 NACKED void HardFault_Handler(void)
@@ -291,8 +298,7 @@ void SysTick_Handler(void)
 
 void NMI_Handler(void)
 {
-    while (1)
-        ;
+    halt();
 }
 
 void DebugMon_Handler(void)
