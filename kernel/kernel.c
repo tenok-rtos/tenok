@@ -516,7 +516,7 @@ static void stage_signal_handler(struct thread_info *thread,
 
 static void check_pending_signals(void)
 {
-    if (running_thread->syscall_mode || running_thread->signal_cnt == 0 ||
+    if (running_thread->signal_cnt == 0 ||
         running_thread->stack_top_preserved) {
         return;
     }
@@ -637,7 +637,8 @@ static inline void signal_cleanup_event_handler(void)
     running_thread->stack_top =
         (unsigned long *) running_thread->stack_top_preserved;
     running_thread->stack_top_preserved = (unsigned long) NULL;
-    //    schedule();
+
+    schedule();
 }
 
 static inline void thread_join_handler(void)
@@ -3125,7 +3126,6 @@ static void thread_return_event_handler(void)
         thread_join_handler();
     }
 
-    /* Select next thread to run */
     schedule();
 }
 
@@ -3297,7 +3297,7 @@ static void *init(void *arg)
 
 static void start_init_thread(void)
 {
-    /* Launch OS initialization thread */
+    /* Launch system initialization thread */
     pthread_attr_t attr;
     struct sched_param param;
     param.sched_priority = KTHREAD_PRI_MAX;
@@ -3319,7 +3319,7 @@ static void idle(void)
 {
     setprogname("idle");
 
-    /* Perform OS initialization */
+    /* Perform system initialization */
     start_init_thread();
 
     /* Run idle loop when nothing to do */
@@ -3348,24 +3348,25 @@ void sched_start(void)
     kthread_create(filesysd, KTHREAD_PRI_MAX - 1, FILESYSD_STACK_SIZE);
     kthread_create(printkd, KTHREAD_PRI_MAX - 1, PRINTKD_STACK_SIZE);
 
-    /* Dequeue thread 0 (Idle) to execute */
+    /* Dequeue and execute the init thread */
     running_thread = &threads[0];
     threads[0].status = THREAD_RUNNING;
-    list_del(&threads[0].list); /* Dequeue */
+    list_del(&threads[0].list);
+    running_thread->stack_top =
+        jump_to_thread(running_thread->stack_top, running_thread->privilege);
 
     while (1) {
         if (check_systick_event(running_thread->stack_top)) {
             system_ticks_update();
             schedule();
+            /* Check if the thread has pending signals */
+            check_pending_signals();
         } else {
             syscall_handler();
         }
 
         /* Check thread stack pointer to detect stack overflow */
         check_thread_stack();
-
-        /* Check if the thread has pending signals */
-        check_pending_signals();
 
         /* Jump to the selected thread */
         running_thread->stack_top = jump_to_thread(running_thread->stack_top,
