@@ -62,6 +62,9 @@ static LIST_HEAD(timers_list);  /* List of all timers in the system */
 static LIST_HEAD(poll_list);    /* List of all threads suspended by poll() */
 static LIST_HEAD(mqueue_list);  /* List of all posix message queues */
 
+/* Scheduler */
+static bool need_resched_flag;
+
 /* Lists of all threads in ready state */
 struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 
@@ -622,15 +625,6 @@ void finish_wait(struct thread_info **wait)
     *wait = NULL;
 }
 
-static inline void signal_cleanup_event_handler(void)
-{
-    running_thread->stack_top =
-        (unsigned long *) running_thread->stack_top_preserved;
-    running_thread->stack_top_preserved = (unsigned long) NULL;
-
-    schedule();
-}
-
 static inline void thread_join_handler(void)
 {
     /* Wake up the threads that waiting to join */
@@ -910,8 +904,8 @@ static int sys_mount(const char *source, const char *target)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
                                 (char *) &mnt_result, sizeof(mnt_result), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     return mnt_result;
@@ -951,8 +945,8 @@ static int sys_open(const char *pathname, int flags)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     preempt_disable();
@@ -1170,8 +1164,8 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
     do {
         preempt_disable();
         retval = filp->f_op->read(filp, buf, count, 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1226,8 +1220,8 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
     do {
         preempt_disable();
         retval = filp->f_op->write(filp, buf, count, 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1281,8 +1275,8 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
     do {
         preempt_disable();
         retval = filp->f_op->ioctl(filp, request, arg);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1336,8 +1330,8 @@ static off_t sys_lseek(int fd, long offset, int whence)
     do {
         preempt_disable();
         retval = filp->f_op->lseek(filp, offset, whence);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1419,8 +1413,8 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
                                 sizeof(inode_dir), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     /* Return directory information */
@@ -1467,8 +1461,8 @@ static char *sys_getcwd(char *buf, size_t size)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path,
                                 sizeof(path), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     return path;
@@ -1494,8 +1488,8 @@ static int sys_chdir(const char *path)
         fifo_retval =
             fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
                       sizeof(chdir_result), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     return chdir_result;
@@ -1539,8 +1533,8 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     if (file_idx == -1) {
@@ -1585,8 +1579,8 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
         preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &tid,
                                 sizeof(file_idx), 0);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     if (file_idx == -1) {
@@ -1681,10 +1675,10 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         list_add(&filp->list, &running_thread->poll_files_list);
     }
 
-    preempt_enable();
-
     /* Wait until the file event happens */
-    jump_to_kernel();
+    schedule();
+
+    preempt_enable();
 
     preempt_disable();
 
@@ -1967,8 +1961,8 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
         preempt_disable();
         retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
                               msg_prio);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -2018,8 +2012,8 @@ static int sys_mq_send(mqd_t mqdes,
         preempt_disable();
         retval =
             __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -2442,10 +2436,8 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
         retval = mutex_lock(mutex);
         if (retval == -ERESTARTSYS)
             raise_thread_priority_of_mutex_owner(mutex);
-
+        schedule();
         preempt_enable();
-
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
@@ -2512,21 +2504,6 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     return 0;
 }
 
-static void pthread_once_event_handler(void)
-{
-    /* Restore the stack */
-    running_thread->stack_top =
-        (unsigned long *) running_thread->stack_top_preserved;
-    running_thread->stack_top_preserved = (unsigned long) NULL;
-
-    /* Wake up all waiting threads and mark once variable as complete */
-    struct thread_once *once_control = running_thread->once_control;
-    once_control->finished = true;
-    wake_up_all(&once_control->wait_list);
-
-    schedule();
-}
-
 static int sys_pthread_once(pthread_once_t *_once_control,
                             void (*init_routine)(void))
 {
@@ -2586,8 +2563,8 @@ static int sys_sem_wait(sem_t *sem)
     do {
         preempt_disable();
         retval = down((struct semaphore *) sem);
+        schedule();
         preempt_enable();
-        jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -3093,6 +3070,21 @@ static void system_ticks_update(void)
     syscall_timeout_update();
 }
 
+static void set_need_resched(void)
+{
+    need_resched_flag = true;
+}
+
+static void reset_need_resched(void)
+{
+    need_resched_flag = false;
+}
+
+static bool need_resched(void)
+{
+    return need_resched_flag;
+}
+
 static void syscall_return_event_handler(void)
 {
     running_thread->stack_top =
@@ -3101,7 +3093,16 @@ static void syscall_return_event_handler(void)
         running_thread->kernel_thread ? KERNEL_THREAD : USER_THREAD;
     running_thread->syscall_mode = false;
 
-    schedule();
+    set_need_resched();
+}
+
+static inline void signal_cleanup_event_handler(void)
+{
+    running_thread->stack_top =
+        (unsigned long *) running_thread->stack_top_preserved;
+    running_thread->stack_top_preserved = (unsigned long) NULL;
+
+    set_need_resched();
 }
 
 static void thread_return_event_handler(void)
@@ -3117,7 +3118,22 @@ static void thread_return_event_handler(void)
         thread_join_handler();
     }
 
-    schedule();
+    set_need_resched();
+}
+
+static void pthread_once_event_handler(void)
+{
+    /* Restore the stack */
+    running_thread->stack_top =
+        (unsigned long *) running_thread->stack_top_preserved;
+    running_thread->stack_top_preserved = (unsigned long) NULL;
+
+    /* Wake up all waiting threads and mark once variable as complete */
+    struct thread_once *once_control = running_thread->once_control;
+    once_control->finished = true;
+    wake_up_all(&once_control->wait_list);
+
+    set_need_resched();
 }
 
 /* Syscall table */
@@ -3175,7 +3191,7 @@ static void syscall_handler(void)
         running_thread, running_thread->name, syscall_num);
 }
 
-void schedule(void)
+static void __schedule(void)
 {
     /* Stop current thread */
     if (running_thread->status == THREAD_RUNNING)
@@ -3210,6 +3226,12 @@ void schedule(void)
     /* Check if the thread has pending signals */
     if (!running_thread->syscall_mode)
         check_pending_signals();
+}
+
+void schedule(void)
+{
+    set_need_resched();
+    jump_to_kernel();
 }
 
 static void print_platform_info(void)
@@ -3349,11 +3371,18 @@ void sched_start(void)
     list_del(&threads[0].list);
 
     while (1) {
+        /* Capture SysTick and Supervisor Call events */
         if (check_systick_event(running_thread->stack_top)) {
             system_ticks_update();
-            schedule();
+            set_need_resched();
         } else {
             syscall_handler();
+        }
+
+        /* Rescheduling */
+        if (need_resched()) {
+            reset_need_resched();
+            __schedule();
         }
 
         /* Check thread stack pointer to detect stack overflow */
