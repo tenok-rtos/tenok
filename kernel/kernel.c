@@ -3357,8 +3357,6 @@ void sched_start(void)
     running_thread = &threads[0];
     threads[0].status = THREAD_RUNNING;
     list_del(&threads[0].list);
-    running_thread->stack_top =
-        jump_to_thread(running_thread->stack_top, running_thread->privilege);
 
     while (1) {
         if (check_systick_event(running_thread->stack_top)) {
