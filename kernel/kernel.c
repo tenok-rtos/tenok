@@ -881,13 +881,13 @@ static void sys_exit(int status)
 
 static int sys_mount(const char *source, const char *target)
 {
-    int err_val;
+    int retval;
 
     preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX) {
-        err_val = -ENAMETOOLONG;
+        retval = -ENAMETOOLONG;
         goto err;
     }
 
@@ -912,18 +912,18 @@ static int sys_mount(const char *source, const char *target)
 
 err:
     preempt_enable();
-    return err_val;
+    return retval;
 }
 
 static int sys_open(const char *pathname, int flags)
 {
-    int err_val;
+    int retval;
 
     preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
-        err_val = -ENAMETOOLONG;
+        retval = -ENAMETOOLONG;
         goto err;
     }
 
@@ -954,7 +954,7 @@ static int sys_open(const char *pathname, int flags)
     /* File not found */
     if (file_idx == -1) {
         /* Return error */
-        err_val = -ENOENT;
+        retval = -ENOENT;
         goto err;
     }
 
@@ -962,7 +962,7 @@ static int sys_open(const char *pathname, int flags)
     int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
     if (fdesc_idx >= OPEN_MAX) {
         /* Return error */
-        err_val = -ENOMEM;
+        retval = -ENOMEM;
         goto err;
     }
     bitmap_set_bit(bitmap_fds, fdesc_idx);
@@ -982,7 +982,7 @@ static int sys_open(const char *pathname, int flags)
         bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
 
         /* Return error */
-        err_val = -ENXIO;
+        retval = -ENXIO;
         goto err;
     }
 
@@ -997,7 +997,7 @@ static int sys_open(const char *pathname, int flags)
 
 err:
     preempt_disable();
-    return err_val;
+    return retval;
 }
 
 static int sys_close(int fd)
