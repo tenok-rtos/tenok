@@ -217,16 +217,6 @@ void kfree(void *ptr)
     preempt_enable();
 }
 
-static inline void sched_lock(void)
-{
-    preempt_disable();
-}
-
-static inline void sched_unlock(void)
-{
-    preempt_enable();
-}
-
 static inline struct task_struct *current_task_info(void)
 {
     return running_thread->task;
@@ -693,7 +683,7 @@ static struct thread_info *thread_info_find_next(struct thread_info *curr)
 
 static void *sys_thread_info(struct thread_stat *info, void *next)
 {
-    sched_lock();
+    preempt_disable();
 
     void *retval;
 
@@ -756,22 +746,22 @@ static void *sys_thread_info(struct thread_stat *info, void *next)
     retval = thread_info_find_next(thread);
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static void sys_setprogname(const char *name)
 {
-    sched_lock();
+    preempt_disable();
 
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
 
-    sched_unlock();
+    preempt_enable();
 }
 
 static int sys_delay_ticks(uint32_t ticks)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Reconfigure the tick to sleep */
     running_thread->sleep_ticks = ticks;
@@ -780,7 +770,7 @@ static int sys_delay_ticks(uint32_t ticks)
     running_thread->status = THREAD_WAIT;
     list_add(&(running_thread->list), &sleep_list);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -790,13 +780,13 @@ static int sys_task_create(task_func_t task_func,
                            uint8_t priority,
                            int stack_size)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = _task_create(task_func, priority, stack_size, false);
     if (retval < 0)
         printk("task_create(): failed to create new task");
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return task creation result */
     return retval;
@@ -804,7 +794,7 @@ static int sys_task_create(task_func_t task_func,
 
 static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
 {
-    sched_lock();
+    preempt_disable();
 
     void *ptr = NULL;
     size_t alloc_size = ALIGN(size, sizeof(long));
@@ -815,7 +805,7 @@ static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
         mpool->offset += alloc_size;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return the allocated memory */
     return ptr;
@@ -823,7 +813,7 @@ static void *sys_mpool_alloc(struct mpool *mpool, size_t size)
 
 static int sys_minfo(int name)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = -1;
 
@@ -842,7 +832,7 @@ static int sys_minfo(int name)
         break;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return the inquired information */
     return retval;
@@ -850,12 +840,12 @@ static int sys_minfo(int name)
 
 static int sys_sched_yield(void)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Suspend current thread */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -863,7 +853,7 @@ static int sys_sched_yield(void)
 
 static void sys_exit(int status)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the current running task */
     struct task_struct *task = current_task_info();
@@ -892,14 +882,14 @@ static void sys_exit(int status)
     /* Remove the task from the system */
     task_delete(task);
 
-    sched_unlock();
+    preempt_enable();
 }
 
 static int sys_mount(const char *source, const char *target)
 {
     int err_val;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX) {
@@ -912,22 +902,22 @@ static int sys_mount(const char *source, const char *target)
     /* Send mount request to the file system daemon */
     request_mount(tid, source, target);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read mount result from the file system daemon */
     int fifo_retval, mnt_result;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
                                 (char *) &mnt_result, sizeof(mnt_result), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
     return mnt_result;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return err_val;
 }
 
@@ -935,7 +925,7 @@ static int sys_open(const char *pathname, int flags)
 {
     int err_val;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
@@ -952,20 +942,20 @@ static int sys_open(const char *pathname, int flags)
     /* Send file open request to the file system daemon */
     request_open_file(tid, pathname);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read the file index from the file system daemon */
     int file_idx;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
-    sched_lock();
+    preempt_disable();
 
     /* File not found */
     if (file_idx == -1) {
@@ -1002,7 +992,7 @@ static int sys_open(const char *pathname, int flags)
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Call open operation  */
     filp->f_op->open(filp->f_inode, filp);
@@ -1012,13 +1002,13 @@ static int sys_open(const char *pathname, int flags)
     return fd;
 
 err:
-    sched_lock();
+    preempt_disable();
     return err_val;
 }
 
 static int sys_close(int fd)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1049,13 +1039,13 @@ static int sys_close(int fd)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_dup(int oldfd)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1093,13 +1083,13 @@ static int sys_dup(int oldfd)
     retval = fdesc_idx + FILE_RESERVED_NUM;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_dup2(int oldfd, int newfd)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1131,7 +1121,7 @@ static int sys_dup2(int oldfd, int newfd)
     retval = newfd;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1140,7 +1130,7 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
 {
     ssize_t retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1173,21 +1163,21 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Call read operation */
     // XXX
     do {
-        sched_lock();
+        preempt_disable();
         retval = filp->f_op->read(filp, buf, count, 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1196,7 +1186,7 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
 {
     ssize_t retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1229,21 +1219,21 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Call write operation */
     // XXX
     do {
-        sched_lock();
+        preempt_disable();
         retval = filp->f_op->write(filp, buf, count, 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1252,7 +1242,7 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1284,21 +1274,21 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Call ioctl operation */
     // XXX
     do {
-        sched_lock();
+        preempt_disable();
         retval = filp->f_op->ioctl(filp, request, arg);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1307,7 +1297,7 @@ static off_t sys_lseek(int fd, long offset, int whence)
 {
     off_t retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1339,21 +1329,21 @@ static off_t sys_lseek(int fd, long offset, int whence)
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Call lseek operation */
     // XXX
     do {
-        sched_lock();
+        preempt_disable();
         retval = filp->f_op->lseek(filp, offset, whence);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1361,7 +1351,7 @@ static int sys_fstat(int fd, struct stat *statbuf)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1398,7 +1388,7 @@ static int sys_fstat(int fd, struct stat *statbuf)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1407,7 +1397,7 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
@@ -1420,16 +1410,16 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
     /* Send directory open request to the file system daemon */
     request_open_directory(tid, pathname);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read the directory inode from the file system daemon */
     struct inode *inode_dir;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
                                 sizeof(inode_dir), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
@@ -1443,17 +1433,17 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_readdir(DIR *dirp, struct dirent *dirent)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = fs_read_dir(dirp, dirent);
 
-    sched_unlock();
+    preempt_enable();
 
     return retval;
 }
@@ -1461,23 +1451,23 @@ static int sys_readdir(DIR *dirp, struct dirent *dirent)
 // XXX
 static char *sys_getcwd(char *buf, size_t size)
 {
-    sched_lock();
+    preempt_disable();
 
     int tid = running_thread->tid;
 
     /* Send getcwd request to the file system daemon */
     request_getcwd(tid, buf, size);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read getcwd result from the file system daemon */
     char *path;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path,
                                 sizeof(path), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
@@ -1487,24 +1477,24 @@ static char *sys_getcwd(char *buf, size_t size)
 // XXX
 static int sys_chdir(const char *path)
 {
-    sched_lock();
+    preempt_disable();
 
     int tid = running_thread->tid;
 
     /* Send chdir request to the file system daemon */
     request_chdir(tid, path);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read chdir result from the file system daemon */
     int chdir_result;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval =
             fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
                       sizeof(chdir_result), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
@@ -1513,11 +1503,11 @@ static int sys_chdir(const char *path)
 
 static int sys_getpid(void)
 {
-    sched_lock();
+    preempt_disable();
 
     int pid = current_task_info()->pid;
 
-    sched_unlock();
+    preempt_enable();
 
     return pid;
 }
@@ -1527,7 +1517,7 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
@@ -1540,16 +1530,16 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
     /* Send file create request to the file system daemon */
     request_create_file(tid, pathname, dev);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read file index from the file system daemon  */
     int file_idx;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
@@ -1564,7 +1554,7 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1573,7 +1563,7 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
@@ -1586,16 +1576,16 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
     /* Send file create request to the file system daemon */
     request_create_file(tid, pathname, S_IFIFO);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read the file index from the file system daemon */
     int file_idx = 0;
     int fifo_retval;
     do {
-        sched_lock();
+        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &tid,
                                 sizeof(file_idx), 0);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (fifo_retval == -ERESTARTSYS);
 
@@ -1610,7 +1600,7 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1634,7 +1624,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Set polling deadline */
     if (timeout > 0) {
@@ -1691,12 +1681,12 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         list_add(&filp->list, &running_thread->poll_files_list);
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Wait until the file event happens */
     jump_to_kernel();
 
-    sched_lock();
+    preempt_disable();
 
     /* clear list of poll files */
     INIT_LIST_HEAD(&running_thread->poll_files_list);
@@ -1709,13 +1699,13 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
     retval = (running_thread->syscall_is_timeout) ? -1 : 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1737,7 +1727,7 @@ static int sys_mq_getattr(mqd_t mqdes, struct mq_attr *attr)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1745,7 +1735,7 @@ static int sys_mq_setattr(mqd_t mqdes,
                           const struct mq_attr *newattr,
                           struct mq_attr *oldattr)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1781,7 +1771,7 @@ static int sys_mq_setattr(mqd_t mqdes,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1800,7 +1790,7 @@ struct mqueue *acquire_mqueue(const char *name)
 
 static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
-    sched_lock();
+    preempt_disable();
 
     mqd_t retval;
 
@@ -1875,19 +1865,19 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
     mqd_table[mqdes].attr = *attr;
     mqd_table[mqdes].attr.mq_flags = oflag;
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return the message queue descriptor */
     return mqdes;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_mq_close(mqd_t mqdes)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1907,13 +1897,13 @@ static int sys_mq_close(mqd_t mqdes)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_mq_unlink(const char *name)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -1939,7 +1929,7 @@ static int sys_mq_unlink(const char *name)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1951,7 +1941,7 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 {
     ssize_t retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
@@ -1970,21 +1960,21 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Read message */
     do {
-        sched_lock();
+        preempt_disable();
         retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
                               msg_prio);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -1996,7 +1986,7 @@ static int sys_mq_send(mqd_t mqdes,
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check if the message priority exceeds the max value */
     if (msg_prio > MQ_PRIO_MAX) {
@@ -2021,21 +2011,21 @@ static int sys_mq_send(mqd_t mqdes,
         goto err;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Send message */
     do {
-        sched_lock();
+        preempt_disable();
         retval =
             __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
     return retval;
 
 err:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -2044,7 +2034,7 @@ static int sys_pthread_create(pthread_t *pthread,
                               void *(*start_routine)(void *),
                               void *arg)
 {
-    sched_lock();
+    preempt_disable();
 
     struct thread_attr *attr = (struct thread_attr *) _attr;
 
@@ -2073,25 +2063,25 @@ static int sys_pthread_create(pthread_t *pthread,
         *pthread = thread->tid;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     return retval;
 }
 
 static pthread_t sys_pthread_self(void)
 {
-    sched_lock();
+    preempt_disable();
 
     int tid = running_thread->tid;
 
-    sched_unlock();
+    preempt_enable();
 
     return tid;
 }
 
 static int sys_pthread_join(pthread_t tid, void **pthread_retval)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2128,13 +2118,13 @@ static int sys_pthread_join(pthread_t tid, void **pthread_retval)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_pthread_cancel(pthread_t tid)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2158,13 +2148,13 @@ static int sys_pthread_cancel(pthread_t tid)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_pthread_detach(pthread_t tid)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2181,7 +2171,7 @@ static int sys_pthread_detach(pthread_t tid)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -2189,7 +2179,7 @@ static int sys_pthread_setschedparam(pthread_t tid,
                                      int policy,
                                      const struct sched_param *param)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2225,7 +2215,7 @@ static int sys_pthread_setschedparam(pthread_t tid,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -2233,7 +2223,7 @@ static int sys_pthread_getschedparam(pthread_t tid,
                                      int *policy,
                                      struct sched_param *param)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2261,18 +2251,18 @@ static int sys_pthread_getschedparam(pthread_t tid,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_pthread_yield(void)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Yield the time quatum to other threads */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2348,7 +2338,7 @@ static void handle_signal(struct thread_info *thread, int signum)
 
 static int sys_pthread_kill(pthread_t tid, int sig)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2381,23 +2371,23 @@ static int sys_pthread_kill(pthread_t tid, int sig)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static void sys_pthread_exit(void *retval)
 {
-    sched_lock();
+    preempt_disable();
 
     running_thread->retval = retval;
     thread_join_handler();
 
-    sched_unlock();
+    preempt_enable();
 }
 
 static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
 {
-    sched_lock();
+    preempt_disable();
 
     struct mutex *mutex = (struct mutex *) _mutex;
     int retval = mutex_unlock(mutex);
@@ -2409,7 +2399,7 @@ static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
         running_thread->priority = running_thread->original_priority;
     }
 
-    sched_unlock();
+    preempt_enable();
 
     return retval;
 }
@@ -2447,13 +2437,13 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 
     int retval;
     do {
-        sched_lock();
+        preempt_disable();
 
         retval = mutex_lock(mutex);
         if (retval == -ERESTARTSYS)
             raise_thread_priority_of_mutex_owner(mutex);
 
-        sched_unlock();
+        preempt_enable();
 
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
@@ -2468,23 +2458,23 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 
 static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = mutex_lock((struct mutex *) mutex);
 
-    sched_unlock();
+    preempt_enable();
 
     return (retval == -ERESTARTSYS) ? -EBUSY : retval;
 }
 
 static int sys_pthread_cond_signal(pthread_cond_t *cond)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Wake up a thread from the wait list */
     wake_up(&((struct cond *) cond)->task_wait_list);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2492,12 +2482,12 @@ static int sys_pthread_cond_signal(pthread_cond_t *cond)
 
 static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Wake up all threads from the wait list */
     wake_up_all(&((struct cond *) cond)->task_wait_list);
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2505,7 +2495,7 @@ static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 
 static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    sched_lock();
+    preempt_disable();
 
     if (((struct mutex *) mutex)->owner) {
         /* Release the mutex */
@@ -2516,7 +2506,7 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
                         THREAD_WAIT);
     }
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2540,7 +2530,7 @@ static void pthread_once_event_handler(void)
 static int sys_pthread_once(pthread_once_t *_once_control,
                             void (*init_routine)(void))
 {
-    sched_lock();
+    preempt_disable();
 
     struct thread_once *once_control = (struct thread_once *) _once_control;
 
@@ -2562,28 +2552,28 @@ static int sys_pthread_once(pthread_once_t *_once_control,
                             (uint32_t) thread_once_return_handler, NULL);
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return 0;
 }
 
 static int sys_sem_post(sem_t *sem)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = up((struct semaphore *) sem);
 
-    sched_unlock();
+    preempt_enable();
 
     return retval;
 }
 
 static int sys_sem_trywait(sem_t *sem)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval = down_trylock((struct semaphore *) sem);
 
-    sched_unlock();
+    preempt_enable();
 
     return retval;
 }
@@ -2594,9 +2584,9 @@ static int sys_sem_wait(sem_t *sem)
     int retval;
 
     do {
-        sched_lock();
+        preempt_disable();
         retval = down((struct semaphore *) sem);
-        sched_unlock();
+        preempt_enable();
         jump_to_kernel();  // XXX
     } while (retval == -ERESTARTSYS);
 
@@ -2605,11 +2595,11 @@ static int sys_sem_wait(sem_t *sem)
 
 static int sys_sem_getvalue(sem_t *sem, int *sval)
 {
-    sched_lock();
+    preempt_disable();
 
     *sval = ((struct semaphore *) sem)->count;
 
-    sched_unlock();
+    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2621,7 +2611,7 @@ static int sys_sigaction(int signum,
 {
     int retval;
 
-    sched_lock();
+    preempt_disable();
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(signum)) {
@@ -2663,13 +2653,13 @@ static int sys_sigaction(int signum,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_sigwait(const sigset_t *set, int *sig)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2696,13 +2686,13 @@ static int sys_sigwait(const sigset_t *set, int *sig)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_kill(pid_t pid, int sig)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2733,13 +2723,13 @@ static int sys_kill(pid_t pid, int sig)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 int sys_raise(int sig)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2770,13 +2760,13 @@ int sys_raise(int sig)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2792,13 +2782,13 @@ static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2814,7 +2804,7 @@ static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -2835,7 +2825,7 @@ static int sys_timer_create(clockid_t clockid,
                             struct sigevent *sevp,
                             timer_t *timerid)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2886,13 +2876,13 @@ static int sys_timer_create(clockid_t clockid,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_timer_delete(timer_t timerid)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2915,7 +2905,7 @@ static int sys_timer_delete(timer_t timerid)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
@@ -2924,7 +2914,7 @@ static int sys_timer_settime(timer_t timerid,
                              const struct itimerspec *new_value,
                              struct itimerspec *old_value)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2970,13 +2960,13 @@ static int sys_timer_settime(timer_t timerid,
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 {
-    sched_lock();
+    preempt_disable();
 
     int retval;
 
@@ -2996,13 +2986,13 @@ static int sys_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
     retval = 0;
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return retval;
 }
 
 static void *sys_malloc(size_t size)
 {
-    sched_lock();
+    preempt_disable();
 
     void *ptr;
 
@@ -3015,18 +3005,18 @@ static void *sys_malloc(size_t size)
     ptr = __malloc(size);
 
 leave:
-    sched_unlock();
+    preempt_enable();
     return ptr;
 }
 
 static void sys_free(void *ptr)
 {
-    sched_lock();
+    preempt_disable();
 
     /* Free the memory */
     __free(ptr);
 
-    sched_unlock();
+    preempt_enable();
 }
 
 static void threads_ticks_update(void)
