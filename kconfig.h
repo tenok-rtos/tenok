@@ -4,6 +4,11 @@
 /* Scheduler */
 #define OS_TICK_FREQ 1000 /* Hz */
 
+#ifdef BUILD_QEMU
+#undef OS_TICK_FREQ
+#define OS_TICK_FREQ 100 /* Hz */
+#endif
+
 /* Page allocator size */
 #define PAGE_SIZE_32K 0 /* Use 32 KiB */
 #define PAGE_SIZE_64K 1 /* Use 64 KiB */
