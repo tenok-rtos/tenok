@@ -47,7 +47,10 @@ int reg_file_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-static ssize_t __reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
+static ssize_t __reg_file_read(struct file *filp,
+                               char *buf,
+                               size_t size,
+                               off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -114,9 +117,9 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
 }
 
 static ssize_t __reg_file_write(struct file *filp,
-                         const char *buf,
-                         size_t size,
-                         off_t offset)
+                                const char *buf,
+                                size_t size,
+                                off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 

@@ -1091,6 +1091,8 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
 
 void request_create_file(int thread_id, const char *path, uint8_t file_type)
 {
+    preempt_disable();
+
     int fs_cmd = FS_CREATE_FILE;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead =
@@ -1112,10 +1114,14 @@ void request_create_file(int thread_id, const char *path, uint8_t file_type)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void request_open_file(int thread_id, const char *path)
 {
+    preempt_disable();
+
     int fs_cmd = FS_OPEN_FILE;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
@@ -1133,10 +1139,14 @@ void request_open_file(int thread_id, const char *path)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void request_open_directory(int thread_id, const char *path)
 {
+    preempt_disable();
+
     int fs_cmd = FS_OPEN_DIR;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path);
@@ -1154,10 +1164,14 @@ void request_open_directory(int thread_id, const char *path)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void request_mount(int thread_id, const char *source, const char *target)
 {
+    preempt_disable();
+
     int fs_cmd = FS_MOUNT;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead = sizeof(fs_cmd) + sizeof(reply_fd) +
@@ -1179,10 +1193,14 @@ void request_mount(int thread_id, const char *source, const char *target)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void request_getcwd(int thread_id, char *path, size_t len)
 {
+    preempt_disable();
+
     int fs_cmd = FS_GET_CWD;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead = sizeof(path) + sizeof(len) + sizeof(reply_fd);
@@ -1203,10 +1221,14 @@ void request_getcwd(int thread_id, char *path, size_t len)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void request_chdir(int thread_id, const char *path)
 {
+    preempt_disable();
+
     int fs_cmd = FS_CHANGE_DIR;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead = sizeof(path) + sizeof(reply_fd);
@@ -1224,6 +1246,8 @@ void request_chdir(int thread_id, const char *path)
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
 }
 
 void filesysd(void)

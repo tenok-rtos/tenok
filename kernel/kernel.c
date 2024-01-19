@@ -881,22 +881,14 @@ static void sys_exit(int status)
 
 static int sys_mount(const char *source, const char *target)
 {
-    int retval;
-
-    preempt_disable();
-
     /* Check the length of the pathname */
-    if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX) {
-        retval = -ENAMETOOLONG;
-        goto err;
-    }
+    if (strlen(source) >= PATH_MAX || strlen(target) >= PATH_MAX)
+        return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
 
     /* Send mount request to the file system daemon */
     request_mount(tid, source, target);
-
-    preempt_enable();
 
     /* Read mount result from the file system daemon */
     int fifo_retval, mnt_result;
@@ -907,10 +899,6 @@ static int sys_mount(const char *source, const char *target)
     } while (fifo_retval == -ERESTARTSYS);
 
     return mnt_result;
-
-err:
-    preempt_enable();
-    return retval;
 }
 
 static int sys_open(const char *pathname, int flags)
@@ -931,10 +919,10 @@ static int sys_open(const char *pathname, int flags)
     /* Acquire the thread ID */
     int tid = running_thread->tid;
 
+    preempt_enable();
+
     /* Send file open request to the file system daemon */
     request_open_file(tid, pathname);
-
-    preempt_enable();
 
     /* Read the file index from the file system daemon */
     int file_idx;
@@ -1368,22 +1356,14 @@ leave:
 
 static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
-    int retval;
-
-    preempt_disable();
-
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_MAX) {
-        retval = -ENAMETOOLONG;
-        goto err;
-    }
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
 
     /* Send directory open request to the file system daemon */
     request_open_directory(tid, pathname);
-
-    preempt_enable();
 
     /* Read the directory inode from the file system daemon */
     struct inode *inode_dir;
@@ -1399,13 +1379,7 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
     dirp->dentry_list = inode_dir->i_dentry.next;
 
     /* Check if the information is retrieved successfully */
-    retval = dirp->inode_dir ? 0 : -ENOENT;
-
-    return retval;
-
-err:
-    preempt_enable();
-    return retval;
+    return dirp->inode_dir ? 0 : -ENOENT;
 }
 
 static int sys_readdir(DIR *dirp, struct dirent *dirent)
@@ -1421,14 +1395,10 @@ static int sys_readdir(DIR *dirp, struct dirent *dirent)
 
 static char *sys_getcwd(char *buf, size_t size)
 {
-    preempt_disable();
-
     int tid = running_thread->tid;
 
     /* Send getcwd request to the file system daemon */
     request_getcwd(tid, buf, size);
-
-    preempt_enable();
 
     /* Read getcwd result from the file system daemon */
     char *path;
@@ -1444,14 +1414,10 @@ static char *sys_getcwd(char *buf, size_t size)
 
 static int sys_chdir(const char *path)
 {
-    preempt_disable();
-
     int tid = running_thread->tid;
 
     /* Send chdir request to the file system daemon */
     request_chdir(tid, path);
-
-    preempt_enable();
 
     /* Read chdir result from the file system daemon */
     int chdir_result;
@@ -1479,22 +1445,14 @@ static int sys_getpid(void)
 
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
-    int retval;
-
-    preempt_disable();
-
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_MAX) {
-        retval = -ENAMETOOLONG;
-        goto err;
-    }
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
     request_create_file(tid, pathname, dev);
-
-    preempt_enable();
 
     /* Read file index from the file system daemon  */
     int file_idx;
@@ -1507,37 +1465,23 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 
     if (file_idx == -1) {
         /* Failed to create file */
-        retval = -1; /* TODO: Specify the failed reason */
+        return -1; /* TODO: Specify the failed reason */
     } else {
         /* Return success */
-        retval = 0;
+        return 0;
     }
-
-    return retval;
-
-err:
-    preempt_enable();
-    return retval;
 }
 
 static int sys_mkfifo(const char *pathname, mode_t mode)
 {
-    int retval;
-
-    preempt_disable();
-
     /* Check the length of the pathname */
-    if (strlen(pathname) >= PATH_MAX) {
-        retval = -ENAMETOOLONG;
-        goto err;
-    }
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
 
     int tid = running_thread->tid;
 
     /* Send file create request to the file system daemon */
     request_create_file(tid, pathname, S_IFIFO);
-
-    preempt_enable();
 
     /* Read the file index from the file system daemon */
     int file_idx = 0;
@@ -1550,17 +1494,11 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 
     if (file_idx == -1) {
         /* Failed to create FIFO */
-        retval = -1; /* TODO: Specify the failed reason */
+        return -1; /* TODO: Specify the failed reason */
     } else {
         /* Return success */
-        retval = 0;
+        return 0;
     }
-
-    return retval;
-
-err:
-    preempt_enable();
-    return retval;
 }
 
 void poll_notify(struct file *notify_file)
