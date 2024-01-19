@@ -9,6 +9,7 @@
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
 #include <kernel/syscall.h>
@@ -120,24 +121,34 @@ ssize_t __mq_receive(struct mqueue *mq,
                      size_t msg_len,
                      unsigned int *msg_prio)
 {
+    preempt_disable();
+
+    ssize_t retval;
+
     /* The message queue descriptor is not open with reading flag */
-    if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
-        return -EBADF;
+    if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR)) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* The buffer size must be larger or equal to the max message size */
-    if (msg_len < attr->mq_msgsize)
-        return -EMSGSIZE;
+    if (msg_len < attr->mq_msgsize) {
+        retval = -EMSGSIZE;
+        goto leave;
+    }
 
     /* Check if the queue has message to read */
     if (__mq_len(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* Non-block mode */
             /* Return immediately */
-            return -EAGAIN;
+            retval = -EAGAIN;
+            goto leave;
         } else { /* Block mode */
             /* Enqueue the thread into the waiting list */
             prepare_to_wait(&mq->r_wait_list, current_thread_info(),
                             THREAD_WAIT);
-            return -ERESTARTSYS;
+            retval = -ERESTARTSYS;
+            goto leave;
         }
     }
 
@@ -147,7 +158,12 @@ ssize_t __mq_receive(struct mqueue *mq,
     /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mq->w_wait_list);
 
-    return read_size;
+    /* Return read size */
+    retval = read_size;
+
+leave:
+    preempt_enable();
+    return retval;
 }
 
 ssize_t __mq_send(struct mqueue *mq,
@@ -156,25 +172,34 @@ ssize_t __mq_send(struct mqueue *mq,
                   size_t msg_len,
                   unsigned int msg_prio)
 {
+    preempt_disable();
+
+    ssize_t retval;
+
     /* The message queue descriptor is not open with writing flag */
-    if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
-        return -EBADF;
+    if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR)) {
+        retval = -EBADF;
+        goto leave;
+    }
 
     /* The write size must be smaller or equal to the max message size */
     if (msg_len > attr->mq_msgsize) {
-        return -EMSGSIZE;
+        retval = -EMSGSIZE;
+        goto leave;
     }
 
     /* Check if the queue has space to write */
     if (__mq_avail(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
             /* Return immediately */
-            return -EAGAIN;
+            retval = -EAGAIN;
+            goto leave;
         } else { /* block mode */
             /* Enqueue the thread into the waiting list */
             prepare_to_wait(&mq->w_wait_list, current_thread_info(),
                             THREAD_WAIT);
-            return -ERESTARTSYS;
+            retval = -ERESTARTSYS;
+            goto leave;
         }
     }
 
@@ -184,7 +209,12 @@ ssize_t __mq_send(struct mqueue *mq,
     /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mq->r_wait_list);
 
-    return 0;
+    /* Return success */
+    retval = 0;
+
+leave:
+    preempt_enable();
+    return retval;
 }
 
 NACKED int mq_getattr(mqd_t mqdes, struct mq_attr *attr)

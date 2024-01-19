@@ -8,6 +8,7 @@
 #include <common/list.h>
 #include <fs/fs.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/pipe.h>
@@ -146,6 +147,8 @@ static ssize_t __fifo_write(struct file *filp, const char *buf, size_t size)
 
 ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
+    preempt_disable();
+
     ssize_t retval = __fifo_read(filp, buf, size);
 
     /* Update file events */
@@ -157,6 +160,8 @@ ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset)
         filp->f_events &= ~POLLOUT;
     }
 
+    preempt_enable();
+
     return retval;
 }
 
@@ -165,6 +170,8 @@ ssize_t fifo_write(struct file *filp,
                    size_t size,
                    off_t offset)
 {
+    preempt_disable();
+
     ssize_t retval = __fifo_write(filp, buf, size);
 
     /* Update file events */
@@ -175,6 +182,8 @@ ssize_t fifo_write(struct file *filp,
     } else {
         filp->f_events &= ~POLLIN;
     }
+
+    preempt_enable();
 
     return retval;
 }

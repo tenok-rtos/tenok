@@ -901,11 +901,9 @@ static int sys_mount(const char *source, const char *target)
     /* Read mount result from the file system daemon */
     int fifo_retval, mnt_result;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
                                 (char *) &mnt_result, sizeof(mnt_result), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     return mnt_result;
@@ -942,11 +940,9 @@ static int sys_open(const char *pathname, int flags)
     int file_idx;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     preempt_disable();
@@ -1119,7 +1115,6 @@ leave:
     return retval;
 }
 
-// XXX
 static ssize_t sys_read(int fd, void *buf, size_t count)
 {
     ssize_t retval;
@@ -1160,12 +1155,9 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
     preempt_enable();
 
     /* Call read operation */
-    // XXX
     do {
-        preempt_disable();
         retval = filp->f_op->read(filp, buf, count, 0);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1175,7 +1167,6 @@ err:
     return retval;
 }
 
-// XXX
 static ssize_t sys_write(int fd, const void *buf, size_t count)
 {
     ssize_t retval;
@@ -1216,12 +1207,9 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
     preempt_enable();
 
     /* Call write operation */
-    // XXX
     do {
-        preempt_disable();
         retval = filp->f_op->write(filp, buf, count, 0);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1231,7 +1219,6 @@ err:
     return retval;
 }
 
-// XXX
 static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
 {
     int retval;
@@ -1271,12 +1258,9 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
     preempt_enable();
 
     /* Call ioctl operation */
-    // XXX
     do {
-        preempt_disable();
         retval = filp->f_op->ioctl(filp, request, arg);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1286,7 +1270,6 @@ err:
     return retval;
 }
 
-// XXX
 static off_t sys_lseek(int fd, long offset, int whence)
 {
     off_t retval;
@@ -1326,12 +1309,9 @@ static off_t sys_lseek(int fd, long offset, int whence)
     preempt_enable();
 
     /* Call lseek operation */
-    // XXX
     do {
-        preempt_disable();
         retval = filp->f_op->lseek(filp, offset, whence);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1386,7 +1366,6 @@ leave:
     return retval;
 }
 
-// XXX
 static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 {
     int retval;
@@ -1410,11 +1389,9 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
     struct inode *inode_dir;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
                                 sizeof(inode_dir), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     /* Return directory information */
@@ -1442,7 +1419,6 @@ static int sys_readdir(DIR *dirp, struct dirent *dirent)
     return retval;
 }
 
-// XXX
 static char *sys_getcwd(char *buf, size_t size)
 {
     preempt_disable();
@@ -1458,17 +1434,14 @@ static char *sys_getcwd(char *buf, size_t size)
     char *path;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path,
                                 sizeof(path), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     return path;
 }
 
-// XXX
 static int sys_chdir(const char *path)
 {
     preempt_disable();
@@ -1484,12 +1457,10 @@ static int sys_chdir(const char *path)
     int chdir_result;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval =
             fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
                       sizeof(chdir_result), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     return chdir_result;
@@ -1506,7 +1477,6 @@ static int sys_getpid(void)
     return pid;
 }
 
-// XXX
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     int retval;
@@ -1530,11 +1500,9 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
     int file_idx;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     if (file_idx == -1) {
@@ -1552,7 +1520,6 @@ err:
     return retval;
 }
 
-// XXX
 static int sys_mkfifo(const char *pathname, mode_t mode)
 {
     int retval;
@@ -1576,11 +1543,9 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
     int file_idx = 0;
     int fifo_retval;
     do {
-        preempt_disable();
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &tid,
                                 sizeof(file_idx), 0);
         schedule();
-        preempt_enable();
     } while (fifo_retval == -ERESTARTSYS);
 
     if (file_idx == -1) {
@@ -1675,10 +1640,10 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         list_add(&filp->list, &running_thread->poll_files_list);
     }
 
+    preempt_enable();
+
     /* Wait until the file event happens */
     schedule();
-
-    preempt_enable();
 
     preempt_disable();
 
@@ -1927,7 +1892,6 @@ leave:
     return retval;
 }
 
-// XXX
 static ssize_t sys_mq_receive(mqd_t mqdes,
                               char *msg_ptr,
                               size_t msg_len,
@@ -1958,11 +1922,9 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 
     /* Read message */
     do {
-        preempt_disable();
         retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
                               msg_prio);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -1972,7 +1934,6 @@ err:
     return retval;
 }
 
-// XXX
 static int sys_mq_send(mqd_t mqdes,
                        const char *msg_ptr,
                        size_t msg_len,
@@ -2009,11 +1970,9 @@ static int sys_mq_send(mqd_t mqdes,
 
     /* Send message */
     do {
-        preempt_disable();
         retval =
             __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
         schedule();
-        preempt_enable();
     } while (retval == -ERESTARTSYS);
 
     return retval;
@@ -2436,8 +2395,10 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
         retval = mutex_lock(mutex);
         if (retval == -ERESTARTSYS)
             raise_thread_priority_of_mutex_owner(mutex);
-        schedule();
+
         preempt_enable();
+
+        schedule();
     } while (retval == -ERESTARTSYS);
 
     if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
@@ -2535,39 +2496,17 @@ leave:
 
 static int sys_sem_post(sem_t *sem)
 {
-    preempt_disable();
-
-    int retval = up((struct semaphore *) sem);
-
-    preempt_enable();
-
-    return retval;
+    return up((struct semaphore *) sem);
 }
 
 static int sys_sem_trywait(sem_t *sem)
 {
-    preempt_disable();
-
-    int retval = down_trylock((struct semaphore *) sem);
-
-    preempt_enable();
-
-    return retval;
+    return down_trylock((struct semaphore *) sem);
 }
 
-// XXX
 static int sys_sem_wait(sem_t *sem)
 {
-    int retval;
-
-    do {
-        preempt_disable();
-        retval = down((struct semaphore *) sem);
-        schedule();
-        preempt_enable();
-    } while (retval == -ERESTARTSYS);
-
-    return retval;
+    return down((struct semaphore *) sem);
 }
 
 static int sys_sem_getvalue(sem_t *sem, int *sval)
@@ -3230,8 +3169,12 @@ static void __schedule(void)
 
 void schedule(void)
 {
+    preempt_disable();
+
     set_need_resched();
     jump_to_kernel();
+
+    preempt_enable();
 }
 
 static void print_platform_info(void)

@@ -5,6 +5,7 @@
 #include <common/list.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
+#include <kernel/interrupt.h>
 
 #include "kconfig.h"
 
@@ -46,7 +47,7 @@ int reg_file_open(struct inode *inode, struct file *file)
     return 0;
 }
 
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
+static ssize_t __reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -103,10 +104,19 @@ ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
     return size - remained_size;
 }
 
-ssize_t reg_file_write(struct file *filp,
-                       const char *buf,
-                       size_t size,
-                       off_t offset)
+ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset)
+{
+    preempt_disable();
+    ssize_t retval = __reg_file_read(filp, buf, size, offset);
+    preempt_enable();
+
+    return retval;
+}
+
+static ssize_t __reg_file_write(struct file *filp,
+                         const char *buf,
+                         size_t size,
+                         off_t offset)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -177,7 +187,19 @@ ssize_t reg_file_write(struct file *filp,
     return size - remained_size;
 }
 
-off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
+ssize_t reg_file_write(struct file *filp,
+                       const char *buf,
+                       size_t size,
+                       off_t offset)
+{
+    preempt_disable();
+    ssize_t retval = __reg_file_write(filp, buf, size, offset);
+    preempt_enable();
+
+    return retval;
+}
+
+static off_t __reg_file_lseek(struct file *filp, off_t offset, int whence)
 {
     struct reg_file *reg_file = container_of(filp, struct reg_file, file);
 
@@ -207,4 +229,13 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
     } else {
         return -1;
     }
+}
+
+off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
+{
+    preempt_disable();
+    off_t retval = __reg_file_lseek(filp, offset, whence);
+    preempt_enable();
+
+    return retval;
 }

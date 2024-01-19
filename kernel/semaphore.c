@@ -6,7 +6,9 @@
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/kernel.h>  //XXX
 #include <kernel/semaphore.h>
 #include <kernel/syscall.h>
 #include <kernel/thread.h>
@@ -20,37 +22,53 @@ void sema_init(struct semaphore *sem, int val)
 
 int down(struct semaphore *sem)
 {
-    if (sem->count <= 0) {
+    while (sem->count <= 0) {
         /* Failed to acquire the semaphore, enqueue the current thread into the
          * waiting list */
+        preempt_disable();
         prepare_to_wait(&sem->wait_list, current_thread_info(), THREAD_WAIT);
+        preempt_enable();
 
-        return -ERESTARTSYS;
-    } else {
-        /* Acquired the semaphore successfully */
-        sem->count--;
-
-        return 0;
+        schedule();
     }
+
+    preempt_disable();
+    /* Acquired the semaphore successfully */
+    sem->count--;
+    preempt_enable();
+
+    return 0;
 }
 
 int down_trylock(struct semaphore *sem)
 {
+    preempt_disable();
+
+    int retval;
+
     if (sem->count <= 0) {
-        return -EAGAIN;
+        retval = -EAGAIN;
     } else {
         /* Acquired the semaphore successfully */
         sem->count--;
 
-        return 0;
+        retval = 0;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 int up(struct semaphore *sem)
 {
+    preempt_disable();
+
+    int retval;
+
     /* Prevent the integer overflow */
     if (sem->count >= (INT32_MAX - 1)) {
-        return -EOVERFLOW;
+        retval = -EOVERFLOW;
     } else {
         /* Increase the semaphore counter */
         sem->count++;
@@ -60,8 +78,12 @@ int up(struct semaphore *sem)
             wake_up(&sem->wait_list);
         }
 
-        return 0;
+        retval = 0;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 int sem_init(sem_t *sem, int pshared, unsigned int value)
