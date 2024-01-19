@@ -95,17 +95,6 @@ unsigned long get_syscall_num(void *sp);
 void get_syscall_args(void *sp, unsigned long *pargs[4]);
 
 /**
- * @brief  Execute a syscall handler. The function passes syscall arguments
-           and return value to the thread stack
- * @param  func: The syscall handler function to execute.
- * @param  args: The pointers to the syscall arguments.
- * @param  syscall_pending: The pointer to the syscall pending flag of
- *         the thread.
- * @retval None
- */
-void syscall(unsigned long func, unsigned long *args[4], bool *syscall_pending);
-
-/**
  * @brief  Halt the system by trapping into an infinity loop
  * @param  None
  * @retval None
