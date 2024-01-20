@@ -474,9 +474,13 @@ static int _task_create(thread_func_t task_func,
 
 int kthread_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
+    preempt_disable();
+
     int retval = _task_create(task_func, priority, stack_size, true);
     if (retval < 0)
         printk("kthread_create(): failed to create new task");
+
+    preempt_enable();
 
     return retval;
 }
