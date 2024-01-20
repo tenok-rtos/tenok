@@ -118,6 +118,4 @@ struct thread_info {
     struct list_head list;      /* Linked to a scheduling list */
 };
 
-void schedule(void);
-
 #endif

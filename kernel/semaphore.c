@@ -8,7 +8,7 @@
 #include <kernel/errno.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/kernel.h>  //XXX
+#include <kernel/sched.h>
 #include <kernel/semaphore.h>
 #include <kernel/syscall.h>
 #include <kernel/thread.h>

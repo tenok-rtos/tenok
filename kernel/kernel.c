@@ -36,6 +36,7 @@
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
 #include <kernel/printk.h>
+#include <kernel/sched.h>
 #include <kernel/semaphore.h>
 #include <kernel/signal.h>
 #include <kernel/softirq.h>
