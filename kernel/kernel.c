@@ -2250,10 +2250,10 @@ static void sys_pthread_exit(void *retval)
 
 static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
 {
-    preempt_disable();
-
     struct mutex *mutex = (struct mutex *) _mutex;
     int retval = mutex_unlock(mutex);
+
+    preempt_disable();
 
     /* Handle priority inheritance */
     if (retval == 0 && mutex->protocol == PTHREAD_PRIO_INHERIT &&
@@ -2269,6 +2269,8 @@ static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
 
 static void raise_thread_priority_of_mutex_owner(struct mutex *mutex)
 {
+    preempt_disable();
+
     /* Handle priority inheritance */
     if (mutex->protocol == PTHREAD_PRIO_INHERIT &&
         mutex->owner->priority < running_thread->priority) {
@@ -2291,25 +2293,26 @@ static void raise_thread_priority_of_mutex_owner(struct mutex *mutex)
         mutex->owner->priority = new_priority;
         mutex->owner->priority_inherited = true;
     }
+
+    preempt_enable();
 }
 
-// XXX
 static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 {
     struct mutex *mutex = (struct mutex *) _mutex;
 
     int retval;
-    do {
-        preempt_disable();
-
+    while (1) {
         retval = mutex_lock(mutex);
-        if (retval == -ERESTARTSYS)
-            raise_thread_priority_of_mutex_owner(mutex);
 
-        preempt_enable();
+        if (retval == -ERESTARTSYS) {
+            raise_thread_priority_of_mutex_owner(mutex);
+        } else {
+            break;
+        }
 
         schedule();
-    } while (retval == -ERESTARTSYS);
+    };
 
     if (mutex->protocol == PTHREAD_PRIO_INHERIT) {
         /* Preserve thread priority in case priority inheritance happens */
@@ -2321,12 +2324,7 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 
 static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    preempt_disable();
-
     int retval = mutex_lock((struct mutex *) mutex);
-
-    preempt_enable();
-
     return (retval == -ERESTARTSYS) ? -EBUSY : retval;
 }
 

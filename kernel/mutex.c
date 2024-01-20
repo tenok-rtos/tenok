@@ -4,6 +4,7 @@
 
 #include <common/list.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mutex.h>
 #include <kernel/thread.h>
@@ -17,11 +18,19 @@ void mutex_init(struct mutex *mtx)
 
 bool mutex_is_locked(struct mutex *mtx)
 {
-    return mtx->owner != NULL;
+    preempt_disable();
+    bool retval = mtx->owner != NULL;
+    preempt_enable();
+
+    return retval;
 }
 
 int mutex_lock(struct mutex *mtx)
 {
+    preempt_disable();
+
+    int retval;
+
     CURRENT_THREAD_INFO(curr_thread);
 
     /* Check if the mutex is occupied */
@@ -29,22 +38,32 @@ int mutex_lock(struct mutex *mtx)
         /* Enqueue current thread into the waiting list */
         prepare_to_wait(&mtx->wait_list, curr_thread, THREAD_WAIT);
 
-        return -ERESTARTSYS;
+        retval = -ERESTARTSYS;
     } else {
         /* Occupy the mutex by setting the owner */
         mtx->owner = curr_thread;
 
-        return 0;
+        retval = 0;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 int mutex_unlock(struct mutex *mtx)
 {
+    preempt_disable();
+
+    int retval;
+
     CURRENT_THREAD_INFO(curr_thread);
 
     /* Only the owner thread can unlock the mutex */
-    if (mtx->owner != curr_thread)
-        return -EPERM;
+    if (mtx->owner != curr_thread) {
+        retval = -EPERM;
+        goto leave;
+    }
 
     /* Release the mutex */
     mtx->owner = NULL;
@@ -52,5 +71,10 @@ int mutex_unlock(struct mutex *mtx)
     /* Wake up the highest-priority thread from the waiting list */
     wake_up(&mtx->wait_list);
 
-    return 0;
+    /* Return success */
+    retval = 0;
+
+leave:
+    preempt_enable();
+    return retval;
 }
