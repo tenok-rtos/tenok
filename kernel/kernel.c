@@ -563,6 +563,15 @@ void prepare_to_wait(struct list_head *wait_list,
     thread->status = state;
 }
 
+void finish_wait(struct thread_info *thread)
+{
+    if (thread == running_thread)
+        return;
+
+    thread->status = THREAD_READY;
+    list_move(&thread->list, &ready_list[thread->priority]);
+}
+
 void wake_up(struct list_head *wait_list)
 {
     if (list_empty(wait_list))
@@ -587,26 +596,6 @@ void wake_up_all(struct list_head *wait_list)
     }
 }
 
-void __finish_wait(struct thread_info *thread)
-{
-    if (thread == running_thread)
-        return;
-
-    thread->status = THREAD_READY;
-    list_move(&thread->list, &ready_list[thread->priority]);
-}
-
-void finish_wait(struct thread_info **wait)
-{
-    if (!wait)
-        return;
-
-    struct thread_info *thread = *wait;
-    __finish_wait(thread);
-
-    *wait = NULL;
-}
-
 static inline void thread_join_handler(void)
 {
     /* Wake up the threads that waiting to join */
@@ -619,7 +608,7 @@ static inline void thread_join_handler(void)
             *thread->retval_join = running_thread->retval;
         }
 
-        __finish_wait(thread);
+        finish_wait(thread);
     }
 
     /* Remove the task from the system if it contains no more thread */
@@ -1494,7 +1483,7 @@ void poll_notify(struct file *notify_file)
         struct file *file;
         list_for_each_entry (file, &thread->poll_files_list, list) {
             if (file == notify_file)
-                __finish_wait(thread);
+                finish_wait(thread);
         }
     }
 }
@@ -2151,7 +2140,7 @@ static void handle_signal(struct thread_info *thread, int signum)
         thread->wait_for_signal = false;
 
         /* Wake up the thread and set the return values */
-        __finish_wait(thread);
+        finish_wait(thread);
         *thread->ret_sig = signum;
         SYSCALL_ARG(thread, int, 0) = 0;
     }
@@ -2916,7 +2905,7 @@ static void syscall_timeout_update(void)
         if (tp.tv_sec >= thread->syscall_timeout.tv_sec &&
             tp.tv_nsec >= thread->syscall_timeout.tv_nsec) {
             thread->syscall_is_timeout = true;
-            __finish_wait(thread);
+            finish_wait(thread);
         }
     }
 }

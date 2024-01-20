@@ -41,8 +41,6 @@ void wake_up_all(struct list_head *wait_list);
  * @param  wait: The pointer that point to the thread to wake up.
  * @retval None
  */
-void finish_wait(struct thread_info **wait);
-
-void __finish_wait(struct thread_info *thread);
+void finish_wait(struct thread_info *thread);
 
 #endif

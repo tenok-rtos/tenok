@@ -68,7 +68,7 @@ static void fifo_wake_up(struct list_head *wait_list, size_t avail_size)
     }
 
     if (highest_pri_thread)
-        __finish_wait(highest_pri_thread);
+        finish_wait(highest_pri_thread);
 }
 
 static ssize_t __fifo_read(struct file *filp, char *buf, size_t size)
