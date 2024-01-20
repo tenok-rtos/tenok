@@ -136,21 +136,31 @@ NACKED void thread_once_return_handler(void)
     SYSCALL(THREAD_ONCE_EVENT);
 }
 
+void preempt_count_inc(void)
+{
+    preempt_cnt++;
+}
+
+void preempt_count_dec(void)
+{
+    preempt_cnt--;
+}
+
 void preempt_disable(void)
 {
-    if(preempt_cnt == 0)
+    if (preempt_cnt == 0)
         __preempt_disable();
 
     /* Increase nesting level */
-    preempt_cnt++;
+    preempt_count_inc();
 }
 
 void preempt_enable(void)
 {
     /* Decrease nesting level */
-    preempt_cnt--;
+    preempt_count_dec();
 
-    if(preempt_cnt == 0)
+    if (preempt_cnt == 0)
         __preempt_enable();
 }
 

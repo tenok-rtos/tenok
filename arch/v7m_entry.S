@@ -10,18 +10,32 @@
 
 .syntax unified
 
-.macro irq_disable
+.macro set_basepri
     push {r0}
     mov r0, PRI_THRESHOLD
     msr basepri, r0
     pop {r0}
 .endm
 
-.macro irq_enable
+.macro reset_basepri
     push {r0}
     mov r0, #0 
     msr basepri, r0
     pop {r0}
+.endm
+
+.macro irq_disable
+    set_basepri
+    push {lr}
+    bl preempt_count_inc
+    pop {lr}
+.endm
+
+.macro irq_enable
+    push {lr}
+    bl preempt_count_dec
+    pop {lr}
+    reset_basepri
 .endm
 
 ENTRY(PendSV_Handler)
@@ -81,12 +95,12 @@ ENTRY(SVC_Handler)
 ENDPROC(SVC_Handler)
 
 ENTRY(__preempt_disable)
-    irq_disable
+    set_basepri
     bx lr
 ENDPROC(__preempt_disable)
 
 ENTRY(__preempt_enable)
-    irq_enable
+    reset_basepri
     bx lr
 ENDPROC(__preempt_enable)
 

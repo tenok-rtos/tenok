@@ -7,6 +7,9 @@
 void __preempt_disable(void);
 void __preempt_enable(void);
 
+void preempt_count_inc(void);
+void preempt_count_dec(void);
+
 /**
  * @brief  Disable all interrupts
  * @param  None
