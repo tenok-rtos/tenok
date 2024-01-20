@@ -43,6 +43,8 @@ bool mutex_is_locked(struct mutex *mtx);
  */
 int mutex_lock(struct mutex *mtx);
 
+int __mutex_lock(struct mutex *mtx);
+
 /**
  * @brief  Unlock the mutex.
  * @param  mtx: Pointer to the mutex.

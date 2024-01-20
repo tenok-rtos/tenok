@@ -164,7 +164,7 @@ static int uart1_dma_puts(const char *data, size_t size)
     switch (uart1.tx_state) {
     case UART_TX_IDLE: {
         /* Try claiming usage of the tx resource */
-        if (mutex_lock(&uart1.tx_mtx) == -ERESTARTSYS) {
+        if (__mutex_lock(&uart1.tx_mtx) == -ERESTARTSYS) {
             /* Mutex is locked by other threads */
             return -ERESTARTSYS;
         }
@@ -206,7 +206,7 @@ static int uart1_dma_puts(const char *data, size_t size)
         if (mutex_unlock(&uart1.tx_mtx) == -EPERM) {
             /* Mutex is locked by other threads,
              * call mutex_lock() to wait */
-            mutex_lock(&uart1.tx_mtx);
+            __mutex_lock(&uart1.tx_mtx);
             return -ERESTARTSYS;
         }
 

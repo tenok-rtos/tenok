@@ -7,6 +7,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mutex.h>
+#include <kernel/sched.h>
 #include <kernel/thread.h>
 #include <kernel/wait.h>
 
@@ -25,7 +26,7 @@ bool mutex_is_locked(struct mutex *mtx)
     return retval;
 }
 
-int mutex_lock(struct mutex *mtx)
+int __mutex_lock(struct mutex *mtx)
 {
     preempt_disable();
 
@@ -47,6 +48,22 @@ int mutex_lock(struct mutex *mtx)
     }
 
     preempt_enable();
+
+    return retval;
+}
+
+int mutex_lock(struct mutex *mtx)
+{
+    int retval;
+
+    while (1) {
+        retval = __mutex_lock(mtx);
+        if (retval == -ERESTARTSYS) {
+            schedule();
+        } else {
+            break;
+        }
+    }
 
     return retval;
 }

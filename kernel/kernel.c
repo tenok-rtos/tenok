@@ -2303,7 +2303,7 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 
     int retval;
     while (1) {
-        retval = mutex_lock(mutex);
+        retval = __mutex_lock(mutex);
 
         if (retval == -ERESTARTSYS) {
             raise_thread_priority_of_mutex_owner(mutex);
@@ -2324,7 +2324,7 @@ static int sys_pthread_mutex_lock(pthread_mutex_t *_mutex)
 
 static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    int retval = mutex_lock((struct mutex *) mutex);
+    int retval = __mutex_lock((struct mutex *) mutex);
     return (retval == -ERESTARTSYS) ? -EBUSY : retval;
 }
 
