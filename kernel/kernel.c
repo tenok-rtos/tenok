@@ -568,20 +568,11 @@ void wake_up(struct list_head *wait_list)
     if (list_empty(wait_list))
         return;
 
-    struct thread_info *highest_pri_thread =
+    /* Wake up the first thread in the waiting list */
+    struct thread_info *thread =
         list_first_entry(wait_list, struct thread_info, list);
-
-    /* Find the highest priority task inside the waiting list */
-    struct thread_info *thread;
-    list_for_each_entry (thread, wait_list, list) {
-        if (thread->priority > highest_pri_thread->priority)
-            highest_pri_thread = thread;
-    }
-
-    /* Wake up the thread by placing it to the ready list */
-    list_move(&highest_pri_thread->list,
-              &ready_list[highest_pri_thread->priority]);
-    highest_pri_thread->status = THREAD_READY;
+    list_move(&thread->list, &ready_list[thread->priority]);
+    thread->status = THREAD_READY;
 }
 
 void wake_up_all(struct list_head *wait_list)

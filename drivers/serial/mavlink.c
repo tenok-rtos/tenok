@@ -104,8 +104,8 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
         kfifo_out(uart2.rx_fifo, buf, size);
         return size;
     } else {
-        uart2.rx_wait = current_thread_info();
-        prepare_to_wait(&uart2.rx_wait_list, uart2.rx_wait, THREAD_WAIT);
+        CURRENT_THREAD_INFO(curr_thread);
+        prepare_to_wait(&uart2.rx_wait_list, curr_thread, THREAD_WAIT);
         uart2.rx_wait_size = size;
         return -ERESTARTSYS;
     }
@@ -127,7 +127,7 @@ void USART2_IRQHandler(void)
 
         if (uart2.rx_wait_size &&
             kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
-            finish_wait(&uart2.rx_wait);
+            wake_up(&uart2.rx_wait_list);
             uart2.rx_wait_size = 0;
         }
     }

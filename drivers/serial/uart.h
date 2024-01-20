@@ -20,13 +20,11 @@ enum {
 typedef struct {
     /* Tx */
     struct list_head tx_wait_list;
-    struct thread_info *tx_wait;
     struct mutex tx_mtx;
     uint8_t tx_state;
 
     /* Rx */
     struct list_head rx_wait_list;
-    struct thread_info *rx_wait;
     struct kfifo *rx_fifo;
     size_t rx_wait_size;
 } uart_dev_t;
