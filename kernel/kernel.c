@@ -65,6 +65,7 @@ static LIST_HEAD(mqueue_list);  /* List of all posix message queues */
 
 /* Scheduler */
 static bool need_resched_flag;
+static uint32_t preempt_cnt;
 
 /* Lists of all threads in ready state */
 struct list_head ready_list[KTHREAD_PRI_MAX + 1];
@@ -133,6 +134,24 @@ NACKED void signal_cleanup_handler(void)
 NACKED void thread_once_return_handler(void)
 {
     SYSCALL(THREAD_ONCE_EVENT);
+}
+
+void preempt_disable(void)
+{
+    if(preempt_cnt == 0)
+        __preempt_disable();
+
+    /* Increase nesting level */
+    preempt_cnt++;
+}
+
+void preempt_enable(void)
+{
+    /* Decrease nesting level */
+    preempt_cnt--;
+
+    if(preempt_cnt == 0)
+        __preempt_enable();
 }
 
 void *kmalloc(size_t size)

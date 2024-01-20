@@ -80,15 +80,15 @@ ENTRY(SVC_Handler)
     bx    lr
 ENDPROC(SVC_Handler)
 
-ENTRY(preempt_disable)
+ENTRY(__preempt_disable)
     irq_disable
     bx lr
-ENDPROC(preempt_disable)
+ENDPROC(__preempt_disable)
 
-ENTRY(preempt_enable)
+ENTRY(__preempt_enable)
     irq_enable
     bx lr
-ENDPROC(preempt_enable)
+ENDPROC(__preempt_enable)
 
 ENTRY(jump_to_thread)
     /* Arguments:
