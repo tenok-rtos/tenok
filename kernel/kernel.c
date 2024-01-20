@@ -478,15 +478,6 @@ static void stage_temporary_handler(struct thread_info *thread,
     __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
 }
 
-static void stage_syscall_handler(struct thread_info *thread,
-                                  uint32_t func,
-                                  uint32_t return_handler,
-                                  uint32_t args[4])
-{
-    thread->syscall_stack_top = thread->stack_top;
-    __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
-}
-
 static void stage_signal_handler(struct thread_info *thread,
                                  uint32_t func,
                                  uint32_t args[4])
@@ -3013,6 +3004,15 @@ static void pthread_once_event_handler(void)
     set_need_resched();
 }
 
+static void setup_syscall(struct thread_info *thread,
+                          uint32_t func,
+                          uint32_t return_handler,
+                          uint32_t args[4])
+{
+    thread->syscall_stack_top = thread->stack_top;
+    __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
+}
+
 /* Syscall table */
 static struct syscall_info syscall_table[] = {SYSCALL_TABLE_INIT};
 
@@ -3047,9 +3047,9 @@ static void syscall_handler(void)
             get_syscall_args(running_thread->stack_top,
                              running_thread->syscall_args);
 
-            stage_syscall_handler(running_thread, syscall_table[i].handler_func,
-                                  (uint32_t) syscall_return_handler,
-                                  *running_thread->syscall_args);
+            setup_syscall(running_thread, syscall_table[i].handler_func,
+                          (uint32_t) syscall_return_handler,
+                          *running_thread->syscall_args);
 
             running_thread->privilege = KERNEL_THREAD;
             running_thread->syscall_mode = true;
