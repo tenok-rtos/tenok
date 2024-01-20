@@ -22,19 +22,19 @@ void sema_init(struct semaphore *sem, int val)
 
 int down(struct semaphore *sem)
 {
+    preempt_disable();
+
     while (sem->count <= 0) {
         /* Failed to acquire the semaphore, enqueue the current thread into the
          * waiting list */
-        preempt_disable();
         prepare_to_wait(&sem->wait_list, current_thread_info(), THREAD_WAIT);
-        preempt_enable();
 
         schedule();
     }
 
-    preempt_disable();
     /* Acquired the semaphore successfully */
     sem->count--;
+
     preempt_enable();
 
     return 0;

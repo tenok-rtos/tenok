@@ -5,6 +5,7 @@
 #include <kernel/daemon.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/sched.h>
 #include <kernel/softirq.h>
 #include <kernel/thread.h>
 #include <kernel/wait.h>
@@ -33,12 +34,8 @@ void tasklet_schedule(struct tasklet_struct *t)
 
 static void softirqd_sleep(void)
 {
-    preempt_disable();
-
     prepare_to_wait(&softirqd_wait, current_thread_info(), THREAD_WAIT);
-    jump_to_kernel();
-
-    preempt_enable();
+    schedule();
 }
 
 void softirqd(void)

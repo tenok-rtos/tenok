@@ -12,6 +12,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/printk.h>
+#include <kernel/sched.h>
 #include <kernel/thread.h>
 #include <kernel/time.h>
 #include <kernel/tty.h>
@@ -126,10 +127,8 @@ void printkd_start(void)
 
 static void printkd_sleep(void)
 {
-    preempt_disable();
     prepare_to_wait(&printkd_wait, current_thread_info(), THREAD_WAIT);
-    preempt_enable();
-    jump_to_kernel();
+    schedule();
 }
 
 void printkd(void)

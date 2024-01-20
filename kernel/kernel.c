@@ -589,33 +589,45 @@ void prepare_to_wait(struct list_head *wait_list,
                      struct thread_info *thread,
                      int state)
 {
+    preempt_disable();
+
     list_add(&thread->list, wait_list);
     thread->status = state;
+
+    preempt_enable();
 }
 
 void finish_wait(struct thread_info *thread)
 {
-    if (thread == running_thread)
-        return;
+    preempt_disable();
 
-    thread->status = THREAD_READY;
-    list_move(&thread->list, &ready_list[thread->priority]);
+    if (thread != running_thread) {
+        thread->status = THREAD_READY;
+        list_move(&thread->list, &ready_list[thread->priority]);
+    }
+
+    preempt_enable();
 }
 
 void wake_up(struct list_head *wait_list)
 {
-    if (list_empty(wait_list))
-        return;
+    preempt_disable();
 
-    /* Wake up the first thread in the waiting list */
-    struct thread_info *thread =
-        list_first_entry(wait_list, struct thread_info, list);
-    list_move(&thread->list, &ready_list[thread->priority]);
-    thread->status = THREAD_READY;
+    if (!list_empty(wait_list)) {
+        /* Wake up the first thread in the waiting list */
+        struct thread_info *thread =
+            list_first_entry(wait_list, struct thread_info, list);
+        list_move(&thread->list, &ready_list[thread->priority]);
+        thread->status = THREAD_READY;
+    }
+
+    preempt_enable();
 }
 
 void wake_up_all(struct list_head *wait_list)
 {
+    preempt_disable();
+
     /* Wake up all threads from the waiting list */
     struct list_head *curr, *next;
     list_for_each_safe (curr, next, wait_list) {
@@ -624,6 +636,8 @@ void wake_up_all(struct list_head *wait_list)
         list_move(&thread->list, &ready_list[thread->priority]);
         thread->status = THREAD_READY;
     }
+
+    preempt_enable();
 }
 
 static inline void thread_join_handler(void)
@@ -835,12 +849,8 @@ static int sys_minfo(int name)
 
 static int sys_sched_yield(void)
 {
-    preempt_disable();
-
     /* Suspend current thread */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
-
-    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2149,12 +2159,8 @@ leave:
 
 static int sys_pthread_yield(void)
 {
-    preempt_disable();
-
     /* Yield the time quatum to other threads */
     prepare_to_wait(&sleep_list, running_thread, THREAD_WAIT);
-
-    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2359,12 +2365,8 @@ static int sys_pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 static int sys_pthread_cond_signal(pthread_cond_t *cond)
 {
-    preempt_disable();
-
     /* Wake up a thread from the wait list */
     wake_up(&((struct cond *) cond)->task_wait_list);
-
-    preempt_enable();
 
     /* Return success */
     return 0;
@@ -2372,12 +2374,8 @@ static int sys_pthread_cond_signal(pthread_cond_t *cond)
 
 static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    preempt_disable();
-
     /* Wake up all threads from the wait list */
     wake_up_all(&((struct cond *) cond)->task_wait_list);
-
-    preempt_enable();
 
     /* Return success */
     return 0;
