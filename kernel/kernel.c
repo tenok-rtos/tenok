@@ -63,12 +63,12 @@ static LIST_HEAD(timers_list);  /* List of all timers in the system */
 static LIST_HEAD(poll_list);    /* List of all threads suspended by poll() */
 static LIST_HEAD(mqueue_list);  /* List of all posix message queues */
 
+/* Lists of all threads in ready state */
+struct list_head ready_list[KTHREAD_PRI_MAX + 1];
+
 /* Scheduler */
 static bool need_resched_flag;
 static uint32_t preempt_cnt;
-
-/* Lists of all threads in ready state */
-struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 
 /* Tasks and threads */
 static struct task_struct tasks[TASK_MAX];
