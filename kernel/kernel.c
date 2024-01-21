@@ -771,9 +771,7 @@ leave:
 static void sys_setprogname(const char *name)
 {
     preempt_disable();
-
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
-
     preempt_enable();
 }
 
@@ -1000,7 +998,7 @@ static int sys_open(const char *pathname, int flags)
     return fd;
 
 err:
-    preempt_disable();
+    preempt_enable();
     return retval;
 }
 
@@ -1405,9 +1403,7 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
 static int sys_readdir(DIR *dirp, struct dirent *dirent)
 {
     preempt_disable();
-
     int retval = fs_read_dir(dirp, dirent);
-
     preempt_enable();
 
     return retval;
@@ -1455,9 +1451,7 @@ static int sys_chdir(const char *path)
 static int sys_getpid(void)
 {
     preempt_disable();
-
     int pid = current_task_info()->pid;
-
     preempt_enable();
 
     return pid;
@@ -1982,9 +1976,7 @@ static int sys_pthread_create(pthread_t *pthread,
 static pthread_t sys_pthread_self(void)
 {
     preempt_disable();
-
     int tid = running_thread->tid;
-
     preempt_enable();
 
     return tid;
@@ -2456,9 +2448,7 @@ static int sys_sem_wait(sem_t *sem)
 static int sys_sem_getvalue(sem_t *sem, int *sval)
 {
     preempt_disable();
-
     *sval = ((struct semaphore *) sem)->count;
-
     preempt_enable();
 
     /* Return success */
