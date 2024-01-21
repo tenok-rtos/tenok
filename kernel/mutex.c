@@ -58,11 +58,11 @@ int mutex_lock(struct mutex *mtx)
 
     while (1) {
         retval = __mutex_lock(mtx);
-        if (retval == -ERESTARTSYS) {
-            schedule();
-        } else {
+
+        if (retval != -ERESTARTSYS)
             break;
-        }
+
+        schedule();
     }
 
     return retval;

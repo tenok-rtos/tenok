@@ -910,11 +910,15 @@ static int sys_mount(const char *source, const char *target)
 
     /* Read mount result from the file system daemon */
     int fifo_retval, mnt_result;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
                                 (char *) &mnt_result, sizeof(mnt_result), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     return mnt_result;
 }
@@ -945,11 +949,15 @@ static int sys_open(const char *pathname, int flags)
     /* Read the file index from the file system daemon */
     int file_idx;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     preempt_disable();
 
@@ -1161,10 +1169,14 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
     preempt_enable();
 
     /* Call read operation */
-    do {
+    while (1) {
         retval = filp->f_op->read(filp, buf, count, 0);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    }
 
     return retval;
 
@@ -1213,10 +1225,14 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
     preempt_enable();
 
     /* Call write operation */
-    do {
+    while (1) {
         retval = filp->f_op->write(filp, buf, count, 0);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    };
 
     return retval;
 
@@ -1264,10 +1280,14 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
     preempt_enable();
 
     /* Call ioctl operation */
-    do {
+    while (1) {
         retval = filp->f_op->ioctl(filp, request, arg);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    }
 
     return retval;
 
@@ -1315,10 +1335,14 @@ static off_t sys_lseek(int fd, long offset, int whence)
     preempt_enable();
 
     /* Call lseek operation */
-    do {
+    while (1) {
         retval = filp->f_op->lseek(filp, offset, whence);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    }
 
     return retval;
 
@@ -1386,11 +1410,15 @@ static int sys_opendir(const char *pathname, DIR *dirp /* FIXME */)
     /* Read the directory inode from the file system daemon */
     struct inode *inode_dir;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
                                 sizeof(inode_dir), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     /* Return directory information */
     dirp->inode_dir = inode_dir;
@@ -1419,11 +1447,15 @@ static char *sys_getcwd(char *buf, size_t size)
     /* Read getcwd result from the file system daemon */
     char *path;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path,
                                 sizeof(path), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     return path;
 }
@@ -1438,12 +1470,16 @@ static int sys_chdir(const char *path)
     /* Read chdir result from the file system daemon */
     int chdir_result;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval =
             fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
                       sizeof(chdir_result), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     return chdir_result;
 }
@@ -1471,11 +1507,15 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
     /* Read file index from the file system daemon  */
     int file_idx;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
                                 sizeof(file_idx), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     if (file_idx == -1) {
         /* Failed to create file */
@@ -1500,11 +1540,15 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
     /* Read the file index from the file system daemon */
     int file_idx = 0;
     int fifo_retval;
-    do {
+    while (1) {
         fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &tid,
                                 sizeof(file_idx), 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (fifo_retval == -ERESTARTSYS);
+    }
 
     if (file_idx == -1) {
         /* Failed to create FIFO */
@@ -1873,11 +1917,15 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
     preempt_enable();
 
     /* Read message */
-    do {
+    while (1) {
         retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
                               msg_prio);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    }
 
     return retval;
 
@@ -1921,11 +1969,15 @@ static int sys_mq_send(mqd_t mqdes,
     preempt_enable();
 
     /* Send message */
-    do {
+    while (1) {
         retval =
             __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
+
+        if (retval != -ERESTARTSYS)
+            break;
+
         schedule();
-    } while (retval == -ERESTARTSYS);
+    }
 
     return retval;
 
