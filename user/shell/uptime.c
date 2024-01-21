@@ -11,7 +11,7 @@ void shell_cmd_uptime(int argc, char *argv[])
     // TODO: printf() should support %lld
     int time_sec = (int) tp.tv_sec;
 
-    printf("%d seconds up\n", time_sec);
+    printf("%d seconds up\n\r", time_sec);
 }
 
 HOOK_SHELL_CMD(uptime);
