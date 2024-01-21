@@ -164,6 +164,11 @@ void preempt_enable(void)
         __preempt_enable();
 }
 
+static inline int preempt_count(void)
+{
+    return preempt_cnt;
+}
+
 void *kmalloc(size_t size)
 {
     void *ptr;
@@ -3117,12 +3122,20 @@ static void __schedule(void)
 
 void schedule(void)
 {
-    preempt_disable();
+    __preempt_disable();
 
+    /* Record nesting level of the critical section */
+    int nesting = preempt_count();
+
+    /* Jump back to the kernel loop and reschedule */
     set_need_resched();
     jump_to_kernel();
 
-    preempt_enable();
+    __preempt_enable();
+
+    /* Turn of the interrupt again if necessary */
+    if (nesting)
+        __preempt_disable();
 }
 
 static void print_platform_info(void)
