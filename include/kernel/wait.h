@@ -7,22 +7,18 @@
 #include <stdbool.h>
 
 #include <common/list.h>
-#include <kernel/interrupt.h>  //XXX
 #include <kernel/kernel.h>
 #include <kernel/thread.h>
 
 #define DECLARE_WAIT_QUEUE_HEAD(wq) LIST_HEAD(wq)
 
-// XXX
 #define wait_event(wq_head, condition)                           \
     do {                                                         \
         CURRENT_THREAD_INFO(curr_thread);                        \
         while (1) {                                              \
             if (condition)                                       \
                 break;                                           \
-            preempt_disable();                                   \
             prepare_to_wait(&wq_head, curr_thread, THREAD_WAIT); \
-            preempt_enable();                                    \
             schedule();                                          \
         }                                                        \
     } while (0)
