@@ -5,6 +5,7 @@
 
 #include <fs/fs.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/printk.h>
@@ -28,7 +29,6 @@ void USART2_IRQHandler(void);
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_state = UART_TX_IDLE,
 };
 
 static struct file_operations serial1_file_ops = {
@@ -100,15 +100,23 @@ int serial1_open(struct inode *inode, struct file *file)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
+    preempt_disable();
+
+    ssize_t retval;
+
     if (kfifo_len(uart2.rx_fifo) >= size) {
         kfifo_out(uart2.rx_fifo, buf, size);
-        return size;
+        retval = size;
     } else {
         CURRENT_THREAD_INFO(curr_thread);
         prepare_to_wait(&uart2.rx_wait_list, curr_thread, THREAD_WAIT);
         uart2.rx_wait_size = size;
-        return -ERESTARTSYS;
+        retval = -ERESTARTSYS;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 ssize_t serial1_write(struct file *filp,

@@ -6,10 +6,12 @@
 
 #include <fs/fs.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>
 #include <kernel/printk.h>
+#include <kernel/sched.h>
 #include <kernel/tty.h>
 
 #include "stm32f4xx_conf.h"
@@ -35,7 +37,6 @@ void DMA2_Stream7_IRQHandler(void);
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_state = UART_TX_IDLE,
 };
 
 static struct file_operations serial0_file_ops = {
@@ -131,15 +132,23 @@ int serial0_open(struct inode *inode, struct file *file)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
+    preempt_disable();
+
+    ssize_t retval;
+
     if (kfifo_len(uart1.rx_fifo) >= size) {
         kfifo_out(uart1.rx_fifo, buf, size);
-        return size;
+        retval = size;
     } else {
         CURRENT_THREAD_INFO(curr_thread);
         prepare_to_wait(&uart1.rx_wait_list, curr_thread, THREAD_WAIT);
         uart1.rx_wait_size = size;
-        return -ERESTARTSYS;
+        retval = -ERESTARTSYS;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 ssize_t serial0_write(struct file *filp,
@@ -161,64 +170,45 @@ void early_write(char *buf, size_t size)
 
 static int uart1_dma_puts(const char *data, size_t size)
 {
-    switch (uart1.tx_state) {
-    case UART_TX_IDLE: {
-        /* Try claiming usage of the tx resource */
-        if (__mutex_lock(&uart1.tx_mtx) == -ERESTARTSYS) {
-            /* Mutex is locked by other threads */
-            return -ERESTARTSYS;
-        }
+    mutex_lock(&uart1.tx_mtx);
 
-        /* Configure the DMA */
-        DMA_InitTypeDef DMA_InitStructure = {
-            .DMA_BufferSize = (uint32_t) size,
-            .DMA_FIFOMode = DMA_FIFOMode_Disable,
-            .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
-            .DMA_MemoryBurst = DMA_MemoryBurst_Single,
-            .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
-            .DMA_MemoryInc = DMA_MemoryInc_Enable,
-            .DMA_Mode = DMA_Mode_Normal,
-            .DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR),
-            .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
-            .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
-            .DMA_Priority = DMA_Priority_Medium,
-            .DMA_Channel = DMA_Channel_4,
-            .DMA_DIR = DMA_DIR_MemoryToPeripheral,
-            .DMA_Memory0BaseAddr = (uint32_t) data,
-        };
-        DMA_Init(DMA2_Stream7, &DMA_InitStructure);
+    preempt_disable();
 
-        /* Enable DMA to copy the data */
-        DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
-        DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
-        DMA_Cmd(DMA2_Stream7, ENABLE);
+    CURRENT_THREAD_INFO(curr_thread);
 
-        uart1.tx_state = UART_TX_DMA_BUSY;
+    /* Configure the DMA */
+    DMA_InitTypeDef DMA_InitStructure = {
+        .DMA_BufferSize = (uint32_t) size,
+        .DMA_FIFOMode = DMA_FIFOMode_Disable,
+        .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
+        .DMA_MemoryBurst = DMA_MemoryBurst_Single,
+        .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
+        .DMA_MemoryInc = DMA_MemoryInc_Enable,
+        .DMA_Mode = DMA_Mode_Normal,
+        .DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR),
+        .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
+        .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
+        .DMA_Priority = DMA_Priority_Medium,
+        .DMA_Channel = DMA_Channel_4,
+        .DMA_DIR = DMA_DIR_MemoryToPeripheral,
+        .DMA_Memory0BaseAddr = (uint32_t) data,
+    };
+    DMA_Init(DMA2_Stream7, &DMA_InitStructure);
 
-        /* Wait until DMA completed data transfer */
-        CURRENT_THREAD_INFO(curr_thread);
-        prepare_to_wait(&uart1.tx_wait_list, curr_thread, THREAD_WAIT);
+    /* Enable DMA to copy the data */
+    DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
+    DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+    DMA_Cmd(DMA2_Stream7, ENABLE);
 
-        return -ERESTARTSYS;
-    }
-    case UART_TX_DMA_BUSY: {
-        /* Try to release the tx resource */
-        if (mutex_unlock(&uart1.tx_mtx) == -EPERM) {
-            /* Mutex is locked by other threads,
-             * call mutex_lock() to wait */
-            __mutex_lock(&uart1.tx_mtx);
-            return -ERESTARTSYS;
-        }
+    preempt_enable();
 
-        /* Notified by the DMA ISR, the data transfer is now complete */
-        DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
-        uart1.tx_state = UART_TX_IDLE;
-        return size;
-    }
-    default: {
-        return -EIO;
-    }
-    }
+    /* Wait until DMA completed data transfer */
+    prepare_to_wait(&uart1.tx_wait_list, curr_thread, THREAD_WAIT);
+    schedule();
+
+    mutex_unlock(&uart1.tx_mtx);
+
+    return size;
 }
 
 void USART1_IRQHandler(void)

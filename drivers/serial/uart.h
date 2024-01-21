@@ -12,16 +12,10 @@
 
 #include "stm32f4xx.h"
 
-enum {
-    UART_TX_IDLE,
-    UART_TX_DMA_BUSY,
-} UART_TX_STATE;
-
 typedef struct {
     /* Tx */
     struct list_head tx_wait_list;
     struct mutex tx_mtx;
-    uint8_t tx_state;
 
     /* Rx */
     struct list_head rx_wait_list;

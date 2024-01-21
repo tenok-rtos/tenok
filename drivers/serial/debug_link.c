@@ -6,9 +6,11 @@
 
 #include <fs/fs.h>
 #include <kernel/errno.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/printk.h>
+#include <kernel/sched.h>
 
 #include "stm32f4xx_conf.h"
 #include "uart.h"
@@ -32,7 +34,6 @@ void DMA1_Stream4_IRQHandler(void);
 uart_dev_t uart3 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
-    .tx_state = UART_TX_IDLE,
 };
 
 static struct file_operations serial2_file_ops = {
@@ -119,15 +120,23 @@ int serial2_open(struct inode *inode, struct file *file)
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
+    preempt_disable();
+
+    ssize_t retval;
+
     if (kfifo_len(uart3.rx_fifo) >= size) {
         kfifo_out(uart3.rx_fifo, buf, size);
-        return size;
+        retval = size;
     } else {
         CURRENT_THREAD_INFO(curr_thread);
         prepare_to_wait(&uart3.rx_wait_list, curr_thread, THREAD_WAIT);
         uart3.rx_wait_size = size;
-        return -ERESTARTSYS;
+        retval = -ERESTARTSYS;
     }
+
+    preempt_enable();
+
+    return retval;
 }
 
 ssize_t serial2_write(struct file *filp,
@@ -144,48 +153,41 @@ ssize_t serial2_write(struct file *filp,
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    switch (uart3.tx_state) {
-    case UART_TX_IDLE: {
-        /* Configure the DMA */
-        DMA_InitTypeDef DMA_InitStructure = {
-            .DMA_BufferSize = (uint32_t) size,
-            .DMA_FIFOMode = DMA_FIFOMode_Disable,
-            .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
-            .DMA_MemoryBurst = DMA_MemoryBurst_Single,
-            .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
-            .DMA_MemoryInc = DMA_MemoryInc_Enable,
-            .DMA_Mode = DMA_Mode_Normal,
-            .DMA_PeripheralBaseAddr = (uint32_t) (&USART3->DR),
-            .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
-            .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
-            .DMA_Priority = DMA_Priority_Medium,
-            .DMA_Channel = DMA_Channel_7,
-            .DMA_DIR = DMA_DIR_MemoryToPeripheral,
-            .DMA_Memory0BaseAddr = (uint32_t) data,
-        };
-        DMA_Init(DMA1_Stream4, &DMA_InitStructure);
+    preempt_disable();
 
-        /* Enable DMA to copy the data */
-        DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
-        DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
-        DMA_Cmd(DMA1_Stream4, ENABLE);
+    CURRENT_THREAD_INFO(curr_thread);
 
-        uart3.tx_state = UART_TX_DMA_BUSY;
+    /* Configure the DMA */
+    DMA_InitTypeDef DMA_InitStructure = {
+        .DMA_BufferSize = (uint32_t) size,
+        .DMA_FIFOMode = DMA_FIFOMode_Disable,
+        .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
+        .DMA_MemoryBurst = DMA_MemoryBurst_Single,
+        .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
+        .DMA_MemoryInc = DMA_MemoryInc_Enable,
+        .DMA_Mode = DMA_Mode_Normal,
+        .DMA_PeripheralBaseAddr = (uint32_t) (&USART3->DR),
+        .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
+        .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
+        .DMA_Priority = DMA_Priority_Medium,
+        .DMA_Channel = DMA_Channel_7,
+        .DMA_DIR = DMA_DIR_MemoryToPeripheral,
+        .DMA_Memory0BaseAddr = (uint32_t) data,
+    };
+    DMA_Init(DMA1_Stream4, &DMA_InitStructure);
 
-        /* Wait until DMA complete data transfer */
-        CURRENT_THREAD_INFO(curr_thread);
-        prepare_to_wait(&uart3.tx_wait_list, curr_thread, THREAD_WAIT);
-        return -ERESTARTSYS;
-    }
-    case UART_TX_DMA_BUSY: {
-        /* Notified by the DMA ISR, the data transfer is now complete */
-        uart3.tx_state = UART_TX_IDLE;
-        return size;
-    }
-    default: {
-        return -EIO;
-    }
-    }
+    /* Enable DMA to copy the data */
+    DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
+    DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
+    DMA_Cmd(DMA1_Stream4, ENABLE);
+
+    preempt_enable();
+
+    /* Wait until DMA complete data transfer */
+    prepare_to_wait(&uart3.tx_wait_list, curr_thread, THREAD_WAIT);
+    schedule();
+
+    return size;
 }
 
 void USART3_IRQHandler(void)
