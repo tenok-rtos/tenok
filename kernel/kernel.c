@@ -2694,7 +2694,7 @@ static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
 
     int retval;
 
-    if (clockid != CLOCK_REALTIME) {
+    if (clockid != CLOCK_MONOTONIC) {
         /* Return error */
         retval = -EINVAL;
         goto leave;
