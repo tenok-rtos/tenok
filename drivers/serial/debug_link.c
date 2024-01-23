@@ -177,11 +177,11 @@ static int uart3_dma_puts(const char *data, size_t size)
     DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, ENABLE);
     DMA_Cmd(DMA1_Stream4, ENABLE);
 
-    preempt_enable();
-
     /* Wait until DMA complete data transfer */
     uart3.tx_ready = false;
     wait_event(uart3.tx_wait_list, uart3.tx_ready);
+
+    preempt_enable();
 
     mutex_unlock(&uart3.tx_mtx);
 

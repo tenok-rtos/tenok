@@ -3154,17 +3154,24 @@ void schedule(void)
 {
     __preempt_disable();
 
-    /* Record nesting level of the critical section */
-    int nesting = preempt_count();
+    /* Preserve nesting level of preemption for current thread */
+    running_thread->preempt_cnt = preempt_count();
 
-    /* Jump back to the kernel loop and reschedule */
+    /* Reset preemption level */
+    preempt_cnt = 0;
+
+    /* Request rescheduling */
     set_need_resched();
-    jump_to_kernel();
 
+    /* Jump back to the kernel loop */
+    jump_to_kernel();
     __preempt_enable();
 
-    /* Turn of the interrupt again if necessary */
-    if (nesting)
+    /* Restore nesting level of preemption for current thread */
+    preempt_cnt = running_thread->preempt_cnt;
+
+    /* Turn off the interrupt again if necessary */
+    if (preempt_cnt)
         __preempt_disable();
 }
 

@@ -87,6 +87,7 @@ struct thread_info {
     void **retval_join;         /* To getting retval from a thread to join */
     size_t file_request_size;   /* Size of the thread requesting to a file */
     uint32_t sleep_ticks;       /* Remained ticks to sleep */
+    uint32_t preempt_cnt;       /* For preserving threads's preemption level */
     uint16_t tid;               /* Thread ID */
     uint16_t timer_cnt;         /* The number of timers that the thread has */
     uint8_t privilege;          /* Current execution privilege level */
