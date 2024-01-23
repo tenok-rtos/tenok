@@ -317,6 +317,10 @@ Tenok API List
 
 ### Wait Queue:
 
+* DECLARE_WAIT_QUEUE_HEAD()
+
+* wait_event()
+
 * prepare_to_wait()
 
 * finish_wait()
