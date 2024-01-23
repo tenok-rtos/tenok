@@ -14,12 +14,14 @@
 
 typedef struct {
     /* Tx */
-    struct list_head tx_wait_list;
+    wait_queue_head_t tx_wait_list;
     struct mutex tx_mtx;
+    bool tx_ready;
 
     /* Rx */
-    struct list_head rx_wait_list;
+    wait_queue_head_t rx_wait_list;
     struct kfifo *rx_fifo;
+    struct mutex rx_mtx;
     size_t rx_wait_size;
 } uart_dev_t;
 

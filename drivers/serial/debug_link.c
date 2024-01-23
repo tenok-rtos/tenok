@@ -101,11 +101,14 @@ void serial2_init(void)
     register_chrdev("serial2", &serial2_file_ops);
 
     /* Create wait queues for synchronization */
-    INIT_LIST_HEAD(&uart3.tx_wait_list);
-    INIT_LIST_HEAD(&uart3.rx_wait_list);
+    init_waitqueue_head(&uart3.tx_wait_list);
+    init_waitqueue_head(&uart3.rx_wait_list);
 
     /* Create kfifo for UART3 rx */
     uart3.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART3_RX_BUF_SIZE);
+
+    mutex_init(&uart3.tx_mtx);
+    mutex_init(&uart3.rx_mtx);
 
     /* Initialize UART3 */
     uart3_init(115200);
@@ -120,23 +123,16 @@ int serial2_open(struct inode *inode, struct file *file)
 
 ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    preempt_disable();
+    mutex_lock(&uart3.rx_mtx);
 
-    ssize_t retval;
+    uart3.rx_wait_size = size;
+    wait_event(uart3.rx_wait_list, kfifo_len(uart3.rx_fifo) >= size);
 
-    if (kfifo_len(uart3.rx_fifo) >= size) {
-        kfifo_out(uart3.rx_fifo, buf, size);
-        retval = size;
-    } else {
-        CURRENT_THREAD_INFO(curr_thread);
-        prepare_to_wait(&uart3.rx_wait_list, curr_thread, THREAD_WAIT);
-        uart3.rx_wait_size = size;
-        retval = -ERESTARTSYS;
-    }
+    kfifo_out(uart3.rx_fifo, buf, size);
 
-    preempt_enable();
+    mutex_unlock(&uart3.rx_mtx);
 
-    return retval;
+    return size;
 }
 
 ssize_t serial2_write(struct file *filp,
@@ -153,9 +149,9 @@ ssize_t serial2_write(struct file *filp,
 
 static int uart3_dma_puts(const char *data, size_t size)
 {
-    preempt_disable();
+    mutex_lock(&uart3.tx_mtx);
 
-    CURRENT_THREAD_INFO(curr_thread);
+    preempt_disable();
 
     /* Configure the DMA */
     DMA_InitTypeDef DMA_InitStructure = {
@@ -184,8 +180,10 @@ static int uart3_dma_puts(const char *data, size_t size)
     preempt_enable();
 
     /* Wait until DMA complete data transfer */
-    prepare_to_wait(&uart3.tx_wait_list, curr_thread, THREAD_WAIT);
-    schedule();
+    uart3.tx_ready = false;
+    wait_event(uart3.tx_wait_list, uart3.tx_ready);
+
+    mutex_unlock(&uart3.tx_mtx);
 
     return size;
 }
@@ -196,9 +194,10 @@ void USART3_IRQHandler(void)
         uint8_t c = USART_ReceiveData(USART3);
         kfifo_put(uart3.rx_fifo, &c);
 
-        if (kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
-            wake_up(&uart3.rx_wait_list);
+        if (uart3.rx_wait_size &&
+            kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
             uart3.rx_wait_size = 0;
+            wake_up(&uart3.rx_wait_list);
         }
     }
 }
@@ -209,6 +208,7 @@ void DMA1_Stream4_IRQHandler(void)
         DMA_ClearITPendingBit(DMA1_Stream4, DMA_IT_TCIF4);
         DMA_ITConfig(DMA1_Stream4, DMA_IT_TC, DISABLE);
 
+        uart3.tx_ready = true;
         wake_up(&uart3.tx_wait_list);
     }
 }

@@ -81,14 +81,17 @@ void serial1_init(void)
     register_chrdev("serial1", &serial1_file_ops);
 
     /* Create wait queues for synchronization */
-    INIT_LIST_HEAD(&uart2.tx_wait_list);
-    INIT_LIST_HEAD(&uart2.rx_wait_list);
+    init_waitqueue_head(&uart2.tx_wait_list);
+    init_waitqueue_head(&uart2.rx_wait_list);
 
     /* Create kfifo for UART2 rx */
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* Initialize UART2 */
     uart2_init(115200);
+
+    mutex_init(&uart2.tx_mtx);
+    mutex_init(&uart2.rx_mtx);
 
     printk("chardev serial1: mavlink");
 }
@@ -100,23 +103,16 @@ int serial1_open(struct inode *inode, struct file *file)
 
 ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    preempt_disable();
+    mutex_lock(&uart2.rx_mtx);
 
-    ssize_t retval;
+    uart2.rx_wait_size = size;
+    wait_event(uart2.rx_wait_list, kfifo_len(uart2.rx_fifo) >= size);
 
-    if (kfifo_len(uart2.rx_fifo) >= size) {
-        kfifo_out(uart2.rx_fifo, buf, size);
-        retval = size;
-    } else {
-        CURRENT_THREAD_INFO(curr_thread);
-        prepare_to_wait(&uart2.rx_wait_list, curr_thread, THREAD_WAIT);
-        uart2.rx_wait_size = size;
-        retval = -ERESTARTSYS;
-    }
+    kfifo_out(uart2.rx_fifo, buf, size);
 
-    preempt_enable();
+    mutex_unlock(&uart2.rx_mtx);
 
-    return retval;
+    return size;
 }
 
 ssize_t serial1_write(struct file *filp,
@@ -135,8 +131,8 @@ void USART2_IRQHandler(void)
 
         if (uart2.rx_wait_size &&
             kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
-            wake_up(&uart2.rx_wait_list);
             uart2.rx_wait_size = 0;
+            wake_up(&uart2.rx_wait_list);
         }
     }
 }

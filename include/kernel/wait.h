@@ -8,10 +8,31 @@
 
 #include <common/list.h>
 #include <kernel/kernel.h>
+#include <kernel/sched.h>
 #include <kernel/thread.h>
 
-#define DECLARE_WAIT_QUEUE_HEAD(wq) LIST_HEAD(wq)
+typedef struct list_head wait_queue_head_t;
 
+/**
+ * @brief  Declare and initialize a wait queue
+ * @param  name: Name of the wait queue variable.
+ * @retval None
+ */
+#define DECLARE_WAIT_QUEUE_HEAD(name) LIST_HEAD(name)
+
+/**
+ * @brief  Initialize the wait queue
+ * @param  list: The wait queue to initialize.
+ * @retval None
+ */
+#define init_waitqueue_head(wq) INIT_LIST_HEAD(wq)
+
+/**
+ * @brief  Wait until the condition became true
+ * @param  wq_head: The wait queue to sleep.
+ * @param  condition: The condition to wait until true.
+ * @retval None
+ */
 #define wait_event(wq_head, condition)                           \
     do {                                                         \
         CURRENT_THREAD_INFO(curr_thread);                        \

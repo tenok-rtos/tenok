@@ -104,14 +104,14 @@ void uart1_init(uint32_t baudrate)
 void tty_init(void)
 {
     /* Create wait queues for synchronization */
-    INIT_LIST_HEAD(&uart1.tx_wait_list);
-    INIT_LIST_HEAD(&uart1.rx_wait_list);
+    init_waitqueue_head(&uart1.tx_wait_list);
+    init_waitqueue_head(&uart1.rx_wait_list);
 
-    /* Create kfifo for UART1 rx */
+    /* Create rx buffer */
     uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
-    /* Initialize mutex, kfifo, and tasklet for UART1 tx */
     mutex_init(&uart1.tx_mtx);
+    mutex_init(&uart1.rx_mtx);
 
     /* Initialize UART1 */
     uart1_init(115200);
@@ -132,23 +132,16 @@ int serial0_open(struct inode *inode, struct file *file)
 
 ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    preempt_disable();
+    mutex_lock(&uart1.rx_mtx);
 
-    ssize_t retval;
+    uart1.rx_wait_size = size;
+    wait_event(uart1.rx_wait_list, kfifo_len(uart1.rx_fifo) >= size);
 
-    if (kfifo_len(uart1.rx_fifo) >= size) {
-        kfifo_out(uart1.rx_fifo, buf, size);
-        retval = size;
-    } else {
-        CURRENT_THREAD_INFO(curr_thread);
-        prepare_to_wait(&uart1.rx_wait_list, curr_thread, THREAD_WAIT);
-        uart1.rx_wait_size = size;
-        retval = -ERESTARTSYS;
-    }
+    kfifo_out(uart1.rx_fifo, buf, size);
 
-    preempt_enable();
+    mutex_unlock(&uart1.rx_mtx);
 
-    return retval;
+    return size;
 }
 
 ssize_t serial0_write(struct file *filp,
@@ -173,8 +166,6 @@ static int uart1_dma_puts(const char *data, size_t size)
     mutex_lock(&uart1.tx_mtx);
 
     preempt_disable();
-
-    CURRENT_THREAD_INFO(curr_thread);
 
     /* Configure the DMA */
     DMA_InitTypeDef DMA_InitStructure = {
@@ -203,8 +194,8 @@ static int uart1_dma_puts(const char *data, size_t size)
     preempt_enable();
 
     /* Wait until DMA completed data transfer */
-    prepare_to_wait(&uart1.tx_wait_list, curr_thread, THREAD_WAIT);
-    schedule();
+    uart1.tx_ready = false;
+    wait_event(uart1.tx_wait_list, uart1.tx_ready);
 
     mutex_unlock(&uart1.tx_mtx);
 
@@ -219,8 +210,8 @@ void USART1_IRQHandler(void)
 
         if (uart1.rx_wait_size &&
             kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
-            wake_up(&uart1.rx_wait_list);
             uart1.rx_wait_size = 0;
+            wake_up(&uart1.rx_wait_list);
         }
     }
 }
@@ -231,6 +222,7 @@ void DMA2_Stream7_IRQHandler(void)
         DMA_ClearITPendingBit(DMA2_Stream7, DMA_IT_TCIF7);
         DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, DISABLE);
 
+        uart1.tx_ready = true;
         wake_up(&uart1.tx_wait_list);
     }
 }

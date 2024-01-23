@@ -319,6 +319,8 @@ Tenok API List
 
 * DECLARE_WAIT_QUEUE_HEAD()
 
+* init_waitqueue_head()
+
 * wait_event()
 
 * prepare_to_wait()
