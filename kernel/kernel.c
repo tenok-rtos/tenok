@@ -74,7 +74,7 @@ static uint32_t preempt_cnt;
 static struct task_struct tasks[TASK_MAX];
 
 static struct thread_info threads[THREAD_MAX];
-static struct thread_info *running_thread = NULL;
+static struct thread_info *running_thread;
 
 static uint32_t bitmap_tasks[BITMAP_SIZE(TASK_MAX)];
 static uint32_t bitmap_threads[BITMAP_SIZE(THREAD_MAX)];
@@ -88,7 +88,7 @@ static char *deamon_names[] = {DAEMON_LIST};
 
 /* Files */
 struct file *files[FILE_RESERVED_NUM + FILE_MAX];
-int file_cnt = 0;
+int file_cnt;
 
 /* File descriptor table */
 static struct fdtable fdtable[OPEN_MAX];
@@ -136,12 +136,12 @@ NACKED void thread_once_return_handler(void)
     SYSCALL(THREAD_ONCE_EVENT);
 }
 
-void preempt_count_inc(void)
+inline void preempt_count_inc(void)
 {
     preempt_cnt++;
 }
 
-void preempt_count_dec(void)
+inline void preempt_count_dec(void)
 {
     preempt_cnt--;
 }
@@ -171,10 +171,10 @@ static inline int preempt_count(void)
 
 void *kmalloc(size_t size)
 {
-    void *ptr;
-
     /* Start the critcal section */
     preempt_disable();
+
+    void *retval = NULL, *ptr = NULL;
 
     /* Reserve space for kmalloc header */
     const size_t header_size = sizeof(struct kmalloc_header);
@@ -198,23 +198,21 @@ void *kmalloc(size_t size)
             ptr = alloc_pages(page_order);
         } else {
             /* Failed, the reqeust size is too large to handle */
-            ptr = NULL;
             printk("kmalloc(): failed as the request size %d is too large",
                    size);
         }
     }
 
-    /* End the critical section */
-    preempt_enable();
-
     if (ptr) {
         /* Record the allocated size and return the start address */
         ((struct kmalloc_header *) ptr)->size = size;
-        return (void *) ((uintptr_t) ptr + header_size);
-    } else {
-        /* Return null pointer as error */
-        return NULL;
+        retval = (void *) ((uintptr_t) ptr + header_size);
     }
+
+    /* End the critical section */
+    preempt_enable();
+
+    return retval;
 }
 
 void kfree(void *ptr)
@@ -1486,11 +1484,7 @@ static int sys_chdir(const char *path)
 
 static int sys_getpid(void)
 {
-    preempt_disable();
-    int pid = current_task_info()->pid;
-    preempt_enable();
-
-    return pid;
+    return current_task_info()->pid;
 }
 
 static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
@@ -1820,10 +1814,8 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
     mqd_table[mqdes].attr = *attr;
     mqd_table[mqdes].attr.mq_flags = oflag;
 
-    preempt_enable();
-
     /* Return the message queue descriptor */
-    return mqdes;
+    retval = mqdes;
 
 leave:
     preempt_enable();
@@ -2027,11 +2019,7 @@ static int sys_pthread_create(pthread_t *pthread,
 
 static pthread_t sys_pthread_self(void)
 {
-    preempt_disable();
-    int tid = running_thread->tid;
-    preempt_enable();
-
-    return tid;
+    return running_thread->tid;
 }
 
 static int sys_pthread_join(pthread_t tid, void **pthread_retval)
@@ -2338,10 +2326,10 @@ static void sys_pthread_exit(void *retval)
 
 static int sys_pthread_mutex_unlock(pthread_mutex_t *_mutex)
 {
+    preempt_disable();
+
     struct mutex *mutex = (struct mutex *) _mutex;
     int retval = mutex_unlock(mutex);
-
-    preempt_disable();
 
     /* Handle priority inheritance */
     if (retval == 0 && mutex->protocol == PTHREAD_PRIO_INHERIT &&
@@ -2511,9 +2499,9 @@ static int sys_sigaction(int signum,
                          const struct sigaction *act,
                          struct sigaction *oldact)
 {
-    int retval;
-
     preempt_disable();
+
+    int retval;
 
     /* Check if the signal number is defined */
     if (!is_signal_defined(signum)) {
@@ -2995,17 +2983,17 @@ static void system_ticks_update(void)
     syscall_timeout_update();
 }
 
-static void set_need_resched(void)
+static inline void set_need_resched(void)
 {
     need_resched_flag = true;
 }
 
-static void reset_need_resched(void)
+static inline void reset_need_resched(void)
 {
     need_resched_flag = false;
 }
 
-static bool need_resched(void)
+static inline bool need_resched(void)
 {
     return need_resched_flag;
 }
