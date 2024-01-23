@@ -35,9 +35,10 @@ struct mqueue *__mq_allocate(struct mq_attr *attr)
         return NULL;
     }
 
-    /* Initialize message queue size and buffer */
+    /* Initialize message queue information */
     new_mq->size = attr->mq_maxmsg;
     new_mq->buf = buf;
+    new_mq->cnt = 0;
 
     /* Initialize message queue list heads */
     INIT_LIST_HEAD(&new_mq->free_list);
