@@ -103,7 +103,7 @@
 
 /**
  * @brief  Declare and initialize a new list head
- * @param  name: Name of the liist head variable.
+ * @param  name: Name of the list head variable.
  * @retval None
  */
 #define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
