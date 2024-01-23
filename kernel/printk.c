@@ -39,6 +39,8 @@ static bool printk_is_writing;
 
 ssize_t console_write(const char *buf, size_t size)
 {
+    preempt_disable();
+
     struct printk_data *entry;
 
     /* Check if the free list still has space */
@@ -63,6 +65,8 @@ ssize_t console_write(const char *buf, size_t size)
     if (!printk_is_writing)
         wake_up_all(&printkd_wait);
 
+    preempt_enable();
+
     return 0;
 }
 
@@ -72,7 +76,9 @@ void printk(char *format, ...)
     va_start(args, format);
 
     struct timespec tp;
+    preempt_disable();
     get_sys_time(&tp);
+    preempt_enable();
 
     char sec[sizeof(long) * 8 + 1] = {0};
     ltoa(tp.tv_sec, sec, 10);
