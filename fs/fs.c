@@ -13,9 +13,9 @@
 #include <fs/fs.h>
 #include <fs/reg_file.h>
 #include <kernel/daemon.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/pipe.h>
+#include <kernel/preempt.h>
 #include <mm/mm.h>
 #include <mm/slab.h>
 

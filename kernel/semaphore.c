@@ -6,8 +6,8 @@
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/preempt.h>
 #include <kernel/sched.h>
 #include <kernel/semaphore.h>
 #include <kernel/syscall.h>

@@ -29,12 +29,12 @@
 #include <fs/rom_dev.h>
 #include <kernel/daemon.h>
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/mqueue.h>
 #include <kernel/mutex.h>
 #include <kernel/pipe.h>
+#include <kernel/preempt.h>
 #include <kernel/printk.h>
 #include <kernel/sched.h>
 #include <kernel/semaphore.h>

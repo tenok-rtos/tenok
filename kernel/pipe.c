@@ -8,11 +8,11 @@
 #include <common/list.h>
 #include <fs/fs.h>
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/pipe.h>
 #include <kernel/poll.h>
+#include <kernel/preempt.h>
 #include <kernel/thread.h>
 #include <kernel/wait.h>
 

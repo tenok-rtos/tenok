@@ -4,9 +4,9 @@
 
 #include <common/list.h>
 #include <kernel/errno.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mutex.h>
+#include <kernel/preempt.h>
 #include <kernel/sched.h>
 #include <kernel/thread.h>
 #include <kernel/wait.h>

@@ -3,8 +3,8 @@
 #include <arch/port.h>
 #include <common/list.h>
 #include <kernel/daemon.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/preempt.h>
 #include <kernel/sched.h>
 #include <kernel/softirq.h>
 #include <kernel/thread.h>

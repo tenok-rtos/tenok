@@ -1,8 +1,8 @@
 /**
  * @file
  */
-#ifndef __KERNEL_INTERRUPT_H__
-#define __KERNEL_INTERRUPT_H__
+#ifndef __KERNEL_PREEMPT_H__
+#define __KERNEL_PREEMPT_H__
 
 void __preempt_disable(void);
 void __preempt_enable(void);

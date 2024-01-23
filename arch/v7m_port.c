@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include <arch/port.h>
-#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <kernel/preempt.h>
 #include <kernel/printk.h>
 #include <kernel/thread.h>
 

@@ -5,7 +5,7 @@
 #include <common/list.h>
 #include <fs/fs.h>
 #include <fs/reg_file.h>
-#include <kernel/interrupt.h>
+#include <kernel/preempt.h>
 
 #include "kconfig.h"
 
