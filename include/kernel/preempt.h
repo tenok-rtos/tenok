@@ -9,6 +9,8 @@ void __preempt_enable(void);
 
 void preempt_count_inc(void);
 void preempt_count_dec(void);
+int preempt_count(void);
+void preempt_count_set(uint32_t count);
 
 /**
  * @brief  Disable all interrupts

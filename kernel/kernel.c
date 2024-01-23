@@ -164,9 +164,14 @@ void preempt_enable(void)
         __preempt_enable();
 }
 
-static inline int preempt_count(void)
+int preempt_count(void)
 {
     return preempt_cnt;
+}
+
+void preempt_count_set(uint32_t count)
+{
+    preempt_cnt = count;
 }
 
 void *kmalloc(size_t size)
@@ -3152,27 +3157,13 @@ static void __schedule(void)
 
 void schedule(void)
 {
-    __preempt_disable();
-
-    /* Preserve nesting level of preemption for current thread */
-    running_thread->preempt_cnt = preempt_count();
-
-    /* Reset preemption level */
-    preempt_cnt = 0;
-
     /* Request rescheduling */
+    preempt_disable();
     set_need_resched();
+    preempt_enable();
 
     /* Jump back to the kernel loop */
     jump_to_kernel();
-    __preempt_enable();
-
-    /* Restore nesting level of preemption for current thread */
-    preempt_cnt = running_thread->preempt_cnt;
-
-    /* Turn off the interrupt again if necessary */
-    if (preempt_cnt)
-        __preempt_disable();
 }
 
 static void print_platform_info(void)

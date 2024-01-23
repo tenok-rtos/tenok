@@ -70,7 +70,29 @@ uint32_t get_proc_mode(void)
 
 void jump_to_kernel(void)
 {
+    /* Force disable interrupts */
+    __preempt_disable();
+
+    CURRENT_THREAD_INFO(curr_thread);
+
+    /* Preserve nesting level of preemption for current thread */
+    curr_thread->preempt_cnt = preempt_count();
+
+    /* Reset preemption level */
+    preempt_count_set(0);
+
+    /* Jump back to the kernel loop via PendSV exception */
     SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
+
+    /* Force enable interrupts */
+    __preempt_enable();
+
+    /* Restore nesting level of preemption for current thread */
+    preempt_count_set(curr_thread->preempt_cnt);
+
+    /* Restore preemption state */
+    if (preempt_count())
+        __preempt_disable();
 }
 
 void __stack_init(uint32_t **stack_top,
