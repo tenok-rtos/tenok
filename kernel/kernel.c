@@ -117,7 +117,7 @@ static struct kmem_cache *kmalloc_caches[KMALLOC_SLAB_TABLE_SIZE];
 
 NACKED void syscall_return_handler(void)
 {
-    asm volatile("mov %0, r0" : "=r"(*running_thread->syscall_args[0]));
+    SAVE_SYSCALL_RETVAL(running_thread->syscall_args[0]);
     SYSCALL(SYSCALL_RETURN_EVENT);
 }
 

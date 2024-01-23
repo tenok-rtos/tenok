@@ -17,6 +17,8 @@
         "pop  {r7}   \n" \
         "bx lr       \n" ::"i"(num))
 
+#define SAVE_SYSCALL_RETVAL(ptr) asm volatile("mov %0, r0" : "=r"(*ptr));
+
 /**
  * @brief  Get the current ARM processor mode
  * @retval uint32_t: The ISR_NUMBER field of the IPSR register.
