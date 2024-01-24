@@ -3004,7 +3004,7 @@ static void syscall_return_event_handler(void)
         running_thread->kernel_thread ? KERNEL_THREAD : USER_THREAD;
     running_thread->syscall_mode = false;
 
-    /* Rescheduling if current thread relinquish the CPU */
+    /* Rescheduling if current thread relinquished the CPU */
     if (running_thread->status != THREAD_READY)
         set_need_resched();
 }
