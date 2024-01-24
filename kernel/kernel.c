@@ -625,14 +625,25 @@ void wake_up(struct list_head *wait_list)
 {
     preempt_disable();
 
-    if (!list_empty(wait_list)) {
-        /* Wake up the first thread in the waiting list */
-        struct thread_info *thread =
-            list_first_entry(wait_list, struct thread_info, list);
-        list_move(&thread->list, &ready_list[thread->priority]);
-        thread->status = THREAD_READY;
+    if (list_empty(wait_list))
+        goto leave;
+
+    struct thread_info *highest_pri_thread =
+        list_first_entry(wait_list, struct thread_info, list);
+
+    /* Find the first highest-priority thread in the waiting list */
+    struct thread_info *thread;
+    list_for_each_entry (thread, wait_list, list) {
+        if (thread->priority > highest_pri_thread->priority)
+            highest_pri_thread = thread;
     }
 
+    /* Wake up the first highest-priority thread in the waiting list */
+    list_move(&highest_pri_thread->list,
+              &ready_list[highest_pri_thread->priority]);
+    highest_pri_thread->status = THREAD_READY;
+
+leave:
     preempt_enable();
 }
 
