@@ -3004,7 +3004,9 @@ static void syscall_return_event_handler(void)
         running_thread->kernel_thread ? KERNEL_THREAD : USER_THREAD;
     running_thread->syscall_mode = false;
 
-    set_need_resched();
+    /* Rescheduling if current thread relinquish the CPU */
+    if (running_thread->status != THREAD_READY)
+        set_need_resched();
 }
 
 static inline void signal_cleanup_event_handler(void)
@@ -3012,8 +3014,6 @@ static inline void signal_cleanup_event_handler(void)
     running_thread->stack_top =
         (unsigned long *) running_thread->stack_top_preserved;
     running_thread->stack_top_preserved = (unsigned long) NULL;
-
-    set_need_resched();
 }
 
 static void thread_return_event_handler(void)
@@ -3029,6 +3029,7 @@ static void thread_return_event_handler(void)
         thread_join_handler();
     }
 
+    /* Rescheduling as current thread is terminated */
     set_need_resched();
 }
 
@@ -3044,7 +3045,7 @@ static void pthread_once_event_handler(void)
     once_control->finished = true;
     wake_up_all(&once_control->wait_list);
 
-    set_need_resched();
+    set_need_resched();  // XXX
 }
 
 static void setup_syscall(struct thread_info *thread,
