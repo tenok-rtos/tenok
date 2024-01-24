@@ -168,10 +168,10 @@ ssize_t __mq_send(struct mqueue *mq,
 
     /* Check if the queue has space to write */
     if (__mq_avail(mq) <= 0) {
-        if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
+        if (attr->mq_flags & O_NONBLOCK) { /* Non-block mode */
             /* Return immediately */
             return -EAGAIN;
-        } else { /* block mode */
+        } else { /* Block mode */
             /* Enqueue the thread into the waiting list */
             prepare_to_wait(&mq->w_wait_list, current_thread_info(),
                             THREAD_WAIT);
