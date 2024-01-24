@@ -11,6 +11,7 @@ SRC += $(PROJ_ROOT)/user/tasks/mavlink_task.c
 
 #SRC += $(PROJ_ROOT)/user/tasks/examples/fifo-ex.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/mqueue-ex.c
+#SRC += $(PROJ_ROOT)/user/tasks/examples/semaphore.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/mutex-ex.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/priority-inversion.c
 #SRC += $(PROJ_ROOT)/user/tasks/examples/signal-ex.c
