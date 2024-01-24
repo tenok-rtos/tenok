@@ -125,8 +125,10 @@ ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     mutex_lock(&uart3.rx_mtx);
 
+    preempt_disable();
     uart3.rx_wait_size = size;
     wait_event(uart3.rx_wait_list, kfifo_len(uart3.rx_fifo) >= size);
+    preempt_enable();
 
     kfifo_out(uart3.rx_fifo, buf, size);
 
