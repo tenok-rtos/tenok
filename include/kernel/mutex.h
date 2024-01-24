@@ -22,6 +22,8 @@ struct cond {
     struct list_head task_wait_list;
 };
 
+int __mutex_lock(struct mutex *mtx);
+
 /**
  * @brief  Initialize the mutex.
  * @param  mtx: Pointer to the mutex.
@@ -42,8 +44,6 @@ bool mutex_is_locked(struct mutex *mtx);
  * @retval int: 0 on success and nonzero error number on error.
  */
 int mutex_lock(struct mutex *mtx);
-
-int __mutex_lock(struct mutex *mtx);
 
 /**
  * @brief  Unlock the mutex.
