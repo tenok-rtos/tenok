@@ -273,6 +273,10 @@ Tenok API List
 
 ## Kernel-space API
 
+### Scheduler
+
+* schedule()
+
 ### Kernel Thread
 
 * kthread_create()
