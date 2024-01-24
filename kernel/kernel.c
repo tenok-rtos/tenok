@@ -520,9 +520,9 @@ static void stage_temporary_handler(struct thread_info *thread,
     __stack_init((uint32_t **) &thread->stack_top, func, return_handler, args);
 }
 
-static void stage_signal_handler(struct thread_info *thread,
-                                 uint32_t func,
-                                 uint32_t args[4])
+static void enqueue_pending_signal(struct thread_info *thread,
+                                   uint32_t func,
+                                   uint32_t args[4])
 {
     if (thread->signal_cnt >= SIGNAL_QUEUE_SIZE)
         printk("Warning: the oldest pending signal is overwritten");
@@ -2265,11 +2265,11 @@ static void handle_signal(struct thread_info *thread, int signum)
         args[0] = (uint32_t) signum;
         args[1] = (uint32_t) NULL /* info (TODO) */;
         args[2] = (uint32_t) NULL /* context (TODO) */;
-        stage_signal_handler(thread, (uint32_t) act->sa_sigaction, args);
+        enqueue_pending_signal(thread, (uint32_t) act->sa_sigaction, args);
     } else {
         uint32_t args[4] = {0};
         args[0] = (uint32_t) signum;
-        stage_signal_handler(thread, (uint32_t) act->sa_handler, args);
+        enqueue_pending_signal(thread, (uint32_t) act->sa_handler, args);
     }
 }
 
@@ -2950,7 +2950,7 @@ static void timers_update(void)
             uint32_t args[4] = {0};
             sa_handler_t notify_func =
                 (sa_handler_t) timer->sev.sigev_notify_function;
-            stage_signal_handler(timer->thread, (uint32_t) notify_func, args);
+            enqueue_pending_signal(timer->thread, (uint32_t) notify_func, args);
         }
     }
 }
