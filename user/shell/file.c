@@ -9,7 +9,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void shell_cmd_file(int argc, char *argv[])
+void file(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -81,4 +81,4 @@ void shell_cmd_file(int argc, char *argv[])
     shell_puts(str);
 }
 
-HOOK_SHELL_CMD(file);
+HOOK_SHELL_CMD("file", file);

@@ -15,7 +15,7 @@ static void stack_usage(char *buf,
     snprintf(buf, buf_size, "%2d.%d", integer, fraction);
 }
 
-static void ps(void)
+static void ps_print(void)
 {
     char s[PRINT_SIZE_MAX] = {0};
 
@@ -42,10 +42,10 @@ static void ps(void)
     } while (next != NULL);
 }
 
-void shell_cmd_ps(int argc, char *argv[])
+void ps(int argc, char *argv[])
 {
     if (argc == 1) {
-        ps();
+        ps_print();
         return;
     } else if (argc == 2 &&
                (!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))) {
@@ -60,4 +60,4 @@ void shell_cmd_ps(int argc, char *argv[])
     shell_puts("Usage: ps [-h]\n\r");
 }
 
-HOOK_SHELL_CMD(ps);
+HOOK_SHELL_CMD("ps", ps);

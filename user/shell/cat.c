@@ -7,7 +7,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void shell_cmd_cat(int argc, char *argv[])
+void cat(int argc, char *argv[])
 {
     char path[PATH_MAX] = {0};
 
@@ -54,4 +54,4 @@ void shell_cmd_cat(int argc, char *argv[])
     fclose(file);
 }
 
-HOOK_SHELL_CMD(cat);
+HOOK_SHELL_CMD("cat", cat);

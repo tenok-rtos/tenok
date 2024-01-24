@@ -5,7 +5,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void shell_cmd_cd(int argc, char *argv[])
+void cd(int argc, char *argv[])
 {
     int retval;
     char str[PRINT_SIZE_MAX] = {0};
@@ -33,4 +33,4 @@ void shell_cmd_cd(int argc, char *argv[])
     }
 }
 
-HOOK_SHELL_CMD(cd);
+HOOK_SHELL_CMD("cd", cd);

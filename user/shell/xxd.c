@@ -79,7 +79,7 @@ static char xxd_wait_key(void)
     }
 }
 
-void shell_cmd_xxd(int argc, char *argv[])
+void xxd(int argc, char *argv[])
 {
     if (argc != 2) {
         shell_puts("usage: xxd file\n\r");
@@ -160,4 +160,4 @@ void shell_cmd_xxd(int argc, char *argv[])
     fclose(file);
 }
 
-HOOK_SHELL_CMD(xxd);
+HOOK_SHELL_CMD("xxd", xxd);

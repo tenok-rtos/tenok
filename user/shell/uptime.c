@@ -3,7 +3,7 @@
 
 #include "shell.h"
 
-void shell_cmd_uptime(int argc, char *argv[])
+void uptime(int argc, char *argv[])
 {
     struct timespec tp;
     clock_gettime(CLOCK_MONOTONIC, &tp);
@@ -14,4 +14,4 @@ void shell_cmd_uptime(int argc, char *argv[])
     printf("%d seconds up\n\r", time_sec);
 }
 
-HOOK_SHELL_CMD(uptime);
+HOOK_SHELL_CMD("uptime", uptime);

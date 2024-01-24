@@ -16,10 +16,10 @@
 #define SHELL_CMDS_CNT(sect_start, sect_end) \
     (SHELL_CMDS_SIZE(sect_start, sect_end) / sizeof(struct shell_cmd))
 
-#define HOOK_SHELL_CMD(cmd_name)                          \
-    static struct shell_cmd _##shell_cmd_##cmd_name       \
+#define HOOK_SHELL_CMD(cmd_name, handler_func)            \
+    static struct shell_cmd _##shell_cmd_##name           \
         __attribute__((section(".shell_cmds"), used)) = { \
-            .handler = shell_cmd_##cmd_name, .name = #cmd_name}
+            .name = cmd_name, .handler = handler_func}
 
 enum {
     NULL_CH = 0,      /* Null character */

@@ -3,7 +3,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void shell_cmd_echo(int argc, char *argv[])
+void echo(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
     int pos = 0;
@@ -17,4 +17,4 @@ void shell_cmd_echo(int argc, char *argv[])
     shell_puts(str);
 }
 
-HOOK_SHELL_CMD(echo);
+HOOK_SHELL_CMD("echo", echo);

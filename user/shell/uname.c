@@ -3,7 +3,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void shell_cmd_uname(int argc, char *argv[])
+void uname(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
     snprintf(str, sizeof(str), "Tenok %s %s %s\n\r", __REVISION__,
@@ -11,4 +11,4 @@ void shell_cmd_uname(int argc, char *argv[])
     shell_puts(str);
 }
 
-HOOK_SHELL_CMD(uname);
+HOOK_SHELL_CMD("uname", uname);
