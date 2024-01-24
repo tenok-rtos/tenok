@@ -773,9 +773,7 @@ leave:
 
 static void sys_setprogname(const char *name)
 {
-    preempt_disable();
     strncpy(running_thread->name, name, THREAD_NAME_MAX);
-    preempt_enable();
 }
 
 static int sys_delay_ticks(uint32_t ticks)
@@ -928,9 +926,9 @@ static int sys_mount(const char *source, const char *target)
 
 static int sys_open(const char *pathname, int flags)
 {
-    int retval;
-
     preempt_disable();
+
+    int retval;
 
     /* Check the length of the pathname */
     if (strlen(pathname) >= PATH_MAX) {
@@ -943,8 +941,6 @@ static int sys_open(const char *pathname, int flags)
 
     /* Acquire the thread ID */
     int tid = running_thread->tid;
-
-    preempt_enable();
 
     /* Send file open request to the file system daemon */
     request_open_file(tid, pathname);
@@ -961,8 +957,6 @@ static int sys_open(const char *pathname, int flags)
 
         schedule();
     }
-
-    preempt_disable();
 
     /* File not found */
     if (file_idx == -1) {
@@ -1356,9 +1350,9 @@ err:
 
 static int sys_fstat(int fd, struct stat *statbuf)
 {
-    int retval;
-
     preempt_disable();
+
+    int retval;
 
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
@@ -1576,9 +1570,9 @@ void poll_notify(struct file *notify_file)
 
 static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-    int retval;
-
     preempt_disable();
+
+    int retval;
 
     /* Set polling deadline */
     if (timeout > 0) {
@@ -1635,12 +1629,8 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         list_add(&filp->list, &running_thread->poll_files_list);
     }
 
-    preempt_enable();
-
     /* Wait until the file event happens */
     schedule();
-
-    preempt_disable();
 
     /* clear list of poll files */
     INIT_LIST_HEAD(&running_thread->poll_files_list);
@@ -1890,16 +1880,16 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
                               size_t msg_len,
                               unsigned int *msg_prio)
 {
-    ssize_t retval;
-
     preempt_disable();
+
+    ssize_t retval;
 
     /* Check if the message queue descriptor is invalid */
     struct task_struct *task = current_task_info();
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         retval = -EBADF;
-        goto err;
+        goto leave;
     }
 
     /* Acquire the message queue */
@@ -1908,10 +1898,8 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
     /* Check if msg_len exceeds maximum size */
     if (msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         retval = -EMSGSIZE;
-        goto err;
+        goto leave;
     }
-
-    preempt_enable();
 
     /* Read message */
     while (1) {
@@ -1924,9 +1912,7 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
         schedule();
     }
 
-    return retval;
-
-err:
+leave:
     preempt_enable();
     return retval;
 }
@@ -1936,14 +1922,14 @@ static int sys_mq_send(mqd_t mqdes,
                        size_t msg_len,
                        unsigned int msg_prio)
 {
-    int retval;
-
     preempt_disable();
+
+    int retval;
 
     /* Check if the message priority exceeds the max value */
     if (msg_prio > MQ_PRIO_MAX) {
         retval = -EINVAL;
-        goto err;
+        goto leave;
     }
 
     /* Check if the message queue descriptor is invalid */
@@ -1951,7 +1937,7 @@ static int sys_mq_send(mqd_t mqdes,
     if (!bitmap_get_bit(bitmap_mqds, mqdes) ||
         !bitmap_get_bit(task->bitmap_mqds, mqdes)) {
         retval = -EBADF;
-        goto err;
+        goto leave;
     }
 
     /* Acquire the message queue */
@@ -1960,10 +1946,8 @@ static int sys_mq_send(mqd_t mqdes,
     /* Check if msg_len exceeds maximum size */
     if (msg_len > mqd_table[mqdes].attr.mq_msgsize) {
         retval = -EMSGSIZE;
-        goto err;
+        goto leave;
     }
-
-    preempt_enable();
 
     /* Send message */
     while (1) {
@@ -1976,9 +1960,7 @@ static int sys_mq_send(mqd_t mqdes,
         schedule();
     }
 
-    return retval;
-
-err:
+leave:
     preempt_enable();
     return retval;
 }

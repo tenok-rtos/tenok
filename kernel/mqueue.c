@@ -11,7 +11,6 @@
 #include <kernel/errno.h>
 #include <kernel/kernel.h>
 #include <kernel/mqueue.h>
-#include <kernel/preempt.h>
 #include <kernel/syscall.h>
 #include <kernel/thread.h>
 #include <kernel/wait.h>
@@ -21,6 +20,7 @@ struct mqueue *__mq_allocate(struct mq_attr *attr)
 {
     /* allocate new message queue */
     struct mqueue *new_mq = kmalloc(sizeof(struct mqueue));
+    memset(new_mq, 0, sizeof(*new_mq));
 
     /* allocate message buffers */
     size_t element_size = sizeof(struct mqueue_data) + attr->mq_msgsize;
@@ -35,10 +35,9 @@ struct mqueue *__mq_allocate(struct mq_attr *attr)
         return NULL;
     }
 
-    /* Initialize message queue information */
+    /* Initialize message queue size and buffer */
     new_mq->size = attr->mq_maxmsg;
     new_mq->buf = buf;
-    new_mq->cnt = 0;
 
     /* Initialize message queue list heads */
     INIT_LIST_HEAD(&new_mq->free_list);
@@ -122,34 +121,24 @@ ssize_t __mq_receive(struct mqueue *mq,
                      size_t msg_len,
                      unsigned int *msg_prio)
 {
-    preempt_disable();
-
-    ssize_t retval;
-
     /* The message queue descriptor is not open with reading flag */
-    if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR)) {
-        retval = -EBADF;
-        goto leave;
-    }
+    if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
+        return -EBADF;
 
     /* The buffer size must be larger or equal to the max message size */
-    if (msg_len < attr->mq_msgsize) {
-        retval = -EMSGSIZE;
-        goto leave;
-    }
+    if (msg_len < attr->mq_msgsize)
+        return -EMSGSIZE;
 
     /* Check if the queue has message to read */
     if (__mq_len(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* Non-block mode */
             /* Return immediately */
-            retval = -EAGAIN;
-            goto leave;
+            return -EAGAIN;
         } else { /* Block mode */
             /* Enqueue the thread into the waiting list */
             prepare_to_wait(&mq->r_wait_list, current_thread_info(),
                             THREAD_WAIT);
-            retval = -ERESTARTSYS;
-            goto leave;
+            return -ERESTARTSYS;
         }
     }
 
@@ -160,11 +149,7 @@ ssize_t __mq_receive(struct mqueue *mq,
     wake_up(&mq->w_wait_list);
 
     /* Return read size */
-    retval = read_size;
-
-leave:
-    preempt_enable();
-    return retval;
+    return read_size;
 }
 
 ssize_t __mq_send(struct mqueue *mq,
@@ -173,34 +158,24 @@ ssize_t __mq_send(struct mqueue *mq,
                   size_t msg_len,
                   unsigned int msg_prio)
 {
-    preempt_disable();
-
-    ssize_t retval;
-
     /* The message queue descriptor is not open with writing flag */
-    if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR)) {
-        retval = -EBADF;
-        goto leave;
-    }
+    if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
+        return -EBADF;
 
     /* The write size must be smaller or equal to the max message size */
-    if (msg_len > attr->mq_msgsize) {
-        retval = -EMSGSIZE;
-        goto leave;
-    }
+    if (msg_len > attr->mq_msgsize)
+        return -EMSGSIZE;
 
     /* Check if the queue has space to write */
     if (__mq_avail(mq) <= 0) {
         if (attr->mq_flags & O_NONBLOCK) { /* non-block mode */
             /* Return immediately */
-            retval = -EAGAIN;
-            goto leave;
+            return -EAGAIN;
         } else { /* block mode */
             /* Enqueue the thread into the waiting list */
             prepare_to_wait(&mq->w_wait_list, current_thread_info(),
                             THREAD_WAIT);
-            retval = -ERESTARTSYS;
-            goto leave;
+            return -ERESTARTSYS;
         }
     }
 
@@ -211,11 +186,7 @@ ssize_t __mq_send(struct mqueue *mq,
     wake_up(&mq->r_wait_list);
 
     /* Return success */
-    retval = 0;
-
-leave:
-    preempt_enable();
-    return retval;
+    return 0;
 }
 
 NACKED int mq_getattr(mqd_t mqdes, struct mq_attr *attr)
