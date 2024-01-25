@@ -11,7 +11,7 @@
 
 void timer_callback(union sigval sv)
 {
-    printf("timer: time's up.\n\r");
+    printf("[timer handler] time's up!\n\r");
 }
 
 void timer_task(void)

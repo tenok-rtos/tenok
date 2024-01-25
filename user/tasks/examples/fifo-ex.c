@@ -10,7 +10,7 @@
 
 #include "uart.h"
 
-#define TEST_STR "fifo: hello world\n\r"
+#define TEST_STR "[fifo example] hello world\n\r"
 #define LEN strlen(TEST_STR)
 
 void fifo_task1(void)

@@ -16,7 +16,7 @@ void message_queue_task1(void)
 {
     setprogname("mqueue-ex-1");
 
-    char *str = "mqueue: greeting";
+    char *str = "greeting!";
 
     struct mq_attr attr = {
         .mq_maxmsg = 100,
@@ -56,7 +56,8 @@ void message_queue_task2(void)
         mq_receive(mqdes_print, str, MSG_SIZE_MAX, &msg_prio);
 
         /* Print received message */
-        printf("received message \"%s\", priority = %d\n\r", str, msg_prio);
+        printf("[mqueue example] received \"%s\" with priority %d\n\r", str,
+               msg_prio);
     }
 }
 

@@ -26,7 +26,7 @@ void mutex_task_high(void)
 #endif
     pthread_mutex_init(&mutex, &attr);
 
-    printf("[mutex high] attempt to lock the mutex in 5 seconds.\n\r");
+    printf("[mutex task high] attempt to lock the mutex in 5 seconds\n\r");
 
     sleep(5);
 
@@ -35,8 +35,8 @@ void mutex_task_high(void)
         pthread_mutex_lock(&mutex);
 
         printf(
-            "[mutex high] highest-priority thread locked the mutex "
-            "successfully.\n\r");
+            "[mutex task high] mutex is locked by the highest-priority "
+            "thread\n\r");
 
         /* End the critical section */
         pthread_mutex_unlock(&mutex);
@@ -53,12 +53,15 @@ void mutex_task_median(void)
     struct timespec start_time, curr_time;
 
     /* Occupy the CPU to block the lowest-prioiry thread after 3 seconds */
-    printf("[mutex median] block the lowest-priority thread in 3 seconds.\n\r");
+    printf(
+        "[mutex task median] block the lowest-priority thread in 3 "
+        "seconds\n\r");
     sleep(3);
 
     /* Occupy the CPU for 10 seconds */
     printf(
-        "[mutex median] block the lowest-priority thread for 10 seconds.\n\r");
+        "[mutex task median] block the lowest-priority thread for 10 "
+        "seconds\n\r");
 
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
@@ -84,8 +87,8 @@ void mutex_task_low(void)
         pthread_mutex_lock(&mutex);
 
         printf(
-            "[mutex low] lowest-priority thread locked the mutex "
-            "successfully.\n\r");
+            "[mutex task low] mutex is locked by the lowest-priority "
+            "thread\n\r");
 
         /* Simulate some works */
         sleep(2);

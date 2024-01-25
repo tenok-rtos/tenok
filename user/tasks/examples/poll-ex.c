@@ -53,7 +53,7 @@ void poll_task2(void)
             ssize_t rbytes = read(fifo_fd, buffer, sizeof(buffer) - 1);
             buffer[rbytes] = '\0';
 
-            printf("received %d bytes\n\r", rbytes);
+            printf("[poll example] %d bytes is read from the fifo\n\r", rbytes);
 
             fds[0].revents = 0;
         }

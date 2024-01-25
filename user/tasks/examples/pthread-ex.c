@@ -11,7 +11,7 @@
 void *my_thread(void *arg)
 {
     for (int i = 0; i < 10; i++) {
-        printf("hello new thread.\n\r");
+        printf("[pthread example] printing from the new thread\n\r");
         sleep(1);
     }
 
@@ -23,8 +23,8 @@ void pthread_task(void)
     setprogname("pthread-ex");
 
     printf(
-        "a new thread will be created and"
-        " canceled after 10 seconds.\n\r");
+        "[pthread example] a new thread will be created and"
+        " canceled after 10 seconds\n\r");
 
     pthread_attr_t attr;
     struct sched_param param;

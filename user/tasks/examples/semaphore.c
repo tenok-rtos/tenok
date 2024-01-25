@@ -15,7 +15,7 @@ void semaphore_task1(void)
     while (1) {
         sleep(1);
         sem_post(&sem_print);
-        printf("[semaphore 1] posted semaphore.\n\r");
+        printf("[semaphore task 1] semaphore increased\n\r");
     }
 }
 
@@ -25,7 +25,7 @@ void semaphore_task2(void)
 
     while (1) {
         sem_wait(&sem_print);
-        printf("[semaphore 2] received semaphore.\n\r");
+        printf("[semaphore task 2] semaphore decreased\n\r");
     }
 }
 

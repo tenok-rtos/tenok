@@ -12,7 +12,7 @@ static int task1_pid;
 
 void sig_handler(int signum)
 {
-    printf("received signal %d.\n\r", signum);
+    printf("[SIGUSR1 handler] signal number is %d\n\r", signum);
 }
 
 void signal_task1(void)
@@ -36,7 +36,7 @@ void signal_task1(void)
     sigwait(&set, &sig);
 
     /* Print after the signal arrived */
-    printf("signal %d is captured.\n\r", sig);
+    printf("[signal example] signal %d is captured\n\r", sig);
 
     /* Sleep */
     while (1) {
