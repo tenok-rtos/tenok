@@ -77,13 +77,6 @@ void __stack_init(uint32_t **stack_top,
                   uint32_t args[4]);
 
 /**
- * @brief  Check if the kernel is returned from user space via systick
- * @param  sp: The stack pointer points to the top of the thread stack.
- * @retval bool: true if it is returned via systick; otherwise false.
- */
-bool check_systick_event(void *sp);
-
-/**
  * @brief  Get syscall number
  * @param  sp: The stack pointer points to the top of the thread stack.
  * @retval unsigned long: The current syscall number.

@@ -42,8 +42,6 @@ ENTRY(PendSV_Handler)
     /* Disable interrupts */
     irq_disable
 
-    neg   r7,  r7 /* Negate _r7 to indicate that the returning is triggered by SysTick */
-
     /* Save user state */
     mrs   r0,  psp  /* Load psp into the r0 */
 
@@ -87,11 +85,16 @@ ENTRY(SVC_Handler)
     msr  control, r4
 
     /* Load kernel state */
-    pop   {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}
-    msr   psr_nzcvq, ip /* Load psr from the ip */
+    pop  {r4, r5, r6, r7, r8, r9, r10, r11, ip, lr}
+    msr  psr_nzcvq, ip /* Load psr from the ip */
+
+    /* Set syscall request flag */
+    push {r0-r3, lr}
+    bl   set_syscall_flag 
+    pop  {r0-r3, lr}
 
     /* Exception return (back to the kernel) */
-    bx    lr
+    bx   lr
 ENDPROC(SVC_Handler)
 
 ENTRY(__preempt_disable)

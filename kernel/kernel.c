@@ -70,6 +70,9 @@ struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 static bool need_resched_flag;
 static uint32_t preempt_cnt;
 
+/* System call */
+static bool syscall_flag;
+
 /* Tasks and threads */
 static struct task_struct tasks[TASK_MAX];
 
@@ -3066,6 +3069,21 @@ static void setup_syscall(struct thread_info *thread,
 /* Syscall table */
 static struct syscall_info syscall_table[] = {SYSCALL_TABLE_INIT};
 
+void set_syscall_flag(void)
+{
+    syscall_flag = true;
+}
+
+void reset_syscall_flag(void)
+{
+    syscall_flag = false;
+}
+
+bool get_syscall_flag(void)
+{
+    return syscall_flag;
+}
+
 static void syscall_handler(void)
 {
     unsigned long syscall_num = get_syscall_num(running_thread->stack_top);
@@ -3303,11 +3321,13 @@ void sched_start(void)
     list_del(&threads[0].list);
 
     while (1) {
-        if (!check_systick_event(running_thread->stack_top)) {
+        /* Syscall request */
+        if (get_syscall_flag()) {
+            reset_syscall_flag();
             syscall_handler();
         }
 
-        /* Rescheduling */
+        /* Rescheduling request */
         if (need_resched()) {
             reset_need_resched();
             __schedule();

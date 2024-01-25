@@ -148,29 +148,6 @@ void __platform_init(void)
     os_env_init(&stack_empty[31]);
 }
 
-bool check_systick_event(void *sp)
-{
-    uint32_t lr = ((uint32_t *) sp)[8];
-    long *syscall_num = NULL;
-
-    /* EXC_RETURN[4]: 0 = FPU used / 1 = FPU unused */
-    if (lr & 0x10) {
-        syscall_num = (long *) &((struct context *) sp)->_r7;
-    } else {
-        syscall_num = (long *) &((struct context_fpu *) sp)->_r7;
-    }
-
-    /* If r7 is negative, then the kernel is returned from the SysTick
-     * interrupt. Otherwise the kernel is returned via supervisor call.
-     */
-    if (*syscall_num < 0) {
-        *syscall_num *= -1; /* Restore the syscall number */
-        return true;
-    }
-
-    return false;
-}
-
 unsigned long get_syscall_num(void *sp)
 {
     uint32_t lr = ((uint32_t *) sp)[8];
