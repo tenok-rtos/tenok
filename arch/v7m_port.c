@@ -315,6 +315,7 @@ NACKED void UsageFault_Handler(void)
 
 void SysTick_Handler(void)
 {
+    system_ticks_update();
     jump_to_kernel();
 }
 

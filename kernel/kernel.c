@@ -2973,14 +2973,6 @@ static void syscall_timeout_update(void)
     }
 }
 
-static void system_ticks_update(void)
-{
-    system_timer_update();
-    threads_ticks_update();
-    timers_update();
-    syscall_timeout_update();
-}
-
 static inline void set_need_resched(void)
 {
     need_resched_flag = true;
@@ -2994,6 +2986,20 @@ static inline void reset_need_resched(void)
 static inline bool need_resched(void)
 {
     return need_resched_flag;
+}
+
+void system_ticks_update(void)
+{
+    __preempt_disable();
+
+    system_timer_update();
+    threads_ticks_update();
+    timers_update();
+    syscall_timeout_update();
+
+    set_need_resched();
+
+    __preempt_enable();
 }
 
 static void syscall_return_event_handler(void)
@@ -3297,11 +3303,7 @@ void sched_start(void)
     list_del(&threads[0].list);
 
     while (1) {
-        /* Capture SysTick and Supervisor Call events */
-        if (check_systick_event(running_thread->stack_top)) {
-            system_ticks_update();
-            set_need_resched();
-        } else {
+        if (!check_systick_event(running_thread->stack_top)) {
             syscall_handler();
         }
 
