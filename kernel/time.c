@@ -103,3 +103,14 @@ NACKED int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 {
     SYSCALL(TIMER_GETTIME);
 }
+
+time_t time(time_t *tloc)
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+
+    if (tloc)
+        *tloc = tp.tv_sec;
+
+    return tp.tv_sec;
+}

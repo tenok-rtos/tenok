@@ -257,6 +257,8 @@ Tenok API List
 
 * clock_settime()
 
+* time()
+
 ### Memory Allocation:
 
 * mpool_init()

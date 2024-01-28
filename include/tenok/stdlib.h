@@ -4,6 +4,8 @@
 #ifndef __STDLIB_H__
 #define __STDLIB_H__
 
+#include <stddef.h>
+
 /**
  * @brief  To cause task termination
  * @param  status: Not used.

@@ -83,4 +83,12 @@ int timer_settime(timer_t timerid,
  */
 int timer_gettime(timer_t timerid, struct itimerspec *curr_value);
 
+/**
+ * @brief  Return the time as the number of seconds since
+ *         1970-01-01 00:00:00 +0000 (UTC)
+ * @param  tloc: Same as return value if tloc is not NULL.
+ * @retval time_t: The time in seconds.
+ */
+time_t time(time_t *tloc);
+
 #endif
