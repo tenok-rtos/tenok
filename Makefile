@@ -126,6 +126,7 @@ SRC += ./user/debug-link/debug_link.c
 -include ./user/shell/shell.mk
 -include ./user/tasks/tasks.mk
 -include ./user/mavlink/mavlink.mk
+-include ./user/benchmarks/benchmarks.mk
 
 OBJS := $(SRC:.c=.o)
 OBJS += ./tools/mkromfs/romfs.o

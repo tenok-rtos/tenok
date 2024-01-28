@@ -9,12 +9,19 @@
 #include "mavlink/parser.h"
 #include "mavlink/publisher.h"
 
+#include <kconfig.h>
+#if (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
+#define MAVLINK_MAX_MSG 25
+#else
+#define MAVLINK_MAX_MSG 10
+#endif
+
 mqd_t mqdes_recvd_msg;
 
 void mavlink_task_init(void)
 {
     struct mq_attr attr = {
-        .mq_maxmsg = 25,
+        .mq_maxmsg = MAVLINK_MAX_MSG,
         .mq_msgsize = sizeof(mavlink_message_t),
     };
     mqdes_recvd_msg =
