@@ -5,7 +5,7 @@ The [Tenok project](https://github.com/shengwen-tw/tenok) is a real-time operati
 Internet of Things (IoT). The name originated from the language of an indigenous tribe called Amis in Taiwan, where "tenok" means
 "kernel" in their language. It resembles various designs from Linux and maintains a small code footprint for ARM Cortex-M processors. In
 contrast to NuttX, Tenok does not implement a set of low-level hardware drivers as a part of the system. Instead, it adopts an approach
-similar to FreeRTOS by treating the RTOS as a third-party library. Users user can choose their preferred library for the hardware abstraction
+similar to FreeRTOS by treating the RTOS as a third-party library. Users can choose their preferred library for the hardware abstraction
 layer (HAL).
 
 Tenok also integrates the MAVLink communication protocol and provides several utilities for robotics, including a debug visualization tool 
@@ -20,7 +20,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
 * Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
-* Kernel-space memory allocation: Buddy allocator and Slab allocator
+* Kernel-space memory allocation: Buddy system and Slab allocator
 * User-space memory allocation: Dynamic allocation (First-Fit Free List) and Memory pool
 * Software timer and clock
 * Built-in Shell with command completion and history saving
