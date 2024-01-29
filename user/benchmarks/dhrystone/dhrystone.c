@@ -29,7 +29,7 @@
 #include "shell.h"
 
 #ifndef DHRY_ITERS
-#define DHRY_ITERS 20000000
+#define DHRY_ITERS 2000000
 #endif
 
 /* Global Variables: */
@@ -96,8 +96,6 @@ void dhrystone(int argc, char *argv[])
 /* main program, corresponds to procedures        */
 /* Main and Proc_0 in the Ada version             */
 {
-    setprogname("dhrystone");
-
     One_Fifty Int_1_Loc;
     REG One_Fifty Int_2_Loc;
     One_Fifty Int_3_Loc;
@@ -147,7 +145,7 @@ void dhrystone(int argc, char *argv[])
     printf("\n\r");
 #endif
 
-    printf("Execution starts, %d runs through Dhrystone\n", Number_Of_Runs);
+    printf("Execution starts, %d runs through Dhrystone\n\r", Number_Of_Runs);
 
     /***************/
     /* Start timer */
