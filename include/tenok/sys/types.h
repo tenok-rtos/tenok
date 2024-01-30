@@ -15,5 +15,6 @@ typedef int timer_t;
 typedef int64_t time_t;
 typedef long int off_t;
 typedef unsigned long useconds_t;
+typedef unsigned long clock_t;
 
 #endif
