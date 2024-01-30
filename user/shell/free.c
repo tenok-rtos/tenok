@@ -4,7 +4,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void _free(int argc, char *argv[])
+int _free(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -25,6 +25,8 @@ void _free(int argc, char *argv[])
     snprintf(str, PRINT_SIZE_MAX, "User heap:   %7d %7d %7d\n\r", heap_total,
              heap_used, heap_free);
     shell_puts(str);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("free", _free);

@@ -9,7 +9,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void file(int argc, char *argv[])
+int file(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -19,10 +19,10 @@ void file(int argc, char *argv[])
 
     if (argc == 1) {
         shell_puts("Usage: file <file>\n\r");
-        return;
+        return 1;
     } else if (argc > 2) {
         shell_puts("file: too many arguments\n\r");
-        return;
+        return 1;
     }
 
     if (argv[1][0] != '/') {
@@ -42,7 +42,7 @@ void file(int argc, char *argv[])
         if (opendir(path, &dir) == 0) {
             snprintf(str, PRINT_SIZE_MAX, "%s: directory\n\r", path);
             shell_puts(str);
-            return;
+            return 0;
         }
 
         /* The given path is neither a file or direcotry */
@@ -50,7 +50,7 @@ void file(int argc, char *argv[])
                  "%s: cannot open `%s' (No such file or directory)\n\r", path,
                  path);
         shell_puts(str);
-        return;
+        return 1;
     }
 
     /* Read and print the file type */
@@ -79,6 +79,8 @@ void file(int argc, char *argv[])
     }
 
     shell_puts(str);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("file", file);

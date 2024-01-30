@@ -79,11 +79,11 @@ static char xxd_wait_key(void)
     }
 }
 
-void xxd(int argc, char *argv[])
+int xxd(int argc, char *argv[])
 {
     if (argc != 2) {
         shell_puts("usage: xxd file\n\r");
-        return;
+        return 1;
     }
 
     char path[PATH_MAX] = {0};
@@ -103,7 +103,7 @@ void xxd(int argc, char *argv[])
     FILE *file = fopen(path, "");
     if (!file) {
         shell_puts("failed to open the file.\n\r");
-        return;
+        return 1;
     }
 
     /* Get file size */
@@ -140,7 +140,7 @@ void xxd(int argc, char *argv[])
         addr += XXD_N_BYTES;
 
         if (fsize == 0) {
-            return;
+            return 0;
         }
 
         /* Pause the printing and wait for the key */
@@ -152,12 +152,14 @@ void xxd(int argc, char *argv[])
             if (key == ENTER) {
                 line = 0;
             } else if (key == 'q') {
-                return;
+                return 0;
             }
         }
     }
 
     fclose(file);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("xxd", xxd);

@@ -92,7 +92,7 @@ Enumeration Func_1(Capital_Letter Ch_1_Par_Val, Capital_Letter Ch_2_Par_Val);
 Boolean Func_2(Str_30 Str_1_Par_Ref, Str_30 Str_2_Par_Ref);
 Boolean Func_3(Enumeration Enum_Par_Val);
 
-void dhrystone(int argc, char *argv[])
+int dhrystone(int argc, char *argv[])
 /* main program, corresponds to procedures        */
 /* Main and Proc_0 in the Ada version             */
 {
@@ -302,6 +302,8 @@ void dhrystone(int argc, char *argv[])
         printf("%d \n\r", (int) Dhrystones_Per_Second);
         printf("\n\r");
     }
+
+    return 0;
 }
 
 

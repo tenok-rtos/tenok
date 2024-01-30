@@ -7,7 +7,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void cat(int argc, char *argv[])
+int cat(int argc, char *argv[])
 {
     char path[PATH_MAX] = {0};
 
@@ -29,7 +29,7 @@ void cat(int argc, char *argv[])
     if (!file) {
         snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
         shell_puts(str);
-        return;
+        return 1;
     }
 
     struct stat stat;
@@ -52,6 +52,8 @@ void cat(int argc, char *argv[])
     }
 
     fclose(file);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("cat", cat);

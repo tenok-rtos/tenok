@@ -5,7 +5,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void pwd(int argc, char *argv[])
+int pwd(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
     char path[PATH_MAX] = {'/'};
@@ -14,6 +14,8 @@ void pwd(int argc, char *argv[])
 
     snprintf(str, PATH_MAX, "%s\n\r", path);
     shell_puts(str);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("pwd", pwd);

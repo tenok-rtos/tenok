@@ -5,7 +5,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void cd(int argc, char *argv[])
+int cd(int argc, char *argv[])
 {
     int retval;
     char str[PRINT_SIZE_MAX] = {0};
@@ -13,7 +13,7 @@ void cd(int argc, char *argv[])
     switch (argc) {
     case 1:
         chdir("/");
-        return;
+        return 0;
     case 2: {
         retval = chdir(argv[1]);
         if (retval == -ENOENT) {
@@ -25,12 +25,14 @@ void cd(int argc, char *argv[])
                      argv[1]);
             shell_puts(str);
         }
-        break;
+        return 1;
     }
     default:
         shell_puts("cd: too many arguments\n\r");
-        break;
+        return 1;
     }
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("cd", cd);

@@ -2,9 +2,10 @@
 
 extern struct shell shell;
 
-void history(int argc, char *argv[])
+int history(int argc, char *argv[])
 {
     shell_print_history(&shell);
+    return 0;
 }
 
 HOOK_SHELL_CMD("history", history);

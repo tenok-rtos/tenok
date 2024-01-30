@@ -42,11 +42,11 @@ static void ps_print(void)
     } while (next != NULL);
 }
 
-void ps(int argc, char *argv[])
+int ps(int argc, char *argv[])
 {
     if (argc == 1) {
         ps_print();
-        return;
+        return 0;
     } else if (argc == 2 &&
                (!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))) {
         shell_puts(
@@ -54,10 +54,11 @@ void ps(int argc, char *argv[])
             "  R    running or runnable\n\r"
             "  T    stopped (suspended)\n\r"
             "  S    sleep\n\r");
-        return;
+        return 0;
+    } else {
+        shell_puts("Usage: ps [-h]\n\r");
+        return 1;
     }
-
-    shell_puts("Usage: ps [-h]\n\r");
 }
 
 HOOK_SHELL_CMD("ps", ps);

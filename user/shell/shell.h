@@ -103,7 +103,7 @@ struct shell {
 };
 
 struct shell_cmd {
-    void (*handler)(int argc, char *argv[SHELL_ARG_CNT]);
+    int (*handler)(int argc, char *argv[SHELL_ARG_CNT]);
     char name[LINE_MAX];
 };
 

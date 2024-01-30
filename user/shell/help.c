@@ -6,7 +6,7 @@
 extern struct shell_cmd _shell_cmds_start[];
 extern struct shell_cmd _shell_cmds_end[];
 
-void help(int argc, char *argv[])
+int help(int argc, char *argv[])
 {
     struct shell_cmd *shell_cmds = _shell_cmds_start;
     int shell_cmd_cnt = SHELL_CMDS_CNT(_shell_cmds_start, _shell_cmds_end);
@@ -38,6 +38,8 @@ void help(int argc, char *argv[])
         strcat(s, "\n\r");
         shell_puts(s);
     }
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("help", help);

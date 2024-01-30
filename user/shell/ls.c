@@ -8,7 +8,7 @@
 #include "kconfig.h"
 #include "shell.h"
 
-void ls(int argc, char *argv[])
+int ls(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
@@ -27,7 +27,7 @@ void ls(int argc, char *argv[])
         }
     } else if (argc > 2) {
         shell_puts("ls: too many arguments\n\r");
-        return;
+        return 1;
     }
 
     /* Open the directory */
@@ -40,7 +40,7 @@ void ls(int argc, char *argv[])
                  "ls: cannot access '%s': No such file or directory\n\r",
                  argv[1]);
         shell_puts(str);
-        return;
+        return 1;
     }
 
     /* Enumerate the directory */
@@ -57,6 +57,8 @@ void ls(int argc, char *argv[])
     snprintf(&str[pos], PRINT_SIZE_MAX, "\n\r");
 
     shell_puts(str);
+
+    return 0;
 }
 
 HOOK_SHELL_CMD("ls", ls);
