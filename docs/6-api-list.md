@@ -301,6 +301,8 @@ Tenok API List
 
 * mutex_is_locked()
 
+* mutex_trylock()
+
 * mutex_lock()
 
 * mutex_unlock()

@@ -251,7 +251,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
         return -ENOMEM;
 
     struct mutex *_mutex = (struct mutex *) mutex;
-    mutex_init(_mutex);
+    __mutex_init(_mutex);
 
     if (attr) {
         struct mutex_attr *_attr = (struct mutex_attr *) attr;

@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 #include <common/list.h>
 #include <kernel/errno.h>
@@ -11,10 +12,16 @@
 #include <kernel/thread.h>
 #include <kernel/wait.h>
 
+void __mutex_init(struct mutex *mtx)
+{
+    memset(mtx, 0, sizeof(*mtx));
+    INIT_LIST_HEAD(&mtx->wait_list);
+}
+
 void mutex_init(struct mutex *mtx)
 {
-    mtx->owner = NULL;
-    INIT_LIST_HEAD(&mtx->wait_list);
+    __mutex_init(mtx);
+    mtx->protocol = PTHREAD_PRIO_INHERIT;
 }
 
 bool mutex_is_locked(struct mutex *mtx)
@@ -26,7 +33,7 @@ bool mutex_is_locked(struct mutex *mtx)
     return retval;
 }
 
-int __mutex_lock(struct mutex *mtx)
+int mutex_trylock(struct mutex *mtx)
 {
     preempt_disable();
 
@@ -39,7 +46,7 @@ int __mutex_lock(struct mutex *mtx)
         /* Enqueue current thread into the waiting list */
         prepare_to_wait(&mtx->wait_list, curr_thread, THREAD_WAIT);
 
-        retval = -ERESTARTSYS;
+        retval = -EBUSY;
     } else {
         /* Occupy the mutex by setting the owner */
         mtx->owner = curr_thread;
@@ -57,13 +64,20 @@ int mutex_lock(struct mutex *mtx)
     int retval;
 
     while (1) {
-        retval = __mutex_lock(mtx);
+        retval = mutex_trylock(mtx);
 
-        if (retval != -ERESTARTSYS)
+        if (retval == -EBUSY) {
+            thread_inherit_priority(mtx);
+        } else {
             break;
+        }
 
         schedule();
     }
+
+    /* Reset priority inheritance */
+    if (retval == 0)
+        thread_reset_inherited_priority(mtx);
 
     return retval;
 }
