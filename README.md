@@ -36,6 +36,10 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * **rtplot**: For on-board data real-time plotting, where the message definitions are loaded from the auto-generated YAML files
 * **gazebo_bridge**: Message forwarding between `Tenok` (serial) and Gazebo simulator (TCP/IP)
 
+## Benchmarking
+
+`Tenok` currently supports [Dhrystone](https://en.wikipedia.org/wiki/Dhrystone) and [CoreMark](https://www.eembc.org/coremark/) for basic benchmarking. Please refer to [benchmarks.mk](https://github.com/shengwen-tw/tenok/blob/master/user/benchmarks/benchmarks.mk) for details.
+
 ## Getting Started
 
 * [Developement Tools Setup](https://tenok-rtos.github.io/md_docs_1_environment_setup.html)
