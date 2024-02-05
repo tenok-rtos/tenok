@@ -39,7 +39,8 @@ void poll_task2(void)
 {
     setprogname("poll-ex-2");
 
-    while(!fifo_init_ready);
+    while (!fifo_init_ready)
+        ;
 
     int fifo_fd = open("/poll_test", O_NONBLOCK);
     if (fifo_fd < 0) {
