@@ -19,7 +19,8 @@ int cat(int argc, char *argv[])
         snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
     } else {
         /* Input filename using absolute path */
-        strncpy(path, argv[1], PATH_MAX);
+        strncpy(path, argv[1], PATH_MAX - 1);
+        path[PATH_MAX - 1] = '\0';
     }
 
     char str[PRINT_SIZE_MAX] = {0};

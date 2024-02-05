@@ -96,7 +96,8 @@ int xxd(int argc, char *argv[])
         snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
     } else {
         /* Input is a absolute path */
-        strncpy(path, argv[1], PATH_MAX);
+        strncpy(path, argv[1], PATH_MAX - 1);
+        path[PATH_MAX - 1] = '\0';
     }
 
     /* Open file */

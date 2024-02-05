@@ -417,9 +417,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 
     /* Configure new dentry */
     struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
-    new_dentry->d_inode = new_inode->i_ino;           /* file inode */
-    new_dentry->d_parent = inode_dir->i_ino;          /* parent inode */
-    strncpy(new_dentry->d_name, file_name, NAME_MAX); /* file name */
+    new_dentry->d_inode = new_inode->i_ino;               /* file inode */
+    new_dentry->d_parent = inode_dir->i_ino;              /* parent inode */
+    strncpy(new_dentry->d_name, file_name, NAME_MAX - 1); /* file name */
+    new_dentry->d_name[NAME_MAX - 1] = '\0';
 
     /* File instantiation */
     int result = 0;
@@ -750,8 +751,10 @@ static int fs_create_file(char *pathname, uint8_t file_type)
         }
 
         /* The last non-empty entry is the file name */
-        if (entry[0] != '\0')
-            strncpy(file_name, entry, NAME_MAX);
+        if (entry[0] != '\0') {
+            strncpy(file_name, entry, NAME_MAX - 1);
+            file_name[NAME_MAX - 1] = '\0';
+        }
 
         /* Search the entry and get the inode */
         inode = fs_search_file(inode_curr, entry);
@@ -1017,7 +1020,8 @@ int fs_chdir(const char *path)
         /* Handle regular path */
         if (path[0] == '/') {
             /* Handle absolute path */
-            strncpy(path_tmp, path, PATH_MAX);
+            strncpy(path_tmp, path, PATH_MAX - 1);
+            path_tmp[PATH_MAX - 1] = '\0';
         } else {
             /* Handle relative path */
             fs_getcwd(path_tmp, PATH_MAX);
@@ -1203,7 +1207,8 @@ void request_getcwd(int thread_id, char *path, size_t len)
 
     int fs_cmd = FS_GET_CWD;
     int reply_fd = THREAD_PIPE_FD(thread_id);
-    const size_t overhead = sizeof(path) + sizeof(len) + sizeof(reply_fd);
+    const size_t overhead =
+        sizeof(fs_cmd) + sizeof(path) + sizeof(len) + sizeof(reply_fd);
     char buf[overhead];
     int buf_size = 0;
 
@@ -1231,7 +1236,7 @@ void request_chdir(int thread_id, const char *path)
 
     int fs_cmd = FS_CHANGE_DIR;
     int reply_fd = THREAD_PIPE_FD(thread_id);
-    const size_t overhead = sizeof(path) + sizeof(reply_fd);
+    const size_t overhead = sizeof(fs_cmd) + sizeof(path) + sizeof(reply_fd);
     char buf[overhead];
     int buf_size = 0;
 
@@ -1344,7 +1349,7 @@ void fs_print_inode_bitmap(void)
 
     shell_puts("inodes bitmap:\n\r");
 
-    for (int i = 0; i < INODE_MAX; i++) {
+    for (int i = 0; i < BITMAP_SIZE(INODE_MAX); i++) {
         for (int j = 0; j < 8; j++) {
             int bit = (bitmap_inodes[i] >> j) & (~1l);
             buf[j] = bit ? 'x' : '-';

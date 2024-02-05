@@ -75,7 +75,8 @@ struct kmem_cache *kmem_cache_create(const char *name,
     cache->objnum = objnum;
     cache->page_order = order;
     cache->opts = CACHE_OPT_NONE;
-    strncpy(cache->name, name, CACHE_NAME_LEN);
+    strncpy(cache->name, name, CACHE_NAME_LEN - 1);
+    cache->name[CACHE_NAME_LEN - 1] = '\0';
     INIT_LIST_HEAD(&cache->slabs_free);
     INIT_LIST_HEAD(&cache->slabs_partial);
     INIT_LIST_HEAD(&cache->slabs_full);

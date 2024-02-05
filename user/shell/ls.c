@@ -23,7 +23,8 @@ int ls(int argc, char *argv[])
             snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", argv[1]);
         } else {
             /* Input filename using absolute path */
-            strncpy(path, argv[1], PATH_MAX);
+            strncpy(path, argv[1], PATH_MAX - 1);
+            path[PATH_MAX - 1] = '\0';
         }
     } else if (argc > 2) {
         shell_puts("ls: too many arguments\n\r");

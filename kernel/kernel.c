@@ -787,7 +787,8 @@ leave:
 
 static void sys_setprogname(const char *name)
 {
-    strncpy(running_thread->name, name, THREAD_NAME_MAX);
+    strncpy(running_thread->name, name, THREAD_NAME_MAX - 1);
+    running_thread->name[THREAD_NAME_MAX - 1] = '\0';
 }
 
 static int sys_delay_ticks(uint32_t ticks)
@@ -1813,7 +1814,8 @@ static mqd_t sys_mq_open(const char *name, int oflag, struct mq_attr *attr)
     }
 
     /* Set up the message queue */
-    strncpy(new_mq->name, name, NAME_MAX);
+    strncpy(new_mq->name, name, NAME_MAX - 1);
+    new_mq->name[NAME_MAX - 1] = '\0';
     list_add(&new_mq->list, &mqueue_list);
 
     /* Register new message queue descriptor */
