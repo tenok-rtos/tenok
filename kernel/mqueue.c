@@ -23,7 +23,8 @@ struct mqueue *__mq_allocate(struct mq_attr *attr)
     memset(new_mq, 0, sizeof(*new_mq));
 
     /* allocate message buffers */
-    size_t element_size = sizeof(struct mqueue_data) + attr->mq_msgsize;
+    size_t element_size =
+        ALIGN(sizeof(struct mqueue_data) + attr->mq_msgsize, sizeof(long));
     size_t buf_size = element_size * attr->mq_maxmsg;
     char *buf = kmalloc(buf_size);
 
