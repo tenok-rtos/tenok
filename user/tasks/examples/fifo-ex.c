@@ -13,6 +13,8 @@
 #define TEST_STR "[fifo example] hello world\n\r"
 #define LEN strlen(TEST_STR)
 
+static bool fifo_ready = false;
+
 void fifo_task1(void)
 {
     setprogname("fifo-ex-1");
@@ -20,6 +22,8 @@ void fifo_task1(void)
     if (mkfifo("/fifo_test", 0) < 0) {
         exit(1);
     }
+
+    fifo_ready = true;
 
     int fifo_fd = open("/fifo_test", O_RDWR);
     if (fifo_fd < 0) {
@@ -35,6 +39,9 @@ void fifo_task1(void)
 void fifo_task2(void)
 {
     setprogname("fifo-ex-2");
+
+    while (!fifo_ready)
+        ;
 
     int fifo_fd = open("/fifo_test", 0);
     if (fifo_fd < 0) {
