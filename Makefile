@@ -20,7 +20,7 @@ MSG_BUILD := ./build/msg
 
 LDFLAGS += -Wl,--no-warn-rwx-segments
 
-CFLAGS += -g -mlittle-endian -mthumb \
+CFLAGS += -O2 -g -mlittle-endian -mthumb \
           -fcommon \
           -mcpu=cortex-m4 \
           -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
