@@ -10,6 +10,8 @@
 
 static char buffer[100];
 
+static bool fifo_init_ready = false;
+
 void poll_task1(void)
 {
     setprogname("poll-ex-1");
@@ -19,6 +21,8 @@ void poll_task1(void)
     if (mkfifo("/poll_test", 0) < 0) {
         exit(1);
     }
+
+    fifo_init_ready = true;
 
     int fifo_fd = open("/poll_test", O_RDWR);
     if (fifo_fd < 0) {
@@ -34,6 +38,8 @@ void poll_task1(void)
 void poll_task2(void)
 {
     setprogname("poll-ex-2");
+
+    while(!fifo_init_ready);
 
     int fifo_fd = open("/poll_test", O_NONBLOCK);
     if (fifo_fd < 0) {
