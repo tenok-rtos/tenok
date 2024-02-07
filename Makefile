@@ -30,7 +30,8 @@ CFLAGS += -Wall \
           -Werror=undef \
           -Wno-unused-function \
           -Wno-format-truncation \
-          -Wno-address-of-packed-member
+          -Wno-address-of-packed-member \
+          -Wno-array-bounds # FIXME
 CFLAGS += -D USE_STDPERIPH_DRIVER
 CFLAGS += -D STM32F4xx
 CFLAGS += -D ARM_MATH_CM4 \
