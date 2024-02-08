@@ -114,3 +114,8 @@ time_t time(time_t *tloc)
 
     return tp.tv_sec;
 }
+
+void msleep(unsigned int msecs)
+{
+    // TODO
+}
