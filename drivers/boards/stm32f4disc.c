@@ -1,4 +1,3 @@
-#include "pwm.h"
 #include "serial.h"
 #include "stm32f4xx_conf.h"
 
@@ -31,5 +30,4 @@ void __board_init(void)
     serial0_init();
     serial1_init();
     serial2_init();
-    pwm_init();
 }

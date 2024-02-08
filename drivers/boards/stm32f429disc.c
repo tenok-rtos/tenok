@@ -1,4 +1,3 @@
-#include "pwm.h"
 #include "serial.h"
 #include "stm32f429i_discovery_ioe.h"
 #include "stm32f429i_discovery_lcd.h"
@@ -71,5 +70,4 @@ void __board_init(void)
     serial0_init();
     serial1_init();
     serial2_init();
-    pwm_init();
 }
