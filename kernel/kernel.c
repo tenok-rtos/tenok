@@ -3180,7 +3180,7 @@ static void print_platform_info(void)
     char *cls_str = "\x1b[H\x1b[2J";
     console_write("\x1b[H\x1b[2J", strlen(cls_str));
 #endif
-    printk("Tenok RTOS (built time: %s %s)", __TIME__, __DATE__);
+    printk("Tenok (built time: %s %s)", __TIME__, __DATE__);
     printk("Machine model: %s", __BOARD_NAME__);
 }
 
