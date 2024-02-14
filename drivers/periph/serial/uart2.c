@@ -17,27 +17,25 @@
 
 #define UART2_ISR_PRIORITY 14
 
-ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t serial1_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset);
-int serial1_open(struct inode *inode, struct file *file);
-
-void USART2_IRQHandler(void);
+ssize_t uart2_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t uart2_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset);
+int uart2_open(struct inode *inode, struct file *file);
 
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
 };
 
-static struct file_operations serial1_file_ops = {
-    .read = serial1_read,
-    .write = serial1_write,
-    .open = serial1_open,
+static struct file_operations uart2_file_ops = {
+    .read = uart2_read,
+    .write = uart2_write,
+    .open = uart2_open,
 };
 
-void uart2_init(uint32_t baudrate)
+static void __uart2_init(uint32_t baudrate)
 {
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
@@ -75,10 +73,10 @@ void uart2_init(uint32_t baudrate)
     USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 }
 
-void serial1_init(void)
+void uart2_init(char *dev_name, char *description)
 {
-    /* Register serial1 to the file system */
-    register_chrdev("serial1", &serial1_file_ops);
+    /* Register UART2 to the file system */
+    register_chrdev(dev_name, &uart2_file_ops);
 
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart2.tx_wait_list);
@@ -88,20 +86,20 @@ void serial1_init(void)
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* Initialize UART2 */
-    uart2_init(115200);
+    __uart2_init(115200);
 
     mutex_init(&uart2.tx_mtx);
     mutex_init(&uart2.rx_mtx);
 
-    printk("chardev serial1: mavlink");
+    printk("chardev %s: %s", dev_name, description);
 }
 
-int serial1_open(struct inode *inode, struct file *file)
+int uart2_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
+ssize_t uart2_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     mutex_lock(&uart2.rx_mtx);
 
@@ -117,10 +115,10 @@ ssize_t serial1_read(struct file *filp, char *buf, size_t size, off_t offset)
     return size;
 }
 
-ssize_t serial1_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset)
+ssize_t uart2_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset)
 {
     return uart_puts(USART2, buf, size);
 }

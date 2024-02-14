@@ -22,30 +22,25 @@
 
 #define UART1_ISR_PRIORITY 14
 
-static int uart1_dma_puts(const char *data, size_t size);
-
-ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t serial0_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset);
-int serial0_open(struct inode *inode, struct file *file);
-
-void USART1_IRQHandler(void);
-void DMA2_Stream7_IRQHandler(void);
+ssize_t uart1_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t uart1_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset);
+int uart1_open(struct inode *inode, struct file *file);
 
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
 };
 
-static struct file_operations serial0_file_ops = {
-    .read = serial0_read,
-    .write = serial0_write,
-    .open = serial0_open,
+static struct file_operations uart1_file_ops = {
+    .read = uart1_read,
+    .write = uart1_write,
+    .open = uart1_open,
 };
 
-void uart1_init(uint32_t baudrate)
+static void __uart1_init(uint32_t baudrate)
 {
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -114,23 +109,23 @@ void tty_init(void)
     mutex_init(&uart1.rx_mtx);
 
     /* Initialize UART1 */
-    uart1_init(115200);
+    __uart1_init(115200);
 }
 
-void serial0_init(void)
+void uart1_init(char *dev_name, char *description)
 {
-    /* Register serial0 to the file system */
-    register_chrdev("serial0", &serial0_file_ops);
+    /* Register UART1 to the file system */
+    register_chrdev(dev_name, &uart1_file_ops);
 
-    printk("chardev serial0: console");
+    printk("chardev %s: %s", dev_name, description);
 }
 
-int serial0_open(struct inode *inode, struct file *file)
+int uart1_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
+ssize_t uart1_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     mutex_lock(&uart1.rx_mtx);
 
@@ -144,23 +139,6 @@ ssize_t serial0_read(struct file *filp, char *buf, size_t size, off_t offset)
     mutex_unlock(&uart1.rx_mtx);
 
     return size;
-}
-
-ssize_t serial0_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset)
-{
-#if (ENABLE_UART1_DMA != 0)
-    return uart1_dma_puts(buf, size);
-#else
-    return uart_puts(USART1, buf, size);
-#endif
-}
-
-void early_write(char *buf, size_t size)
-{
-    uart_puts(USART1, buf, size);
 }
 
 static int uart1_dma_puts(const char *data, size_t size)
@@ -202,6 +180,23 @@ static int uart1_dma_puts(const char *data, size_t size)
     mutex_unlock(&uart1.tx_mtx);
 
     return size;
+}
+
+ssize_t uart1_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset)
+{
+#if (ENABLE_UART1_DMA != 0)
+    return uart1_dma_puts(buf, size);
+#else
+    return uart_puts(USART1, buf, size);
+#endif
+}
+
+void early_write(char *buf, size_t size)
+{
+    uart_puts(USART1, buf, size);
 }
 
 void USART1_IRQHandler(void)

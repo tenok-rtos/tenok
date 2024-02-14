@@ -1,8 +1,8 @@
-#include "serial.h"
 #include "stm32f429i_discovery_ioe.h"
 #include "stm32f429i_discovery_lcd.h"
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_ltdc.h"
+#include "uart.h"
 
 /* Example of using the SDRAM:
  * uint8_t sdram[10000] __attribute__((section(".sdram")));
@@ -67,7 +67,7 @@ void __board_init(void)
     SDRAM_Init();
     lcd_init();
     led_init();
-    serial0_init();
-    serial1_init();
-    serial2_init();
+    uart1_init("serial0", "console");
+    uart2_init("serial1", "mavlink");
+    uart3_init("serial2", "debug-link");
 }

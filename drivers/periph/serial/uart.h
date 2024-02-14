@@ -29,4 +29,8 @@ void uart_putc(USART_TypeDef *uart, char c);
 char uart_getc(USART_TypeDef *uart);
 int uart_puts(USART_TypeDef *uart, const char *data, size_t size);
 
+void uart1_init(char *dev_name, char *description);
+void uart2_init(char *dev_name, char *description);
+void uart3_init(char *dev_name, char *description);
+
 #endif

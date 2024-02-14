@@ -21,28 +21,25 @@
 
 static int uart3_dma_puts(const char *data, size_t size);
 
-ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t serial2_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset);
-int serial2_open(struct inode *inode, struct file *file);
-
-void USART3_IRQHandler(void);
-void DMA1_Stream4_IRQHandler(void);
+ssize_t uart3_read(struct file *filp, char *buf, size_t size, off_t offset);
+ssize_t uart3_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset);
+int uart3_open(struct inode *inode, struct file *file);
 
 uart_dev_t uart3 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
 };
 
-static struct file_operations serial2_file_ops = {
-    .read = serial2_read,
-    .write = serial2_write,
-    .open = serial2_open,
+static struct file_operations uart3_file_ops = {
+    .read = uart3_read,
+    .write = uart3_write,
+    .open = uart3_open,
 };
 
-void uart3_init(uint32_t baudrate)
+static void __uart3_init(uint32_t baudrate)
 {
     /* Initialize the RCC */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
@@ -95,10 +92,10 @@ void uart3_init(uint32_t baudrate)
 #endif
 }
 
-void serial2_init(void)
+void uart3_init(char *dev_name, char *description)
 {
-    /* Register serial2 to the file system */
-    register_chrdev("serial2", &serial2_file_ops);
+    /* Register UART3 to the file system */
+    register_chrdev(dev_name, &uart3_file_ops);
 
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart3.tx_wait_list);
@@ -111,17 +108,17 @@ void serial2_init(void)
     mutex_init(&uart3.rx_mtx);
 
     /* Initialize UART3 */
-    uart3_init(115200);
+    __uart3_init(115200);
 
-    printk("chardev serial2: debug-link");
+    printk("chardev %s: %s", dev_name, description);
 }
 
-int serial2_open(struct inode *inode, struct file *file)
+int uart3_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
+ssize_t uart3_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
     mutex_lock(&uart3.rx_mtx);
 
@@ -137,10 +134,10 @@ ssize_t serial2_read(struct file *filp, char *buf, size_t size, off_t offset)
     return size;
 }
 
-ssize_t serial2_write(struct file *filp,
-                      const char *buf,
-                      size_t size,
-                      off_t offset)
+ssize_t uart3_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset)
 {
 #if (ENABLE_UART3_DMA != 0)
     return uart3_dma_puts(buf, size);

@@ -1,5 +1,5 @@
-#include "serial.h"
 #include "stm32f4xx_conf.h"
+#include "uart.h"
 
 void led_init(void)
 {
@@ -27,7 +27,7 @@ void led_write(int state)
 void __board_init(void)
 {
     led_init();
-    serial0_init();
-    serial1_init();
-    serial2_init();
+    uart1_init("serial0", "console");
+    uart2_init("serial1", "mavlink");
+    uart3_init("serial2", "debug-link");
 }
