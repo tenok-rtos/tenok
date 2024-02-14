@@ -3238,6 +3238,10 @@ static void *init(void *arg)
     /* Mount rom file system */
     mount("/dev/rom", "/");
 
+    /* Wait until the boot message is printed */
+    while (!printk_all_flushed())
+        sched_yield();
+
     /* Acquire list of all hooked user tasks */
     extern char _tasks_start, _tasks_end;
     struct task_hook *tasks = (struct task_hook *) &_tasks_start;
@@ -3256,7 +3260,7 @@ static void start_init_thread(void)
     /* Launch system initialization thread */
     pthread_attr_t attr;
     struct sched_param param;
-    param.sched_priority = KTHREAD_PRI_MAX;
+    param.sched_priority = KTHREAD_PRI_MAX - 1;
     pthread_attr_init(&attr);
     pthread_attr_setschedparam(&attr, &param);
     pthread_attr_setschedpolicy(&attr, SCHED_RR);

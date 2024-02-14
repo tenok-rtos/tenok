@@ -137,6 +137,11 @@ static void printkd_sleep(void)
     schedule();
 }
 
+bool printk_all_flushed(void)
+{
+    return list_empty(&printk_wait_list);
+}
+
 void printkd(void)
 {
     setprogname("printk");

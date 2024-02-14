@@ -24,6 +24,7 @@ void panic(char *format, ...);
 
 void printkd_init(void);
 void printkd_start(void);
+bool printk_all_flushed(void);
 void printkd(void);
 
 #endif
