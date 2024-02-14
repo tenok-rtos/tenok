@@ -14,14 +14,6 @@ struct mpu6500_device mpu6500 = {
     .gyro_fs = MPU6500_GYRO_FS_1000_DPS,
 };
 
-int mpu6500_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-int mpu6500_open(struct inode *inode, struct file *file);
-
-static struct file_operations mpu6500_file_ops = {
-    .ioctl = mpu6500_ioctl,
-    .open = mpu6500_open,
-};
-
 int mpu6500_open(struct inode *inode, struct file *file)
 {
     return 0;
@@ -32,24 +24,39 @@ int mpu6500_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     return 0;
 }
 
+static struct file_operations mpu6500_file_ops = {
+    .ioctl = mpu6500_ioctl,
+    .open = mpu6500_open,
+};
+
+static inline uint8_t mpu6500_spi_w8r8(uint8_t data)
+{
+    return spi1_w8r8(data);
+}
+
+static inline void mpu6500_spi_set_chipselect(bool chipselect)
+{
+    spi1_set_chipselect(chipselect);
+}
+
 static uint8_t mpu6500_read_byte(uint8_t address)
 {
     uint8_t read;
 
-    spi1_chip_select();
-    spi1_read_write(address | 0x80);
-    read = spi1_read_write(0xff);
-    spi1_chip_deselect();
+    mpu6500_spi_set_chipselect(true);
+    mpu6500_spi_w8r8(address | 0x80);
+    read = mpu6500_spi_w8r8(0xff);
+    mpu6500_spi_set_chipselect(false);
 
     return read;
 }
 
 static void mpu6500_write_byte(uint8_t address, uint8_t data)
 {
-    spi1_chip_select();
-    spi1_read_write(address);
-    spi1_read_write(data);
-    spi1_chip_deselect();
+    mpu6500_spi_set_chipselect(true);
+    mpu6500_spi_w8r8(address);
+    mpu6500_spi_w8r8(data);
+    mpu6500_spi_set_chipselect(false);
 }
 
 static uint8_t mpu6500_read_who_am_i()
@@ -134,23 +141,23 @@ void mpu6500_interrupt_handler(void)
     uint8_t buffer[14];
 
     /* Read measurements */
-    spi1_chip_select();
-    spi1_read_write(MPU6500_ACCEL_XOUT_H | 0x80);
-    buffer[0] = spi1_read_write(0xff);
-    buffer[1] = spi1_read_write(0xff);
-    buffer[2] = spi1_read_write(0xff);
-    buffer[3] = spi1_read_write(0xff);
-    buffer[4] = spi1_read_write(0xff);
-    buffer[5] = spi1_read_write(0xff);
-    buffer[6] = spi1_read_write(0xff);
-    buffer[7] = spi1_read_write(0xff);
-    buffer[8] = spi1_read_write(0xff);
-    buffer[9] = spi1_read_write(0xff);
-    buffer[10] = spi1_read_write(0xff);
-    buffer[11] = spi1_read_write(0xff);
-    buffer[12] = spi1_read_write(0xff);
-    buffer[13] = spi1_read_write(0xff);
-    spi1_chip_deselect();
+    mpu6500_spi_set_chipselect(true);
+    mpu6500_spi_w8r8(MPU6500_ACCEL_XOUT_H | 0x80);
+    buffer[0] = mpu6500_spi_w8r8(0xff);
+    buffer[1] = mpu6500_spi_w8r8(0xff);
+    buffer[2] = mpu6500_spi_w8r8(0xff);
+    buffer[3] = mpu6500_spi_w8r8(0xff);
+    buffer[4] = mpu6500_spi_w8r8(0xff);
+    buffer[5] = mpu6500_spi_w8r8(0xff);
+    buffer[6] = mpu6500_spi_w8r8(0xff);
+    buffer[7] = mpu6500_spi_w8r8(0xff);
+    buffer[8] = mpu6500_spi_w8r8(0xff);
+    buffer[9] = mpu6500_spi_w8r8(0xff);
+    buffer[10] = mpu6500_spi_w8r8(0xff);
+    buffer[11] = mpu6500_spi_w8r8(0xff);
+    buffer[12] = mpu6500_spi_w8r8(0xff);
+    buffer[13] = mpu6500_spi_w8r8(0xff);
+    mpu6500_spi_set_chipselect(false);
 
     /* Composite measurements */
     mpu6500.accel_unscaled[0] = -s8_to_s16(buffer[0], buffer[1]);

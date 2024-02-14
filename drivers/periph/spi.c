@@ -51,7 +51,7 @@ void spi1_init(void)
     printk("spi1: full duplex mode");
 }
 
-uint8_t spi1_read_write(uint8_t data)
+uint8_t spi1_w8r8(uint8_t data)
 {
     while (SPI_I2S_GetFlagStatus(SPI1, SPI_FLAG_TXE) == RESET)
         ;
@@ -62,12 +62,10 @@ uint8_t spi1_read_write(uint8_t data)
     return SPI_I2S_ReceiveData(SPI1);
 }
 
-void spi1_chip_select(void)
+void spi1_set_chipselect(bool chipselect)
 {
-    GPIO_ResetBits(GPIOA, GPIO_Pin_4);
-}
-
-void spi1_chip_deselect(void)
-{
-    GPIO_SetBits(GPIOA, GPIO_Pin_4);
+    if (chipselect)
+        GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    else
+        GPIO_SetBits(GPIOA, GPIO_Pin_4);
 }

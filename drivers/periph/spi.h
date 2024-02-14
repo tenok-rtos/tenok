@@ -5,8 +5,7 @@
 
 void spi1_init(void);
 
-uint8_t spi1_read_write(uint8_t data);
-void spi1_chip_select(void);
-void spi1_chip_deselect(void);
+uint8_t spi1_w8r8(uint8_t data);
+void spi1_set_chipselect(bool chipselect);
 
 #endif
