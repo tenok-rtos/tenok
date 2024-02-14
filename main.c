@@ -2,7 +2,7 @@
 
 int main(void)
 {
-    /* start the os */
+    /* Start the OS */
     sched_start();
 
     return 0;
