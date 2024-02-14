@@ -3,6 +3,12 @@
 LD_SCRIPT += platform/stm32f407.ld
 
 CFLAGS += -D STM32F40_41xxx \
+          -D SYSTEM_CORE_CLOCK=168000000 \
+          -D HSE_VALUE=8000000 \
+          -D PLL_M=8 \
+          -D PLL_N=336 \
+          -D PLL_P=2 \
+          -D PLL_Q=7 \
 	  -D ENABLE_UART1_DMA=0 \
 	  -D ENABLE_UART3_DMA=0 \
 	  -D BUILD_QEMU \

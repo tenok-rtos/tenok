@@ -3,6 +3,12 @@
 LD_SCRIPT = platform/stm32f429.ld
 
 CFLAGS += -D STM32F429_439xx \
+          -D SYSTEM_CORE_CLOCK=180000000 \
+          -D HSE_VALUE=8000000 \
+          -D PLL_M=8 \
+          -D PLL_N=360 \
+          -D PLL_P=2 \
+          -D PLL_Q=7 \
           -D ENABLE_UART1_DMA=1 \
           -D ENABLE_UART3_DMA=1 \
           -D __ARCH__=\"armv7m\"

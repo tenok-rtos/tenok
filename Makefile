@@ -14,6 +14,7 @@ ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
 include platform/qemu.mk
 #include platform/stm32f4disc.mk
 #include platform/stm32f429disc.mk
+#include platform/dynamics_wizard.mk
 
 MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg

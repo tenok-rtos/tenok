@@ -23,22 +23,6 @@
 #ifndef __STM32F4xx_CONF_H
 #define __STM32F4xx_CONF_H
 
-#ifdef STM32F40_41xxx
-#define HSE_VALUE ((uint32_t)8000000)
-#define PLL_M     8
-#define PLL_N     336
-#define PLL_P     2
-#define PLL_Q     7
-#endif
-
-#ifdef STM32F429_439xx
-#define HSE_VALUE ((uint32_t)8000000)
-#define PLL_M     8
-#define PLL_N     360
-#define PLL_P     2
-#define PLL_Q     7
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 /* Uncomment the line below to enable peripheral header file inclusion */
 #include "stm32f4xx_adc.h"
