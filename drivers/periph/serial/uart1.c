@@ -22,17 +22,84 @@
 
 #define UART1_ISR_PRIORITY 14
 
-ssize_t uart1_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t uart1_write(struct file *filp,
-                    const char *buf,
-                    size_t size,
-                    off_t offset);
-int uart1_open(struct inode *inode, struct file *file);
-
 uart_dev_t uart1 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
 };
+
+int uart1_open(struct inode *inode, struct file *file)
+{
+    return 0;
+}
+
+ssize_t uart1_read(struct file *filp, char *buf, size_t size, off_t offset)
+{
+    mutex_lock(&uart1.rx_mtx);
+
+    preempt_disable();
+    uart1.rx_wait_size = size;
+    wait_event(uart1.rx_wait_list, kfifo_len(uart1.rx_fifo) >= size);
+    preempt_enable();
+
+    kfifo_out(uart1.rx_fifo, buf, size);
+
+    mutex_unlock(&uart1.rx_mtx);
+
+    return size;
+}
+
+static int uart1_dma_puts(const char *data, size_t size)
+{
+    mutex_lock(&uart1.tx_mtx);
+
+    preempt_disable();
+
+    /* Configure the DMA */
+    DMA_InitTypeDef DMA_InitStructure = {
+        .DMA_BufferSize = (uint32_t) size,
+        .DMA_FIFOMode = DMA_FIFOMode_Disable,
+        .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
+        .DMA_MemoryBurst = DMA_MemoryBurst_Single,
+        .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
+        .DMA_MemoryInc = DMA_MemoryInc_Enable,
+        .DMA_Mode = DMA_Mode_Normal,
+        .DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR),
+        .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
+        .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
+        .DMA_Priority = DMA_Priority_Medium,
+        .DMA_Channel = DMA_Channel_4,
+        .DMA_DIR = DMA_DIR_MemoryToPeripheral,
+        .DMA_Memory0BaseAddr = (uint32_t) data,
+    };
+    DMA_Init(DMA2_Stream7, &DMA_InitStructure);
+
+    /* Enable DMA to copy the data */
+    DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
+    DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
+    DMA_Cmd(DMA2_Stream7, ENABLE);
+
+    /* Wait until DMA completed data transfer */
+    uart1.tx_ready = false;
+    wait_event(uart1.tx_wait_list, uart1.tx_ready);
+
+    preempt_enable();
+
+    mutex_unlock(&uart1.tx_mtx);
+
+    return size;
+}
+
+ssize_t uart1_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset)
+{
+#if (ENABLE_UART1_DMA != 0)
+    return uart1_dma_puts(buf, size);
+#else
+    return uart_puts(USART1, buf, size);
+#endif
+}
 
 static struct file_operations uart1_file_ops = {
     .read = uart1_read,
@@ -115,80 +182,6 @@ void uart1_init(char *dev_name, char *description)
     mutex_init(&uart1.rx_mtx);
 
     printk("chardev %s: %s", dev_name, description);
-}
-
-int uart1_open(struct inode *inode, struct file *file)
-{
-    return 0;
-}
-
-ssize_t uart1_read(struct file *filp, char *buf, size_t size, off_t offset)
-{
-    mutex_lock(&uart1.rx_mtx);
-
-    preempt_disable();
-    uart1.rx_wait_size = size;
-    wait_event(uart1.rx_wait_list, kfifo_len(uart1.rx_fifo) >= size);
-    preempt_enable();
-
-    kfifo_out(uart1.rx_fifo, buf, size);
-
-    mutex_unlock(&uart1.rx_mtx);
-
-    return size;
-}
-
-static int uart1_dma_puts(const char *data, size_t size)
-{
-    mutex_lock(&uart1.tx_mtx);
-
-    preempt_disable();
-
-    /* Configure the DMA */
-    DMA_InitTypeDef DMA_InitStructure = {
-        .DMA_BufferSize = (uint32_t) size,
-        .DMA_FIFOMode = DMA_FIFOMode_Disable,
-        .DMA_FIFOThreshold = DMA_FIFOThreshold_Full,
-        .DMA_MemoryBurst = DMA_MemoryBurst_Single,
-        .DMA_MemoryDataSize = DMA_MemoryDataSize_Byte,
-        .DMA_MemoryInc = DMA_MemoryInc_Enable,
-        .DMA_Mode = DMA_Mode_Normal,
-        .DMA_PeripheralBaseAddr = (uint32_t) (&USART1->DR),
-        .DMA_PeripheralBurst = DMA_PeripheralBurst_Single,
-        .DMA_PeripheralInc = DMA_PeripheralInc_Disable,
-        .DMA_Priority = DMA_Priority_Medium,
-        .DMA_Channel = DMA_Channel_4,
-        .DMA_DIR = DMA_DIR_MemoryToPeripheral,
-        .DMA_Memory0BaseAddr = (uint32_t) data,
-    };
-    DMA_Init(DMA2_Stream7, &DMA_InitStructure);
-
-    /* Enable DMA to copy the data */
-    DMA_ClearFlag(DMA2_Stream7, DMA_FLAG_TCIF7);
-    DMA_ITConfig(DMA2_Stream7, DMA_IT_TC, ENABLE);
-    DMA_Cmd(DMA2_Stream7, ENABLE);
-
-    /* Wait until DMA completed data transfer */
-    uart1.tx_ready = false;
-    wait_event(uart1.tx_wait_list, uart1.tx_ready);
-
-    preempt_enable();
-
-    mutex_unlock(&uart1.tx_mtx);
-
-    return size;
-}
-
-ssize_t uart1_write(struct file *filp,
-                    const char *buf,
-                    size_t size,
-                    off_t offset)
-{
-#if (ENABLE_UART1_DMA != 0)
-    return uart1_dma_puts(buf, size);
-#else
-    return uart_puts(USART1, buf, size);
-#endif
 }
 
 void USART1_IRQHandler(void)

@@ -16,37 +16,6 @@
 #include <kernel/thread.h>
 #include <kernel/wait.h>
 
-ssize_t fifo_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t fifo_write(struct file *filp,
-                   const char *buf,
-                   size_t size,
-                   off_t offset);
-int fifo_open(struct inode *inode, struct file *file);
-
-static struct file_operations fifo_ops = {
-    .read = fifo_read,
-    .write = fifo_write,
-    .open = fifo_open,
-};
-
-int fifo_init(int fd,
-              struct file **files,
-              struct inode *file_inode,
-              struct pipe *pipe)
-{
-    /* Initialize the pipe */
-    INIT_LIST_HEAD(&pipe->r_wait_list);
-    INIT_LIST_HEAD(&pipe->w_wait_list);
-
-    /* Register the pipe on the file table */
-    memset(&pipe->file, 0, sizeof(pipe->file));
-    pipe->file.f_op = &fifo_ops;
-    pipe->file.f_inode = file_inode;
-    files[fd] = &pipe->file;
-
-    return 0;
-}
-
 int fifo_open(struct inode *inode, struct file *file)
 {
     return 0;
@@ -186,4 +155,28 @@ ssize_t fifo_write(struct file *filp,
     preempt_enable();
 
     return retval;
+}
+
+static struct file_operations fifo_ops = {
+    .read = fifo_read,
+    .write = fifo_write,
+    .open = fifo_open,
+};
+
+int fifo_init(int fd,
+              struct file **files,
+              struct inode *file_inode,
+              struct pipe *pipe)
+{
+    /* Initialize the pipe */
+    INIT_LIST_HEAD(&pipe->r_wait_list);
+    INIT_LIST_HEAD(&pipe->w_wait_list);
+
+    /* Register the pipe on the file table */
+    memset(&pipe->file, 0, sizeof(pipe->file));
+    pipe->file.f_op = &fifo_ops;
+    pipe->file.f_inode = file_inode;
+    files[fd] = &pipe->file;
+
+    return 0;
 }

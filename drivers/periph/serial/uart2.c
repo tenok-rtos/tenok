@@ -17,17 +17,39 @@
 
 #define UART2_ISR_PRIORITY 14
 
-ssize_t uart2_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t uart2_write(struct file *filp,
-                    const char *buf,
-                    size_t size,
-                    off_t offset);
-int uart2_open(struct inode *inode, struct file *file);
-
 uart_dev_t uart2 = {
     .rx_fifo = NULL,
     .rx_wait_size = 0,
 };
+
+int uart2_open(struct inode *inode, struct file *file)
+{
+    return 0;
+}
+
+ssize_t uart2_read(struct file *filp, char *buf, size_t size, off_t offset)
+{
+    mutex_lock(&uart2.rx_mtx);
+
+    preempt_disable();
+    uart2.rx_wait_size = size;
+    wait_event(uart2.rx_wait_list, kfifo_len(uart2.rx_fifo) >= size);
+    preempt_enable();
+
+    kfifo_out(uart2.rx_fifo, buf, size);
+
+    mutex_unlock(&uart2.rx_mtx);
+
+    return size;
+}
+
+ssize_t uart2_write(struct file *filp,
+                    const char *buf,
+                    size_t size,
+                    off_t offset)
+{
+    return uart_puts(USART2, buf, size);
+}
 
 static struct file_operations uart2_file_ops = {
     .read = uart2_read,
@@ -92,35 +114,6 @@ void uart2_init(char *dev_name, char *description)
     mutex_init(&uart2.rx_mtx);
 
     printk("chardev %s: %s", dev_name, description);
-}
-
-int uart2_open(struct inode *inode, struct file *file)
-{
-    return 0;
-}
-
-ssize_t uart2_read(struct file *filp, char *buf, size_t size, off_t offset)
-{
-    mutex_lock(&uart2.rx_mtx);
-
-    preempt_disable();
-    uart2.rx_wait_size = size;
-    wait_event(uart2.rx_wait_list, kfifo_len(uart2.rx_fifo) >= size);
-    preempt_enable();
-
-    kfifo_out(uart2.rx_fifo, buf, size);
-
-    mutex_unlock(&uart2.rx_mtx);
-
-    return size;
-}
-
-ssize_t uart2_write(struct file *filp,
-                    const char *buf,
-                    size_t size,
-                    off_t offset)
-{
-    return uart_puts(USART2, buf, size);
 }
 
 void USART2_IRQHandler(void)

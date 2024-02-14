@@ -3,17 +3,8 @@
 #include <fs/fs.h>
 #include <printk.h>
 
-#include "stm32f4xx.h"
-
 #include "pwm.h"
-
-int pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-int pwm_open(struct inode *inode, struct file *file);
-
-static struct file_operations pwm_file_ops = {
-    .ioctl = pwm_ioctl,
-    .open = pwm_open,
-};
+#include "stm32f4xx.h"
 
 int pwm_open(struct inode *inode, struct file *file)
 {
@@ -51,6 +42,11 @@ int pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
     return 0;
 }
+
+static struct file_operations pwm_file_ops = {
+    .ioctl = pwm_ioctl,
+    .open = pwm_open,
+};
 
 static void pwm_timer1_init(void)
 {
@@ -144,7 +140,7 @@ static void pwm_timer4_init(void)
 
 void pwm_init(void)
 {
-    /* Register pwm to the file system */
+    /* Register PWM to the file system */
     register_chrdev("pwm", &pwm_file_ops);
 
     pwm_timer1_init();

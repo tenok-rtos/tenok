@@ -9,38 +9,7 @@
 
 #include "kconfig.h"
 
-off_t reg_file_lseek(struct file *filp, off_t offset, int whence);
-ssize_t reg_file_read(struct file *filp, char *buf, size_t size, off_t offset);
-ssize_t reg_file_write(struct file *filp,
-                       const char *buf,
-                       size_t size,
-                       off_t offset);
-int reg_file_open(struct inode *inode, struct file *file);
-
 extern struct mount mount_points[MOUNT_MAX + 1];
-
-static struct file_operations reg_file_ops = {
-    .lseek = reg_file_lseek,
-    .read = reg_file_read,
-    .write = reg_file_write,
-    .open = reg_file_open,
-};
-
-int reg_file_init(struct file **files,
-                  struct inode *file_inode,
-                  struct reg_file *reg_file)
-{
-    /* Initialize the data pointer */
-    reg_file->pos = 0;
-
-    /* Register regular file on the file table */
-    memset(&reg_file->file, 0, sizeof(reg_file->file));
-    reg_file->file.f_inode = file_inode;
-    reg_file->file.f_op = &reg_file_ops;
-    files[file_inode->i_fd] = &reg_file->file;
-
-    return 0;
-}
 
 int reg_file_open(struct inode *inode, struct file *file)
 {
@@ -241,4 +210,27 @@ off_t reg_file_lseek(struct file *filp, off_t offset, int whence)
     preempt_enable();
 
     return retval;
+}
+
+static struct file_operations reg_file_ops = {
+    .lseek = reg_file_lseek,
+    .read = reg_file_read,
+    .write = reg_file_write,
+    .open = reg_file_open,
+};
+
+int reg_file_init(struct file **files,
+                  struct inode *file_inode,
+                  struct reg_file *reg_file)
+{
+    /* Initialize the data pointer */
+    reg_file->pos = 0;
+
+    /* Register regular file on the file table */
+    memset(&reg_file->file, 0, sizeof(reg_file->file));
+    reg_file->file.f_inode = file_inode;
+    reg_file->file.f_op = &reg_file_ops;
+    files[file_inode->i_fd] = &reg_file->file;
+
+    return 0;
 }
