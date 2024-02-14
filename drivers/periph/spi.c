@@ -1,27 +1,8 @@
 #include <stdbool.h>
 
-#include <fs/fs.h>
 #include <printk.h>
 
 #include "stm32f4xx.h"
-
-int spi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
-int spi_open(struct inode *inode, struct file *file);
-
-static struct file_operations spi_file_ops = {
-    .ioctl = spi_ioctl,
-    .open = spi_open,
-};
-
-int spi_open(struct inode *inode, struct file *file)
-{
-    return 0;
-}
-
-int spi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
-{
-    return 0;
-}
 
 /* SPI1
  * CS:   GPIO A4
@@ -67,7 +48,6 @@ void spi1_init(void)
 
     SPI_Cmd(SPI1, ENABLE);
 
-    register_chrdev("spi", &spi_file_ops);
     printk("spi1: full duplex mode");
 }
 
