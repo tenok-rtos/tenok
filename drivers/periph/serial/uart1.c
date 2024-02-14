@@ -96,8 +96,11 @@ static void __uart1_init(uint32_t baudrate)
 #endif
 }
 
-void tty_init(void)
+void uart1_init(char *dev_name, char *description)
 {
+    /* Register UART1 to the file system */
+    register_chrdev(dev_name, &uart1_file_ops);
+
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart1.tx_wait_list);
     init_waitqueue_head(&uart1.rx_wait_list);
@@ -105,17 +108,11 @@ void tty_init(void)
     /* Create rx buffer */
     uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
-    mutex_init(&uart1.tx_mtx);
-    mutex_init(&uart1.rx_mtx);
-
     /* Initialize UART1 */
     __uart1_init(115200);
-}
 
-void uart1_init(char *dev_name, char *description)
-{
-    /* Register UART1 to the file system */
-    register_chrdev(dev_name, &uart1_file_ops);
+    mutex_init(&uart1.tx_mtx);
+    mutex_init(&uart1.rx_mtx);
 
     printk("chardev %s: %s", dev_name, description);
 }
@@ -192,11 +189,6 @@ ssize_t uart1_write(struct file *filp,
 #else
     return uart_puts(USART1, buf, size);
 #endif
-}
-
-void early_write(char *buf, size_t size)
-{
-    uart_puts(USART1, buf, size);
 }
 
 void USART1_IRQHandler(void)

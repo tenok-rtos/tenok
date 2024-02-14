@@ -3289,7 +3289,6 @@ void sched_start(void)
     __platform_init();
     slab_init();
     heap_init();
-    tty_init();
     printkd_init();
     rootfs_init();
 

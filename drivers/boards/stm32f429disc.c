@@ -62,6 +62,11 @@ void lcd_init(void)
     LCD_DisplayOn();
 }
 
+void early_write(char *buf, size_t size)
+{
+    uart_puts(USART1, buf, size);
+}
+
 void __board_init(void)
 {
     SDRAM_Init();

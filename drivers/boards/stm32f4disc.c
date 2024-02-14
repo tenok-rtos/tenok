@@ -24,6 +24,11 @@ void led_write(int state)
     GPIO_WriteBit(GPIOD, GPIO_Pin_15, state);
 }
 
+void early_write(char *buf, size_t size)
+{
+    uart_puts(USART1, buf, size);
+}
+
 void __board_init(void)
 {
     led_init();
