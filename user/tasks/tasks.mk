@@ -1,5 +1,7 @@
 PROJ_ROOT := $(dir $(lastword $(MAKEFILE_LIST)))/../..
 
+include $(PROJ_ROOT)/user/navigation/navigation.mk
+
 CFLAGS += -I $(PROJ_ROOT)/user/tasks
 
 # By deleting the source file you can disable
