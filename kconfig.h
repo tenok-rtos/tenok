@@ -2,7 +2,7 @@
 #define __KCONFIG_H__
 
 /* Scheduler */
-#define OS_TICK_FREQ 1000 /* Hz */
+#define OS_TICK_FREQ 4000 /* Hz */
 
 #ifdef BUILD_QEMU
 #undef OS_TICK_FREQ
