@@ -2,6 +2,7 @@
 #include <kernel/delay.h>
 #include <printk.h>
 
+#include "lpf.h"
 #include "mpu6500.h"
 #include "spi.h"
 #include "stm32f4xx_conf.h"
@@ -10,10 +11,13 @@
 
 #define MPU6500_EXTI_ISR_PRIORITY 14
 
-struct mpu6500_device mpu6500 = {
+static struct mpu6500_device mpu6500 = {
     .accel_fs = MPU6500_GYRO_FS_8G,
     .gyro_fs = MPU6500_GYRO_FS_1000_DPS,
 };
+
+/* First order low-pass filter for acceleromter */
+static float mpu6500_lpf_gain;
 
 static int mpu6500_open(struct inode *inode, struct file *file)
 {
@@ -194,6 +198,9 @@ void mpu6500_init(void)
     mpu6500_write_byte(MPU6500_INT_ENABLE, 0x01);
     __msleep(100);
 
+    /* Sampling time = 0.001s (1KHz), Cutoff frequency = 25Hz */
+    lpf_first_order_init(&mpu6500_lpf_gain, 0.001, 25);
+
     register_chrdev("imu0", &mpu6500_file_ops);
     printk("imu0: mp6500");
 }
@@ -230,7 +237,16 @@ void mpu6500_interrupt_handler(void)
     mpu6500.gyro_unscaled[1] = +s8_to_s16(buffer[10], buffer[11]);
     mpu6500.gyro_unscaled[2] = -s8_to_s16(buffer[12], buffer[13]);
 
+    /* Convert measurementis to metric unit */
     mpu6500_convert_to_scale();
+
+    /* Low-pass filtering for accelerometer to cancel vibration noise */
+    lpf_first_order(mpu6500.accel_raw[0], &(mpu6500.accel_lpf[0]),
+                    mpu6500_lpf_gain);
+    lpf_first_order(mpu6500.accel_raw[1], &(mpu6500.accel_lpf[1]),
+                    mpu6500_lpf_gain);
+    lpf_first_order(mpu6500.accel_raw[2], &(mpu6500.accel_lpf[2]),
+                    mpu6500_lpf_gain);
 }
 
 void EXTI15_10_IRQHandler(void)
