@@ -1,3 +1,4 @@
+#include "mpu6500.h"
 #include "stm32f4xx_gpio.h"
 #include "uart.h"
 
@@ -33,4 +34,5 @@ void __board_init(void)
     uart1_init("serial0", "console");
     uart2_init("serial1", "mavlink");
     uart3_init("serial2", "debug-link");
+    mpu6500_init();
 }

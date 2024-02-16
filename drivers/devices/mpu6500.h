@@ -93,4 +93,6 @@ struct mpu6500_device {
     float update_freq;
 };
 
+void mpu6500_init(void);
+
 #endif

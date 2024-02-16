@@ -92,7 +92,9 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_usart.c \
        $(ST_LIB)/src/stm32f4xx_tim.c \
        $(ST_LIB)/src/stm32f4xx_spi.c \
-       $(ST_LIB)/src/stm32f4xx_i2c.c
+       $(ST_LIB)/src/stm32f4xx_i2c.c \
+       $(ST_LIB)/src/stm32f4xx_syscfg.c \
+       $(ST_LIB)/src/stm32f4xx_exti.c
 
 SRC += ./arch/v7m_port.c \
        ./fs/fs.c \

@@ -4,22 +4,23 @@
 
 #include "mpu6500.h"
 #include "spi.h"
+#include "stm32f4xx_conf.h"
 
 #define s8_to_s16(upper_s8, lower_s8) ((int16_t) upper_s8 << 8 | lower_s8)
 
+#define MPU6500_EXTI_ISR_PRIORITY 14
+
 struct mpu6500_device mpu6500 = {
-    .gyro_bias = {0, 0, 0},
-    .accel_bias = {0, 0, 0},
     .accel_fs = MPU6500_GYRO_FS_8G,
     .gyro_fs = MPU6500_GYRO_FS_1000_DPS,
 };
 
-int mpu6500_open(struct inode *inode, struct file *file)
+static int mpu6500_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-int mpu6500_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static int mpu6500_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     return 0;
 }
@@ -28,6 +29,42 @@ static struct file_operations mpu6500_file_ops = {
     .ioctl = mpu6500_ioctl,
     .open = mpu6500_open,
 };
+
+static void mpu6500_interrupt_init(void)
+{
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+    GPIO_InitTypeDef GPIO_InitStruct = {
+        .GPIO_Mode = GPIO_Mode_IN,
+        .GPIO_OType = GPIO_OType_PP,
+        .GPIO_Pin = GPIO_Pin_10,
+        .GPIO_PuPd = GPIO_PuPd_DOWN,
+    };
+    GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+    SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOD, EXTI_PinSource10);
+    EXTI_InitTypeDef EXTI_InitStruct = {
+        .EXTI_Line = EXTI_Line10,
+        .EXTI_LineCmd = ENABLE,
+        .EXTI_Mode = EXTI_Mode_Interrupt,
+        .EXTI_Trigger = EXTI_Trigger_Rising,
+    };
+    EXTI_Init(&EXTI_InitStruct);
+
+    NVIC_InitTypeDef NVIC_InitStruct = {
+        .NVIC_IRQChannel = EXTI15_10_IRQn,
+        .NVIC_IRQChannelPreemptionPriority = MPU6500_EXTI_ISR_PRIORITY,
+        .NVIC_IRQChannelSubPriority = 0,
+        .NVIC_IRQChannelCmd = ENABLE,
+    };
+    NVIC_Init(&NVIC_InitStruct);
+}
+
+static inline void mpu6500_spi_init(void)
+{
+    spi1_init();
+}
 
 static inline uint8_t mpu6500_spi_w8r8(uint8_t data)
 {
@@ -59,21 +96,46 @@ static void mpu6500_write_byte(uint8_t address, uint8_t data)
     mpu6500_spi_set_chipselect(false);
 }
 
+void __msleep(uint32_t ms)
+{
+    volatile uint32_t cnt;
+    for (cnt = ms; cnt > 0; cnt--) {
+        volatile uint32_t tweaked_delay = 22500U;
+        while (tweaked_delay--)
+            ;
+    }
+}
+
 static uint8_t mpu6500_read_who_am_i()
 {
     uint8_t id = mpu6500_read_byte(MPU6500_WHO_AM_I);
-    msleep(5);
+    __msleep(5);
     return id;
 }
 
 static void mpu6500_reset()
 {
     mpu6500_write_byte(MPU6500_PWR_MGMT_1, 0x80);
-    msleep(100);
+    __msleep(100);
+}
+
+static void mpu6500_convert_to_scale(void)
+{
+    mpu6500.accel_raw[0] = mpu6500.accel_unscaled[0] * mpu6500.accel_scale;
+    mpu6500.accel_raw[1] = mpu6500.accel_unscaled[1] * mpu6500.accel_scale;
+    mpu6500.accel_raw[2] = mpu6500.accel_unscaled[2] * mpu6500.accel_scale;
+    mpu6500.gyro_raw[0] = mpu6500.gyro_unscaled[0] * mpu6500.gyro_scale;
+    mpu6500.gyro_raw[1] = mpu6500.gyro_unscaled[1] * mpu6500.gyro_scale;
+    mpu6500.gyro_raw[2] = mpu6500.gyro_unscaled[2] * mpu6500.gyro_scale;
+    mpu6500.temp_raw = mpu6500.temp_unscaled * MPU6500T_85degC + 21.0f;
 }
 
 void mpu6500_init(void)
 {
+    mpu6500_interrupt_init();
+    mpu6500_spi_init();
+    __msleep(50);
+
     /* Probe the sensor */
     while (mpu6500_read_who_am_i() != 0x70)
         ;
@@ -98,7 +160,7 @@ void mpu6500_init(void)
         mpu6500_write_byte(MPU6500_ACCEL_CONFIG, 0x18);
         break;
     }
-    msleep(100);
+    __msleep(100);
 
     switch (mpu6500.gyro_fs) {
     case MPU6500_GYRO_FS_250_DPS:
@@ -118,19 +180,19 @@ void mpu6500_init(void)
         mpu6500_write_byte(MPU6500_GYRO_CONFIG, 0x18);
         break;
     }
-    msleep(100);
+    __msleep(100);
 
     /* Gyroscope update rate = 1KHz, Low-pass filter bandwitdh = 20Hz */
     mpu6500_write_byte(MPU6500_CONFIG, GYRO_DLPF_BANDWIDTH_20Hz);
-    msleep(100);
+    __msleep(100);
 
     /* Acceleromter update rate = 1KHz, Low-pass filter bandwitdh = 20Hz */
     mpu6500_write_byte(MPU6500_ACCEL_CONFIG2, ACCEL_DLPF_BANDWIDTH_20Hz);
-    msleep(100);
+    __msleep(100);
 
     /* Enable data-ready interrupt */
     mpu6500_write_byte(MPU6500_INT_ENABLE, 0x01);
-    msleep(100);
+    __msleep(100);
 
     register_chrdev("imu0", &mpu6500_file_ops);
     printk("imu0: mp6500");
@@ -167,4 +229,14 @@ void mpu6500_interrupt_handler(void)
     mpu6500.gyro_unscaled[0] = -s8_to_s16(buffer[8], buffer[9]);
     mpu6500.gyro_unscaled[1] = +s8_to_s16(buffer[10], buffer[11]);
     mpu6500.gyro_unscaled[2] = -s8_to_s16(buffer[12], buffer[13]);
+
+    mpu6500_convert_to_scale();
+}
+
+void EXTI15_10_IRQHandler(void)
+{
+    if (EXTI_GetITStatus(EXTI_Line10) == SET) {
+        mpu6500_interrupt_handler();
+        EXTI_ClearITPendingBit(EXTI_Line10);
+    }
 }

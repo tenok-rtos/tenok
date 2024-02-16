@@ -16,9 +16,6 @@ CFLAGS += -D__BOARD_NAME__=\"stm32f427\"
 
 CFLAGS += -I ./drivers/boards
 
-SRC += $(ST_LIB)/src/stm32f4xx_syscfg.c \
-       $(ST_LIB)/src/stm32f4xx_exti.c
-
 SRC += ./drivers/boards/dynamics_wizard.c
 
 flash:
