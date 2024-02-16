@@ -17,10 +17,7 @@
 
 #define UART2_ISR_PRIORITY 14
 
-uart_dev_t uart2 = {
-    .rx_fifo = NULL,
-    .rx_wait_size = 0,
-};
+uart_dev_t uart2;
 
 int uart2_open(struct inode *inode, struct file *file)
 {

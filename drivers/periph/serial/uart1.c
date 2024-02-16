@@ -22,10 +22,7 @@
 
 #define UART1_ISR_PRIORITY 14
 
-uart_dev_t uart1 = {
-    .rx_fifo = NULL,
-    .rx_wait_size = 0,
-};
+uart_dev_t uart1;
 
 int uart1_open(struct inode *inode, struct file *file)
 {
@@ -115,7 +112,11 @@ static void __uart1_init(uint32_t baudrate)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
+#ifdef DYNAMICS_WIZARD_F4
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+#else
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
+#endif
 
     GPIO_InitTypeDef GPIO_InitStruct = {
         .GPIO_Pin = GPIO_Pin_9,
@@ -126,8 +127,13 @@ static void __uart1_init(uint32_t baudrate)
     };
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+#ifdef DYNAMICS_WIZARD_F4
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+#else
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
 
     USART_InitTypeDef USART_InitStruct = {
         .USART_BaudRate = baudrate,

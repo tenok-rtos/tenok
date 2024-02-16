@@ -19,10 +19,7 @@
 
 #define UART3_ISR_PRIORITY 14
 
-uart_dev_t uart3 = {
-    .rx_fifo = NULL,
-    .rx_wait_size = 0,
-};
+uart_dev_t uart3;
 
 int uart3_open(struct inode *inode, struct file *file)
 {
@@ -108,10 +105,23 @@ static void __uart3_init(uint32_t baudrate)
 {
     /* Initialize the RCC */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
     /* Initialize the GPIO */
+#ifdef DYNAMICS_WIZARD_F4
+    GPIO_PinAFConfig(GPIOD, GPIO_PinSource8, GPIO_AF_USART3);
+    GPIO_PinAFConfig(GPIOD, GPIO_PinSource9, GPIO_AF_USART3);
+    GPIO_InitTypeDef gpio = {
+        .GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9,
+        .GPIO_Mode = GPIO_Mode_AF,
+        .GPIO_Speed = GPIO_Speed_50MHz,
+        .GPIO_OType = GPIO_OType_PP,
+        .GPIO_PuPd = GPIO_PuPd_UP,
+    };
+    GPIO_Init(GPIOD, &gpio);
+#else
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3);
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3);
     GPIO_InitTypeDef gpio = {
@@ -122,6 +132,7 @@ static void __uart3_init(uint32_t baudrate)
         .GPIO_PuPd = GPIO_PuPd_UP,
     };
     GPIO_Init(GPIOC, &gpio);
+#endif
 
     /* Initialize the UART3 */
     USART_InitTypeDef uart3 = {

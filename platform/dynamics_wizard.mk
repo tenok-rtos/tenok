@@ -9,7 +9,8 @@ CFLAGS += -D STM32F427_437xx \
           -D PLL_Q=4 \
           -D ENABLE_UART1_DMA=1 \
           -D ENABLE_UART3_DMA=1 \
-          -D __ARCH__=\"armv7m\"
+          -D __ARCH__=\"armv7m\" \
+          -D DYNAMICS_WIZARD_F4
 
 CFLAGS += -D__BOARD_NAME__=\"stm32f427\"
 
