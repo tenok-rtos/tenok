@@ -3222,18 +3222,14 @@ static void check_thread_stack(void)
 static void *init(void *arg)
 {
     /* Bring up drivers */
-    preempt_disable();
-    {
-        print_platform_info();
-        __board_init();
-        rom_dev_init();
-        null_dev_init();
-        link_stdin_dev(STDIN_PATH);
-        link_stdout_dev(STDOUT_PATH);
-        link_stderr_dev(STDERR_PATH);
-        printkd_start();
-    }
-    preempt_enable();
+    print_platform_info();
+    __board_init();
+    rom_dev_init();
+    null_dev_init();
+    link_stdin_dev(STDIN_PATH);
+    link_stdout_dev(STDOUT_PATH);
+    link_stderr_dev(STDERR_PATH);
+    printkd_start();
 
     /* Mount rom file system */
     mount("/dev/rom", "/");
