@@ -9,6 +9,8 @@
 
 #include <common/list.h>
 
+typedef int64_t ktime_t;
+
 struct timer {
     int id;
     int flags;
@@ -28,5 +30,7 @@ void time_add(struct timespec *time, time_t sec, long nsec);
 void get_sys_time(struct timespec *tp);
 void set_sys_time(const struct timespec *tp);
 void system_timer_update(void);
+
+ktime_t ktime_get(void);
 
 #endif

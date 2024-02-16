@@ -119,3 +119,8 @@ void msleep(unsigned int msecs)
 {
     // TODO
 }
+
+ktime_t ktime_get(void)
+{
+    return sys_time.tv_sec * 1000 + sys_time.tv_nsec / 1000000;
+}
