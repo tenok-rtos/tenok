@@ -8,6 +8,10 @@ void madgwick_init(madgwick_t *madgwick, float sample_rate, float beta)
 {
     madgwick->beta = beta;
     madgwick->dt = 1.0f / sample_rate;
+    madgwick->q[0] = 1.0f;
+    madgwick->q[1] = 0.0f;
+    madgwick->q[2] = 0.0f;
+    madgwick->q[3] = 0.0f;
 }
 
 void madgwick_imu_ahrs(madgwick_t *madgwick, float *accel, float *gyro)
