@@ -6,6 +6,8 @@
 #include "pwm.h"
 #include "stm32f4xx.h"
 
+#define PWM_DEFAULT_PULSE 10900
+
 int pwm_open(struct inode *inode, struct file *file)
 {
     return 0;
@@ -81,7 +83,7 @@ static void pwm_timer1_init(void)
     TIM_OCInitTypeDef TIM_OCInitStruct = {
         .TIM_OCMode = TIM_OCMode_PWM1,
         .TIM_OutputState = TIM_OutputState_Enable,
-        .TIM_Pulse = 0,
+        .TIM_Pulse = PWM_DEFAULT_PULSE,
     };
 
     TIM_OC1Init(TIM1, &TIM_OCInitStruct);
@@ -127,7 +129,7 @@ static void pwm_timer4_init(void)
     TIM_OCInitTypeDef TIM_OCInitStruct = {
         .TIM_OCMode = TIM_OCMode_PWM1,
         .TIM_OutputState = TIM_OutputState_Enable,
-        .TIM_Pulse = 0,
+        .TIM_Pulse = PWM_DEFAULT_PULSE,
     };
 
     TIM_OC1Init(TIM4, &TIM_OCInitStruct);

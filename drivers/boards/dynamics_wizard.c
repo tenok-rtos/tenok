@@ -1,4 +1,5 @@
 #include "mpu6500.h"
+#include "pwm.h"
 #include "stm32f4xx_gpio.h"
 #include "uart.h"
 
@@ -31,6 +32,7 @@ void early_write(char *buf, size_t size)
 void __board_init(void)
 {
     led_init();
+    pwm_init();
     uart1_init("serial0", "console");
     uart2_init("serial1", "mavlink");
     uart3_init("serial2", "debug-link");
