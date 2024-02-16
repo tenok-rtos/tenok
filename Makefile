@@ -20,6 +20,7 @@ MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg
 
 LDFLAGS += -Wl,--no-warn-rwx-segments
+LDFLAGS += -lm
 
 CFLAGS += -O2 -g -mlittle-endian -mthumb \
           -fcommon \
@@ -62,6 +63,7 @@ CFLAGS += -I ./include/fs
 CFLAGS += -I ./include/tenok
 CFLAGS += -I ./include/tenok/sys
 CFLAGS += -I ./include/kernel
+CFLAGS += -I ./filters
 CFLAGS += -I ./user
 CFLAGS += -I ./user/debug-link
 CFLAGS += -I ./build/msg
@@ -122,6 +124,7 @@ SRC += ./arch/v7m_port.c \
        ./kernel/printf.c \
        ./kernel/printk.c \
        ./kernel/softirq.c \
+       ./filters/lpf.c \
        ./main.c
 
 SRC += ./user/debug-link/debug_link.c 
