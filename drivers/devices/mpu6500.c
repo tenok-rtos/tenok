@@ -1,3 +1,6 @@
+#include <errno.h>
+#include <string.h>
+
 #include <fs/fs.h>
 #include <kernel/delay.h>
 #include <printk.h>
@@ -19,19 +22,48 @@ static struct mpu6500_device mpu6500 = {
 /* First order low-pass filter for acceleromter */
 static float mpu6500_lpf_gain;
 
-static int mpu6500_open(struct inode *inode, struct file *file)
+static int mpu6500_accel_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-static int mpu6500_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static ssize_t mpu6500_accel_read(struct file *filp,
+                                  char *buf,
+                                  size_t size,
+                                  off_t offset)
+{
+    if (size != sizeof(float[3]))
+        return -EINVAL;
+
+    memcpy(buf, mpu6500.accel_lpf, sizeof(float[3]));
+    return size;
+}
+
+static struct file_operations mpu6500_accel_fops = {
+    .read = mpu6500_accel_read,
+    .open = mpu6500_accel_open,
+};
+
+static int mpu6500_gyro_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-static struct file_operations mpu6500_file_ops = {
-    .ioctl = mpu6500_ioctl,
-    .open = mpu6500_open,
+static ssize_t mpu6500_gyro_read(struct file *filp,
+                                 char *buf,
+                                 size_t size,
+                                 off_t offset)
+{
+    if (size != sizeof(float[3]))
+        return -EINVAL;
+
+    memcpy(buf, mpu6500.gyro_raw, sizeof(float[3]));
+    return size;
+}
+
+static struct file_operations mpu6500_gyro_fops = {
+    .read = mpu6500_gyro_read,
+    .open = mpu6500_gyro_open,
 };
 
 static void mpu6500_interrupt_init(void)
@@ -201,8 +233,10 @@ void mpu6500_init(void)
     /* Sampling time = 0.001s (1KHz), Cutoff frequency = 25Hz */
     lpf_first_order_init(&mpu6500_lpf_gain, 0.001, 25);
 
-    register_chrdev("imu0", &mpu6500_file_ops);
-    printk("imu0: mp6500");
+    register_chrdev("accel0", &mpu6500_accel_fops);
+    register_chrdev("gyro0", &mpu6500_gyro_fops);
+    printk("accel0: mp6500 accelerometer");
+    printk("gyro0: mpu6500 gyroscope");
 }
 
 void mpu6500_interrupt_handler(void)
