@@ -6,12 +6,14 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include "debug_link_attitude_msg.h"
 #include "madgwick_filter.h"
 
 #define deg_to_rad(angle) (angle * M_PI / 180.0)
 #define rad_to_deg(radian) (radian * 180.0 / M_PI)
 
-madgwick_t madgwick_ahrs;
+static madgwick_t madgwick_ahrs;
+static float rpy[3];
 
 void quat_to_euler(float *q, float *rpy)
 {
@@ -35,12 +37,11 @@ void flight_control_task(void)
     int accel_fd = open("/dev/accel0", 0);
     int gyro_fd = open("/dev/gyro0", 0);
 
-    if (accel_fd || gyro_fd) {
+    if (accel_fd < 0 || gyro_fd < 0) {
         printf("failed to open the IMU.\n\r");
         exit(1);
     }
 
-    float rpy[3];
     float accel[3], gravity[3];
     float gyro[3], gyro_rad[3];
 
@@ -65,4 +66,26 @@ void flight_control_task(void)
     }
 }
 
+void debug_link_task(void)
+{
+    setprogname("debug link");
+
+    int debug_link_fd = open("/dev/serial2", O_RDWR);
+
+    debug_link_msg_attitude_t msg;
+    uint8_t buf[100];
+
+    while (1) {
+        size_t size = pack_debug_link_attitude_msg(&msg, buf);
+        write(debug_link_fd, buf, size);
+
+        msg.rpy[0] = rpy[0];
+        msg.rpy[1] = rpy[1];
+        msg.rpy[2] = rpy[2];
+
+        usleep(10000); /* 100Hz (10ms) */
+    }
+}
+
 HOOK_USER_TASK(flight_control_task, 3 /*THREAD_PRIORITY_MAX*/, 2048);
+HOOK_USER_TASK(debug_link_task, 3, 1024);
