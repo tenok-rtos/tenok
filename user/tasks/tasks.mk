@@ -12,7 +12,7 @@ SRC += $(PROJ_ROOT)/user/tasks/shell_task.c
 SRC += $(PROJ_ROOT)/user/tasks/mavlink_task.c
 
 # Demo projects
-SRC += $(PROJ_ROOT)/user/tasks/examples/quadrotor.c
+#SRC += $(PROJ_ROOT)/user/tasks/examples/quadrotor.c
 
 # Examples
 #SRC += $(PROJ_ROOT)/user/tasks/examples/fifo-ex.c
