@@ -57,12 +57,12 @@ CFLAGS += -I ./lib/mavlink/common
 CFLAGS += -I ./
 CFLAGS += -I ./platform
 CFLAGS += -I ./include
-CFLAGS += -I ./include/arch
 CFLAGS += -I ./include/common
-CFLAGS += -I ./include/fs
 CFLAGS += -I ./include/tenok
 CFLAGS += -I ./include/tenok/sys
 CFLAGS += -I ./include/kernel
+CFLAGS += -I ./include/kernel/arch
+CFLAGS += -I ./include/kernel/fs
 CFLAGS += -I ./filters
 CFLAGS += -I ./user
 CFLAGS += -I ./user/debug-link
@@ -98,12 +98,12 @@ SRC += $(ST_LIB)/src/misc.c \
        $(ST_LIB)/src/stm32f4xx_syscfg.c \
        $(ST_LIB)/src/stm32f4xx_exti.c
 
-SRC += ./arch/v7m_port.c \
-       ./fs/fs.c \
-       ./fs/wrapper.c \
-       ./fs/reg_file.c \
-       ./fs/rom_dev.c \
-       ./fs/null_dev.c \
+SRC += ./kernel/arch/v7m_port.c \
+       ./kernel/fs/fs.c \
+       ./kernel/fs/wrapper.c \
+       ./kernel/fs/reg_file.c \
+       ./kernel/fs/rom_dev.c \
+       ./kernel/fs/null_dev.c \
        ./kernel/mm/mpool.c \
        ./kernel/mm/mm.c \
        ./kernel/mm/page.c \
@@ -140,7 +140,7 @@ OBJS += ./tools/mkromfs/romfs.o
 
 DEPEND = $(SRC:.c=.d)
 
-ASM := ./arch/v7m_entry.S \
+ASM := ./kernel/arch/v7m_entry.S \
        ./platform/startup_stm32f4xx.s
 
 all: gen_syscalls msggen $(LD_GENERATED) $(ELF)
