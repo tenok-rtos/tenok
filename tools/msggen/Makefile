@@ -10,8 +10,7 @@ CFLAGS += -Wall
 CFLAGS += -I ../../ \
 	  -I ../../include/common
 
-SRC := ../../kernel/list.c \
-       ./msggen.c
+SRC := ./msggen.c
 
 all:
 	gcc $(CFLAGS) -o msggen $(SRC)

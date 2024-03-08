@@ -117,14 +117,21 @@ struct list_head {
  * @param  list: List head to initialize.
  * @retval None
  */
-void INIT_LIST_HEAD(struct list_head *list);
+static inline void INIT_LIST_HEAD(struct list_head *list)
+{
+    list->prev = list;
+    list->next = list;
+}
 
 /**
  * @brief  Check if the list is empty
  * @param  head: Head of the list.
  * @retval int: 0 as false; otherwise true.
  */
-int list_empty(struct list_head *head);
+static inline int list_empty(struct list_head *head)
+{
+    return head->next == head;
+}
 
 /**
  * @brief  Check if the list object is the last of the list
@@ -132,7 +139,33 @@ int list_empty(struct list_head *head);
  * @param  head: Head of the list.
  * @retval int: 0 as false, otherwise true.
  */
-int list_is_last(const struct list_head *list, const struct list_head *head);
+static inline int list_is_last(const struct list_head *list,
+                               const struct list_head *head)
+{
+    return list->next == head;
+}
+
+/**
+ * @brief  Delete a list item from its  list.
+ * @param  entry: The list member to delete.
+ * @retval None
+ */
+static inline void list_del(struct list_head *entry)
+{
+    entry->next->prev = entry->prev;
+    entry->prev->next = entry->next;
+}
+
+/**
+ * @brief  Delete and force initialize a list member from its list.
+ * @param  entry: The list member to delete.
+ * @retval None
+ */
+static inline void list_del_init(struct list_head *entry)
+{
+    list_del(entry);
+    INIT_LIST_HEAD(entry);
+}
 
 /**
  * @brief  Add new list member to the list.
@@ -140,21 +173,13 @@ int list_is_last(const struct list_head *list, const struct list_head *head);
  * @param  head: Head of the list.
  * @retval None
  */
-void list_add(struct list_head *new, struct list_head *head);
-
-/**
- * @brief  Delete a list item from its  list.
- * @param  entry: The list member to delete.
- * @retval None
- */
-void list_del(struct list_head *entry);
-
-/**
- * @brief  Delete and force initialize a list member from its list.
- * @param  entry: The list member to delete.
- * @retval None
- */
-void list_del_init(struct list_head *entry);
+static inline void list_add(struct list_head *new, struct list_head *head)
+{
+    new->prev = head->prev;
+    new->next = head;
+    head->prev->next = new;
+    head->prev = new;
+}
 
 /**
  * @brief  Move a list member from original list to another
@@ -162,6 +187,10 @@ void list_del_init(struct list_head *entry);
  * @param  new_head: Head of the new list.
  * @retval None
  */
-void list_move(struct list_head *list, struct list_head *new_head);
+static inline void list_move(struct list_head *list, struct list_head *new_head)
+{
+    list_del(list);
+    list_add(list, new_head);
+}
 
 #endif

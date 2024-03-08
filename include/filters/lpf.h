@@ -1,10 +1,26 @@
+#ifndef __LPF_H__
+#define __LPF_H__
+
 #include <math.h>
 
-#include "lpf.h"
+/* Second order low-pass filter */
+typedef struct {
+    float k;
+    float a1;
+    float a2;
+    float b1;
+    float b2;
 
-void lpf_first_order_init(float *ret_gain,
-                          float sampling_time,
-                          float cutoff_freq)
+    float filter_last;
+    float filter_last_last;
+
+    float input_last;
+    float input_last_last;
+} lpf2_t;
+
+static inline void lpf_first_order_init(float *ret_gain,
+                                        float sampling_time,
+                                        float cutoff_freq)
 {
     /* Reference: Low-pass Filter (Wikipedia) */
 
@@ -12,12 +28,14 @@ void lpf_first_order_init(float *ret_gain,
     *ret_gain = sampling_time / (sampling_time + 1 / (2 * M_PI * cutoff_freq));
 }
 
-void lpf_first_order(float new, float *filtered, float alpha)
+static inline void lpf_first_order(float new, float *filtered, float alpha)
 {
     *filtered = (new *alpha) + (*filtered * (1.0f - alpha));
 }
 
-void lpf_second_order_init(lpf2_t *lpf, float sampling_freq, float cutoff_freq)
+static inline void lpf_second_order_init(lpf2_t *lpf,
+                                         float sampling_freq,
+                                         float cutoff_freq)
 {
     /* Reference: How does a low-pass filter programmatically work? */
 
@@ -42,7 +60,9 @@ void lpf_second_order_init(lpf2_t *lpf, float sampling_freq, float cutoff_freq)
     lpf->b2 = 1.0f;
 }
 
-void lpf_second_order(float new_input, float *filtered_data, lpf2_t *lpf)
+static inline void lpf_second_order(float new_input,
+                                    float *filtered_data,
+                                    lpf2_t *lpf)
 {
     /* Reference: How does a low-pass filter programmatically work? */
 
@@ -58,3 +78,5 @@ void lpf_second_order(float new_input, float *filtered_data, lpf2_t *lpf)
 
     *filtered_data = result;
 }
+
+#endif

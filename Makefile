@@ -63,7 +63,7 @@ CFLAGS += -I ./include/tenok/sys
 CFLAGS += -I ./include/kernel
 CFLAGS += -I ./include/kernel/arch
 CFLAGS += -I ./include/kernel/fs
-CFLAGS += -I ./filters
+CFLAGS += -I ./include/filters
 CFLAGS += -I ./user
 CFLAGS += -I ./user/debug-link
 CFLAGS += -I ./build/msg
@@ -109,7 +109,6 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/mm/page.c \
        ./kernel/mm/slab.c \
        ./kernel/kfifo.c \
-       ./kernel/list.c \
        ./kernel/kernel.c \
        ./kernel/task.c \
        ./kernel/sched.c \
@@ -124,7 +123,6 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/printf.c \
        ./kernel/printk.c \
        ./kernel/softirq.c \
-       ./filters/lpf.c \
        ./main.c
 
 SRC += ./user/debug-link/debug_link.c 

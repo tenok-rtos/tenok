@@ -10,8 +10,7 @@ CFLAGS += -Wall
 CFLAGS += -I ../../ \
           -I ../../include/common
 
-SRC := ../../kernel/list.c \
-       ./mkromfs.c
+SRC := ./mkromfs.c
 
 MKROMFS_FLAGS := -v # Verbose option
 
