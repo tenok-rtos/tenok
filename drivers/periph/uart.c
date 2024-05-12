@@ -144,8 +144,20 @@ static struct file_operations uart1_file_ops = {
     .open = uart1_open,
 };
 
-static void __uart1_init(uint32_t baudrate)
+static void serial1_rx_interrupt_handler(uint8_t c)
 {
+    kfifo_put(uart1.rx_fifo, &c);
+
+    if (uart1.rx_wait_size && kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
+        uart1.rx_wait_size = 0;
+        wake_up(&uart1.rx_wait_list);
+    }
+}
+
+static void uart1_init(uint32_t baudrate, void (*rx_callback)(uint8_t c))
+{
+    uart1.rx_callback = rx_callback;
+
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
@@ -209,7 +221,7 @@ static void __uart1_init(uint32_t baudrate)
 #endif
 }
 
-void uart1_init(char *dev_name, char *description)
+void serial1_init(uint32_t baudrate, char *dev_name, char *desc)
 {
     /* Register UART1 to the file system */
     register_chrdev(dev_name, &uart1_file_ops);
@@ -222,25 +234,21 @@ void uart1_init(char *dev_name, char *description)
     uart1.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART1_RX_BUF_SIZE);
 
     /* Initialize UART1 */
-    __uart1_init(115200);
+    uart1_init(baudrate, serial1_rx_interrupt_handler);
 
     mutex_init(&uart1.tx_mtx);
     mutex_init(&uart1.rx_mtx);
 
-    printk("chardev %s: %s", dev_name, description);
+    printk("chardev %s: %s", dev_name, desc);
 }
 
 void USART1_IRQHandler(void)
 {
     if (USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART1);
-        kfifo_put(uart1.rx_fifo, &c);
 
-        if (uart1.rx_wait_size &&
-            kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
-            uart1.rx_wait_size = 0;
-            wake_up(&uart1.rx_wait_list);
-        }
+        if (uart1.rx_callback)
+            uart1.rx_callback(c);
     }
 }
 
@@ -297,8 +305,20 @@ static struct file_operations uart2_file_ops = {
     .open = uart2_open,
 };
 
-static void __uart2_init(uint32_t baudrate)
+static void serial2_rx_interrupt_handler(uint8_t c)
 {
+    kfifo_put(uart2.rx_fifo, &c);
+
+    if (uart2.rx_wait_size && kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
+        uart2.rx_wait_size = 0;
+        wake_up(&uart2.rx_wait_list);
+    }
+}
+
+void uart2_init(uint32_t baudrate, void (*rx_callback)(uint8_t c))
+{
+    uart2.rx_callback = rx_callback;
+
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
 
@@ -335,7 +355,7 @@ static void __uart2_init(uint32_t baudrate)
     USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
 }
 
-void uart2_init(char *dev_name, char *description)
+void serial2_init(uint32_t baudrate, char *dev_name, char *desc)
 {
     /* Register UART2 to the file system */
     register_chrdev(dev_name, &uart2_file_ops);
@@ -348,25 +368,21 @@ void uart2_init(char *dev_name, char *description)
     uart2.rx_fifo = kfifo_alloc(sizeof(uint8_t), UART2_RX_BUF_SIZE);
 
     /* Initialize UART2 */
-    __uart2_init(115200);
+    uart2_init(baudrate, serial2_rx_interrupt_handler);
 
     mutex_init(&uart2.tx_mtx);
     mutex_init(&uart2.rx_mtx);
 
-    printk("chardev %s: %s", dev_name, description);
+    printk("chardev %s: %s", dev_name, desc);
 }
 
 void USART2_IRQHandler(void)
 {
     if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART2);
-        kfifo_put(uart2.rx_fifo, &c);
 
-        if (uart2.rx_wait_size &&
-            kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
-            uart2.rx_wait_size = 0;
-            wake_up(&uart2.rx_wait_list);
-        }
+        if (uart2.rx_callback)
+            uart2.rx_callback(c);
     }
 }
 
@@ -457,8 +473,20 @@ static struct file_operations uart3_file_ops = {
     .open = uart3_open,
 };
 
-static void __uart3_init(uint32_t baudrate)
+static void serial3_rx_interrupt_handler(uint8_t c)
 {
+    kfifo_put(uart3.rx_fifo, &c);
+
+    if (uart3.rx_wait_size && kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
+        uart3.rx_wait_size = 0;
+        wake_up(&uart3.rx_wait_list);
+    }
+}
+
+static void uart3_init(uint32_t baudrate, void (*rx_callback)(uint8_t c))
+{
+    uart3.rx_callback = rx_callback;
+
     /* Initialize the RCC */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
@@ -524,7 +552,7 @@ static void __uart3_init(uint32_t baudrate)
 #endif
 }
 
-void uart3_init(char *dev_name, char *description)
+void serial3_init(uint32_t baudrate, char *dev_name, char *desc)
 {
     /* Register UART3 to the file system */
     register_chrdev(dev_name, &uart3_file_ops);
@@ -540,22 +568,18 @@ void uart3_init(char *dev_name, char *description)
     mutex_init(&uart3.rx_mtx);
 
     /* Initialize UART3 */
-    __uart3_init(115200);
+    uart3_init(baudrate, serial3_rx_interrupt_handler);
 
-    printk("chardev %s: %s", dev_name, description);
+    printk("chardev %s: %s", dev_name, desc);
 }
 
 void USART3_IRQHandler(void)
 {
     if (USART_GetITStatus(USART3, USART_IT_RXNE) == SET) {
         uint8_t c = USART_ReceiveData(USART3);
-        kfifo_put(uart3.rx_fifo, &c);
 
-        if (uart3.rx_wait_size &&
-            kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
-            uart3.rx_wait_size = 0;
-            wake_up(&uart3.rx_wait_list);
-        }
+        if (uart3.rx_callback)
+            uart3.rx_callback(c);
     }
 }
 

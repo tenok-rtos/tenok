@@ -18,7 +18,7 @@ static int serial_fd = 0;
 
 void shell_serial_init(void)
 {
-    serial_fd = open("/dev/serial0", O_RDWR);
+    serial_fd = open("/dev/console", O_RDWR);
 }
 
 char shell_getc(void)

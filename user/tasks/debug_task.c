@@ -15,7 +15,7 @@ void debug_link_task(void)
 {
     setprogname("debug link");
 
-    int debug_link_fd = open("/dev/serial2", O_RDWR);
+    int debug_link_fd = open("/dev/dbglink", O_RDWR);
 
     int dir = INC;
 

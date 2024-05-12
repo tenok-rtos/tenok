@@ -17,20 +17,24 @@ typedef struct {
     wait_queue_head_t tx_wait_list;
     struct mutex tx_mtx;
     bool tx_ready;
+    void (*tx_callback)(void);
 
     /* Rx */
     wait_queue_head_t rx_wait_list;
     struct kfifo *rx_fifo;
     struct mutex rx_mtx;
     size_t rx_wait_size;
+    void (*rx_callback)(uint8_t c);
 } uart_dev_t;
 
 void uart_putc(USART_TypeDef *uart, char c);
 char uart_getc(USART_TypeDef *uart);
 int uart_puts(USART_TypeDef *uart, const char *data, size_t size);
 
-void uart1_init(char *dev_name, char *description);
-void uart2_init(char *dev_name, char *description);
-void uart3_init(char *dev_name, char *description);
+void uart2_init(uint32_t baudrate, void (*rx_callback)(uint8_t c));
+
+void serial1_init(uint32_t baudrate, char *dev_name, char *desc);
+void serial2_init(uint32_t baudrate, char *dev_name, char *desc);
+void serial3_init(uint32_t baudrate, char *dev_name, char *desc);
 
 #endif

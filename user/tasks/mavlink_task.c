@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <task.h>
 #include <tenok.h>
 #include <unistd.h>
@@ -34,7 +35,9 @@ void mavlink_out_task(void)
 
     setprogname("mavlink out");
 
-    int fd = open("/dev/serial1", O_RDWR);
+    int fd = open("/dev/mavlink", O_RDWR);
+    if (fd < 0)
+        exit(0);
 
     mavlink_message_t recvd_msg;
 
@@ -56,7 +59,9 @@ void mavlink_in_task(void)
 {
     setprogname("mavlink in");
 
-    int fd = open("/dev/serial1", O_RDWR);
+    int fd = open("/dev/mavlink", O_RDWR);
+    if (fd < 0)
+        exit(0);
 
     uint8_t c;
     mavlink_status_t status;

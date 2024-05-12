@@ -1,5 +1,6 @@
 #include "mpu6500.h"
 #include "pwm.h"
+#include "sbus.h"
 #include "stm32f4xx_gpio.h"
 #include "uart.h"
 
@@ -33,8 +34,9 @@ void __board_init(void)
 {
     led_init();
     pwm_init();
-    uart1_init("serial0", "console");
-    uart2_init("serial1", "mavlink");
-    uart3_init("serial2", "debug-link");
+    serial1_init(115200, "console", "shell (alias serial0)");
+    serial3_init(115200, "dbglink", "debug-link (alias serial1)");
+    // uartX_init(115200, "mavlink", "mavlink (alias serialX)"); //TODO
+    sbus_init();
     mpu6500_init();
 }

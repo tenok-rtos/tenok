@@ -41,9 +41,9 @@ char device redirected to /dev/pts/X (label serial1)
 char device redirected to /dev/pts/Y (label serial2)
 [    0.001000000] Tenok RTOS (built time: 11:14:41 Nov  8 2023)
 [    0.001000000] Machine model: stm32f407
-[    0.006000000] chardev serial0: console
-[    0.008000000] chardev serial1: mavlink
-[    0.008000000] chardev serial2: debug-link
+[    0.006000000] chardev console: shell (alias: serial0)
+[    0.008000000] chardev mavlink: mavlink (alias: serial1)
+[    0.008000000] chardev dbglink: debug-link (alias: serial2)
 [    0.008000000] blkdev rom: romfs storage
 type `help' for help
 user@stm32f407:/$

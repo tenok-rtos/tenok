@@ -19,3 +19,4 @@ SRC += $(PROJ_ROOT)/user/shell/ps.c
 SRC += $(PROJ_ROOT)/user/shell/xxd.c
 SRC += $(PROJ_ROOT)/user/shell/uname.c
 SRC += $(PROJ_ROOT)/user/shell/uptime.c
+SRC += $(PROJ_ROOT)/user/shell/sbus.c

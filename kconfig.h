@@ -44,9 +44,9 @@
 #define SIGNAL_QUEUE_SIZE 5
 
 /* Standard I/O (Use /dev/null if not implemented) */
-#define STDIN_PATH "/dev/serial0"
-#define STDOUT_PATH "/dev/serial0"
-#define STDERR_PATH "/dev/serial0"
+#define STDIN_PATH "/dev/console"
+#define STDOUT_PATH "/dev/console"
+#define STDERR_PATH "/dev/console"
 
 #define PRINT_SIZE_MAX 100 /* Buffer size of the printf and printk */
 

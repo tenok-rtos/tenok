@@ -72,7 +72,7 @@ void __board_init(void)
     SDRAM_Init();
     lcd_init();
     led_init();
-    uart1_init("serial0", "console");
-    uart2_init("serial1", "mavlink");
-    uart3_init("serial2", "debug-link");
+    serial1_init(115200, "console", "shell (alias: serial0)");
+    serial2_init(115200, "mavlink", "mavlink (alias: serial1)");
+    serial3_init(115200, "dbglink", "debug-link (alias: serial2)");
 }
