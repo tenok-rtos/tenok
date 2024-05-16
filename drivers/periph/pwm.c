@@ -6,7 +6,12 @@
 #include "pwm.h"
 #include "stm32f4xx.h"
 
-#define PWM_DEFAULT_PULSE 10900
+#define PWM_FREQ 400  // Hz
+#define PWM_RELOAD 25000
+#define MICROSECOND 1000000
+
+/* Map from +width time to timer reload value */
+#define MICROSEC_TO_RELOAD(us) (us * (PWM_RELOAD * PWM_FREQ / MICROSECOND))
 
 int pwm_open(struct inode *inode, struct file *file)
 {
@@ -15,30 +20,32 @@ int pwm_open(struct inode *inode, struct file *file)
 
 int pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+    unsigned long reload = MICROSEC_TO_RELOAD(arg);
+
     switch (cmd) {
     case SET_PWM_CHANNEL1:
-        TIM4->CCR1 = arg;
+        TIM4->CCR1 = reload;
         break;
     case SET_PWM_CHANNEL2:
-        TIM4->CCR2 = arg;
+        TIM4->CCR2 = reload;
         break;
     case SET_PWM_CHANNEL3:
-        TIM1->CCR4 = arg;
+        TIM1->CCR4 = reload;
         break;
     case SET_PWM_CHANNEL4:
-        TIM1->CCR3 = arg;
+        TIM1->CCR3 = reload;
         break;
     case SET_PWM_CHANNEL5:
-        TIM4->CCR3 = arg;
+        TIM4->CCR3 = reload;
         break;
     case SET_PWM_CHANNEL6:
-        TIM4->CCR4 = arg;
+        TIM4->CCR4 = reload;
         break;
     case SET_PWM_CHANNEL7:
-        TIM1->CCR2 = arg;
+        TIM1->CCR2 = reload;
         break;
     case SET_PWM_CHANNEL8:
-        TIM1->CCR1 = arg;
+        TIM1->CCR1 = reload;
         break;
     }
 
@@ -72,7 +79,7 @@ static void pwm_timer1_init(void)
 
     /* 180MHz / (25000 * 18) = 400Hz = 0.0025s */
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct = {
-        .TIM_Period = 25000 - 1,
+        .TIM_Period = PWM_RELOAD - 1,
         .TIM_Prescaler = 18 - 1,
         .TIM_ClockDivision = TIM_CKD_DIV1,
         .TIM_CounterMode = TIM_CounterMode_Up,
@@ -83,7 +90,7 @@ static void pwm_timer1_init(void)
     TIM_OCInitTypeDef TIM_OCInitStruct = {
         .TIM_OCMode = TIM_OCMode_PWM1,
         .TIM_OutputState = TIM_OutputState_Enable,
-        .TIM_Pulse = PWM_DEFAULT_PULSE,
+        .TIM_Pulse = 0,
     };
 
     TIM_OC1Init(TIM1, &TIM_OCInitStruct);
@@ -118,7 +125,7 @@ static void pwm_timer4_init(void)
 
     /* 90MHz / (25000 * 9) = 400Hz = 0.0025s */
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct = {
-        .TIM_Period = 25000 - 1,
+        .TIM_Period = PWM_RELOAD - 1,
         .TIM_Prescaler = 9 - 1,
         .TIM_ClockDivision = TIM_CKD_DIV1,
         .TIM_CounterMode = TIM_CounterMode_Up,
@@ -129,7 +136,7 @@ static void pwm_timer4_init(void)
     TIM_OCInitTypeDef TIM_OCInitStruct = {
         .TIM_OCMode = TIM_OCMode_PWM1,
         .TIM_OutputState = TIM_OutputState_Enable,
-        .TIM_Pulse = PWM_DEFAULT_PULSE,
+        .TIM_Pulse = 0,
     };
 
     TIM_OC1Init(TIM4, &TIM_OCInitStruct);

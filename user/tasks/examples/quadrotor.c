@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <ioctl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,9 +9,13 @@
 
 #include "debug_link_attitude_msg.h"
 #include "madgwick_filter.h"
+#include "pwm.h"
 
 #define deg_to_rad(angle) (angle * M_PI / 180.0)
 #define rad_to_deg(radian) (radian * 180.0 / M_PI)
+
+/* Zero-thrust PWM +width time */
+#define ZERO_THRUST_PWM_WIDTH 1090  // 1.09ms
 
 static madgwick_t madgwick_ahrs;
 static float rpy[3];
@@ -32,8 +37,13 @@ void flight_control_task(void)
 {
     setprogname("flight control");
 
+    /* Initialize Madgwick Filter for attitude estimation */
     madgwick_init(&madgwick_ahrs, 400, 0.13);
 
+    float accel[3], gravity[3];
+    float gyro[3], gyro_rad[3];
+
+    /* Open Inertial Measurement Unit (IMU) */
     int accel_fd = open("/dev/accel0", 0);
     int gyro_fd = open("/dev/gyro0", 0);
 
@@ -42,8 +52,18 @@ void flight_control_task(void)
         exit(1);
     }
 
-    float accel[3], gravity[3];
-    float gyro[3], gyro_rad[3];
+    /* Open PWM interface of Electrical Speed Controllers (ESC) */
+    int pwm_fd = open("/dev/pwm", 0);
+    if (pwm_fd < 0) {
+        printf("failed to open PWM interface.\n\r");
+        exit(1);
+    }
+
+    /* Initialize thrusts for motor 1 to 4 */
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, ZERO_THRUST_PWM_WIDTH);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, ZERO_THRUST_PWM_WIDTH);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, ZERO_THRUST_PWM_WIDTH);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, ZERO_THRUST_PWM_WIDTH);
 
     while (1) {
         /* Read accelerometer */
@@ -58,7 +78,7 @@ void flight_control_task(void)
         gyro_rad[1] = deg_to_rad(gyro[1]);
         gyro_rad[2] = deg_to_rad(gyro[2]);
 
-        /* Run orientation estimation */
+        /* Run attitude estimation */
         madgwick_imu_ahrs(&madgwick_ahrs, gravity, gyro_rad);
         quat_to_euler(madgwick_ahrs.q, rpy);
 
