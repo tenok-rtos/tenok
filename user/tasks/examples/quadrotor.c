@@ -7,9 +7,14 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include "bsp_drv.h"
 #include "debug_link_attitude_msg.h"
 #include "madgwick_filter.h"
 #include "pwm.h"
+
+#define LED_R LED0
+#define LED_G LED1
+#define LED_B LED2
 
 #define deg_to_rad(angle) (angle * M_PI / 180.0)
 #define rad_to_deg(radian) (radian * 180.0 / M_PI)
@@ -40,8 +45,14 @@ void flight_control_task(void)
     /* Initialize Madgwick Filter for attitude estimation */
     madgwick_init(&madgwick_ahrs, 400, 0.13);
 
-    float accel[3], gravity[3];
-    float gyro[3], gyro_rad[3];
+    /* Open RGB LED */
+    int led_fd = open("/dev/rgb_led", 0);
+    if (led_fd < 0) {
+        printf("failed to open the RGB LED.\n\r");
+        exit(1);
+    }
+
+    ioctl(led_fd, LED_R, LED_ENABLE);
 
     /* Open Inertial Measurement Unit (IMU) */
     int accel_fd = open("/dev/accel0", 0);
@@ -51,6 +62,9 @@ void flight_control_task(void)
         printf("failed to open the IMU.\n\r");
         exit(1);
     }
+
+    float accel[3], gravity[3];
+    float gyro[3], gyro_rad[3];
 
     /* Open PWM interface of Electrical Speed Controllers (ESC) */
     int pwm_fd = open("/dev/pwm", 0);

@@ -1,11 +1,52 @@
+#include <errno.h>
+
+#include <fs/fs.h>
+#include <printk.h>
+
+#include "bsp_drv.h"
 #include "mpu6500.h"
 #include "pwm.h"
 #include "sbus.h"
 #include "stm32f4xx_gpio.h"
 #include "uart.h"
 
+int rgb_led_open(struct inode *inode, struct file *file)
+{
+    return 0;
+}
+
+int rgb_led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    if (arg != LED_ENABLE && arg != LED_DISABLE)
+        return -EINVAL;
+
+    switch (cmd) {
+    case LED0:
+        GPIO_WriteBit(GPIOA, GPIO_Pin_2, arg);
+        break;
+    case LED1:
+        GPIO_WriteBit(GPIOA, GPIO_Pin_0, arg);
+        break;
+    case LED2:
+        GPIO_WriteBit(GPIOA, GPIO_Pin_3, arg);
+        break;
+    default:
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static struct file_operations rgb_led_file_ops = {
+    .ioctl = rgb_led_ioctl,
+    .open = rgb_led_open,
+};
+
 void led_init(void)
 {
+    /* Register PWM to the file system */
+    register_chrdev("rgb_led", &rgb_led_file_ops);
+
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
     GPIO_InitTypeDef GPIO_InitStruct = {
@@ -16,6 +57,8 @@ void led_init(void)
         .GPIO_PuPd = GPIO_PuPd_DOWN};
 
     GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    printk("rgb_led: gpio");
 }
 
 void led_write(int state)
