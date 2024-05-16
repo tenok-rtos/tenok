@@ -56,11 +56,13 @@
 /** @defgroup STM32F429I_DISCOVERY_LOW_LEVEL_Exported_Types
   * @{
   */
+#if 0
 typedef enum 
 {
   LED3 = 0,
   LED4 = 1
 } Led_TypeDef;
+#endif
 
 typedef enum 
 {  
@@ -192,10 +194,12 @@ typedef enum
 /** @defgroup STM32F429I_DISCOVERY_LOW_LEVEL_Exported_Functions
   * @{
   */
+#if 0
 void STM_EVAL_LEDInit(Led_TypeDef Led);
 void STM_EVAL_LEDOn(Led_TypeDef Led);
 void STM_EVAL_LEDOff(Led_TypeDef Led);
 void STM_EVAL_LEDToggle(Led_TypeDef Led);
+#endif
 void STM_EVAL_PBInit(Button_TypeDef Button, ButtonMode_TypeDef Button_Mode);
 uint32_t STM_EVAL_PBGetState(Button_TypeDef Button);
 void sEE_LowLevel_DeInit(void);

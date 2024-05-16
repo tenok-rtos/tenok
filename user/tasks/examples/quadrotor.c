@@ -46,7 +46,7 @@ void flight_control_task(void)
     madgwick_init(&madgwick_ahrs, 400, 0.13);
 
     /* Open RGB LED */
-    int led_fd = open("/dev/rgb_led", 0);
+    int led_fd = open("/dev/led", 0);
     if (led_fd < 0) {
         printf("failed to open the RGB LED.\n\r");
         exit(1);

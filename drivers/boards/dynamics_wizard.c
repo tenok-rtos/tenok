@@ -1,4 +1,6 @@
 #include <errno.h>
+#include <fcntl.h>
+#include <ioctl.h>
 
 #include <fs/fs.h>
 #include <printk.h>
@@ -10,12 +12,12 @@
 #include "stm32f4xx_gpio.h"
 #include "uart.h"
 
-int rgb_led_open(struct inode *inode, struct file *file)
+int led_open(struct inode *inode, struct file *file)
 {
     return 0;
 }
 
-int rgb_led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+int led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     if (arg != LED_ENABLE && arg != LED_DISABLE)
         return -EINVAL;
@@ -37,15 +39,15 @@ int rgb_led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     return 0;
 }
 
-static struct file_operations rgb_led_file_ops = {
-    .ioctl = rgb_led_ioctl,
-    .open = rgb_led_open,
+static struct file_operations led_file_ops = {
+    .ioctl = led_ioctl,
+    .open = led_open,
 };
 
-void led_init(void)
+static void led_init(void)
 {
-    /* Register PWM to the file system */
-    register_chrdev("rgb_led", &rgb_led_file_ops);
+    /* Register LED to the file system */
+    register_chrdev("led", &led_file_ops);
 
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
@@ -58,14 +60,14 @@ void led_init(void)
 
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    printk("rgb_led: gpio");
+    printk("led: gpio");
 }
 
-void led_write(int state)
+void led_write(int fd, int state)
 {
-    GPIO_WriteBit(GPIOA, GPIO_Pin_0, state);
-    GPIO_WriteBit(GPIOA, GPIO_Pin_2, state);
-    GPIO_WriteBit(GPIOA, GPIO_Pin_3, state);
+    ioctl(fd, LED0, state);
+    ioctl(fd, LED1, state);
+    ioctl(fd, LED2, state);
 }
 
 void early_write(char *buf, size_t size)

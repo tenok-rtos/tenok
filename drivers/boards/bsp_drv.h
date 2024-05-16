@@ -9,7 +9,6 @@
 #define LED_DISABLE 0
 #define LED_ENABLE 1
 
-void led_init(void);
-void led_write(int state);
+void led_write(int fd, int state);
 
 #endif

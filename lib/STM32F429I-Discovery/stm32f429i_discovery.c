@@ -74,9 +74,11 @@
 /** @defgroup STM32F429I-DISCOVERY_LOW_LEVEL_Private_Variables
   * @{
   */ 
+#if 0
 GPIO_TypeDef* GPIO_PORT[LEDn] = {LED3_GPIO_PORT, LED4_GPIO_PORT};
 const uint16_t GPIO_PIN[LEDn] = {LED3_PIN, LED4_PIN};
 const uint32_t GPIO_CLK[LEDn] = {LED3_GPIO_CLK, LED4_GPIO_CLK};
+#endif
 
 GPIO_TypeDef* BUTTON_PORT[BUTTONn] = {USER_BUTTON_GPIO_PORT}; 
 
@@ -111,6 +113,7 @@ NVIC_InitTypeDef   NVIC_InitStructure;
   * @{
   */ 
 
+#if 0
 /**
   * @brief  Configures LED GPIO.
   * @param  Led: Specifies the Led to be configured. 
@@ -173,6 +176,7 @@ void STM_EVAL_LEDToggle(Led_TypeDef Led)
 {
   GPIO_PORT[Led]->ODR ^= GPIO_PIN[Led];
 }
+#endif
 
 /**
   * @brief  Configures Button GPIO and EXTI Line.

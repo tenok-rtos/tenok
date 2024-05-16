@@ -1,3 +1,11 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <ioctl.h>
+
+#include <fs/fs.h>
+#include <printk.h>
+
+#include "bsp_drv.h"
 #include "stm32f429i_discovery_ioe.h"
 #include "stm32f429i_discovery_lcd.h"
 #include "stm32f4xx_gpio.h"
@@ -24,8 +32,40 @@ struct lcd_layer lcd_layers[] = {
      .buf = (void *) LCD_FRAME_BUFFER + BUFFER_OFFSET},
 };
 
-void led_init(void)
+int led_open(struct inode *inode, struct file *file)
 {
+    return 0;
+}
+
+int led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    if (arg != LED_ENABLE && arg != LED_DISABLE)
+        return -EINVAL;
+
+    switch (cmd) {
+    case LED0:
+        GPIO_WriteBit(GPIOG, GPIO_Pin_13, arg);
+        break;
+    case LED1:
+        GPIO_WriteBit(GPIOG, GPIO_Pin_14, arg);
+        break;
+    default:
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static struct file_operations led_file_ops = {
+    .ioctl = led_ioctl,
+    .open = led_open,
+};
+
+static void led_init(void)
+{
+    /* Register LED to the file system */
+    register_chrdev("led", &led_file_ops);
+
     GPIO_InitTypeDef GPIO_InitStruct = {
         .GPIO_Pin = GPIO_Pin_13 | GPIO_Pin_14,
         .GPIO_Mode = GPIO_Mode_OUT,
@@ -37,12 +77,14 @@ void led_init(void)
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
 
     GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+    printk("led: gpio");
 }
 
-void led_write(int state)
+void led_write(int fd, int state)
 {
-    GPIO_WriteBit(GPIOG, GPIO_Pin_13, state);
-    GPIO_WriteBit(GPIOG, GPIO_Pin_14, state);
+    ioctl(fd, LED0, state);
+    ioctl(fd, LED1, state);
 }
 
 void lcd_init(void)
