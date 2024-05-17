@@ -23,6 +23,15 @@
 /* Zero-thrust PWM +width time */
 #define ZERO_THRUST_PWM_WIDTH 1090  // 1.09ms
 
+#define FLIGHT_CTRL_FREQ 400                             // Hz
+#define FLIGHT_CTRL_PERIOD (1000.0f / FLIGHT_CTRL_FREQ)  // Millisecond
+
+/* 10x faster than the control loop frequency we want for
+ * enough precision. Note that the unit is microsecond.
+ * sleep_time = (1 / freq * 1000) / 10
+ */
+#define FLIGHT_CTRL_SLEEP_TIME (100000 / FLIGHT_CTRL_FREQ)
+
 static madgwick_t madgwick_ahrs;
 static float rpy[3];
 
@@ -150,7 +159,20 @@ void flight_control_task(void)
     /* Wait until RC joystick positions are reset */
     rc_safety_protection(rc_fd, led_fd);
 
+    /* Execution time */
+    float time_last = 0.0f, time_now = 0.0f;
+    float time_elapsed = 0.0f;
+
     while (1) {
+        /* Loop frequency control */
+        while (time_elapsed < FLIGHT_CTRL_PERIOD) {
+            usleep(FLIGHT_CTRL_SLEEP_TIME);
+            time_now = get_sys_time_ms();
+            time_elapsed = time_now - time_last;
+        }
+        time_last = time_now;
+        time_elapsed = 0;
+
         /* Read RC signal */
         read(rc_fd, &rc, sizeof(sbus_t));
 
@@ -182,8 +204,6 @@ void flight_control_task(void)
             ioctl(led_fd, LED_G, LED_DISABLE);
             ioctl(led_fd, LED_B, LED_DISABLE);
         }
-
-        usleep(2500);
     }
 }
 
