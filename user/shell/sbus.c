@@ -23,6 +23,15 @@ int sbus(int argc, char *argv[])
 
     char str[PRINT_SIZE_MAX];
 
+    /* Mapped signal */
+    char *safety = sbus.dual_switch1 ? "[disarmed]" : "[armed]";
+    snprintf(str, PRINT_SIZE_MAX,
+             "%s roll: %d, pitch: %d, yaw: %d, throttle: %d%%\n\r", safety,
+             (int) sbus.roll, (int) sbus.pitch, (int) sbus.yaw,
+             (int) sbus.throttle);
+    shell_puts(str);
+
+    /* Raw data */
     int i;
     for (i = 0; i < 16; i++) {
         snprintf(str, PRINT_SIZE_MAX, "channel %d: %d\n\r", i, sbus.rc_val[i]);

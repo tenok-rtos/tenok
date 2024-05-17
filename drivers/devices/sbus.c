@@ -76,7 +76,35 @@ static ssize_t sbus_read(struct file *filp,
     if (size != sizeof(sbus_t))
         return -EINVAL;
 
+    /* RC signal mapping */
+    float throttle_raw = (float) sbus.rc_val[2];  // channel 3
+    float roll_raw = (float) sbus.rc_val[0];      // channel 1
+    float pitch_raw = (float) sbus.rc_val[1];     // channel 2
+    float yaw_raw = (float) sbus.rc_val[3];       // channel 4
+    float dual_sw1 = (float) sbus.rc_val[4];      // channel 5
+
+    sbus.roll = (float) (roll_raw - RC_ROLL_MIN) / (RC_ROLL_MAX - RC_ROLL_MIN) *
+                    (RC_ROLL_RANGE_MAX - RC_ROLL_RANGE_MIN) +
+                RC_ROLL_RANGE_MIN;
+
+    sbus.pitch = (float) (pitch_raw - RC_PITCH_MIN) /
+                     (RC_PITCH_MAX - RC_PITCH_MIN) *
+                     (RC_PITCH_RANGE_MAX - RC_PITCH_RANGE_MIN) +
+                 RC_PITCH_RANGE_MIN;
+
+    sbus.yaw = (float) (yaw_raw - RC_YAW_MIN) / (RC_YAW_MAX - RC_YAW_MIN) *
+                   (RC_YAW_RANGE_MAX - RC_YAW_RANGE_MIN) +
+               RC_YAW_RANGE_MIN;
+
+    sbus.throttle = (float) (throttle_raw - RC_THROTTLE_MIN) /
+                    (RC_THROTTLE_MAX - RC_THROTTLE_MIN) *
+                    (RC_THROTTLE_RANGE_MAX - RC_THROTTLE_RANGE_MIN);
+
+    sbus.dual_switch1 = (dual_sw1 < RC_SAFETY_THRESHOLD) ? true : false;
+
+    /* Return raw data and mapped signal */
     memcpy(buf, &sbus, sizeof(sbus_t));
+
     return size;
 }
 
