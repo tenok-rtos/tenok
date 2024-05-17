@@ -145,10 +145,15 @@ void flight_control_task(void)
         exit(1);
     }
 
+    sbus_t rc;
+
     /* Wait until RC joystick positions are reset */
     rc_safety_protection(rc_fd, led_fd);
 
     while (1) {
+        /* Read RC signal */
+        read(rc_fd, &rc, sizeof(sbus_t));
+
         /* Read accelerometer */
         read(accel_fd, accel, sizeof(float[3]));
         gravity[0] = -accel[0];
@@ -164,6 +169,19 @@ void flight_control_task(void)
         /* Run attitude estimation */
         madgwick_imu_ahrs(&madgwick_ahrs, gravity, gyro_rad);
         quat_to_euler(madgwick_ahrs.q, rpy);
+
+        /* Check safety switch */
+        if (rc.dual_switch1) {
+            /* Motor disarmed */
+            ioctl(led_fd, LED_R, LED_DISABLE);
+            ioctl(led_fd, LED_G, LED_DISABLE);
+            ioctl(led_fd, LED_B, LED_ENABLE);
+        } else {
+            /* Motor armed */
+            ioctl(led_fd, LED_R, LED_ENABLE);
+            ioctl(led_fd, LED_G, LED_DISABLE);
+            ioctl(led_fd, LED_B, LED_DISABLE);
+        }
 
         usleep(2500);
     }
