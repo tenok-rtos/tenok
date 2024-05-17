@@ -11,6 +11,7 @@
 #include "debug_link_attitude_msg.h"
 #include "madgwick_filter.h"
 #include "pwm.h"
+#include "sbus.h"
 
 #define LED_R LED0
 #define LED_G LED1
@@ -38,6 +39,66 @@ void quat_to_euler(float *q, float *rpy)
     rpy[2] = rad_to_deg(rpy[2]);
 }
 
+static int rc_safety_check(sbus_t *rc)
+{
+    if (rc->dual_switch1 == false)
+        return 1;
+    if (rc->throttle > 10.0f)
+        return 1;
+    if (rc->roll > 5.0f || rc->roll < -5.0f)
+        return 1;
+    if (rc->pitch > 5.0f || rc->pitch < -5.0f)
+        return 1;
+    if (rc->yaw > 5.0f || rc->yaw < -5.0f)
+        return 1;
+
+    return 0;
+}
+
+float get_sys_time_ms(void)
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+
+    return ((float) tp.tv_sec * 1e3) + (float) (tp.tv_nsec * 1e-6);
+}
+
+void rc_safety_protection(int rc_fd, int led_fd)
+{
+    sbus_t rc;
+
+    float time_last = 0;
+    float time_current = 0;
+
+    int blink = LED_DISABLE;
+    ioctl(led_fd, LED_R, LED_DISABLE);
+    ioctl(led_fd, LED_G, LED_DISABLE);
+    ioctl(led_fd, LED_B, LED_DISABLE);
+
+    /* Block and blink red LED until RC reset */
+    do {
+        /* Blink control */
+        time_current = get_sys_time_ms();
+
+        if (time_current - time_last > 100.0f) {
+            time_last = time_current;
+            blink = (blink + 1) % 2;
+            ioctl(led_fd, LED_R, blink);
+        }
+
+        /* Update RC signal */
+        read(rc_fd, &rc, sizeof(sbus_t));
+
+        /* Yield task for a while */
+        usleep(1000);
+    } while (rc_safety_check(&rc));
+
+    /* Light blue LED */
+    ioctl(led_fd, LED_R, LED_DISABLE);
+    ioctl(led_fd, LED_G, LED_DISABLE);
+    ioctl(led_fd, LED_B, LED_ENABLE);
+}
+
 void flight_control_task(void)
 {
     setprogname("flight control");
@@ -51,8 +112,6 @@ void flight_control_task(void)
         printf("failed to open the RGB LED.\n\r");
         exit(1);
     }
-
-    ioctl(led_fd, LED_R, LED_ENABLE);
 
     /* Open Inertial Measurement Unit (IMU) */
     int accel_fd = open("/dev/accel0", 0);
@@ -78,6 +137,16 @@ void flight_control_task(void)
     ioctl(pwm_fd, SET_PWM_CHANNEL2, ZERO_THRUST_PWM_WIDTH);
     ioctl(pwm_fd, SET_PWM_CHANNEL3, ZERO_THRUST_PWM_WIDTH);
     ioctl(pwm_fd, SET_PWM_CHANNEL4, ZERO_THRUST_PWM_WIDTH);
+
+    /* Open remote control receiver */
+    int rc_fd = open("/dev/sbus", 0);
+    if (rc_fd < 0) {
+        printf("failed to open remote control receiver.\n\r");
+        exit(1);
+    }
+
+    /* Wait until RC joystick positions are reset */
+    rc_safety_protection(rc_fd, led_fd);
 
     while (1) {
         /* Read accelerometer */
