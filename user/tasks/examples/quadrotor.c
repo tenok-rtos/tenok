@@ -20,8 +20,10 @@
 #define deg_to_rad(angle) (angle * M_PI / 180.0)
 #define rad_to_deg(radian) (radian * 180.0 / M_PI)
 
-/* Zero-thrust PWM +width time */
-#define ZERO_THRUST_PWM_WIDTH 1090  // 1.09ms
+/* PWM +width time for zero-thrust and maximum thrust */
+#define THRUST_PWM_MIN 1090  // 1.09 ms
+#define THRUST_PWM_MAX 2075  // 2.075 ms
+#define THRUST_PWM_DIFF (THRUST_PWM_MAX - THRUST_PWM_MIN)
 
 #define FLIGHT_CTRL_FREQ 400                             // Hz
 #define FLIGHT_CTRL_PERIOD (1000.0f / FLIGHT_CTRL_FREQ)  // Millisecond
@@ -32,8 +34,60 @@
  */
 #define FLIGHT_CTRL_SLEEP_TIME (100000 / FLIGHT_CTRL_FREQ)
 
+typedef struct {
+    float kp;
+    float ki;
+    float kd;
+    float p_final;
+    float i_final;
+    float d_final;
+    float setpoint;
+    float error_current;
+    float error_last;
+    float error_integral;
+    float error_derivative;
+    float feedfoward;
+    float output;
+    float output_max;
+    float output_min;
+    bool enable;
+} pid_control_t;
+
 static madgwick_t madgwick_ahrs;
 static float rpy[3];
+
+static pid_control_t pid_roll = {
+    .kp = 0,
+    .kd = 0,
+    .output_max = +1.0f,  //+100%
+    .output_min = -1.0f,  //-100%
+    .enable = true,
+};
+
+static pid_control_t pid_pitch = {
+    .kp = 0,
+    .kd = 0,
+    .output_max = +1.0f,
+    .output_min = -1.0f,
+    .enable = true,
+};
+
+static pid_control_t pid_yaw_rate = {
+    .kp = 0,
+    .output_max = +1.0f,
+    .output_min = -1.0f,
+    .enable = true,
+};
+
+static float motors[4] = {0.0f};
+
+float get_sys_time_ms(void)
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+
+    return ((float) tp.tv_sec * 1e3) + (float) (tp.tv_nsec * 1e-6);
+}
 
 void quat_to_euler(float *q, float *rpy)
 {
@@ -46,6 +100,14 @@ void quat_to_euler(float *q, float *rpy)
     rpy[0] = rad_to_deg(rpy[0]);
     rpy[1] = rad_to_deg(rpy[1]);
     rpy[2] = rad_to_deg(rpy[2]);
+}
+
+void bound_float(float *val, float max, float min)
+{
+    if (*val > max)
+        *val = max;
+    else if (*val < min)
+        *val = min;
 }
 
 static int rc_safety_check(sbus_t *rc)
@@ -64,15 +126,7 @@ static int rc_safety_check(sbus_t *rc)
     return 0;
 }
 
-float get_sys_time_ms(void)
-{
-    struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
-
-    return ((float) tp.tv_sec * 1e3) + (float) (tp.tv_nsec * 1e-6);
-}
-
-void rc_safety_protection(int rc_fd, int led_fd)
+static void rc_safety_protection(int rc_fd, int led_fd)
 {
     sbus_t rc;
 
@@ -108,6 +162,70 @@ void rc_safety_protection(int rc_fd, int led_fd)
     ioctl(led_fd, LED_B, LED_ENABLE);
 }
 
+static void attitude_pd_control(pid_control_t *pid,
+                                float attitude,
+                                float setpoint_attitude,
+                                float angular_vel)
+{
+    if (!pid->enable)
+        return;
+
+    /* error = setpoint - measurement */
+    pid->error_current = setpoint_attitude - attitude;
+    /* error_derivative = 0 (setpoint) - measurement_derivative */
+    pid->error_derivative = -angular_vel;
+    pid->p_final = pid->kp * pid->error_current;
+    pid->d_final = pid->kd * pid->error_derivative;
+    pid->output = pid->p_final + pid->d_final;
+    bound_float(&pid->output, pid->output_max, pid->output_min);
+}
+
+static void yaw_rate_p_control(pid_control_t *pid,
+                               float setpoint_yaw_rate,
+                               float yaw_rate)
+{
+    if (!pid->enable)
+        return;
+
+    /* error = setpoint - measurement */
+    pid->error_current = setpoint_yaw_rate - yaw_rate;
+    pid->p_final = pid->kp * pid->error_current;
+    pid->output = pid->p_final;
+    bound_float(&pid->output, pid->output_max, pid->output_min);
+}
+
+static void quadrotor_thrust_allocation(float throttle,
+                                        float roll_ctrl,
+                                        float pitch_ctrl,
+                                        float yaw_ctrl,
+                                        float motors[4])
+{
+    /*   Airframe:
+       (CCW)    (CW)
+        M2       M1
+             X
+        M3       M4
+       (CW)    (CCW) */
+
+    /* Range for throttle, roll, pitch, and yaw control all take [0, 1] */
+    motors[0] = throttle - roll_ctrl + pitch_ctrl - yaw_ctrl;
+    motors[1] = throttle + roll_ctrl + pitch_ctrl + yaw_ctrl;
+    motors[2] = throttle + roll_ctrl - pitch_ctrl - yaw_ctrl;
+    motors[3] = throttle - roll_ctrl - pitch_ctrl + yaw_ctrl;
+
+    /* Convert [0, 1] range to [PWM_MIN, PWM_MAX] */
+    motors[0] = THRUST_PWM_MIN + motors[0] * THRUST_PWM_DIFF;
+    motors[1] = THRUST_PWM_MIN + motors[1] * THRUST_PWM_DIFF;
+    motors[2] = THRUST_PWM_MIN + motors[2] * THRUST_PWM_DIFF;
+    motors[3] = THRUST_PWM_MIN + motors[3] * THRUST_PWM_DIFF;
+
+    /* Control signal saturation */
+    bound_float(&motors[0], THRUST_PWM_MAX, THRUST_PWM_MIN);
+    bound_float(&motors[1], THRUST_PWM_MAX, THRUST_PWM_MIN);
+    bound_float(&motors[2], THRUST_PWM_MAX, THRUST_PWM_MIN);
+    bound_float(&motors[3], THRUST_PWM_MAX, THRUST_PWM_MIN);
+}
+
 void flight_control_task(void)
 {
     setprogname("flight control");
@@ -131,8 +249,9 @@ void flight_control_task(void)
         exit(1);
     }
 
-    float accel[3], gravity[3];
-    float gyro[3], gyro_rad[3];
+    float accel[3], gravity[3];  //[m/s^2]
+    float gyro[3];               //[deg/s]
+    float gyro_rad[3];           //[rad/s]
 
     /* Open PWM interface of Electrical Speed Controllers (ESC) */
     int pwm_fd = open("/dev/pwm", 0);
@@ -142,10 +261,10 @@ void flight_control_task(void)
     }
 
     /* Initialize thrusts for motor 1 to 4 */
-    ioctl(pwm_fd, SET_PWM_CHANNEL1, ZERO_THRUST_PWM_WIDTH);
-    ioctl(pwm_fd, SET_PWM_CHANNEL2, ZERO_THRUST_PWM_WIDTH);
-    ioctl(pwm_fd, SET_PWM_CHANNEL3, ZERO_THRUST_PWM_WIDTH);
-    ioctl(pwm_fd, SET_PWM_CHANNEL4, ZERO_THRUST_PWM_WIDTH);
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
 
     /* Open remote control receiver */
     int rc_fd = open("/dev/sbus", 0);
@@ -155,6 +274,7 @@ void flight_control_task(void)
     }
 
     sbus_t rc;
+    float throttle;
 
     /* Wait until RC joystick positions are reset */
     rc_safety_protection(rc_fd, led_fd);
@@ -175,6 +295,7 @@ void flight_control_task(void)
 
         /* Read RC signal */
         read(rc_fd, &rc, sizeof(sbus_t));
+        throttle = rc.throttle * 0.01f;  // Convert from [0, 100] to [0, 1]
 
         /* Read accelerometer */
         read(accel_fd, accel, sizeof(float[3]));
@@ -188,9 +309,20 @@ void flight_control_task(void)
         gyro_rad[1] = deg_to_rad(gyro[1]);
         gyro_rad[2] = deg_to_rad(gyro[2]);
 
-        /* Run attitude estimation */
+        /* Attitude estimation */
         madgwick_imu_ahrs(&madgwick_ahrs, gravity, gyro_rad);
         quat_to_euler(madgwick_ahrs.q, rpy);
+
+        /* Roll and pitch attitude control */
+        attitude_pd_control(&pid_roll, rpy[0], -rc.roll, gyro[0]);
+        attitude_pd_control(&pid_pitch, rpy[1], -rc.pitch, gyro[1]);
+
+        /* Yaw rate control */
+        yaw_rate_p_control(&pid_yaw_rate, -rc.yaw, gyro[2]);
+
+        /* Thrust allocation */
+        quadrotor_thrust_allocation(throttle, pid_roll.output, pid_pitch.output,
+                                    pid_yaw_rate.output, motors);
 
         /* Check safety switch */
         if (rc.dual_switch1) {
@@ -198,11 +330,23 @@ void flight_control_task(void)
             ioctl(led_fd, LED_R, LED_DISABLE);
             ioctl(led_fd, LED_G, LED_DISABLE);
             ioctl(led_fd, LED_B, LED_ENABLE);
+
+            /* Disable all motors */
+            ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
+            ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
+            ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
+            ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
         } else {
             /* Motor armed */
             ioctl(led_fd, LED_R, LED_ENABLE);
             ioctl(led_fd, LED_G, LED_DISABLE);
             ioctl(led_fd, LED_B, LED_DISABLE);
+
+            /* Set control output */
+            ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
+            ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
+            ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
+            ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
         }
     }
 }
