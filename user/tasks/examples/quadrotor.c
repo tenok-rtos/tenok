@@ -17,6 +17,7 @@
 #define LED_R LED0
 #define LED_G LED1
 #define LED_B LED2
+#define FREQ_TESTER GPIO_PIN0
 
 #define deg_to_rad(angle) (angle * M_PI / 180.0)
 #define rad_to_deg(radian) (radian * 180.0 / M_PI)
@@ -241,6 +242,13 @@ void flight_control_task(void)
         exit(1);
     }
 
+    /* Open frequency test pin */
+    int freq_tester_fd = open("/dev/freq_tester", 0);
+    if (freq_tester_fd < 0) {
+        printf("failed to open the frequency tester.\n\r");
+        exit(1);
+    }
+
     /* Open Inertial Measurement Unit (IMU) */
     int accel_fd = open("/dev/accel0", 0);
     int gyro_fd = open("/dev/gyro0", 0);
@@ -349,6 +357,9 @@ void flight_control_task(void)
             ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
             ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
         }
+
+        /* Frequency testing */
+        ioctl(freq_tester_fd, FREQ_TESTER, GPIO_TOGGLE);
     }
 }
 

@@ -39,15 +39,34 @@ int led_open(struct inode *inode, struct file *file)
 
 int led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    if (arg != LED_ENABLE && arg != LED_DISABLE)
+    if (arg != LED_ENABLE && arg != LED_DISABLE && arg != LED_TOGGLE)
         return -EINVAL;
 
+    GPIO_TypeDef *gpio_group;
+    uint16_t gpio_pin;
+
+    /* Pin selection */
     switch (cmd) {
     case LED0:
-        GPIO_WriteBit(GPIOG, GPIO_Pin_13, arg);
+        gpio_group = GPIOG;
+        gpio_pin = GPIO_Pin_13;
         break;
     case LED1:
-        GPIO_WriteBit(GPIOG, GPIO_Pin_14, arg);
+        gpio_group = GPIOG;
+        gpio_pin = GPIO_Pin_14;
+        break;
+    default:
+        return -EINVAL;
+    }
+
+    /* Write new pin state */
+    switch (arg) {
+    case LED_ENABLE:
+    case LED_DISABLE:
+        GPIO_WriteBit(gpio_group, gpio_pin, arg);
+        break;
+    case LED_TOGGLE:
+        GPIO_ToggleBits(gpio_group, gpio_pin);
         break;
     default:
         return -EINVAL;
@@ -113,8 +132,8 @@ void __board_init(void)
 {
     SDRAM_Init();
     lcd_init();
-    led_init();
     serial1_init(115200, "console", "shell (alias: serial0)");
     serial2_init(115200, "mavlink", "mavlink (alias: serial1)");
     serial3_init(115200, "dbglink", "debug-link (alias: serial2)");
+    led_init();
 }
