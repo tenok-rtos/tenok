@@ -9,6 +9,7 @@
 
 #include "bsp_drv.h"
 #include "debug_link_attitude_msg.h"
+#include "debug_link_pid_msg.h"
 #include "madgwick_filter.h"
 #include "pwm.h"
 #include "sbus.h"
@@ -57,16 +58,16 @@ static madgwick_t madgwick_ahrs;
 static float rpy[3];
 
 static pid_control_t pid_roll = {
-    .kp = 0,
-    .kd = 0,
+    .kp = 0.015f,
+    .kd = 0.003f,
     .output_max = +1.0f,  //+100%
     .output_min = -1.0f,  //-100%
     .enable = true,
 };
 
 static pid_control_t pid_pitch = {
-    .kp = 0,
-    .kd = 0,
+    .kp = 0.015f,
+    .kd = 0.003f,
     .output_max = +1.0f,
     .output_min = -1.0f,
     .enable = true,
@@ -358,15 +359,25 @@ void debug_link_task(void)
     int debug_link_fd = open("/dev/dbglink", O_RDWR);
 
     debug_link_msg_attitude_t msg;
+    debug_link_msg_pid_t pid_msg;
     uint8_t buf[100];
 
     while (1) {
-        size_t size = pack_debug_link_attitude_msg(&msg, buf);
-        write(debug_link_fd, buf, size);
-
+        msg.q[0] = madgwick_ahrs.q[0];
+        msg.q[1] = madgwick_ahrs.q[1];
+        msg.q[2] = madgwick_ahrs.q[2];
+        msg.q[3] = madgwick_ahrs.q[3];
         msg.rpy[0] = rpy[0];
         msg.rpy[1] = rpy[1];
         msg.rpy[2] = rpy[2];
+        size_t size = pack_debug_link_attitude_msg(&msg, buf);
+        write(debug_link_fd, buf, size);
+
+        pid_msg.error_rpy[0] = pid_roll.output;
+        pid_msg.error_rpy[1] = pid_pitch.output;
+        pid_msg.error_rpy[2] = 0.0f;
+        size = pack_debug_link_pid_msg(&pid_msg, buf);
+        write(debug_link_fd, buf, size);
 
         usleep(10000); /* 100Hz (10ms) */
     }
