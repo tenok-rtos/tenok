@@ -3,6 +3,7 @@
 
 #include <fs/fs.h>
 #include <kernel/delay.h>
+#include <kernel/preempt.h>
 #include <printk.h>
 
 #include "lpf.h"
@@ -35,7 +36,10 @@ static ssize_t mpu6500_accel_read(struct file *filp,
     if (size != sizeof(float[3]))
         return -EINVAL;
 
+    preempt_disable();
     memcpy(buf, mpu6500.accel_lpf, sizeof(float[3]));
+    preempt_enable();
+
     return size;
 }
 
@@ -57,7 +61,10 @@ static ssize_t mpu6500_gyro_read(struct file *filp,
     if (size != sizeof(float[3]))
         return -EINVAL;
 
+    preempt_disable();
     memcpy(buf, mpu6500.gyro_raw, sizeof(float[3]));
+    preempt_enable();
+
     return size;
 }
 
