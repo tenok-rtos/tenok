@@ -20,7 +20,7 @@
 
 #include "kconfig.h"
 
-#define PRINTK_QUEUE_SIZE 10
+#define PRINTK_QUEUE_SIZE 20
 
 struct printk_data {
     struct list_head list;
