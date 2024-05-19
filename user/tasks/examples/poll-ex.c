@@ -10,7 +10,7 @@
 
 static char buffer[100];
 
-static bool fifo_init_ready = false;
+static volatile bool fifo_init_ready = false;
 
 void poll_task1(void)
 {
