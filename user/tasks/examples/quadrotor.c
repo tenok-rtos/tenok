@@ -394,5 +394,5 @@ void debug_link_task(void)
     }
 }
 
-HOOK_USER_TASK(flight_control_task, 3 /*THREAD_PRIORITY_MAX*/, 2048);
+HOOK_USER_TASK(flight_control_task, THREAD_PRIORITY_MAX, 2048);
 HOOK_USER_TASK(debug_link_task, 3, 1024);
