@@ -13,7 +13,7 @@
 #define TEST_STR "[fifo example] hello world\n\r"
 #define LEN strlen(TEST_STR)
 
-static bool fifo_init_ready = false;
+static volatile bool fifo_init_ready = false;
 
 void fifo_task1(void)
 {
