@@ -145,28 +145,31 @@ class SerialManager:
         return double_data[0]
 
     def decode_field(self, buffer, c_type, i):
-        if c_type == 'bool':
-            return self.parse_bool(buffer, i)
-        elif c_type == 'uint8_t':
-            return self.parse_uint8(buffer, i)
-        elif c_type == 'int8_t':
-            return self.parse_int8(buffer, i)
-        elif c_type == 'uint16_t':
-            return self.parse_uint16(buffer, i)
-        elif c_type == 'int16_t':
-            return self.parse_int16(buffer, i)
-        elif c_type == 'uint32_t':
-            return self.parse_uint32(buffer, i)
-        elif c_type == 'int32_t':
-            return self.parse_int32(buffer, i)
-        elif c_type == 'uint64_t':
-            return self.parse_uint64(buffer, i)
-        elif c_type == 'int64_t':
-            return self.parse_int64(buffer, i)
-        elif c_type == 'float':
-            return self.parse_float(buffer, i)
-        elif c_type == 'double':
-            return self.parse_double(buffer, i)
+        try:
+            if c_type == 'bool':
+                return self.parse_bool(buffer, i)
+            elif c_type == 'uint8_t':
+                return self.parse_uint8(buffer, i)
+            elif c_type == 'int8_t':
+                return self.parse_int8(buffer, i)
+            elif c_type == 'uint16_t':
+                return self.parse_uint16(buffer, i)
+            elif c_type == 'int16_t':
+                return self.parse_int16(buffer, i)
+            elif c_type == 'uint32_t':
+                return self.parse_uint32(buffer, i)
+            elif c_type == 'int32_t':
+                return self.parse_int32(buffer, i)
+            elif c_type == 'uint64_t':
+                return self.parse_uint64(buffer, i)
+            elif c_type == 'int64_t':
+                return self.parse_int64(buffer, i)
+            elif c_type == 'float':
+                return self.parse_float(buffer, i)
+            elif c_type == 'double':
+                return self.parse_double(buffer, i)
+        except:
+            return None
 
     def prompt(self, msg_name, msg_id):
         print_str = ''
@@ -190,6 +193,11 @@ class SerialManager:
 
     def decode_msg(self, buffer, msg_id):
         msg_info = self.msg_manager.find_id(msg_id)
+
+        # Message type does not exist
+        if msg_info is None:
+            return 'failed', None, None, None
+
         msg_name = msg_info.name
         var_cnt = len(msg_info.fields)
 
@@ -212,6 +220,9 @@ class SerialManager:
             # Decode array elements of each fields
             for j in range(0, array_size):
                 decoded_data = self.decode_field(buffer, c_type, recept_cnt)
+                if decoded_data is None:
+                    return 'failed', None, None, None
+
                 data_list.append(decoded_data)
                 recept_cnt = recept_cnt + 1
 
@@ -227,14 +238,14 @@ class SerialManager:
         # Print prompt message
         print(print_str, end='')
 
-        return msg_id, msg_name, data_list
+        return 'success', msg_id, msg_name, data_list
 
     def receive_msg(self):
         buffer = []
         checksum = 0
 
-        c = self.ser.read(1)
         try:
+            c = self.ser.read(1)
             c = c.decode("ascii")
         except:
             return 'failed', None, None, None
@@ -248,30 +259,36 @@ class SerialManager:
         else:
             return 'failed', None, None, None
 
-        # Receive payload size
-        payload_count, =  struct.unpack("B", self.ser.read(1))
-        # print('payload size: %d' %(payload_count))
+        # Use try block in case encounter serial port timeout
+        try:
+            # Receive payload size
+            payload_count, =  struct.unpack("B", self.ser.read(1))
+            # print('payload size: %d' %(payload_count))
 
-        # Receive message ID
-        _msg_id, =  struct.unpack("c", self.ser.read(1))
-        msg_id = ord(_msg_id)
+            # Receive message ID
+            _msg_id, =  struct.unpack("c", self.ser.read(1))
+            msg_id = ord(_msg_id)
 
-        # Receive payloads + checksum
-        buf = self.ser.read(payload_count + 1)
+            # Receive payloads + checksum
+            buf = self.ser.read(payload_count + 1)
 
-        # Verify the checksum
-        for i in range(0, payload_count):
-            buffer.append(buf[i])
-            buffer_checksum = buffer[i]
-            checksum ^= buffer_checksum
+            # Verify the checksum
+            for i in range(0, payload_count):
+                buffer.append(buf[i])
+                buffer_checksum = buffer[i]
+                checksum ^= buffer_checksum
 
-        received_checksum = buf[payload_count]
+            received_checksum = buf[payload_count]
 
-        if received_checksum != checksum:
-            print("error: checksum mismatched")
+            if received_checksum != checksum:
+                print("error: checksum mismatched")
+                return 'failed', None, None, None
+        except:
             return 'failed', None, None, None
 
         # Decode message fields
-        msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
+        result, msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
+        if result == 'failed':
+            return 'failed', None, None, None
 
         return 'success', msg_id, msg_name, data
