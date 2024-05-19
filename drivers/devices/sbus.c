@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <fs/fs.h>
+#include <kernel/preempt.h>
 #include <kernel/printk.h>
 #include <kernel/time.h>
 
@@ -45,16 +46,19 @@ void sbus_interrupt_handler(uint8_t new_byte)
     }
 
     if (sbus.index < 24) {
+        /* Append new byte */
+        sbus.buf[sbus.index] = new_byte;
+
         /* Append new byte until full */
         sbus.index++;
     } else {
         /* Remove the oldest byte */
         for (int i = 0; i < 23; i++)
             sbus.buf[i] = sbus.buf[i + 1];
-    }
 
-    /* Append new byte at the last position */
-    sbus.buf[sbus.index] = new_byte;
+        /* Append new byte */
+        sbus.buf[sbus.index] = new_byte;
+    }
 
     /* Decode new frame */
     if ((sbus.index == 24) && (sbus.buf[0] == 0x0f) && (sbus.buf[24] == 0x00))
@@ -76,6 +80,8 @@ static ssize_t sbus_read(struct file *filp,
     if (size != sizeof(sbus_t))
         return -EINVAL;
 
+    preempt_disable();
+
     /* RC signal mapping */
     float throttle_raw = (float) sbus.rc_val[2];  // channel 3
     float roll_raw = (float) sbus.rc_val[0];      // channel 1
@@ -83,6 +89,7 @@ static ssize_t sbus_read(struct file *filp,
     float yaw_raw = (float) sbus.rc_val[3];       // channel 4
     float dual_sw1 = (float) sbus.rc_val[4];      // channel 5
 
+    /* "sbus" should be accessed atomically in critical section */
     sbus.roll = (float) (roll_raw - RC_ROLL_MIN) / (RC_ROLL_MAX - RC_ROLL_MIN) *
                     (RC_ROLL_RANGE_MAX - RC_ROLL_RANGE_MIN) +
                 RC_ROLL_RANGE_MIN;
@@ -104,6 +111,8 @@ static ssize_t sbus_read(struct file *filp,
 
     /* Return raw data and mapped signal */
     memcpy(buf, &sbus, sizeof(sbus_t));
+
+    preempt_enable();
 
     return size;
 }
