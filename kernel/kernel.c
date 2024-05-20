@@ -146,7 +146,8 @@ inline void preempt_count_inc(void)
 
 inline void preempt_count_dec(void)
 {
-    preempt_cnt--;
+    if (preempt_cnt > 0)
+        preempt_cnt--;
 }
 
 void preempt_disable(void)
