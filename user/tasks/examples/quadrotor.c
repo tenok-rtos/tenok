@@ -83,12 +83,10 @@ static pid_control_t pid_yaw_rate = {
 
 static float motors[4] = {0.0f};
 
-float get_sys_time_ms(void)
+float calc_elapsed_time(struct timespec *tp_now, struct timespec *tp_last)
 {
-    struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
-
-    return ((float) tp.tv_sec * 1e3) + (float) (tp.tv_nsec * 1e-6);
+    return (float) (tp_now->tv_sec - tp_last->tv_sec) * 1e3 +
+           (float) (tp_now->tv_nsec - tp_last->tv_nsec) * 1e-6;
 }
 
 void quat_to_euler(float *q, float *rpy)
@@ -132,8 +130,8 @@ static void rc_safety_protection(int rc_fd, int led_fd)
 {
     sbus_t rc;
 
-    float time_last = 0;
-    float time_current = 0;
+    struct timespec time_last, time_now;
+    clock_gettime(CLOCK_MONOTONIC, &time_last);
 
     int blink = LED_DISABLE;
     ioctl(led_fd, LED_R, LED_DISABLE);
@@ -143,10 +141,9 @@ static void rc_safety_protection(int rc_fd, int led_fd)
     /* Block and blink red LED until RC reset */
     do {
         /* Blink control */
-        time_current = get_sys_time_ms();
-
-        if (time_current - time_last > 100.0f) {
-            time_last = time_current;
+        clock_gettime(CLOCK_MONOTONIC, &time_now);
+        if (calc_elapsed_time(&time_now, &time_last) > 100.0f) {
+            time_last = time_now;
             blink = (blink + 1) % 2;
             ioctl(led_fd, LED_R, blink);
         }
@@ -289,15 +286,17 @@ void flight_control_task(void)
     rc_safety_protection(rc_fd, led_fd);
 
     /* Execution time */
-    float time_last = 0.0f, time_now = 0.0f;
+    struct timespec time_last, time_now;
     float time_elapsed = 0.0f;
+    clock_gettime(CLOCK_MONOTONIC, &time_last);
 
     while (1) {
         /* Loop frequency control */
         while (time_elapsed < FLIGHT_CTRL_PERIOD) {
             usleep(FLIGHT_CTRL_SLEEP_TIME);
-            time_now = get_sys_time_ms();
-            time_elapsed = time_now - time_last;
+
+            clock_gettime(CLOCK_MONOTONIC, &time_now);
+            time_elapsed = calc_elapsed_time(&time_now, &time_last);
         }
         time_last = time_now;
         time_elapsed = 0;
