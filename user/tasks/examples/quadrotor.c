@@ -19,8 +19,12 @@
 #define LED_B LED2
 #define FREQ_TESTER GPIO_PIN0
 
-#define deg_to_rad(angle) (angle * M_PI / 180.0)
-#define rad_to_deg(radian) (radian * 180.0 / M_PI)
+#define deg_to_rad(angle) ((angle) *M_PI / 180.0)
+#define rad_to_deg(radian) ((radian) *180.0 / M_PI)
+
+/* Gyroscope bias calibration */
+#define ENABLE_GYRO_CALIB
+#define GYRO_SAMPLE_CNT 1000
 
 /* PWM +width time for zero-thrust and maximum thrust */
 #define THRUST_PWM_MIN 1090  // 1.09 ms
@@ -225,6 +229,28 @@ static void quadrotor_thrust_allocation(float throttle,
     bound_float(&motors[3], THRUST_PWM_MAX, THRUST_PWM_MIN);
 }
 
+/* Place quadrotor statically before calibration */
+static void gyro_bias_estimate(int gyro_fd, float gyro_bias[3])
+{
+    gyro_bias[0] = 0.0f;
+    gyro_bias[1] = 0.0f;
+    gyro_bias[2] = 0.0f;
+
+#ifdef ENABLE_GYRO_CALIB
+    float gyro[3];
+
+    for (int i = 0; i < GYRO_SAMPLE_CNT; i++) {
+        read(gyro_fd, gyro, sizeof(float[3]));
+
+        gyro_bias[0] += gyro[0] / GYRO_SAMPLE_CNT;
+        gyro_bias[1] += gyro[1] / GYRO_SAMPLE_CNT;
+        gyro_bias[2] += gyro[2] / GYRO_SAMPLE_CNT;
+
+        usleep(1000);
+    }
+#endif
+}
+
 void flight_control_task(void)
 {
     setprogname("flight control");
@@ -255,9 +281,12 @@ void flight_control_task(void)
         exit(1);
     }
 
-    float accel[3], gravity[3];  //[m/s^2]
-    float gyro[3];               //[deg/s]
-    float gyro_rad[3];           //[rad/s]
+    float accel[3], gravity[3];   //[m/s^2]
+    float gyro[3], gyro_bias[3];  //[deg/s]
+    float gyro_rad[3];            //[rad/s]
+
+    /* Gyroscope bias calibration */
+    gyro_bias_estimate(gyro_fd, gyro_bias);
 
     /* Open PWM interface of Electrical Speed Controllers (ESC) */
     int pwm_fd = open("/dev/pwm", 0);
@@ -313,9 +342,9 @@ void flight_control_task(void)
 
         /* Read gyroscope */
         read(gyro_fd, gyro, sizeof(float[3]));
-        gyro_rad[0] = deg_to_rad(gyro[0]);
-        gyro_rad[1] = deg_to_rad(gyro[1]);
-        gyro_rad[2] = deg_to_rad(gyro[2]);
+        gyro_rad[0] = deg_to_rad(gyro[0] - gyro_bias[0]);
+        gyro_rad[1] = deg_to_rad(gyro[1] - gyro_bias[1]);
+        gyro_rad[2] = deg_to_rad(gyro[2] - gyro_bias[2]);
 
         /* Attitude estimation */
         madgwick_imu_ahrs(&madgwick_ahrs, gravity, gyro_rad);
