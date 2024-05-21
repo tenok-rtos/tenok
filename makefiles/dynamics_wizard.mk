@@ -10,13 +10,21 @@ CFLAGS += -D STM32F427_437xx \
           -D ENABLE_UART1_DMA=1 \
           -D ENABLE_UART3_DMA=1 \
           -D __ARCH__=\"armv7m\" \
-          -D DYNAMICS_WIZARD_F4
-
-CFLAGS += -D__BOARD_NAME__=\"stm32f427\"
+          -D DYNAMICS_WIZARD_F4 \
+          -D __BOARD_NAME__=\"stm32f427\"
 
 CFLAGS += -I ./drivers/boards
+CFLAGS += -I./user/tasks
 
+# Board specific driver 
 SRC += ./drivers/boards/dynamics_wizard.c
+
+# Tasks
+SRC += ./user/tasks/shell_task.c
+SRC += ./user/tasks/mavlink_task.c
+SRC += ./user/quadrotor/quadrotor.c
+
+include ./user/navigation/navigation.mk
 
 flash:
 	openocd -f interface/stlink.cfg \

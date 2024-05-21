@@ -12,13 +12,29 @@ CFLAGS += -D STM32F40_41xxx \
 	  -D ENABLE_UART1_DMA=0 \
 	  -D ENABLE_UART3_DMA=0 \
 	  -D BUILD_QEMU \
-          -D __ARCH__=\"armv7m\"
-
-CFLAGS += -D__BOARD_NAME__=\"stm32f407\"
+          -D __ARCH__=\"armv7m\" \
+          -D __BOARD_NAME__=\"stm32f407\"
 
 CFLAGS += -I./drivers/boards
+CFLAGS += -I./user/tasks
 
+# Board specific driver
 SRC += ./drivers/boards/stm32f4disc.c
+
+# Example tasks
+SRC += ./user/tasks/led_task.c
+SRC += ./user/tasks/shell_task.c
+#SRC += ./user/tasks/debug_task.c # Run `scripts/download-examples.sh` first
+SRC += ./user/tasks/mavlink_task.c
+#SRC += ./user/tasks/examples/fifo-ex.c
+#SRC += ./user/tasks/examples/mqueue-ex.c
+#SRC += ./user/tasks/examples/semaphore.c
+#SRC += ./user/tasks/examples/mutex-ex.c
+#SRC += ./user/tasks/examples/priority-inversion.c
+#SRC += ./user/tasks/examples/signal-ex.c
+#SRC += ./user/tasks/examples/timer-ex.c
+#SRC += ./user/tasks/examples/poll-ex.c
+#SRC += ./user/tasks/examples/pthread-ex.c
 
 # Some useful qemu debug options.
 # Type `$(QEMU) -d help` for more information.
