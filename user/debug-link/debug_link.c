@@ -3,11 +3,12 @@
 
 #include "debug_link.h"
 
-#define DEBUG_LINK_HEADER_SIZE 3
+#define DBGLINK_HEADER_SIZE 3
+#define DBGLINK_CHECKSUM_INIT_VAL 63
 
 void pack_debug_link_msg_header(debug_link_payload_t *payload, int message_id)
 {
-    payload->size = DEBUG_LINK_HEADER_SIZE;
+    payload->size = DBGLINK_HEADER_SIZE;
     payload->data[2] = message_id;
 }
 
@@ -135,9 +136,9 @@ void pack_debug_link_msg_double(double *data,
 
 void generate_debug_link_msg_checksum(debug_link_payload_t *payload)
 {
-    uint8_t *data = payload->data + DEBUG_LINK_HEADER_SIZE;
-    size_t size = payload->size - DEBUG_LINK_HEADER_SIZE;
-    uint8_t checksum = 0;
+    uint8_t *data = payload->data + DBGLINK_HEADER_SIZE;
+    size_t size = payload->size - DBGLINK_HEADER_SIZE;
+    uint8_t checksum = DBGLINK_CHECKSUM_INIT_VAL;
 
     for (int i = 0; i < size; i++)
         checksum ^= data[i];

@@ -8,6 +8,8 @@ from datetime import datetime
 
 from .yaml_loader import TenokMsgManager
 
+CHECKSUM_INIT_VAL = 63
+
 
 class DataQueue:
     def __init__(self, max_count):
@@ -273,6 +275,7 @@ class SerialManager:
             buf = self.ser.read(payload_count + 1)
 
             # Verify the checksum
+            checksum = CHECKSUM_INIT_VAL
             for i in range(0, payload_count):
                 buffer.append(buf[i])
                 buffer_checksum = buffer[i]
