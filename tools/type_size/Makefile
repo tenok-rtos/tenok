@@ -1,17 +1,16 @@
-include ../../config.mk
+include ../../makefiles/config.mk
 
 ELF = type_size
 
 CFLAGS :=
-CFLAGS += -g
-CFLAGS += -m32
+CFLAGS += -g -m32
 
-CFLAGS += -I ../../ \
-          -I ../../include \
-          -I ../../include/common \
-          -I ../../include/kernel \
-          -I ../../include/tenok \
-          -I ../../include/tenok/sys
+CFLAGS += -I../../ \
+          -I../../include \
+          -I../../include/common \
+          -I../../include/kernel \
+          -I../../include/tenok \
+          -I../../include/tenok/sys
 
 SRC := ./main.c
 

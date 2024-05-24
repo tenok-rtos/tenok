@@ -1,4 +1,4 @@
-include config.mk
+include ./makefiles/config.mk
 
 .DEFAULT_GOAL := all
 
@@ -46,26 +46,26 @@ CFLAGS += -D__USER_NAME__=\"$(USER)\"
 REVISION = $(shell git rev-parse --short=10 HEAD)
 CFLAGS += -D__REVISION__=\"$(REVISION)\"
 
-CFLAGS += -I ./lib/CMSIS/ST/STM32F4xx/Include
-CFLAGS += -I ./lib/CMSIS/Include
-CFLAGS += -I $(ST_LIB)/inc
+CFLAGS += -I./lib/CMSIS/ST/STM32F4xx/Include
+CFLAGS += -I./lib/CMSIS/Include
+CFLAGS += -I$(ST_LIB)/inc
 
-CFLAGS += -I ./lib/mavlink
-CFLAGS += -I ./lib/mavlink/common
+CFLAGS += -I./lib/mavlink
+CFLAGS += -I./lib/mavlink/common
 
-CFLAGS += -I ./
-CFLAGS += -I ./platform
-CFLAGS += -I ./include
-CFLAGS += -I ./include/common
-CFLAGS += -I ./include/tenok
-CFLAGS += -I ./include/tenok/sys
-CFLAGS += -I ./include/kernel
-CFLAGS += -I ./include/kernel/arch
-CFLAGS += -I ./include/kernel/fs
-CFLAGS += -I ./include/filters
-CFLAGS += -I ./user
-CFLAGS += -I ./user/debug-link
-CFLAGS += -I ./build/msg
+CFLAGS += -I./
+CFLAGS += -I./platform
+CFLAGS += -I./include
+CFLAGS += -I./include/common
+CFLAGS += -I./include/tenok
+CFLAGS += -I./include/tenok/sys
+CFLAGS += -I./include/kernel
+CFLAGS += -I./include/kernel/arch
+CFLAGS += -I./include/kernel/fs
+CFLAGS += -I./include/filters
+CFLAGS += -I./user
+CFLAGS += -I./user/debug-link
+CFLAGS += -I./build/msg
 
 SRC += lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
        lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_cos_f32.c \

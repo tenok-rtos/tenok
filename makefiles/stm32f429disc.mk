@@ -14,10 +14,10 @@ CFLAGS += -D STM32F429_439xx \
           -D __ARCH__=\"armv7m\" \
           -D __BOARD_NAME__=\"stm32f429\"
 
-CFLAGS += -I ./lib/STM32F429I-Discovery
-CFLAGS += -I ./lib/STM32F429I-Discovery/Common
+CFLAGS += -I./lib/STM32F429I-Discovery
+CFLAGS += -I./lib/STM32F429I-Discovery/Common
 
-CFLAGS += -I ./drivers/boards
+CFLAGS += -I./drivers/boards
 CFLAGS += -I./user/tasks
 
 SRC += $(ST_LIB)/src/stm32f4xx_fmc.c \

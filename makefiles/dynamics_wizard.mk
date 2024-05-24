@@ -13,7 +13,7 @@ CFLAGS += -D STM32F427_437xx \
           -D DYNAMICS_WIZARD_F4 \
           -D __BOARD_NAME__=\"stm32f427\"
 
-CFLAGS += -I ./drivers/boards
+CFLAGS += -I./drivers/boards
 CFLAGS += -I./user/tasks
 
 # Board specific driver 

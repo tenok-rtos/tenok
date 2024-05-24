@@ -1,14 +1,13 @@
-include ../../config.mk
+include ../../makefiles/config.mk
 
 ROMFS := ./romfs.bin
 ROMFS_OBJ := ./romfs.o
 
 CFLAGS :=
-CFLAGS += -g
-CFLAGS += -Wall
+CFLAGS += -g -Wall
 
-CFLAGS += -I ../../ \
-          -I ../../include/common
+CFLAGS += -I../../ \
+          -I../../include/common
 
 SRC := ./mkromfs.c
 

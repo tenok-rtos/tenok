@@ -1,5 +1,3 @@
--include ../config.mk
-
 LD_SCRIPT += platform/stm32f407.ld
 
 CFLAGS += -D STM32F40_41xxx \
