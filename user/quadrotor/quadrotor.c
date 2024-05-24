@@ -400,7 +400,9 @@ void debug_link_task(void)
     debug_link_msg_attitude_t msg;
     debug_link_msg_pid_t pid_msg;
     uint8_t buf[100];
+    size_t size;
 
+    /* 10Hz */
     while (1) {
         msg.q[0] = madgwick_ahrs.q[0];
         msg.q[1] = madgwick_ahrs.q[1];
@@ -409,16 +411,16 @@ void debug_link_task(void)
         msg.rpy[0] = rpy[0];
         msg.rpy[1] = rpy[1];
         msg.rpy[2] = rpy[2];
-        size_t size = pack_debug_link_attitude_msg(&msg, buf);
+        size = pack_debug_link_attitude_msg(&msg, buf);
         write(debug_link_fd, buf, size);
+        usleep(50000);
 
         pid_msg.error_rpy[0] = pid_roll.output;
         pid_msg.error_rpy[1] = pid_pitch.output;
         pid_msg.error_rpy[2] = 0.0f;
         size = pack_debug_link_pid_msg(&pid_msg, buf);
         write(debug_link_fd, buf, size);
-
-        usleep(10000); /* 100Hz (10ms) */
+        usleep(50000);
     }
 }
 
