@@ -22,7 +22,10 @@ SRC += ./drivers/boards/dynamics_wizard.c
 # Tasks
 SRC += ./user/tasks/shell_task.c
 SRC += ./user/tasks/mavlink_task.c
+
+# Quadrotor application
 SRC += ./user/quadrotor/quadrotor.c
+SRC += ./user/quadrotor/shell.c
 
 include ./user/navigation/navigation.mk
 

@@ -86,6 +86,8 @@ static pid_control_t pid_yaw_rate = {
 };
 
 static float motors[4] = {0.0f};
+static bool flight_ctrl_running;
+static bool run_esc_calib;
 
 float calc_elapsed_time(struct timespec *tp_now, struct timespec *tp_last)
 {
@@ -130,6 +132,37 @@ static int rc_safety_check(sbus_t *rc)
     return 0;
 }
 
+void trigger_esc_calibration(void)
+{
+    run_esc_calib = true;
+}
+
+static void esc_calibration_loop(int led_fd, int rc_fd, int pwm_fd)
+{
+    sbus_t rc;
+    float throttle;
+
+    /* Set LED color to purple to indicate the calibration mode */
+    ioctl(led_fd, LED_R, LED_ENABLE);
+    ioctl(led_fd, LED_G, LED_DISABLE);
+    ioctl(led_fd, LED_B, LED_ENABLE);
+
+    while (1) {
+        /* Read RC signal */
+        read(rc_fd, &rc, sizeof(sbus_t));
+        throttle = THRUST_PWM_MIN + (rc.throttle * 0.01f) * THRUST_PWM_DIFF;
+
+        /* Redirect throttle signal to all motors */
+        ioctl(pwm_fd, SET_PWM_CHANNEL1, throttle);
+        ioctl(pwm_fd, SET_PWM_CHANNEL2, throttle);
+        ioctl(pwm_fd, SET_PWM_CHANNEL3, throttle);
+        ioctl(pwm_fd, SET_PWM_CHANNEL4, throttle);
+
+        /* Yield task for a while */
+        usleep(1000);
+    }
+}
+
 static void rc_safety_protection(int rc_fd, int led_fd)
 {
     sbus_t rc;
@@ -137,7 +170,6 @@ static void rc_safety_protection(int rc_fd, int led_fd)
     struct timespec time_last, time_now;
     clock_gettime(CLOCK_MONOTONIC, &time_last);
 
-    int blink = LED_DISABLE;
     ioctl(led_fd, LED_R, LED_DISABLE);
     ioctl(led_fd, LED_G, LED_DISABLE);
     ioctl(led_fd, LED_B, LED_DISABLE);
@@ -148,9 +180,12 @@ static void rc_safety_protection(int rc_fd, int led_fd)
         clock_gettime(CLOCK_MONOTONIC, &time_now);
         if (calc_elapsed_time(&time_now, &time_last) > 100.0f) {
             time_last = time_now;
-            blink = (blink + 1) % 2;
-            ioctl(led_fd, LED_R, blink);
+            ioctl(led_fd, LED_R, GPIO_TOGGLE);
         }
+
+        /* Break the loop if user triggered ESC calibration */
+        if (run_esc_calib)
+            break;
 
         /* Update RC signal */
         read(rc_fd, &rc, sizeof(sbus_t));
@@ -251,6 +286,20 @@ static void gyro_bias_estimate(int gyro_fd, float gyro_bias[3])
 #endif
 }
 
+bool is_flight_ctrl_running(void)
+{
+    return flight_ctrl_running;
+}
+
+static void disable_all_motors(int pwm_fd)
+{
+    /* Disable all motors */
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
+}
+
 void flight_control_task(void)
 {
     setprogname("flight control");
@@ -295,12 +344,6 @@ void flight_control_task(void)
         exit(1);
     }
 
-    /* Initialize thrusts for motor 1 to 4 */
-    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
-
     /* Open remote control receiver */
     int rc_fd = open("/dev/sbus", 0);
     if (rc_fd < 0) {
@@ -314,10 +357,23 @@ void flight_control_task(void)
     /* Wait until RC joystick positions are reset */
     rc_safety_protection(rc_fd, led_fd);
 
+    /* ESC calibration */
+    if (run_esc_calib)
+        esc_calibration_loop(led_fd, rc_fd, pwm_fd);
+
+    /* Initialize thrusts for motor 1 to 4 */
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
+
     /* Execution time */
     struct timespec time_last, time_now;
     float time_elapsed = 0.0f;
     clock_gettime(CLOCK_MONOTONIC, &time_last);
+
+    /* Forbid ESC calibration */
+    flight_ctrl_running = true;
 
     while (1) {
         /* Loop frequency control */
@@ -363,28 +419,29 @@ void flight_control_task(void)
 
         /* Enable motor outputs only if the safety switch is off and
          * the throttle is greater than 5% */
-        if (rc.dual_switch1 || rc.throttle <= 5) {
+        if (rc.dual_switch1) {
             /* Motor disarmed */
             ioctl(led_fd, LED_R, LED_DISABLE);
             ioctl(led_fd, LED_G, LED_DISABLE);
             ioctl(led_fd, LED_B, LED_ENABLE);
 
             /* Disable all motors */
-            ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
-            ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
-            ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
-            ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
+            disable_all_motors(pwm_fd);
         } else {
             /* Motor armed */
             ioctl(led_fd, LED_R, LED_ENABLE);
             ioctl(led_fd, LED_G, LED_DISABLE);
             ioctl(led_fd, LED_B, LED_DISABLE);
 
-            /* Set control output */
-            ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
-            ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
-            ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
-            ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
+            if (rc.throttle > 5) {
+                /* Set control output */
+                ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
+                ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
+                ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
+                ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
+            } else {
+                disable_all_motors(pwm_fd);
+            }
         }
 
         /* Frequency testing */
