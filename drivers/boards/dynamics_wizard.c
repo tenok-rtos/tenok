@@ -29,11 +29,11 @@ int led_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     switch (cmd) {
     case LED0:
         gpio_group = GPIOA;
-        gpio_pin = GPIO_Pin_2;
+        gpio_pin = GPIO_Pin_0;
         break;
     case LED1:
         gpio_group = GPIOA;
-        gpio_pin = GPIO_Pin_0;
+        gpio_pin = GPIO_Pin_2;
         break;
     case LED2:
         gpio_group = GPIOA;

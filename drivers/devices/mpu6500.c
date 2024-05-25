@@ -271,12 +271,12 @@ void mpu6500_interrupt_handler(void)
 
     /* Composite measurements */
     mpu6500.accel_unscaled[0] = -s8_to_s16(buffer[0], buffer[1]);
-    mpu6500.accel_unscaled[1] = +s8_to_s16(buffer[2], buffer[3]);
-    mpu6500.accel_unscaled[2] = -s8_to_s16(buffer[4], buffer[5]);
+    mpu6500.accel_unscaled[1] = -s8_to_s16(buffer[2], buffer[3]);
+    mpu6500.accel_unscaled[2] = +s8_to_s16(buffer[4], buffer[5]);
     mpu6500.temp_unscaled = s8_to_s16(buffer[6], buffer[7]);
     mpu6500.gyro_unscaled[0] = -s8_to_s16(buffer[8], buffer[9]);
-    mpu6500.gyro_unscaled[1] = +s8_to_s16(buffer[10], buffer[11]);
-    mpu6500.gyro_unscaled[2] = -s8_to_s16(buffer[12], buffer[13]);
+    mpu6500.gyro_unscaled[1] = -s8_to_s16(buffer[10], buffer[11]);
+    mpu6500.gyro_unscaled[2] = +s8_to_s16(buffer[12], buffer[13]);
 
     /* Convert measurementis to metric unit */
     mpu6500_convert_to_scale();

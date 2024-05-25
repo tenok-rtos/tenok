@@ -163,26 +163,31 @@ static void uart1_init(uint32_t baudrate, void (*rx_callback)(uint8_t c))
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
 #ifdef DYNAMICS_WIZARD_F4
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
 #else
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
 #endif
 
     GPIO_InitTypeDef GPIO_InitStruct = {
-        .GPIO_Pin = GPIO_Pin_9,
         .GPIO_Mode = GPIO_Mode_AF,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_OType = GPIO_OType_PP,
         .GPIO_PuPd = GPIO_PuPd_UP,
     };
-    GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 #ifdef DYNAMICS_WIZARD_F4
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_6;
+    GPIO_Init(GPIOB, &GPIO_InitStruct);
+
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10;
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 #else
+    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9;
+    GPIO_Init(GPIOA, &GPIO_InitStruct);
+
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
