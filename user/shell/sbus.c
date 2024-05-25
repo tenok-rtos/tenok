@@ -38,6 +38,8 @@ int sbus(int argc, char *argv[])
         shell_puts(str);
     }
 
+    close(sbus_fd);
+
     return 0;
 }
 
