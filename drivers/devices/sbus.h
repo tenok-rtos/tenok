@@ -6,20 +6,20 @@
 #include <kernel/time.h>
 
 /* TODO: Stored in adjustable parameter list */
-#define RC_THROTTLE_MAX 1680
-#define RC_THROTTLE_MIN 368
+#define RC_THROTTLE_MAX 1693
+#define RC_THROTTLE_MIN 306
 
-#define RC_ROLL_MAX 1680
-#define RC_ROLL_MIN 366
+#define RC_ROLL_MAX 1693
+#define RC_ROLL_MIN 306
 
-#define RC_PITCH_MAX 1680
-#define RC_PITCH_MIN 368
+#define RC_PITCH_MAX 1693
+#define RC_PITCH_MIN 306
 
-#define RC_YAW_MAX 1680
-#define RC_YAW_MIN 371
+#define RC_YAW_MAX 1693
+#define RC_YAW_MIN 306
 
-#define RC_SAFETY_MAX 1904
-#define RC_SAFETY_MIN 144
+#define RC_SAFETY_MAX 1694
+#define RC_SAFETY_MIN 306
 
 #define RC_THROTTLE_RANGE_MAX 100.0f
 #define RC_THROTTLE_RANGE_MIN 0.0f
