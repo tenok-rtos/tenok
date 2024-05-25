@@ -361,8 +361,9 @@ void flight_control_task(void)
         quadrotor_thrust_allocation(throttle, pid_roll.output, pid_pitch.output,
                                     pid_yaw_rate.output, motors);
 
-        /* Check safety switch */
-        if (rc.dual_switch1) {
+        /* Enable motor outputs only if the safety switch is off and
+         * the throttle is greater than 5% */
+        if (rc.dual_switch1 || rc.throttle <= 5) {
             /* Motor disarmed */
             ioctl(led_fd, LED_R, LED_DISABLE);
             ioctl(led_fd, LED_G, LED_DISABLE);
