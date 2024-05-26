@@ -59,9 +59,6 @@ typedef struct {
     bool enable;
 } pid_control_t;
 
-static madgwick_t madgwick_ahrs;
-static float rpy[3];
-
 static pid_control_t pid_roll = {
     .kp = 0.015f,
     .kd = 0.003f,
@@ -85,9 +82,11 @@ static pid_control_t pid_yaw_rate = {
     .enable = true,
 };
 
-static float motors[4] = {0.0f};
 static bool flight_ctrl_running;
 static bool run_esc_calib;
+static float rpy[3];
+static float motors[4];
+static madgwick_t madgwick_ahrs;
 
 float calc_elapsed_time(struct timespec *tp_now, struct timespec *tp_last)
 {
@@ -291,9 +290,16 @@ bool is_flight_ctrl_running(void)
     return flight_ctrl_running;
 }
 
+static void set_motor_outputs(int pwm_fd, float motors[4])
+{
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
+}
+
 static void disable_all_motors(int pwm_fd)
 {
-    /* Disable all motors */
     ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
     ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
     ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
@@ -435,11 +441,9 @@ void flight_control_task(void)
 
             if (rc.throttle > 5) {
                 /* Set control output */
-                ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
-                ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
-                ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
-                ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
+                set_motor_outputs(pwm_fd, motors);
             } else {
+                /* Disable all motors */
                 disable_all_motors(pwm_fd);
             }
         }
