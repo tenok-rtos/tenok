@@ -115,6 +115,27 @@ void bound_float(float *val, float max, float min)
         *val = min;
 }
 
+static void set_motor_outputs(int pwm_fd, float motors[4])
+{
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, (unsigned long) &motors[0]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, (unsigned long) &motors[1]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, (unsigned long) &motors[2]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, (unsigned long) &motors[3]);
+}
+
+static void disable_all_motors(int pwm_fd)
+{
+    float motors[4];
+    motors[0] = THRUST_PWM_MIN;
+    motors[1] = THRUST_PWM_MIN;
+    motors[2] = THRUST_PWM_MIN;
+    motors[3] = THRUST_PWM_MIN;
+    ioctl(pwm_fd, SET_PWM_CHANNEL1, (unsigned long) &motors[0]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL2, (unsigned long) &motors[1]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL3, (unsigned long) &motors[2]);
+    ioctl(pwm_fd, SET_PWM_CHANNEL4, (unsigned long) &motors[3]);
+}
+
 static int rc_safety_check(sbus_t *rc)
 {
     if (rc->dual_switch1 == false)
@@ -140,6 +161,7 @@ static void esc_calibration_loop(int led_fd, int rc_fd, int pwm_fd)
 {
     sbus_t rc;
     float throttle;
+    float motors[4];
 
     /* Set LED color to purple to indicate the calibration mode */
     ioctl(led_fd, LED_R, LED_ENABLE);
@@ -152,10 +174,11 @@ static void esc_calibration_loop(int led_fd, int rc_fd, int pwm_fd)
         throttle = THRUST_PWM_MIN + (rc.throttle * 0.01f) * THRUST_PWM_DIFF;
 
         /* Redirect throttle signal to all motors */
-        ioctl(pwm_fd, SET_PWM_CHANNEL1, throttle);
-        ioctl(pwm_fd, SET_PWM_CHANNEL2, throttle);
-        ioctl(pwm_fd, SET_PWM_CHANNEL3, throttle);
-        ioctl(pwm_fd, SET_PWM_CHANNEL4, throttle);
+        motors[0] = throttle;
+        motors[1] = throttle;
+        motors[2] = throttle;
+        motors[3] = throttle;
+        set_motor_outputs(pwm_fd, motors);
 
         /* Yield task for a while */
         usleep(1000);
@@ -290,22 +313,6 @@ bool is_flight_ctrl_running(void)
     return flight_ctrl_running;
 }
 
-static void set_motor_outputs(int pwm_fd, float motors[4])
-{
-    ioctl(pwm_fd, SET_PWM_CHANNEL1, motors[0]);
-    ioctl(pwm_fd, SET_PWM_CHANNEL2, motors[1]);
-    ioctl(pwm_fd, SET_PWM_CHANNEL3, motors[2]);
-    ioctl(pwm_fd, SET_PWM_CHANNEL4, motors[3]);
-}
-
-static void disable_all_motors(int pwm_fd)
-{
-    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
-}
-
 void flight_control_task(void)
 {
     setprogname("flight control");
@@ -368,10 +375,7 @@ void flight_control_task(void)
         esc_calibration_loop(led_fd, rc_fd, pwm_fd);
 
     /* Initialize thrusts for motor 1 to 4 */
-    ioctl(pwm_fd, SET_PWM_CHANNEL1, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL2, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL3, THRUST_PWM_MIN);
-    ioctl(pwm_fd, SET_PWM_CHANNEL4, THRUST_PWM_MIN);
+    disable_all_motors(pwm_fd);
 
     /* Execution time */
     struct timespec time_last, time_now;

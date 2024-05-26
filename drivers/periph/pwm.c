@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 
 #include <fs/fs.h>
@@ -11,7 +12,8 @@
 #define MICROSECOND 1000000
 
 /* Map from +width time to timer reload value */
-#define MICROSEC_TO_RELOAD(us) (us * (PWM_RELOAD * PWM_FREQ / MICROSECOND))
+#define MICROSEC_TO_RELOAD(us) \
+    (us * ((float) PWM_RELOAD * PWM_FREQ / MICROSECOND))
 
 int pwm_open(struct inode *inode, struct file *file)
 {
@@ -20,7 +22,13 @@ int pwm_open(struct inode *inode, struct file *file)
 
 int pwm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    unsigned long reload = MICROSEC_TO_RELOAD(arg);
+    float width_microsecond = *(float *) arg;
+    uint32_t reload = (uint32_t) MICROSEC_TO_RELOAD(width_microsecond);
+
+    if (reload > PWM_RELOAD) {
+        printk("ioctl(): pwm setting exceeded maximum value");
+        return -EINVAL;
+    }
 
     switch (cmd) {
     case SET_PWM_CHANNEL1:
