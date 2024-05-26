@@ -34,7 +34,8 @@ int sbus(int argc, char *argv[])
     /* Raw data */
     int i;
     for (i = 0; i < 16; i++) {
-        snprintf(str, PRINT_SIZE_MAX, "channel %d: %d\n\r", i, sbus.rc_val[i]);
+        snprintf(str, PRINT_SIZE_MAX, "channel %d: %d\n\r", i + 1,
+                 sbus.rc_val[i]);
         shell_puts(str);
     }
 
