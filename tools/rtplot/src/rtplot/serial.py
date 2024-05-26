@@ -65,7 +65,6 @@ class SerialManager:
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
             timeout=0.1)  # Timeout = 0.1 second
-        self.ser.flush()
         self.serial_fifo = deque()
         print("connected to: " + self.ser.portstr)
 
@@ -266,7 +265,7 @@ class SerialManager:
         start_byte = struct.unpack("B", self.serial_fifo[START_BYTE_POS])[0]
         if start_byte != ord(START_BYTE):
             # Move to next position by discarding the oldest byte
-            self.serial_fifo.pop()
+            self.serial_fifo.popleft()
             return 'retry', None, None, None
         #print("received start byte")
 
@@ -294,7 +293,7 @@ class SerialManager:
         received_checksum = buf[payload_cnt]
         if received_checksum != checksum:
             # Shift the FIFO by discarding the oldest byte
-            self.serial_fifo.pop()
+            self.serial_fifo.popleft()
             print("error: checksum mismatched")
             return 'failed', None, None, None
 
@@ -305,6 +304,6 @@ class SerialManager:
 
         # Discard used bytes from serial buffer
         for i in range(0, payload_cnt + HEADER_SIZE + 1):
-            self.serial_fifo.pop()
+            self.serial_fifo.popleft()
 
         return 'success', msg_id, msg_name, data
