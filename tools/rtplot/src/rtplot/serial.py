@@ -8,7 +8,15 @@ from datetime import datetime
 
 from .yaml_loader import TenokMsgManager
 
+START_BYTE = '@'
 CHECKSUM_INIT_VAL = 63
+
+HEADER_SIZE = 3
+
+START_BYTE_POS = 0
+SIZE_POS = 1
+MSG_ID_POS = 2
+PAYLOAD_POS = 3
 
 
 class DataQueue:
@@ -57,7 +65,8 @@ class SerialManager:
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
             timeout=0.1)  # Timeout = 0.1 second
-
+        self.ser.flush()
+        self.serial_fifo = deque()
         print("connected to: " + self.ser.portstr)
 
         self.recvd_time_last = [time.time()
@@ -240,58 +249,62 @@ class SerialManager:
         # Print prompt message
         print(print_str, end='')
 
-        return 'success', msg_id, msg_name, data_list
+        return 'success', msg_name, data_list
 
     def receive_msg(self):
-        buffer = []
-        checksum = 0
+        # Collect bytes from serial
+        avail_cnt = self.ser.inWaiting()
+        if avail_cnt > 0:
+            for i in range(0, avail_cnt):
+                self.serial_fifo.append(self.ser.read(1))
 
-        try:
-            c = self.ser.read(1)
-            c = c.decode("ascii")
-        except:
-            return 'failed', None, None, None
+        # Wait until at least the size of header is received
+        if len(self.serial_fifo) < HEADER_SIZE:
+            return 'retry', None, None, None
 
-        # print("c:")
-        # print(c)
+        # Start byte checking
+        start_byte = struct.unpack("B", self.serial_fifo[START_BYTE_POS])[0]
+        if start_byte != ord(START_BYTE):
+            # Move to next position by discarding the oldest byte
+            self.serial_fifo.pop()
+            return 'retry', None, None, None
+        #print("received start byte")
 
-        # Wait for the start byte
-        if c == '@':
-            pass
+        # Get payload size
+        payload_cnt = struct.unpack("B", self.serial_fifo[SIZE_POS])[0]
+        #print('payload size: %d' %(payload_cnt))
+
+        # Get message ID
+        msg_id = struct.unpack("B", self.serial_fifo[MSG_ID_POS])[0]
+        #print('message id: %d' %(msg_id))
+
+        # Get payloads and checksum
+        if len(self.serial_fifo) < payload_cnt + HEADER_SIZE + 1:
+            return 'retry', None, None, None
         else:
-            return 'failed', None, None, None
+            buf = bytearray()
+            for i in range(0, payload_cnt + 1):
+                buf.extend(self.serial_fifo[i + PAYLOAD_POS])
 
-        # Use try block in case encounter serial port timeout
-        try:
-            # Receive payload size
-            payload_count, =  struct.unpack("B", self.ser.read(1))
-            # print('payload size: %d' %(payload_count))
+        # Checksum verification
+        checksum = CHECKSUM_INIT_VAL
+        for i in range(0, payload_cnt):
+            checksum ^= buf[i]
 
-            # Receive message ID
-            _msg_id, =  struct.unpack("c", self.ser.read(1))
-            msg_id = ord(_msg_id)
-
-            # Receive payloads + checksum
-            buf = self.ser.read(payload_count + 1)
-
-            # Verify the checksum
-            checksum = CHECKSUM_INIT_VAL
-            for i in range(0, payload_count):
-                buffer.append(buf[i])
-                buffer_checksum = buffer[i]
-                checksum ^= buffer_checksum
-
-            received_checksum = buf[payload_count]
-
-            if received_checksum != checksum:
-                print("error: checksum mismatched")
-                return 'failed', None, None, None
-        except:
+        received_checksum = buf[payload_cnt]
+        if received_checksum != checksum:
+            # Shift the FIFO by discarding the oldest byte
+            self.serial_fifo.pop()
+            print("error: checksum mismatched")
             return 'failed', None, None, None
 
         # Decode message fields
-        result, msg_id, msg_name, data = self.decode_msg(buffer, msg_id)
+        result, msg_name, data = self.decode_msg(buf, msg_id)
         if result == 'failed':
             return 'failed', None, None, None
+
+        # Discard used bytes from serial buffer
+        for i in range(0, payload_cnt + HEADER_SIZE + 1):
+            self.serial_fifo.pop()
 
         return 'success', msg_id, msg_name, data
