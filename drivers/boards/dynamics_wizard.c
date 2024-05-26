@@ -107,8 +107,8 @@ int gpio_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     /* Pin selection */
     switch (cmd) {
     case GPIO_PIN0:
-        gpio_group = GPIOB;
-        gpio_pin = GPIO_Pin_14;
+        gpio_group = GPIOC;
+        gpio_pin = GPIO_Pin_5;
         break;
     default:
         return -EINVAL;
@@ -140,17 +140,17 @@ static void gpio_init(void)
     /* Register GPIO to the file system */
     register_chrdev("freq_tester", &gpio_file_ops);
 
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
     GPIO_InitTypeDef GPIO_InitStruct = {
-        .GPIO_Pin = GPIO_Pin_14,
+        .GPIO_Pin = GPIO_Pin_5,
         .GPIO_Mode = GPIO_Mode_OUT,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_OType = GPIO_OType_PP,
         .GPIO_PuPd = GPIO_PuPd_DOWN,
     };
 
-    GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     printk("freq_tester: gpio");
 }
