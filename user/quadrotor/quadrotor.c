@@ -9,6 +9,7 @@
 
 #include "bsp_drv.h"
 #include "debug_link_attitude_msg.h"
+#include "debug_link_imu_msg.h"
 #include "debug_link_pid_msg.h"
 #include "madgwick_filter.h"
 #include "pwm.h"
@@ -461,23 +462,49 @@ void debug_link_task(void)
 {
     setprogname("debug link");
 
+    /* Open debug-link serial port */
     int debug_link_fd = open("/dev/dbglink", O_RDWR);
 
-    debug_link_msg_attitude_t msg;
+    /* Open Inertial Measurement Unit (IMU) */
+    int accel_fd = open("/dev/accel0", 0);
+    int gyro_fd = open("/dev/gyro0", 0);
+
+    if (accel_fd < 0 || gyro_fd < 0) {
+        printf("failed to open the IMU.\n\r");
+        exit(1);
+    }
+
+    float accel[3];  //[m/s^2]
+    float gyro[3];   //[deg/s]
+
+    /* Debug-link messages */
+    debug_link_msg_imu_t imu_msg;
+    debug_link_msg_attitude_t att_msg;
     debug_link_msg_pid_t pid_msg;
     uint8_t buf[100];
     size_t size;
 
     /* 40Hz */
     while (1) {
-        msg.q[0] = madgwick_ahrs.q[0];
-        msg.q[1] = madgwick_ahrs.q[1];
-        msg.q[2] = madgwick_ahrs.q[2];
-        msg.q[3] = madgwick_ahrs.q[3];
-        msg.rpy[0] = rpy[0];
-        msg.rpy[1] = rpy[1];
-        msg.rpy[2] = rpy[2];
-        size = pack_debug_link_attitude_msg(&msg, buf);
+        read(accel_fd, accel, sizeof(float[3]));
+        read(gyro_fd, gyro, sizeof(float[3]));
+        imu_msg.accel[0] = accel[0];
+        imu_msg.accel[1] = accel[1];
+        imu_msg.accel[2] = accel[2];
+        imu_msg.gyro[0] = gyro[0];
+        imu_msg.gyro[1] = gyro[1];
+        imu_msg.gyro[2] = gyro[2];
+        size = pack_debug_link_imu_msg(&imu_msg, buf);
+        write(debug_link_fd, buf, size);
+
+        att_msg.q[0] = madgwick_ahrs.q[0];
+        att_msg.q[1] = madgwick_ahrs.q[1];
+        att_msg.q[2] = madgwick_ahrs.q[2];
+        att_msg.q[3] = madgwick_ahrs.q[3];
+        att_msg.rpy[0] = rpy[0];
+        att_msg.rpy[1] = rpy[1];
+        att_msg.rpy[2] = rpy[2];
+        size = pack_debug_link_attitude_msg(&att_msg, buf);
         write(debug_link_fd, buf, size);
 
         pid_msg.error_rpy[0] = pid_roll.output;
