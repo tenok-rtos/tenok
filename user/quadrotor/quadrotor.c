@@ -62,7 +62,7 @@ typedef struct {
 
 static pid_control_t pid_roll = {
     .kp = 0.008f,
-    .kd = 0.0035f,
+    .kd = 0.003f,
     .output_max = +1.0f,  //+100%
     .output_min = -1.0f,  //-100%
     .enable = true,
@@ -70,7 +70,7 @@ static pid_control_t pid_roll = {
 
 static pid_control_t pid_pitch = {
     .kp = 0.008f,
-    .kd = 0.0035f,
+    .kd = 0.003f,
     .output_max = +1.0f,
     .output_min = -1.0f,
     .enable = true,
@@ -319,7 +319,7 @@ void flight_control_task(void)
     setprogname("flight control");
 
     /* Initialize Madgwick Filter for attitude estimation */
-    madgwick_init(&madgwick_ahrs, 400, 0.13);
+    madgwick_init(&madgwick_ahrs, 400, 0.105);
 
     /* Open RGB LED */
     int led_fd = open("/dev/led", 0);
