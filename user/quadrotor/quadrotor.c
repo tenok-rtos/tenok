@@ -60,23 +60,23 @@ typedef struct {
 } pid_control_t;
 
 static pid_control_t pid_roll = {
-    .kp = 0.015f,
-    .kd = 0.003f,
+    .kp = 0.008f,
+    .kd = 0.0035f,
     .output_max = +1.0f,  //+100%
     .output_min = -1.0f,  //-100%
     .enable = true,
 };
 
 static pid_control_t pid_pitch = {
-    .kp = 0.015f,
-    .kd = 0.003f,
+    .kp = 0.008f,
+    .kd = 0.0035f,
     .output_max = +1.0f,
     .output_min = -1.0f,
     .enable = true,
 };
 
 static pid_control_t pid_yaw_rate = {
-    .kp = 0,
+    .kp = 0.02f,
     .output_max = +1.0f,
     .output_min = -1.0f,
     .enable = true,
