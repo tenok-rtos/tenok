@@ -15,7 +15,9 @@ jobs:
       with:
         release: '12.3.Rel1'
     - name: install dependencies
-      run: sudo apt install gcc-multilib
+      run: |
+           sudo apt update
+           sudo apt install gcc-multilib
     - name: checkout 
       uses: actions/checkout@v3
     - name: build default 
