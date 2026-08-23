@@ -35,7 +35,11 @@
 ENTRY(Reset_Handler)
 
 RAM_ADDR = 0x20000000;
-RAM_SIZE = 192K;
+/* The STM32F407 has 192 KiB of RAM in total, but only the 128 KiB SRAM1 +
+ * SRAM2 region is contiguous. The remaining 64 KiB CCM is mapped at another
+ * address and cannot be a part of this region.
+ */
+RAM_SIZE = 128K;
 
 USER_STACK_SIZE = 10K;
 
