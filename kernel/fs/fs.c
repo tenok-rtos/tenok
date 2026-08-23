@@ -178,6 +178,12 @@ static struct inode *fs_alloc_inode(void)
     return new_inode;
 }
 
+static void fs_free_inode(struct inode *inode)
+{
+    bitmap_clear_bit(bitmap_inodes, inode->i_ino);
+    mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt--;
+}
+
 static uint8_t *fs_alloc_block(void)
 {
     uint8_t *new_block = NULL;
@@ -194,6 +200,23 @@ static uint8_t *fs_alloc_block(void)
     }
 
     return new_block;
+}
+
+static void fs_free_block(uint32_t blk_addr)
+{
+    uint32_t blk_base = (uint32_t) rootfs_blks;
+    uint32_t blk_end = blk_base + (FS_BLK_CNT * FS_BLK_SIZE);
+
+    /* The address must point to a block of the rootfs */
+    if ((blk_addr < blk_base) || (blk_addr >= blk_end))
+        return;
+
+    int blk_idx = (blk_addr - blk_base) / FS_BLK_SIZE;
+
+    if (bitmap_get_bit(bitmap_blks, blk_idx)) {
+        bitmap_clear_bit(bitmap_blks, blk_idx);
+        mount_points[RDEV_ROOTFS].super_blk.s_blk_cnt--;
+    }
 }
 
 void rootfs_init(void)
@@ -465,12 +488,33 @@ uint32_t fs_file_append_block(struct inode *inode)
     return new_blk;
 }
 
+/* Release every block owned by a regular file */
+static void fs_free_file_blocks(struct inode *inode)
+{
+    /* Files provided by an external storage own no rootfs block */
+    if (inode->i_rdev != RDEV_ROOTFS || inode->i_mode != S_IFREG)
+        return;
+
+    uint32_t blk_addr = inode->i_data;
+
+    for (uint32_t i = 0; (i < inode->i_blocks) && blk_addr; i++) {
+        uint32_t next_blk = ((struct block_header *) blk_addr)->b_next;
+        fs_free_block(blk_addr);
+        blk_addr = next_blk;
+    }
+
+    inode->i_data = (uint32_t) NULL;
+    inode->i_blocks = 0;
+    inode->i_size = 0;
+}
+
 /* Create a file under the given directory (currently only supports rootfs) */
 static struct inode *fs_add_file(struct inode *inode_dir,
                                  char *file_name,
                                  int file_type)
 {
     int fd = -1;
+    struct inode *new_inode = NULL;
     struct dentry *new_dentry = NULL;
 
     /* inodes table is full */
@@ -483,7 +527,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
         goto failed;
 
     /* Allocate new inode for the file */
-    struct inode *new_inode = fs_alloc_inode();
+    new_inode = fs_alloc_inode();
     if (!new_inode)
         goto failed;
 
@@ -586,9 +630,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     return new_inode;
 
 failed:
-    // TODO: Release the inode as well
     if (new_dentry)
         fs_free_dentry(new_dentry);
+    if (new_inode)
+        fs_free_inode(new_inode);
     if (fd >= 0)
         fs_release_fd(fd);
 
