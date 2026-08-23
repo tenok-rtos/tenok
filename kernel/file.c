@@ -1,8 +1,10 @@
 #include <dirent.h>
 #include <poll.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <arch/port.h>
 #include <kernel/syscall.h>
@@ -150,6 +152,17 @@ NACKED int _rename(const char *oldpath, const char *newpath)
 int rename(const char *oldpath, const char *newpath)
 {
     return _rename(oldpath, newpath);
+}
+
+int remove(const char *pathname)
+{
+    struct stat statbuf;
+
+    int retval = stat(pathname, &statbuf);
+    if (retval != 0)
+        return retval;
+
+    return (statbuf.st_mode == S_IFDIR) ? rmdir(pathname) : unlink(pathname);
 }
 
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)

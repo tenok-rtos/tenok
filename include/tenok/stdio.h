@@ -101,6 +101,13 @@ int fileno(FILE *stream);
 int rename(const char *oldpath, const char *newpath);
 
 /**
+ * @brief  Delete a file or an empty directory
+ * @param  pathname: The pathname of the file to remove.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int remove(const char *pathname);
+
+/**
  * @brief  Format and print data to the standard output
  * @param  format: Format string.
  * @param  ...: Print arguments.
