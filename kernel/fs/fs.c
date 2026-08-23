@@ -41,6 +41,13 @@ uint32_t bitmap_blks[BITMAP_SIZE(FS_BLK_CNT)];
 struct mount mount_points[MOUNT_MAX + 1]; /* 0 is reserved for the rootfs */
 int mount_cnt;
 
+/* File descriptor numbers released by unlink() are recycled through this
+ * stack, otherwise creating and removing files repeatedly exhausts the file
+ * table even though only a few files exist at a time.
+ */
+static int free_fds[FILE_MAX];
+static int free_fd_cnt;
+
 __FILE __stdin = {.fd = STDIN_FILENO};
 __FILE __stdout = {.fd = STDOUT_FILENO};
 __FILE __stderr = {.fd = STDERR_FILENO};
@@ -107,6 +114,34 @@ int register_blkdev(char *name, struct file_operations *fops)
     files[fd]->f_op = fops;
 
     return 0;
+}
+
+/* Dispatch a file descriptor number of the file table. The function returns
+ * a negative number if the file table is full.
+ */
+static int fs_alloc_fd(void)
+{
+    /* Reuse a file descriptor number that was released before */
+    if (free_fd_cnt > 0)
+        return free_fds[--free_fd_cnt];
+
+    /* Dispatch a brand new file descriptor number */
+    if (file_cnt >= FILE_MAX)
+        return -ENFILE;
+
+    int fd = file_cnt + FILE_RESERVED_NUM;
+    file_cnt++;
+
+    return fd;
+}
+
+/* Give a file descriptor number back to the file table */
+static void fs_release_fd(int fd)
+{
+    files[fd] = NULL;
+
+    if (free_fd_cnt < FILE_MAX)
+        free_fds[free_fd_cnt++] = fd;
 }
 
 struct file *fs_alloc_file(void)
@@ -186,9 +221,8 @@ void rootfs_init(void)
     struct file *rootfs_file = fs_alloc_file();
     rootfs_file->f_op = &rootfs_file_ops;
 
-    int fd = file_cnt + FILE_RESERVED_NUM;
+    int fd = fs_alloc_fd();
     files[fd] = rootfs_file;
-    file_cnt++;
 
     /* Mount the rootfs */
     mount_points[RDEV_ROOTFS].dev_file = rootfs_file;
@@ -403,16 +437,16 @@ static struct inode *fs_add_file(struct inode *inode_dir,
                                  char *file_name,
                                  int file_type)
 {
+    int fd = -1;
+
     /* inodes table is full */
     if (mount_points[0].super_blk.s_inode_cnt >= INODE_MAX)
         goto failed;
 
-    /* File table is full */
-    if (file_cnt >= FILE_MAX)
-        goto failed;
-
     /* Dispatch new file descriptor number */
-    int fd = file_cnt + FILE_RESERVED_NUM;
+    fd = fs_alloc_fd();
+    if (fd < 0)
+        goto failed;
 
     /* Allocate new inode for the file */
     struct inode *new_inode = fs_alloc_inode();
@@ -509,9 +543,6 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     /* Initialize file events */
     files[fd]->f_events = 0;
 
-    /* Update file count */
-    file_cnt++;
-
     /* Currently the directory has no file yet */
     if (list_empty(&inode_dir->i_dentry) == true)
         inode_dir->i_data = (uint32_t) new_dentry; /* Add first dentry */
@@ -528,7 +559,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     return new_inode;
 
 failed:
-    // TODO: Clean up the allocated resources
+    // TODO: Release the inode and the dentry as well
+    if (fd >= 0)
+        fs_release_fd(fd);
+
     return NULL;
 }
 
@@ -543,8 +577,9 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
         return NULL;
 
     /* Dispatch new file descriptor number */
-    int fd = file_cnt + FILE_RESERVED_NUM;
-    file_cnt++;
+    int fd = fs_alloc_fd();
+    if (fd < 0)
+        return NULL;
 
     /* Allocate new inode for the file */
     struct inode *new_inode = fs_alloc_inode();
@@ -593,13 +628,12 @@ static bool fs_sync_file(struct inode *inode)
     if (inode->i_sync == true)
         return false;
 
-    /* The file table is full */
-    if (file_cnt >= FILE_MAX)
+    /* Dispatch new file descriptor number */
+    int fd = fs_alloc_fd();
+    if (fd < 0)
         return false;
 
-    /* Dispatch new file descriptor number */
-    inode->i_fd = file_cnt + FILE_RESERVED_NUM;
-    file_cnt++;
+    inode->i_fd = fd;
 
     /* Create new regular file */
     struct reg_file *reg_file = kmalloc(sizeof(struct reg_file));
