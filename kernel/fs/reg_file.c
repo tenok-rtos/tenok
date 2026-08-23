@@ -32,6 +32,14 @@ static ssize_t __reg_file_read(struct file *filp,
     uint32_t blk_head_size = sizeof(struct block_header);
     uint32_t blk_free_size = FS_BLK_SIZE - sizeof(struct block_header);
 
+    /* The end of the file is reached */
+    if (reg_file->pos >= (off_t) inode->i_size)
+        return 0;
+
+    /* Reading is not allowed to go beyond the end of the file */
+    if (size > (inode->i_size - reg_file->pos))
+        size = inode->i_size - reg_file->pos;
+
     size_t remained_size = size;
     size_t read_size = 0;
 
