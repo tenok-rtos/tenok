@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -189,29 +190,31 @@ static off_t __reg_file_lseek(struct file *filp, off_t offset, int whence)
     /* Get the inode of the regular file */
     struct inode *inode = reg_file->file.f_inode;
 
-    char new_pos;
+    off_t new_pos;
 
     switch (whence) {
     case SEEK_SET:
         new_pos = offset;
         break;
     case SEEK_END:
-        new_pos = inode->i_size + offset;
+        new_pos = (off_t) inode->i_size + offset;
         break;
     case SEEK_CUR:
         new_pos = reg_file->pos + offset;
         break;
     default:
-        return -1;
+        return -EINVAL;
     }
 
-    /* Check if the new position is valid or not */
-    if ((new_pos >= 0) && (new_pos < inode->i_size)) {
-        reg_file->pos = new_pos;
-        return new_pos;
-    } else {
-        return -1;
-    }
+    /* The end of the file is a valid position, otherwise appending new data
+     * to a file would be impossible
+     */
+    if ((new_pos < 0) || (new_pos > (off_t) inode->i_size))
+        return -EINVAL;
+
+    reg_file->pos = new_pos;
+
+    return new_pos;
 }
 
 off_t reg_file_lseek(struct file *filp, off_t offset, int whence)

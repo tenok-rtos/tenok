@@ -7,7 +7,7 @@
 #include <fs/fs.h>
 
 struct reg_file {
-    int pos;
+    off_t pos;
     struct file file;
 };
 
