@@ -56,6 +56,7 @@ enum {
     FS_GET_CWD = 5,
     FS_CHANGE_DIR = 6,
     FS_MAKE_DIR = 7,
+    FS_REMOVE = 8,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -151,12 +152,15 @@ void link_stderr_dev(char *path);
 int register_chrdev(char *name, struct file_operations *fops);
 int register_blkdev(char *name, struct file_operations *fops);
 
+bool file_is_opened(struct file *filp);
+
 int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
 void request_create_file(int thread_id, const char *path, uint8_t file_type);
 void request_mkdir(int thread_id, const char *path);
+void request_remove(int thread_id, const char *path, bool rm_dir);
 void request_open_file(int thread_id, const char *path);
 void request_open_directory(int reply_fd, const char *path);
 void request_mount(int thread_id, const char *source, const char *target);

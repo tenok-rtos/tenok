@@ -949,6 +949,102 @@ static int fs_open_file(const char *pathname)
     return inode->i_fd;
 }
 
+/* Search the dentry of a file under the given directory
+ * Input : Directory inode and the file name
+ * Output: The dentry of the file, NULL is returned if it does not exist
+ */
+static struct dentry *fs_search_dentry(struct inode *inode_dir,
+                                       const char *name)
+{
+    /* Mount the directory to synchronize it */
+    if (inode_dir->i_sync == false)
+        fs_mount_directory(inode_dir, inode_dir);
+
+    struct dentry *dentry;
+    list_for_each_entry (dentry, &inode_dir->i_dentry, d_list) {
+        if (strcmp(dentry->d_name, name) == 0)
+            return dentry;
+    }
+
+    return NULL;
+}
+
+/* Remove a regular file or an empty directory from the file system
+ * Input : Pathname and whether the pathname must refer to a directory
+ */
+static int fs_remove(const char *pathname, bool rm_dir)
+{
+    struct inode *inode_dir;
+    char name[NAME_MAX];
+
+    int retval = fs_path_lookup(pathname, &inode_dir, name, false);
+    if (retval < 0)
+        return retval;
+
+    /* The root, "." and ".." can never be removed */
+    if ((name[0] == '\0') || (strcmp(name, ".") == 0) ||
+        (strcmp(name, "..") == 0))
+        return -EBUSY;
+
+    /* Search the dentry of the file to remove */
+    struct dentry *dentry = fs_search_dentry(inode_dir, name);
+    if (!dentry)
+        return -ENOENT;
+
+    struct inode *inode = &inodes[dentry->d_inode];
+
+    /* Files provided by a read-only storage cannot be removed */
+    if (inode->i_rdev != RDEV_ROOTFS)
+        return -EROFS;
+
+    /* The current working directory must stay reachable */
+    if (inode == shell_dir_curr)
+        return -EBUSY;
+
+    if (rm_dir) {
+        if (inode->i_mode != S_IFDIR)
+            return -ENOTDIR;
+
+        /* Only an empty directory can be removed */
+        if (!list_empty(&inode->i_dentry))
+            return -ENOTEMPTY;
+    } else {
+        if (inode->i_mode == S_IFDIR)
+            return -EISDIR;
+
+        /* Device files and named pipes are owned by the kernel */
+        if (inode->i_mode != S_IFREG)
+            return -EPERM;
+    }
+
+    /* Removing a file that is still open is not supported, as there is no
+     * reference count to defer the release with
+     */
+    if (files[inode->i_fd] && file_is_opened(files[inode->i_fd]))
+        return -EBUSY;
+
+    /* Release the resources owned by the file */
+    if (inode->i_mode == S_IFREG) {
+        fs_free_file_blocks(inode);
+
+        if (files[inode->i_fd])
+            kfree(container_of(files[inode->i_fd], struct reg_file, file));
+    } else if (files[inode->i_fd]) {
+        kmem_cache_free(file_caches, files[inode->i_fd]);
+    }
+
+    fs_release_fd(inode->i_fd);
+
+    /* Detach the file from its parent directory */
+    list_del(&dentry->d_list);
+    fs_free_dentry(dentry);
+    fs_dir_update(inode_dir);
+
+    fs_free_inode(inode);
+
+    return 0;
+}
+
 /* Create a directory by given a pathname. Unlike fs_create_file(), the
  * missing directories of the path are never created implicitly.
  */
@@ -1166,6 +1262,16 @@ static void fs_request(int fs_cmd,
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
 
     preempt_enable();
+}
+
+void request_remove(int thread_id, const char *path, bool rm_dir)
+{
+    char args[sizeof(path) + sizeof(rm_dir)];
+
+    memcpy(&args[0], &path, sizeof(path));
+    memcpy(&args[sizeof(path)], &rm_dir, sizeof(rm_dir));
+
+    fs_request(FS_REMOVE, THREAD_PIPE_FD(thread_id), args, sizeof(args));
 }
 
 void request_mkdir(int thread_id, const char *path)
@@ -1419,6 +1525,18 @@ void filesysd(void)
             read(filesysd_fd, &path, sizeof(path));
 
             int result = fs_mkdir(path);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_REMOVE: {
+            char *path;
+            read(filesysd_fd, &path, sizeof(path));
+
+            bool rm_dir;
+            read(filesysd_fd, &rm_dir, sizeof(rm_dir));
+
+            int result = fs_remove(path, rm_dir);
             write(reply_fd, &result, sizeof(result));
 
             break;

@@ -117,6 +117,21 @@ NACKED int mkdir(const char *pathname, mode_t mode)
     SYSCALL(MKDIR);
 }
 
+NACKED int rmdir(const char *pathname)
+{
+    SYSCALL(RMDIR);
+}
+
+NACKED int _unlink(const char *pathname)
+{
+    SYSCALL(UNLINK);
+}
+
+int unlink(const char *pathname)
+{
+    return _unlink(pathname);
+}
+
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);

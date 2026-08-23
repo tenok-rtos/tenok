@@ -29,6 +29,8 @@ syscalls = \
      'mknod',
      'mkfifo',
      'mkdir',
+     'rmdir',
+     'unlink',
      'poll',
      'mq_getattr',
      'mq_setattr',

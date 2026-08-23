@@ -184,3 +184,15 @@ int vfs_mkdir(int tid, const char *pathname)
 
     return result;
 }
+
+int vfs_remove(int tid, const char *pathname, bool rm_dir)
+{
+    /* Send unlink/rmdir request to the file system daemon */
+    request_remove(tid, pathname, rm_dir);
+
+    /* Read the result from the file system daemon */
+    int result;
+    vfs_read_reply(tid, &result, sizeof(result));
+
+    return result;
+}

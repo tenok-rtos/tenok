@@ -114,4 +114,18 @@ char *getcwd(char *buf, size_t size);
  */
 int chdir(const char *path);
 
+/**
+ * @brief  Delete a name from the file system
+ * @param  pathname: The pathname of the file to remove.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int unlink(const char *pathname);
+
+/**
+ * @brief  Delete a directory, which must be empty
+ * @param  pathname: The pathname of the directory to remove.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int rmdir(const char *pathname);
+
 #endif

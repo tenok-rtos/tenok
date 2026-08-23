@@ -931,6 +931,19 @@ static void sys_exit(int status)
     preempt_enable();
 }
 
+/* Check if a file is still referenced by an open file descriptor. The file
+ * system uses it to refuse removing a file that is currently open.
+ */
+bool file_is_opened(struct file *filp)
+{
+    for (int i = 0; i < OPEN_MAX; i++) {
+        if (bitmap_get_bit(bitmap_fds, i) && (fdtable[i].file == filp))
+            return true;
+    }
+
+    return false;
+}
+
 static int sys_mount(const char *source, const char *target)
 {
     /* Check the length of the pathname */
@@ -1517,6 +1530,30 @@ static int sys_mkdir(const char *pathname, mode_t mode)
         return -ENAMETOOLONG;
 
     return vfs_mkdir(running_thread->tid, pathname);
+}
+
+static int sys_rmdir(const char *pathname)
+{
+    if (!pathname)
+        return -EFAULT;
+
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    return vfs_remove(running_thread->tid, pathname, true);
+}
+
+static int sys_unlink(const char *pathname)
+{
+    if (!pathname)
+        return -EFAULT;
+
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    return vfs_remove(running_thread->tid, pathname, false);
 }
 
 static int sys_mkfifo(const char *pathname, mode_t mode)
