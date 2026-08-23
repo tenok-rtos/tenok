@@ -128,7 +128,21 @@ size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 int _fseek(FILE *stream, long offset, int whence)
 {
     __FILE *_stream = (__FILE *) stream;
-    return lseek(_stream->fd, offset, whence);
+
+    /* Unlike lseek(), fseek() reports success rather than the new position */
+    return (lseek(_stream->fd, offset, whence) < 0) ? -1 : 0;
+}
+
+long _ftell(FILE *stream)
+{
+    __FILE *_stream = (__FILE *) stream;
+    return lseek(_stream->fd, 0, SEEK_CUR);
+}
+
+void _rewind(FILE *stream)
+{
+    __FILE *_stream = (__FILE *) stream;
+    lseek(_stream->fd, 0, SEEK_SET);
 }
 
 int _fileno(FILE *stream)

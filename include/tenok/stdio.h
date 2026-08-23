@@ -20,6 +20,8 @@
 #define fread _fread
 #define fwrite _fwrite
 #define fseek _fseek
+#define ftell _ftell
+#define rewind _rewind
 #define fileno _fileno
 
 #define __SIZEOF_FILE sizeof(__FILE)
@@ -79,10 +81,23 @@ size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
  * @param  stream: The file stream to provide.
  * @param  offset: The new offset to the position specified by whence.
  * @param  whence: The start position of the new offset.
- * @retval int: The new file position on success and nonzero error number on
- *         error.
+ * @retval int: 0 on success and -1 on error.
  */
 int fseek(FILE *stream, long offset, int whence);
+
+/**
+ * @brief  Obtain the current value of the file position indicator
+ * @param  stream: The file stream to provide.
+ * @retval long: The current file position on success and -1 on error.
+ */
+long ftell(FILE *stream);
+
+/**
+ * @brief  Set the file position indicator to the beginning of the file
+ * @param  stream: The file stream to provide.
+ * @retval None
+ */
+void rewind(FILE *stream);
 
 /**
  * @brief  Examine the argument stream and returns the integer file descriptor
