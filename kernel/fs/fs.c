@@ -1109,6 +1109,39 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index)
     return blk_addr;
 }
 
+/* Max size of the arguments a file system request can carry, which is two
+ * pointers at the moment
+ */
+#define FS_ARGS_SIZE_MAX 8
+
+/* Send a request to the file system daemon. The reply is read back from the
+ * anonymous pipe of the calling thread by the VFS layer.
+ */
+static void fs_request(int fs_cmd,
+                       int reply_fd,
+                       const void *args,
+                       size_t args_size)
+{
+    preempt_disable();
+
+    char buf[sizeof(fs_cmd) + sizeof(reply_fd) + FS_ARGS_SIZE_MAX];
+    int buf_size = 0;
+
+    memcpy(&buf[buf_size], &fs_cmd, sizeof(fs_cmd));
+    buf_size += sizeof(fs_cmd);
+
+    memcpy(&buf[buf_size], &reply_fd, sizeof(reply_fd));
+    buf_size += sizeof(reply_fd);
+
+    memcpy(&buf[buf_size], args, args_size);
+    buf_size += args_size;
+
+    const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
+    fifo_write(files[filesysd_fd], buf, buf_size, 0);
+
+    preempt_enable();
+}
+
 void request_create_file(int thread_id, const char *path, uint8_t file_type)
 {
     preempt_disable();
