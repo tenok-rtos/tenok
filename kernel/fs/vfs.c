@@ -67,10 +67,7 @@ int vfs_open_file(int tid, const char *pathname)
         schedule();
     }
 
-    /* File not found */
-    if (file_idx == -1)
-        return -ENOENT;
-
+    /* Pass the error number back to the caller */
     return file_idx;
 }
 

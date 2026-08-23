@@ -979,6 +979,15 @@ static int sys_open(const char *pathname, int flags)
 
     int file_idx = vfs_open_file(tid, pathname);
 
+    if ((file_idx == -ENOENT) && (flags & O_CREAT)) {
+        /* Create the file as it does not exist yet */
+        file_idx = vfs_create_file(tid, pathname, S_IFREG);
+    } else if ((file_idx >= 0) && (flags & O_CREAT) && (flags & O_EXCL)) {
+        /* O_EXCL requires the file to be created by this very call */
+        retval = -EEXIST;
+        goto err;
+    }
+
     /* File not found */
     if (file_idx < 0) {
         /* Return error */
