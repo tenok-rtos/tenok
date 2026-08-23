@@ -283,11 +283,10 @@ static void fs_read_inode(uint8_t rdev,
  */
 static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
 {
-    /* The dentry table is currently empty */
-    if (inode_dir->i_size == 0)
-        return NULL;
-
-    /* Return current inode */
+    /* Return current inode. Note that "." and ".." belong to the directory
+     * itself, so they must be handled before the emptiness check, otherwise
+     * they are unreachable from an empty directory.
+     */
     if (strncmp(".", file_name, NAME_MAX) == 0)
         return inode_dir;
 
@@ -298,6 +297,10 @@ static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
     /* Mount directory to synchronize it */
     if (inode_dir->i_sync == false)
         fs_mount_directory(inode_dir, inode_dir);
+
+    /* The dentry table is currently empty */
+    if (list_empty(&inode_dir->i_dentry))
+        return NULL;
 
     /* Traverse the dentry list */
     struct dentry *dentry;
