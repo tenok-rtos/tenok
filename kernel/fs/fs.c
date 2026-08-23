@@ -949,6 +949,32 @@ static int fs_open_file(const char *pathname)
     return inode->i_fd;
 }
 
+/* Create a directory by given a pathname. Unlike fs_create_file(), the
+ * missing directories of the path are never created implicitly.
+ */
+static int fs_mkdir(const char *pathname)
+{
+    struct inode *inode_dir;
+    char name[NAME_MAX];
+
+    int retval = fs_path_lookup(pathname, &inode_dir, name, false);
+    if (retval < 0)
+        return retval;
+
+    /* The pathname refers to an existed directory */
+    if (name[0] == '\0')
+        return -EEXIST;
+
+    /* File with the same name already exists */
+    if (fs_search_file(inode_dir, name))
+        return -EEXIST;
+
+    if (!fs_add_file(inode_dir, name, S_IFDIR))
+        return -ENOSPC;
+
+    return 0;
+}
+
 /* Input : File pathname
  * Output: Directory inode
  */
@@ -1140,6 +1166,11 @@ static void fs_request(int fs_cmd,
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
 
     preempt_enable();
+}
+
+void request_mkdir(int thread_id, const char *path)
+{
+    fs_request(FS_MAKE_DIR, THREAD_PIPE_FD(thread_id), &path, sizeof(path));
 }
 
 void request_create_file(int thread_id, const char *path, uint8_t file_type)
@@ -1379,6 +1410,15 @@ void filesysd(void)
             read(filesysd_fd, &path, sizeof(path));
 
             int result = fs_chdir(path);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_MAKE_DIR: {
+            char *path;
+            read(filesysd_fd, &path, sizeof(path));
+
+            int result = fs_mkdir(path);
             write(reply_fd, &result, sizeof(result));
 
             break;

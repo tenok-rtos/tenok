@@ -46,4 +46,12 @@ int mknod(const char *pathname, mode_t mode, dev_t dev);
  */
 int mkfifo(const char *pathname, mode_t mode);
 
+/**
+ * @brief  Create a directory named pathname
+ * @param  pathname: The pathname of the directory to create.
+ * @param  mode: Not used.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int mkdir(const char *pathname, mode_t mode);
+
 #endif

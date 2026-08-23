@@ -112,6 +112,11 @@ NACKED int mkfifo(const char *pathname, mode_t mode)
     SYSCALL(MKFIFO);
 }
 
+NACKED int mkdir(const char *pathname, mode_t mode)
+{
+    SYSCALL(MKDIR);
+}
+
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);

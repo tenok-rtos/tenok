@@ -1507,6 +1507,18 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
     }
 }
 
+static int sys_mkdir(const char *pathname, mode_t mode)
+{
+    if (!pathname)
+        return -EFAULT;
+
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    return vfs_mkdir(running_thread->tid, pathname);
+}
+
 static int sys_mkfifo(const char *pathname, mode_t mode)
 {
     /* Check the length of the pathname */

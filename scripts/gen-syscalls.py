@@ -28,6 +28,7 @@ syscalls = \
      'getpid',
      'mknod',
      'mkfifo',
+     'mkdir',
      'poll',
      'mq_getattr',
      'mq_setattr',

@@ -15,5 +15,6 @@ int vfs_open_dir(int tid, const char *pathname, DIR *dirp);
 int vfs_readdir(DIR *dirp, struct dirent *dirent);
 char *vfs_getcwd(int tid, char *buf, size_t size);
 int vfs_chdir(int tid, const char *path);
+int vfs_mkdir(int tid, const char *pathname);
 
 #endif

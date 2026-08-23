@@ -55,6 +55,7 @@ enum {
     FS_MOUNT = 4,
     FS_GET_CWD = 5,
     FS_CHANGE_DIR = 6,
+    FS_MAKE_DIR = 7,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -155,6 +156,7 @@ uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
 void request_create_file(int thread_id, const char *path, uint8_t file_type);
+void request_mkdir(int thread_id, const char *path);
 void request_open_file(int thread_id, const char *path);
 void request_open_directory(int reply_fd, const char *path);
 void request_mount(int thread_id, const char *source, const char *target);

@@ -9,6 +9,26 @@
 
 extern struct file *files[FILE_RESERVED_NUM + FILE_MAX];
 
+/* Read the reply of a file system request from the anonymous pipe of the
+ * calling thread
+ */
+static int vfs_read_reply(int tid, void *reply, size_t size)
+{
+    int fifo_retval;
+
+    while (1) {
+        fifo_retval =
+            fifo_read(files[THREAD_PIPE_FD(tid)], (char *) reply, size, 0);
+
+        if (fifo_retval != -ERESTARTSYS)
+            break;
+
+        schedule();
+    }
+
+    return fifo_retval;
+}
+
 int vfs_mount(int tid, const char *source, const char *target)
 {
     /* Send mount request to the file system daemon */
@@ -151,4 +171,16 @@ int vfs_chdir(int tid, const char *path)
     }
 
     return chdir_result;
+}
+
+int vfs_mkdir(int tid, const char *pathname)
+{
+    /* Send mkdir request to the file system daemon */
+    request_mkdir(tid, pathname);
+
+    /* Read mkdir result from the file system daemon */
+    int result;
+    vfs_read_reply(tid, &result, sizeof(result));
+
+    return result;
 }
