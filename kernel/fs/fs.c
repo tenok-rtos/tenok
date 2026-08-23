@@ -631,9 +631,6 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
     new_dentry->d_parent = inode_dir->i_ino; /* Parent inode */
     strncpy(new_dentry->d_name, mnt_dentry->d_name, NAME_MAX); /* File name */
 
-    /* Update inode count */
-    mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
-
     /* Insert the new file under current directory */
     list_add_tail(&new_dentry->d_list, &inode_dir->i_dentry);
 
