@@ -53,7 +53,7 @@ static ssize_t __reg_file_read(struct file *filp,
         uint32_t blk_start_addr = fs_get_block_addr(inode, blk_i);
 
         /* Calculate the block offset of the current read position */
-        uint8_t blk_pos = reg_file->pos % blk_free_size;
+        uint32_t blk_pos = reg_file->pos % blk_free_size;
 
         /* Calculate the read address */
         uint32_t read_addr = blk_start_addr + blk_head_size + blk_pos;
@@ -133,7 +133,7 @@ static ssize_t __reg_file_write(struct file *filp,
         }
 
         /* Calculate the block offset of the current read position */
-        uint8_t blk_pos = reg_file->pos % blk_free_size;
+        uint32_t blk_pos = reg_file->pos % blk_free_size;
 
         /* Calculate the write address */
         uint32_t write_addr = blk_start_addr + blk_head_size + blk_pos;
