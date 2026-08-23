@@ -161,8 +161,11 @@ static ssize_t __reg_file_write(struct file *filp,
         reg_file->pos += write_size;
     }
 
-    /* Update the file size */
-    filp->f_inode->i_size += size;
+    /* Grow the file only if the write position went beyond the old end of
+     * the file. Overwriting the existed content does not change the size.
+     */
+    if (reg_file->pos > (off_t) inode->i_size)
+        inode->i_size = reg_file->pos;
 
     return size - remained_size;
 }
