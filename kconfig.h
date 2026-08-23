@@ -63,7 +63,7 @@
 #define FS_BLK_CNT 100  /* Block number of the file system */
 
 /* Shell */
-#define _LINE_MAX 50
-#define SHELL_HISTORY_MAX 20
+#define _LINE_MAX 128
+#define SHELL_HISTORY_MAX 10
 
 #endif
