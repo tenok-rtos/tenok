@@ -53,4 +53,8 @@ qemu: all
 	-gdb tcp::3333 \
 	-kernel ./$(ELF)
 
-.PHONY: qemu
+# Boot the firmware with QEMU and run a smoke test of the shell on the console
+qemu-test: all
+	./scripts/qemu-test.py ./$(ELF)
+
+.PHONY: qemu qemu-test
