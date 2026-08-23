@@ -56,7 +56,8 @@ int fclose(FILE *stream);
  * @param  size: The number of nmemb bytes to read.
  * @param  nmemb: The bytes number to read at once.
  * @param  stream: The file stream to provide.
- * @retval int: The read number on success and nonzero error number on error.
+ * @retval size_t: The number of the items that were read, which is smaller
+ *         than nmemb if the end of the file is reached or an error occurs.
  */
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
@@ -68,7 +69,8 @@ size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
  * @param  size: The number of nmemb bytes to write.
  * @param  nmemb: The byte number to write at once.
  * @param  stream: The file stream to provide.
- * @retval int: The write number on success and nonzero error number on error.
+ * @retval size_t: The number of the items that were written, which is
+ *         smaller than nmemb if an error occurs.
  */
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 

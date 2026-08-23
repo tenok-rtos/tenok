@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/limits.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "kconfig.h"
@@ -33,22 +32,13 @@ int cat(int argc, char *argv[])
         return 1;
     }
 
-    struct stat stat;
-    fstat(fileno(file), &stat);
-
     /* Reset read position of the file */
     fseek(file, 0, SEEK_SET);
 
-    /* Calculate the iteration times to print the whole file */
-    int size = stat.st_size / PRINT_SIZE_MAX;
-    if ((stat.st_size % PRINT_SIZE_MAX) > 0)
-        size++;
-
     /* Read and print the file */
-    for (int i = 0; i < size; i++) {
-        int recvd = fread(str, PRINT_SIZE_MAX - 1, 1, file);
+    size_t recvd;
+    while ((recvd = fread(str, 1, PRINT_SIZE_MAX - 1, file)) > 0) {
         str[recvd] = '\0';
-
         shell_puts(str);
     }
 

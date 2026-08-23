@@ -44,49 +44,60 @@ size_t _fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
 
-    size_t nbytes = size * nmemb;
-    int times = (nbytes - 1) / MAX_READ_SIZE + 1;
-    int total = 0;
+    if (size == 0 || nmemb == 0)
+        return 0;
 
-    int retval;
-    for (int i = 0; i < times; i++) {
-        int rsize = (nbytes >= MAX_READ_SIZE) ? MAX_READ_SIZE : nbytes;
-        retval = read(_stream->fd, (char *) ((uintptr_t) ptr + total), rsize);
+    size_t remained = size * nmemb;
+    size_t total = 0;
 
-        total += rsize;
-        nbytes -= rsize;
+    while (remained > 0) {
+        size_t rsize = (remained > MAX_READ_SIZE) ? MAX_READ_SIZE : remained;
+        ssize_t retval = read(_stream->fd, (char *) ptr + total, rsize);
 
-        if (retval != rsize) {
-            break; /* EOF or read error */
-        }
+        /* End of the file or read error */
+        if (retval <= 0)
+            break;
+
+        total += retval;
+        remained -= retval;
+
+        /* A short read means the end of the file is reached */
+        if ((size_t) retval < rsize)
+            break;
     }
 
-    return total;
+    /* The function returns the number of the items that were read */
+    return total / size;
 }
 
 size_t _fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
 
-    size_t nbytes = size * nmemb;
-    int times = (nbytes - 1) / MAX_WRITE_SIZE + 1;
-    int total = 0;
+    if (size == 0 || nmemb == 0)
+        return 0;
 
-    int retval;
-    for (int i = 0; i < times; i++) {
-        /* Write file */
-        int wsize = (nbytes >= MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : nbytes;
-        retval = write(_stream->fd, (char *) ((uintptr_t) ptr + total), wsize);
+    size_t remained = size * nmemb;
+    size_t total = 0;
 
-        total += wsize;
-        nbytes -= wsize;
+    while (remained > 0) {
+        size_t wsize = (remained > MAX_WRITE_SIZE) ? MAX_WRITE_SIZE : remained;
+        ssize_t retval = write(_stream->fd, (char *) ptr + total, wsize);
 
-        if (retval != wsize) {
-            break; /* EOF or write error */
-        }
+        /* Write error */
+        if (retval <= 0)
+            break;
+
+        total += retval;
+        remained -= retval;
+
+        /* A short write means there is no space left */
+        if ((size_t) retval < wsize)
+            break;
     }
 
-    return total;
+    /* The function returns the number of the items that were written */
+    return total / size;
 }
 
 int _fseek(FILE *stream, long offset, int whence)
