@@ -21,8 +21,8 @@
 
 static void fs_mount_directory(struct inode *inode_src,
                                struct inode *inode_target);
-static int fs_create_file(char *pathname, uint8_t file_type);
-static int fs_open_file(char *pathname);
+static int fs_create_file(const char *pathname, uint8_t file_type);
+static int fs_open_file(const char *pathname);
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t rootfs_write(struct file *filp,
                      const char *buf,
@@ -343,7 +343,8 @@ static void fs_read_inode(uint8_t rdev,
  * Input : Directory inode, file name
  * Output: File inode
  */
-static struct inode *fs_search_file(struct inode *inode_dir, char *file_name)
+static struct inode *fs_search_file(struct inode *inode_dir,
+                                    const char *file_name)
 {
     /* Return current inode. Note that "." and ".." belong to the directory
      * itself, so they must be handled before the emptiness check, otherwise
@@ -781,250 +782,191 @@ static void fs_mount_directory(struct inode *inode_src,
     inode_target->i_sync = true;
 }
 
-/* Get the first entry of a given path. For example, given the pathname
- * "dir/file1.txt", the function should return "dir".
- * Input : Pathname
- * Output: Entry name and the reduced path string
+/* Resolve a pathname into the inode of its parent directory together with
+ * the last entry of the path. A relative pathname is resolved from the
+ * current working directory.
+ *
+ * Input : Pathname and whether the missing directories should be created
+ * Output: Parent directory inode and the last entry name of the path
  */
-static char *fs_split_path(char *entry, char *path)
+static int fs_path_lookup(const char *pathname,
+                          struct inode **parent,
+                          char *name,
+                          bool create_dirs)
 {
-    while (1) {
-        bool found_dir = (*path == '/');
+    char path[PATH_MAX];
 
-        /* Copy */
-        if (found_dir == false) {
-            *entry = *path;
-            entry++;
+    if (!pathname || pathname[0] == '\0')
+        return -ENOENT;
+
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    strcpy(path, pathname);
+
+    /* An absolute path is resolved from the root directory while a relative
+     * one is resolved from the current working directory
+     */
+    struct inode *inode_dir = (path[0] == '/') ? &inodes[0] : shell_dir_curr;
+
+    /* Get rid of the leading slashes */
+    char *p = path;
+    while (*p == '/')
+        p++;
+
+    name[0] = '\0';
+
+    while (*p != '\0') {
+        /* Split the next entry of the path */
+        char *entry = p;
+        while ((*p != '\0') && (*p != '/'))
+            p++;
+
+        size_t entry_len = p - entry;
+
+        /* Get rid of the successive slashes */
+        while (*p == '/')
+            p++;
+
+        if (entry_len >= NAME_MAX)
+            return -ENAMETOOLONG;
+
+        /* The end of the path is reached, the entry is the file name */
+        if (*p == '\0') {
+            memcpy(name, entry, entry_len);
+            name[entry_len] = '\0';
+            *parent = inode_dir;
+            return 0;
         }
 
-        path++;
+        /* The entry is an intermediate directory of the path */
+        char entry_name[NAME_MAX];
+        memcpy(entry_name, entry, entry_len);
+        entry_name[entry_len] = '\0';
 
-        if ((found_dir == true) || (*path == '\0'))
-            break;
+        struct inode *inode = fs_search_file(inode_dir, entry_name);
+
+        if (!inode) {
+            /* The directory does not exist */
+            if (!create_dirs)
+                return -ENOENT;
+
+            /* Create the missing directory */
+            inode = fs_add_file(inode_dir, entry_name, S_IFDIR);
+            if (!inode)
+                return -ENOSPC;
+        }
+
+        /* Failed, not a directory */
+        if (inode->i_mode != S_IFDIR)
+            return -ENOTDIR;
+
+        inode_dir = inode;
     }
 
-    *entry = '\0';
+    /* The pathname refers to the root or the current working directory */
+    *parent = inode_dir;
 
-    /* End of the string */
-    if (*path == '\0')
-        return NULL; /* No more string to split */
+    return 0;
+}
 
-    /* Return the address of the left path string */
-    return path;
+/* Resolve a pathname into an inode, no matter it is a file or a directory
+ * Input : Pathname
+ * Output: File inode, NULL is returned if the file does not exist
+ */
+static struct inode *fs_resolve_path(const char *pathname)
+{
+    struct inode *inode_dir;
+    char name[NAME_MAX];
+
+    if (fs_path_lookup(pathname, &inode_dir, name, false) != 0)
+        return NULL;
+
+    /* The path refers to a directory itself, e.g., "/" */
+    if (name[0] == '\0')
+        return inode_dir;
+
+    return fs_search_file(inode_dir, name);
 }
 
 /* Create a file by given the pathname
  * Input : Path name and file type
  * Output: File descriptor number
  */
-static int fs_create_file(char *pathname, uint8_t file_type)
+static int fs_create_file(const char *pathname, uint8_t file_type)
 {
-    /* The path name must start with '/' */
-    if (pathname[0] != '/')
-        return -1;
+    struct inode *inode_dir;
+    char name[NAME_MAX];
 
-    /* iterate from the root inode */
-    struct inode *inode_curr = &inodes[0];
-    struct inode *inode;
+    /* The missing directories of the path are created on demand, e.g., the
+     * /dev directory is created while registering the first device file
+     */
+    int retval = fs_path_lookup(pathname, &inode_dir, name, true);
+    if (retval < 0)
+        return retval;
 
-    char file_name[NAME_MAX];
-    char entry[PATH_MAX];
-    char *path = pathname;
+    /* The pathname does not contain any file name */
+    if (name[0] == '\0')
+        return -EEXIST;
 
-    /* get rid of the first '/' */
-    path = fs_split_path(entry, path);
+    /* File with the same name already exists */
+    if (fs_search_file(inode_dir, name))
+        return -EEXIST;
 
-    while (1) {
-        /* Split the path and get the entry name of each layer */
-        path = fs_split_path(entry, path);
+    /* Create new inode for the file */
+    struct inode *inode = fs_add_file(inode_dir, name, file_type);
+    if (!inode)
+        return -ENOSPC;
 
-        /* Two successive '/' are detected */
-        if (entry[0] == '\0') {
-            if (path == NULL) {
-                return -1;
-            } else {
-                continue;
-            }
-        }
-
-        /* The last non-empty entry is the file name */
-        if (entry[0] != '\0') {
-            strncpy(file_name, entry, NAME_MAX - 1);
-            file_name[NAME_MAX - 1] = '\0';
-        }
-
-        /* Search the entry and get the inode */
-        inode = fs_search_file(inode_curr, entry);
-
-        if (path != NULL) {
-            /* The path can be further splitted, i.e., it is a directory */
-
-            /* Check if the directory exists */
-            if (inode == NULL) {
-                /* Directory does not exist, create one */
-                inode = fs_add_file(inode_curr, entry, S_IFDIR);
-
-                /* Failed to create the directory */
-                if (inode == NULL)
-                    return -1;
-            }
-
-            inode_curr = inode;
-        } else {
-            /* No more path to be splitted, the remained string should be the
-             * file name */
-
-            /* File with the same name already exists */
-            if (inode != NULL)
-                return -1;
-
-            /* Create new inode for the file */
-            inode = fs_add_file(inode_curr, file_name, file_type);
-
-            /* Failed to create the file */
-            if (inode == NULL)
-                return -1;
-
-            /* File is created successfully */
-            return inode->i_fd;
-        }
-    }
+    return inode->i_fd;
 }
 
 /* Open a file by given a pathname
  * Input : Pathname
  * Output: File descriptor number
  */
-static int fs_open_file(char *pathname)
+static int fs_open_file(const char *pathname)
 {
-    /* The pathname must start with '/' */
-    if (pathname[0] != '/')
-        return -1;
+    struct inode *inode = fs_resolve_path(pathname);
 
-    /* Iterate from the root inode */
-    struct inode *inode_curr = &inodes[0];
-    struct inode *inode;
+    /* File not found */
+    if (!inode)
+        return -ENOENT;
 
-    char entry[PATH_MAX] = {0};
-    char *path = pathname;
+    /* A directory can only be opened with opendir() */
+    if (inode->i_mode == S_IFDIR)
+        return -EISDIR;
 
-    /* Get rid of the first '/' */
-    path = fs_split_path(entry, path);
-
-    while (1) {
-        /* Split the path and get the entry name of each layer */
-        path = fs_split_path(entry, path);
-
-        /* Two successive '/' are detected */
-        if (entry[0] == '\0') {
-            if (path == NULL) {
-                return -1;
-            } else {
-                continue;
-            }
-        }
-
-        /* Search the entry and get the inode */
-        inode = fs_search_file(inode_curr, entry);
-
-        /* File or directory not found */
-        if (inode == NULL)
-            return -1;
-
-        if (path != NULL) {
-            /* The path can be further splitted, the iteration can get deeper */
-
-            /* Failed, not a directory */
-            if (inode->i_mode != S_IFDIR)
-                return -1;
-
-            inode_curr = inode;
-        } else {
-            /* No more path to be splitted, the remained string should be the
-             * file name */
-
-            /* Make sure the last char is not equal to '/' */
-            int len = strlen(pathname);
-            if (pathname[len - 1] == '/')
-                return -1;
-
-            /* Check if the file requires synchronization */
-            if ((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync == false)) {
-                /* Synchronize the file */
-                fs_sync_file(inode);
-            }
-
-            /* Failed, not a file */
-            if (inode->i_mode == S_IFDIR)
-                return -1;
-
-            /* File is open successfully */
-            return inode->i_fd;
-        }
+    /* Check if the file requires synchronization */
+    if ((inode->i_rdev != RDEV_ROOTFS) && (inode->i_sync == false)) {
+        /* Synchronize the file */
+        if (!fs_sync_file(inode))
+            return -ENFILE;
     }
+
+    /* File is open successfully */
+    return inode->i_fd;
 }
 
 /* Input : File pathname
  * Output: Directory inode
  */
-struct inode *fs_open_directory(char *pathname)
+struct inode *fs_open_directory(const char *pathname)
 {
-    /* The path name must start with '/' */
-    if (pathname[0] != '/')
+    struct inode *inode = fs_resolve_path(pathname);
+
+    /* Directory does not exist or the path refers to a file */
+    if (!inode || (inode->i_mode != S_IFDIR))
         return NULL;
 
-    /* Iterate from the root inode */
-    struct inode *inode_curr = &inodes[0];
-    struct inode *inode;
-
-    char entry_curr[PATH_MAX] = {0};
-    char *path = pathname;
-
-    /* Get rid of the first '/' */
-    path = fs_split_path(entry_curr, path);
-
-    if (path == NULL)
-        return inode_curr;
-
-    while (1) {
-        /* Split the path and get the entry hierarchically */
-        path = fs_split_path(entry_curr, path);
-
-        /* Two successive '/' are detected */
-        if (entry_curr[0] == '\0') {
-            if (path == NULL) {
-                break;
-            } else {
-                continue;
-            }
-        }
-
-        /* Search the entry and get the inode */
-        inode = fs_search_file(inode_curr, entry_curr);
-
-        /* Directory does not exist */
-        if (inode == NULL)
-            return NULL;
-
-        /* Not a directory */
-        if (inode->i_mode != S_IFDIR)
-            return NULL;
-
-        inode_curr = inode;
-
-        /* No more sub-string to be splitted */
-        if (path == NULL)
-            break;
-    }
-
     /* Synchronize the directory */
-    if (inode_curr->i_sync == false)
-        fs_mount_directory(inode_curr, inode_curr);
+    if (inode->i_sync == false)
+        fs_mount_directory(inode, inode);
 
-    return inode_curr;
+    return inode;
 }
 
-static int fs_mount(char *source, char *target)
+static int fs_mount(const char *source, const char *target)
 {
     /* Get the file of the storage to mount */
     int source_fd = fs_open_file(source);
@@ -1106,41 +1048,21 @@ char *fs_getcwd(char *buf, size_t len)
 
 int fs_chdir(const char *path)
 {
-    char path_tmp[PATH_MAX] = {0};
-
-    if (strncmp("..", path, PATH_MAX) == 0) {
-        /* Handle cd .. */
-        fs_getcwd(path_tmp, PATH_MAX);
-        int pos = strlen(path_tmp);
-        snprintf(&path_tmp[pos], PATH_MAX, "..");
-    } else {
-        /* Handle regular path */
-        if (path[0] == '/') {
-            /* Handle absolute path */
-            strncpy(path_tmp, path, PATH_MAX - 1);
-            path_tmp[PATH_MAX - 1] = '\0';
-        } else {
-            /* Handle relative path */
-            fs_getcwd(path_tmp, PATH_MAX);
-            int pos = strlen(path_tmp);
-            snprintf(&path_tmp[pos], PATH_MAX, "%s", path);
-        }
-    }
-
-    /* Open the directory */
-    struct inode *inode_dir = fs_open_directory(path_tmp);
+    struct inode *inode = fs_resolve_path(path);
 
     /* Directory not found */
-    if (!inode_dir) {
+    if (!inode)
         return -ENOENT;
-    }
 
     /* Not a directory */
-    if (inode_dir->i_mode != S_IFDIR) {
+    if (inode->i_mode != S_IFDIR)
         return -ENOTDIR;
-    }
 
-    shell_dir_curr = inode_dir;
+    /* Synchronize the directory */
+    if (inode->i_sync == false)
+        fs_mount_directory(inode, inode);
+
+    shell_dir_curr = inode;
 
     return 0;
 }
