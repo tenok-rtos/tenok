@@ -1,17 +1,42 @@
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/reent.h>
 #include <unistd.h>
 
 #define MAX_READ_SIZE 100
 #define MAX_WRITE_SIZE 100
 
+/* Convert a fopen() mode string into the flags of the open() system call */
+static int fopen_flags(const char *mode)
+{
+    /* The characters that carry no meaning for Tenok are ignored */
+    bool update = (strchr(mode, '+') != NULL);
+
+    switch (mode[0]) {
+    case 'r':
+        return update ? O_RDWR : O_RDONLY;
+    case 'w':
+        return (update ? O_RDWR : O_WRONLY) | O_CREAT | O_TRUNC;
+    case 'a':
+        return (update ? O_RDWR : O_WRONLY) | O_CREAT | O_APPEND;
+    default:
+        return -1;
+    }
+}
+
 FILE *_fopen(const char *pathname, const char *mode)
 {
+    /* An empty mode string is accepted and means read only */
+    int flags = (!mode || mode[0] == '\0') ? O_RDONLY : fopen_flags(mode);
+    if (flags < 0)
+        return NULL;
+
     /* Open the file with the system call */
-    int fd = open(pathname, 0);
+    int fd = open(pathname, flags);
 
     /* Failed to open the file */
     if (fd < 0)
