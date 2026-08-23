@@ -19,7 +19,10 @@
 #define ENOTBLK 15      /**< Not a block device */
 #define EBUSY 16        /**< Device or resource busy */
 #define EEXIST 17       /**< File exists */
+#define EXDEV 18        /**< Cross-device link */
+#define ENODEV 19       /**< No such device */
 #define ENOTDIR 20      /**< Not a directory */
+#define EISDIR 21       /**< Is a directory */
 #define EINVAL 22       /**< Invalid argument */
 #define ENFILE 23       /**< Too many open files in the system */
 #define EMFILE 24       /**< File descriptor value too long */
@@ -31,6 +34,7 @@
 #define EROFS 30        /**< Read-only file system */
 #define EDEADLK 45      /**< Deadlock */
 #define ENOSYS 88       /**< Function not implemented */
+#define ENOTEMPTY 90    /**< Directory not empty */
 #define ENAMETOOLONG 91 /**< File or path name too long */
 #define EMSGSIZE 122    /**< Message to long */
 #define ETIMEDOUT 110   /**< Connection timed out */
