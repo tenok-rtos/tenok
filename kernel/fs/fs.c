@@ -21,7 +21,9 @@
 
 static void fs_mount_directory(struct inode *inode_src,
                                struct inode *inode_target);
-static int fs_create_file(const char *pathname, uint8_t file_type);
+static int fs_create_file(const char *pathname,
+                          uint8_t file_type,
+                          bool create_dirs);
 static int fs_open_file(const char *pathname);
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t rootfs_write(struct file *filp,
@@ -99,7 +101,7 @@ int register_chrdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new character device file */
-    int fd = fs_create_file(dev_path, S_IFCHR);
+    int fd = fs_create_file(dev_path, S_IFCHR, true);
 
     /* Link the file operations */
     files[fd]->f_op = fops;
@@ -113,7 +115,7 @@ int register_blkdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new block device file */
-    int fd = fs_create_file(dev_path, S_IFBLK);
+    int fd = fs_create_file(dev_path, S_IFBLK, true);
 
     /* Link the file operations */
     files[fd]->f_op = fops;
@@ -893,15 +895,14 @@ static struct inode *fs_resolve_path(const char *pathname)
  * Input : Path name and file type
  * Output: File descriptor number
  */
-static int fs_create_file(const char *pathname, uint8_t file_type)
+static int fs_create_file(const char *pathname,
+                          uint8_t file_type,
+                          bool create_dirs)
 {
     struct inode *inode_dir;
     char name[NAME_MAX];
 
-    /* The missing directories of the path are created on demand, e.g., the
-     * /dev directory is created while registering the first device file
-     */
-    int retval = fs_path_lookup(pathname, &inode_dir, name, true);
+    int retval = fs_path_lookup(pathname, &inode_dir, name, create_dirs);
     if (retval < 0)
         return retval;
 
@@ -1292,7 +1293,7 @@ void filesysd(void)
             uint8_t file_type;
             read(filesysd_fd, &file_type, sizeof(file_type));
 
-            int new_fd = fs_create_file(path, file_type);
+            int new_fd = fs_create_file(path, file_type, false);
             write(reply_fd, &new_fd, sizeof(new_fd));
 
             break;
