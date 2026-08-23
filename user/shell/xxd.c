@@ -86,19 +86,8 @@ int xxd(int argc, char *argv[])
         return 1;
     }
 
-    char path[PATH_MAX] = {0};
-
-    if (argv[1][0] != '/') {
-        /* Input is a relative path */
-        char pwd[PATH_MAX] = {0};
-        getcwd(pwd, PATH_MAX);
-
-        snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
-    } else {
-        /* Input is a absolute path */
-        strncpy(path, argv[1], PATH_MAX - 1);
-        path[PATH_MAX - 1] = '\0';
-    }
+    /* Both relative and absolute paths are resolved by the kernel */
+    const char *path = argv[1];
 
     /* Open file */
     FILE *file = fopen(path, "");

@@ -1,28 +1,14 @@
 #include <stdio.h>
-#include <string.h>
-#include <sys/limits.h>
-#include <unistd.h>
 
 #include "kconfig.h"
 #include "shell.h"
 
 int cat(int argc, char *argv[])
 {
-    char path[PATH_MAX] = {0};
-
-    if (argv[1][0] != '/') {
-        /* Input filename using relative path */
-        char pwd[PATH_MAX] = {0};
-        getcwd(pwd, PATH_MAX);
-
-        snprintf(path, PATH_MAX, "%s%s", pwd, argv[1]);
-    } else {
-        /* Input filename using absolute path */
-        strncpy(path, argv[1], PATH_MAX - 1);
-        path[PATH_MAX - 1] = '\0';
-    }
-
     char str[PRINT_SIZE_MAX] = {0};
+
+    /* Both relative and absolute paths are resolved by the kernel */
+    const char *path = argv[1];
 
     /* Open the file */
     FILE *file = fopen(path, "");

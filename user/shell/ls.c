@@ -12,24 +12,13 @@ int ls(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    /* Get current directory path */
-    char path[PATH_MAX] = {0};
-    getcwd(path, PATH_MAX);
-
-    if (argc == 2) {
-        if (argv[1][0] != '/') {
-            /* Input filename using relative path */
-            int pos = strlen(path);
-            snprintf(&path[pos], PRINT_SIZE_MAX, "/%s", argv[1]);
-        } else {
-            /* Input filename using absolute path */
-            strncpy(path, argv[1], PATH_MAX - 1);
-            path[PATH_MAX - 1] = '\0';
-        }
-    } else if (argc > 2) {
+    if (argc > 2) {
         shell_puts("ls: too many arguments\n\r");
         return 1;
     }
+
+    /* Both relative and absolute paths are resolved by the kernel */
+    const char *path = (argc == 2) ? argv[1] : ".";
 
     /* Open the directory */
     DIR dir;
@@ -38,8 +27,7 @@ int ls(int argc, char *argv[])
     /* Check if the directory is open successfully */
     if (retval != 0) {
         snprintf(str, PRINT_SIZE_MAX,
-                 "ls: cannot access '%s': No such file or directory\n\r",
-                 argv[1]);
+                 "ls: cannot access '%s': No such file or directory\n\r", path);
         shell_puts(str);
         return 1;
     }

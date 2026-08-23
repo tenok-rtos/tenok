@@ -13,10 +13,6 @@ int file(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
 
-    /* Get current directory path */
-    char path[PATH_MAX] = {0};
-    getcwd(path, PATH_MAX);
-
     if (argc == 1) {
         shell_puts("Usage: file <file>\n\r");
         return 1;
@@ -25,15 +21,8 @@ int file(int argc, char *argv[])
         return 1;
     }
 
-    if (argv[1][0] != '/') {
-        /* Input filename using relative path */
-        int pos = strlen(path);
-        snprintf(&path[pos], PRINT_SIZE_MAX, "%s", argv[1]);
-    } else {
-        /* Input filename using absolute path */
-        strncpy(path, argv[1], PATH_MAX - 1);
-        path[PATH_MAX - 1] = '\0';
-    }
+    /* Both relative and absolute paths are resolved by the kernel */
+    const char *path = argv[1];
 
     /* Open the file */
     int fd = open(path, 0);

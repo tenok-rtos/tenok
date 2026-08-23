@@ -1019,29 +1019,25 @@ char *fs_getcwd(char *buf, size_t len)
 
     struct inode *inode = shell_dir_curr;
 
-    while (1) {
-        if (inode->i_ino == 0)
-            break;
-
+    while (inode->i_ino != 0) {
         /* Switch to the parent directory */
         uint32_t inode_prev = inode->i_ino;
         inode = &inodes[inode->i_parent];
 
-        /* No file is under this directory */
-        if (list_empty(&inode->i_dentry) == true)
-            break;
-
+        /* Search the name of the directory that was left behind */
         struct dentry *dentry;
         list_for_each_entry (dentry, &inode->i_dentry, d_list) {
             if (dentry->d_inode == inode_prev) {
-                strncpy(old_path, new_path, PATH_MAX);
-                snprintf(new_path, PATH_MAX, "%s/%s", dentry->d_name, old_path);
+                strncpy(old_path, new_path, PATH_MAX - 1);
+                old_path[PATH_MAX - 1] = '\0';
+                snprintf(new_path, PATH_MAX, "/%s%s", dentry->d_name, old_path);
                 break;
             }
         }
     }
 
-    snprintf(buf, len, "/%s", new_path);
+    /* The root directory has no name of its own */
+    snprintf(buf, len, "%s", (new_path[0] == '\0') ? "/" : new_path);
 
     return buf;
 }
