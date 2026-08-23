@@ -10,7 +10,14 @@
 
 #define NANOSECOND_TICKS (1000000000 / OS_TICK_FREQ)
 
+/* Time elapsed since the system was booted */
 static struct timespec sys_time;
+
+/* Difference between the wall clock and the monotonic clock. Tenok has no
+ * battery backed RTC, so the wall clock starts at the Unix epoch until it is
+ * set with clock_settime().
+ */
+static struct timespec realtime_offset;
 
 static void normalize_timespec(struct timespec *time)
 {
@@ -71,6 +78,22 @@ void set_sys_time(const struct timespec *tp)
     sys_time = *tp;
 }
 
+void get_realtime(struct timespec *tp)
+{
+    tp->tv_sec = sys_time.tv_sec + realtime_offset.tv_sec;
+    tp->tv_nsec = sys_time.tv_nsec + realtime_offset.tv_nsec;
+
+    normalize_timespec(tp);
+}
+
+void set_realtime(const struct timespec *tp)
+{
+    realtime_offset.tv_sec = tp->tv_sec - sys_time.tv_sec;
+    realtime_offset.tv_nsec = tp->tv_nsec - sys_time.tv_nsec;
+
+    normalize_timespec(&realtime_offset);
+}
+
 int clock_getres(clockid_t clockid, struct timespec *res)
 {
     // TODO: Check clock ID
@@ -125,7 +148,7 @@ NACKED int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 time_t time(time_t *tloc)
 {
     struct timespec tp;
-    clock_gettime(CLOCK_MONOTONIC, &tp);
+    clock_gettime(CLOCK_REALTIME, &tp);
 
     if (tloc)
         *tloc = tp.tv_sec;

@@ -29,6 +29,8 @@ void timer_down_count(struct timespec *time);
 void time_add(struct timespec *time, time_t sec, long nsec);
 void get_sys_time(struct timespec *tp);
 void set_sys_time(const struct timespec *tp);
+void get_realtime(struct timespec *tp);
+void set_realtime(const struct timespec *tp);
 void system_timer_update(void);
 
 ktime_t ktime_get(void);

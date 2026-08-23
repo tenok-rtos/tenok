@@ -3254,13 +3254,15 @@ static int sys_clock_gettime(clockid_t clockid, struct timespec *tp)
         goto leave;
     }
 
-    if (clockid != CLOCK_MONOTONIC) {
+    if (clockid == CLOCK_MONOTONIC) {
+        get_sys_time(tp);
+    } else if (clockid == CLOCK_REALTIME) {
+        get_realtime(tp);
+    } else {
         /* Return error */
         retval = -EINVAL;
         goto leave;
     }
-
-    get_sys_time(tp);
 
     /* Return success */
     retval = 0;
@@ -3281,13 +3283,15 @@ static int sys_clock_settime(clockid_t clockid, const struct timespec *tp)
         goto leave;
     }
 
-    if (clockid != CLOCK_MONOTONIC) {
+    if (clockid == CLOCK_MONOTONIC) {
+        set_sys_time(tp);
+    } else if (clockid == CLOCK_REALTIME) {
+        set_realtime(tp);
+    } else {
         /* Return error */
         retval = -EINVAL;
         goto leave;
     }
-
-    set_sys_time(tp);
 
     /* Return success */
     retval = 0;
