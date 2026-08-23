@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <common/list.h>
@@ -57,6 +58,7 @@ enum {
     FS_CHANGE_DIR = 6,
     FS_MAKE_DIR = 7,
     FS_REMOVE = 8,
+    FS_STAT = 9,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -161,6 +163,7 @@ uint32_t fs_file_append_block(struct inode *inode);
 void request_create_file(int thread_id, const char *path, uint8_t file_type);
 void request_mkdir(int thread_id, const char *path);
 void request_remove(int thread_id, const char *path, bool rm_dir);
+void request_stat(int thread_id, const char *path, struct stat *statbuf);
 void request_open_file(int thread_id, const char *path);
 void request_open_directory(int reply_fd, const char *path);
 void request_mount(int thread_id, const char *source, const char *target);

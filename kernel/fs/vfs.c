@@ -196,3 +196,15 @@ int vfs_remove(int tid, const char *pathname, bool rm_dir)
 
     return result;
 }
+
+int vfs_stat(int tid, const char *pathname, struct stat *statbuf)
+{
+    /* Send stat request to the file system daemon */
+    request_stat(tid, pathname, statbuf);
+
+    /* Read stat result from the file system daemon */
+    int result;
+    vfs_read_reply(tid, &result, sizeof(result));
+
+    return result;
+}

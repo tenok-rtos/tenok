@@ -132,6 +132,16 @@ int unlink(const char *pathname)
     return _unlink(pathname);
 }
 
+NACKED int _stat(const char *pathname, struct stat *statbuf)
+{
+    SYSCALL(STAT);
+}
+
+int stat(const char *pathname, struct stat *statbuf)
+{
+    return _stat(pathname, statbuf);
+}
+
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);

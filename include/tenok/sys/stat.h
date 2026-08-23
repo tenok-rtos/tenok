@@ -54,4 +54,13 @@ int mkfifo(const char *pathname, mode_t mode);
  */
 int mkdir(const char *pathname, mode_t mode);
 
+/**
+ * @brief  Return information about the file specified by the pathname, in
+ *         the buffer pointed to by statbuf
+ * @param  pathname: The pathname of the file.
+ * @param  statbuf: The buffer for returning the file information.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int stat(const char *pathname, struct stat *statbuf);
+
 #endif

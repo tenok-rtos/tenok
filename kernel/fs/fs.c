@@ -1045,6 +1045,23 @@ static int fs_remove(const char *pathname, bool rm_dir)
     return 0;
 }
 
+/* Return the information of the file specified by the pathname */
+static int fs_stat(const char *pathname, struct stat *statbuf)
+{
+    struct inode *inode = fs_resolve_path(pathname);
+
+    if (!inode)
+        return -ENOENT;
+
+    statbuf->st_mode = inode->i_mode;
+    statbuf->st_ino = inode->i_ino;
+    statbuf->st_rdev = inode->i_rdev;
+    statbuf->st_size = inode->i_size;
+    statbuf->st_blocks = inode->i_blocks;
+
+    return 0;
+}
+
 /* Create a directory by given a pathname. Unlike fs_create_file(), the
  * missing directories of the path are never created implicitly.
  */
@@ -1262,6 +1279,16 @@ static void fs_request(int fs_cmd,
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
 
     preempt_enable();
+}
+
+void request_stat(int thread_id, const char *path, struct stat *statbuf)
+{
+    char args[sizeof(path) + sizeof(statbuf)];
+
+    memcpy(&args[0], &path, sizeof(path));
+    memcpy(&args[sizeof(path)], &statbuf, sizeof(statbuf));
+
+    fs_request(FS_STAT, THREAD_PIPE_FD(thread_id), args, sizeof(args));
 }
 
 void request_remove(int thread_id, const char *path, bool rm_dir)
@@ -1537,6 +1564,18 @@ void filesysd(void)
             read(filesysd_fd, &rm_dir, sizeof(rm_dir));
 
             int result = fs_remove(path, rm_dir);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_STAT: {
+            char *path;
+            read(filesysd_fd, &path, sizeof(path));
+
+            struct stat *statbuf;
+            read(filesysd_fd, &statbuf, sizeof(statbuf));
+
+            int result = fs_stat(path, statbuf);
             write(reply_fd, &result, sizeof(result));
 
             break;
