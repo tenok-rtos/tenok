@@ -410,13 +410,22 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 
     /* Allocate new inode for the file */
     struct inode *new_inode = fs_alloc_inode();
+    if (!new_inode)
+        goto failed;
+
     new_inode->i_rdev = RDEV_ROOTFS;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd = fd;
     new_inode->i_sync = true;
+    new_inode->i_size = 0;
+    new_inode->i_blocks = 0;
+    new_inode->i_data = (uint32_t) NULL;
 
     /* Configure new dentry */
     struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
+    if (!new_dentry)
+        goto failed;
+
     new_dentry->d_inode = new_inode->i_ino;               /* file inode */
     new_dentry->d_parent = inode_dir->i_ino;              /* parent inode */
     strncpy(new_dentry->d_name, file_name, NAME_MAX - 1); /* file name */
@@ -432,21 +441,28 @@ static struct inode *fs_add_file(struct inode *inode_dir,
         struct kfifo *pipe_fifo = kfifo_alloc(1, PIPE_BUF);
 
         /* Allocation failure */
-        if (!pipe || !pipe_fifo)
+        if (!pipe || !pipe_fifo) {
+            if (pipe)
+                kfree(pipe);
+            if (pipe_fifo)
+                kfifo_free(pipe_fifo);
             goto failed;
+        }
 
         pipe->fifo = pipe_fifo;
         result = fifo_init(fd, (struct file **) &files, new_inode, pipe);
 
         new_inode->i_mode = S_IFIFO;
-        new_inode->i_size = 0;
-        new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL;
 
         break;
     }
-    case S_IFCHR: {
-        /* Character device */
+    case S_IFCHR:
+    case S_IFBLK:
+    case S_IFDIR: {
+        /* Character device, block device and directory. Note that a
+         * directory owns a file object as well, otherwise every place that
+         * touches files[fd] would have to special case it.
+         */
         struct file *dev_file = fs_alloc_file();
 
         /* Allocation failure */
@@ -456,28 +472,10 @@ static struct inode *fs_add_file(struct inode *inode_dir,
         dev_file->f_inode = new_inode;
         files[fd] = dev_file;
 
-        new_inode->i_mode = S_IFCHR;
-        new_inode->i_size = 0;
-        new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL;
+        new_inode->i_mode = file_type;
 
-        break;
-    }
-    case S_IFBLK: {
-        /* Block device */
-        struct file *dev_file = fs_alloc_file();
-
-        /* Allocation failure */
-        if (!dev_file)
-            goto failed;
-
-        dev_file->f_inode = new_inode;
-        files[fd] = dev_file;
-
-        new_inode->i_mode = S_IFBLK;
-        new_inode->i_size = 0;
-        new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL;
+        if (file_type == S_IFDIR)
+            INIT_LIST_HEAD(&new_inode->i_dentry);
 
         break;
     }
@@ -492,30 +490,18 @@ static struct inode *fs_add_file(struct inode *inode_dir,
         result = reg_file_init((struct file **) &files, new_inode, reg_file);
 
         new_inode->i_mode = S_IFREG;
-        new_inode->i_size = 0;
-        new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL; /* Empty content */
 
         break;
     }
-    case S_IFDIR:
-        /* Directory */
-        new_inode->i_mode = S_IFDIR;
-        new_inode->i_size = 0;
-        new_inode->i_blocks = 0;
-        new_inode->i_data = (uint32_t) NULL; /* Empty directory */
-        INIT_LIST_HEAD(&new_inode->i_dentry);
-
-        break;
     default:
         result = -1;
     }
 
-    /* Initialize file events */
-    files[fd]->f_events = 0;
-
     if (result != 0)
         goto failed;
+
+    /* Initialize file events */
+    files[fd]->f_events = 0;
 
     /* Update file count */
     file_cnt++;
