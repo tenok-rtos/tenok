@@ -20,5 +20,6 @@ int vfs_chdir(int tid, const char *path);
 int vfs_mkdir(int tid, const char *pathname);
 int vfs_remove(int tid, const char *pathname, bool rm_dir);
 int vfs_stat(int tid, const char *pathname, struct stat *statbuf);
+int vfs_rename(int tid, const char *oldpath, const char *newpath);
 
 #endif

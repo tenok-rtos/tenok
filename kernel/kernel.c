@@ -1532,6 +1532,18 @@ static int sys_mkdir(const char *pathname, mode_t mode)
     return vfs_mkdir(running_thread->tid, pathname);
 }
 
+static int sys_rename(const char *oldpath, const char *newpath)
+{
+    if (!oldpath || !newpath)
+        return -EFAULT;
+
+    /* Check the length of the pathnames */
+    if (strlen(oldpath) >= PATH_MAX || strlen(newpath) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    return vfs_rename(running_thread->tid, oldpath, newpath);
+}
+
 static int sys_stat(const char *pathname, struct stat *statbuf)
 {
     if (!pathname || !statbuf)

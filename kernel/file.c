@@ -142,6 +142,16 @@ int stat(const char *pathname, struct stat *statbuf)
     return _stat(pathname, statbuf);
 }
 
+NACKED int _rename(const char *oldpath, const char *newpath)
+{
+    SYSCALL(RENAME);
+}
+
+int rename(const char *oldpath, const char *newpath)
+{
+    return _rename(oldpath, newpath);
+}
+
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);

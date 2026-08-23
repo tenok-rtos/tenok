@@ -208,3 +208,15 @@ int vfs_stat(int tid, const char *pathname, struct stat *statbuf)
 
     return result;
 }
+
+int vfs_rename(int tid, const char *oldpath, const char *newpath)
+{
+    /* Send rename request to the file system daemon */
+    request_rename(tid, oldpath, newpath);
+
+    /* Read rename result from the file system daemon */
+    int result;
+    vfs_read_reply(tid, &result, sizeof(result));
+
+    return result;
+}

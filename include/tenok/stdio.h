@@ -93,6 +93,14 @@ int fseek(FILE *stream, long offset, int whence);
 int fileno(FILE *stream);
 
 /**
+ * @brief  Change the name or the location of a file
+ * @param  oldpath: The pathname of the file to rename.
+ * @param  newpath: The new pathname of the file.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int rename(const char *oldpath, const char *newpath);
+
+/**
  * @brief  Format and print data to the standard output
  * @param  format: Format string.
  * @param  ...: Print arguments.

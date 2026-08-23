@@ -1062,6 +1062,84 @@ static int fs_stat(const char *pathname, struct stat *statbuf)
     return 0;
 }
 
+/* Rename a file or move it into another directory */
+static int fs_rename(const char *oldpath, const char *newpath)
+{
+    struct inode *old_dir, *new_dir;
+    char old_name[NAME_MAX], new_name[NAME_MAX];
+
+    int retval = fs_path_lookup(oldpath, &old_dir, old_name, false);
+    if (retval < 0)
+        return retval;
+
+    retval = fs_path_lookup(newpath, &new_dir, new_name, false);
+    if (retval < 0)
+        return retval;
+
+    /* Neither the source nor the destination can be the root */
+    if ((old_name[0] == '\0') || (new_name[0] == '\0'))
+        return -EBUSY;
+
+    /* Search the dentry of the file to rename */
+    struct dentry *dentry = fs_search_dentry(old_dir, old_name);
+    if (!dentry)
+        return -ENOENT;
+
+    struct inode *inode = &inodes[dentry->d_inode];
+
+    /* Files provided by a read-only storage cannot be renamed */
+    if (inode->i_rdev != RDEV_ROOTFS)
+        return -EROFS;
+
+    /* Moving a directory into its own subtree would create a loop on the
+     * dentry tree, which hangs every path walk afterwards
+     */
+    if (inode->i_mode == S_IFDIR) {
+        struct inode *ancestor = new_dir;
+
+        while (1) {
+            if (ancestor == inode)
+                return -EINVAL;
+
+            if (ancestor->i_ino == 0)
+                break;
+
+            ancestor = &inodes[ancestor->i_parent];
+        }
+    }
+
+    /* Handle the file the new pathname is pointing to */
+    struct inode *inode_new = fs_search_file(new_dir, new_name);
+    if (inode_new) {
+        /* The source and the destination are the same file */
+        if (inode_new == inode)
+            return 0;
+
+        /* Overwriting a directory is not supported */
+        if (inode_new->i_mode == S_IFDIR)
+            return -EEXIST;
+
+        /* Remove the file that is being overwritten */
+        retval = fs_remove(newpath, false);
+        if (retval < 0)
+            return retval;
+    }
+
+    /* Move the dentry into the new directory */
+    list_del(&dentry->d_list);
+    strncpy(dentry->d_name, new_name, NAME_MAX - 1);
+    dentry->d_name[NAME_MAX - 1] = '\0';
+    dentry->d_parent = new_dir->i_ino;
+    list_add_tail(&dentry->d_list, &new_dir->i_dentry);
+
+    inode->i_parent = new_dir->i_ino;
+
+    fs_dir_update(old_dir);
+    fs_dir_update(new_dir);
+
+    return 0;
+}
+
 /* Create a directory by given a pathname. Unlike fs_create_file(), the
  * missing directories of the path are never created implicitly.
  */
@@ -1279,6 +1357,16 @@ static void fs_request(int fs_cmd,
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
 
     preempt_enable();
+}
+
+void request_rename(int thread_id, const char *oldpath, const char *newpath)
+{
+    char args[sizeof(oldpath) + sizeof(newpath)];
+
+    memcpy(&args[0], &oldpath, sizeof(oldpath));
+    memcpy(&args[sizeof(oldpath)], &newpath, sizeof(newpath));
+
+    fs_request(FS_RENAME, THREAD_PIPE_FD(thread_id), args, sizeof(args));
 }
 
 void request_stat(int thread_id, const char *path, struct stat *statbuf)
@@ -1576,6 +1664,18 @@ void filesysd(void)
             read(filesysd_fd, &statbuf, sizeof(statbuf));
 
             int result = fs_stat(path, statbuf);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_RENAME: {
+            char *oldpath;
+            read(filesysd_fd, &oldpath, sizeof(oldpath));
+
+            char *newpath;
+            read(filesysd_fd, &newpath, sizeof(newpath));
+
+            int result = fs_rename(oldpath, newpath);
             write(reply_fd, &result, sizeof(result));
 
             break;

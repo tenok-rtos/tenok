@@ -32,6 +32,7 @@ syscalls = \
      'rmdir',
      'unlink',
      'stat',
+     'rename',
      'poll',
      'mq_getattr',
      'mq_setattr',

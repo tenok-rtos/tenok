@@ -59,6 +59,7 @@ enum {
     FS_MAKE_DIR = 7,
     FS_REMOVE = 8,
     FS_STAT = 9,
+    FS_RENAME = 10,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -164,6 +165,7 @@ void request_create_file(int thread_id, const char *path, uint8_t file_type);
 void request_mkdir(int thread_id, const char *path);
 void request_remove(int thread_id, const char *path, bool rm_dir);
 void request_stat(int thread_id, const char *path, struct stat *statbuf);
+void request_rename(int thread_id, const char *oldpath, const char *newpath);
 void request_open_file(int thread_id, const char *path);
 void request_open_directory(int reply_fd, const char *path);
 void request_mount(int thread_id, const char *source, const char *target);
