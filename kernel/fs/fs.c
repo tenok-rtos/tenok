@@ -367,6 +367,9 @@ uint32_t fs_file_append_block(struct inode *inode)
 
     /* Allocate new block */
     uint32_t new_blk = (uint32_t) fs_alloc_block();
+    if (new_blk == (uint32_t) NULL)
+        return (uint32_t) NULL;
+
     ((struct block_header *) new_blk)->b_next = (uint32_t) NULL;
 
     /* the file has never been allocated with blocks */
