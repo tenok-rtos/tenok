@@ -61,8 +61,10 @@ USER_STACK_SIZE = 10K;
 
 #if (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
 PAGE_SECTION_SIZE = 64K;
+PAGE_SIZE_MAX = 8K;
 #elif (PAGE_SIZE_SELECT == PAGE_SIZE_32K)
 PAGE_SECTION_SIZE = 32K;
+PAGE_SIZE_MAX = 4K;
 #else
 #error "Unknown page size setting"
 #endif
@@ -158,6 +160,19 @@ SECTIONS
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
+  /* The buddy page allocator derives the address of a page from its index
+   * and recovers the address of a slab by masking out the offset within the
+   * page. Both only work if the section itself is aligned to the size of the
+   * largest page. Placing the section at the very beginning of the RAM keeps
+   * the alignment free of any padding.
+   */
+  .pgmem (NOLOAD) : ALIGN(PAGE_SIZE_MAX)
+  {
+    PROVIDE (_page_mem_start = .);
+    . += PAGE_SECTION_SIZE;
+    PROVIDE (_page_mem_end = .);
+  } >RAM
+
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data : 
   {
@@ -206,15 +221,7 @@ SECTIONS
   } >RAM
 
   . = ALIGN(4);
-  .pgmem :
-  {
-    PROVIDE (_page_mem_start = .);
-    . += PAGE_SECTION_SIZE;
-    PROVIDE (_page_mem_end = .);
-  } >RAM
-
-  . = ALIGN(4);
-  .user_stack :
+  .user_stack (NOLOAD) :
   {
     PROVIDE (_user_stack_start = .);
     . += USER_STACK_SIZE;
