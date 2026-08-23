@@ -19,5 +19,8 @@ ssize_t reg_file_write(struct file *filp,
                        const char *buf,
                        size_t size,
                        off_t offset);
+void reg_file_rewind(struct file *filp);
+void reg_file_seek_end(struct file *filp);
+void reg_file_truncate(struct file *filp);
 
 #endif

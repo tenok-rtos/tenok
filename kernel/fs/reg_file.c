@@ -233,6 +233,32 @@ static struct file_operations reg_file_ops = {
     .open = reg_file_open,
 };
 
+/* Reset the read/write position of a regular file. Called by open(), as the
+ * file position is owned by the file rather than by the file descriptor.
+ */
+void reg_file_rewind(struct file *filp)
+{
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    reg_file->pos = 0;
+}
+
+/* Move the read/write position to the end of the file (O_APPEND) */
+void reg_file_seek_end(struct file *filp)
+{
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    reg_file->pos = filp->f_inode->i_size;
+}
+
+/* Discard the content of a regular file (O_TRUNC). The blocks that were
+ * already allocated are kept so that the successive writings can reuse them.
+ */
+void reg_file_truncate(struct file *filp)
+{
+    struct reg_file *reg_file = container_of(filp, struct reg_file, file);
+    reg_file->pos = 0;
+    filp->f_inode->i_size = 0;
+}
+
 int reg_file_init(struct file **files,
                   struct inode *file_inode,
                   struct reg_file *reg_file)
