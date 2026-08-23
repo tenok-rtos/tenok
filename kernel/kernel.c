@@ -26,6 +26,7 @@
 #include <common/util.h>
 #include <fs/fs.h>
 #include <fs/null_dev.h>
+#include <fs/reg_file.h>
 #include <fs/rom_dev.h>
 #include <fs/vfs.h>
 #include <kernel/daemon.h>
@@ -1021,6 +1022,30 @@ static int sys_open(const char *pathname, int flags)
         /* Return error */
         retval = -ENXIO;
         goto err;
+    }
+
+    /* Apply the open flags on a regular file. Note that the file position
+     * is owned by the file rather than by the file descriptor, so opening a
+     * file has to reset it.
+     */
+    if (filp->f_inode && (filp->f_inode->i_mode == S_IFREG)) {
+        if (flags & O_TRUNC) {
+            if (filp->f_inode->i_rdev != RDEV_ROOTFS) {
+                /* Release the file descriptor */
+                bitmap_clear_bit(bitmap_fds, fdesc_idx);
+                bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
+
+                /* Return error */
+                retval = -EROFS;
+                goto err;
+            }
+
+            reg_file_truncate(filp);
+        } else if (flags & O_APPEND) {
+            reg_file_seek_end(filp);
+        } else {
+            reg_file_rewind(filp);
+        }
     }
 
     preempt_enable();
