@@ -16,8 +16,11 @@
 #define SHELL_CMDS_CNT(sect_start, sect_end) \
     (SHELL_CMDS_SIZE(sect_start, sect_end) / sizeof(struct shell_cmd))
 
+/* The symbol is named after the handler so that a single file can register
+ * more than one shell command
+ */
 #define HOOK_SHELL_CMD(cmd_name, handler_func)            \
-    static struct shell_cmd _##shell_cmd_##name           \
+    static struct shell_cmd _shell_cmd_##handler_func     \
         __attribute__((section(".shell_cmds"), used)) = { \
             .name = cmd_name, .handler = handler_func}
 
