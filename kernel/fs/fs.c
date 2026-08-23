@@ -41,6 +41,11 @@ uint32_t bitmap_blks[BITMAP_SIZE(FS_BLK_CNT)];
 struct mount mount_points[MOUNT_MAX + 1]; /* 0 is reserved for the rootfs */
 int mount_cnt;
 
+/* Dentry slots released by unlink() are recycled through this list. Without
+ * it the space of a removed file could never be reused.
+ */
+static LIST_HEAD(free_dentries);
+
 /* File descriptor numbers released by unlink() are recycled through this
  * stack, otherwise creating and removing files repeatedly exhausts the file
  * table even though only a few files exist at a time.
@@ -360,32 +365,60 @@ static int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
     return blocks;
 }
 
-static struct dentry *fs_allocate_dentry(struct inode *inode_dir)
+/* Dentries are carved out of the file system blocks. Every block is split
+ * into a fixed number of dentry slots and the unused ones are kept on a
+ * global free list, so that a slot released by unlink() can be reused no
+ * matter which directory it originally belonged to.
+ */
+static struct dentry *fs_allocate_dentry(void)
 {
-    /* Calculate how many dentries a block can hold */
-    int dentry_per_blk = FS_BLK_SIZE / sizeof(struct dentry);
-
-    /* Calculate how many dentries the directory has */
-    int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-
-    /* Check if current block can fit a new dentry */
-    bool fit =
-        ((dentry_cnt + 1) <= (inode_dir->i_blocks * dentry_per_blk)) &&
-        (inode_dir->i_size != 0) /* No memory is allocated if size = 0 */;
-
-    /* Allocate new dentry */
-    uint8_t *dir_data_p;
-    if (fit == true) {
-        /* Append at the end of the old block */
-        struct list_head *list_end = inode_dir->i_dentry.prev;
-        struct dentry *dir = list_entry(list_end, struct dentry, d_list);
-        dir_data_p = (uint8_t *) dir + sizeof(struct dentry);
-    } else {
-        /* The dentry requires a new block */
-        dir_data_p = fs_alloc_block();
+    /* Reuse a dentry slot that was released before */
+    if (!list_empty(&free_dentries)) {
+        struct list_head *slot = free_dentries.next;
+        list_del(slot);
+        return list_entry(slot, struct dentry, d_list);
     }
 
-    return (struct dentry *) dir_data_p;
+    /* No free slot is left, carve a new block into dentry slots */
+    struct dentry *dentries = (struct dentry *) fs_alloc_block();
+    if (!dentries)
+        return NULL;
+
+    /* Keep the first slot and release the remaining ones */
+    int dentry_per_blk = FS_BLK_SIZE / sizeof(struct dentry);
+    for (int i = 1; i < dentry_per_blk; i++)
+        list_add_tail(&dentries[i].d_list, &free_dentries);
+
+    return &dentries[0];
+}
+
+static void fs_free_dentry(struct dentry *dentry)
+{
+    list_add(&dentry->d_list, &free_dentries);
+}
+
+/* Refresh the size, the block count and the data pointer of a directory
+ * after its dentry list is modified
+ */
+static void fs_dir_update(struct inode *inode_dir)
+{
+    int dentry_cnt = 0;
+    struct dentry *dentry;
+
+    list_for_each_entry (dentry, &inode_dir->i_dentry, d_list)
+        dentry_cnt++;
+
+    inode_dir->i_size = dentry_cnt * sizeof(struct dentry);
+    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
+
+    /* The data pointer of a directory addresses its first dentry */
+    if (list_empty(&inode_dir->i_dentry)) {
+        inode_dir->i_data = (uint32_t) NULL;
+    } else {
+        struct dentry *first =
+            list_first_entry(&inode_dir->i_dentry, struct dentry, d_list);
+        inode_dir->i_data = (uint32_t) first;
+    }
 }
 
 uint32_t fs_file_append_block(struct inode *inode)
@@ -438,6 +471,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
                                  int file_type)
 {
     int fd = -1;
+    struct dentry *new_dentry = NULL;
 
     /* inodes table is full */
     if (mount_points[0].super_blk.s_inode_cnt >= INODE_MAX)
@@ -462,7 +496,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     new_inode->i_data = (uint32_t) NULL;
 
     /* Configure new dentry */
-    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
+    new_dentry = fs_allocate_dentry();
     if (!new_dentry)
         goto failed;
 
@@ -543,23 +577,18 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     /* Initialize file events */
     files[fd]->f_events = 0;
 
-    /* Currently the directory has no file yet */
-    if (list_empty(&inode_dir->i_dentry) == true)
-        inode_dir->i_data = (uint32_t) new_dentry; /* Add first dentry */
-
     /* insert the new file under the directory */
     list_add_tail(&new_dentry->d_list, &inode_dir->i_dentry);
 
     /* Update the inode size and block information */
-    inode_dir->i_size += sizeof(struct dentry);
-
-    int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
+    fs_dir_update(inode_dir);
 
     return new_inode;
 
 failed:
-    // TODO: Release the inode and the dentry as well
+    // TODO: Release the inode as well
+    if (new_dentry)
+        fs_free_dentry(new_dentry);
     if (fd >= 0)
         fs_release_fd(fd);
 
@@ -594,7 +623,10 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
     INIT_LIST_HEAD(&new_inode->i_dentry);
 
     /* Configure the new dentry */
-    struct dentry *new_dentry = fs_allocate_dentry(inode_dir);
+    struct dentry *new_dentry = fs_allocate_dentry();
+    if (!new_dentry)
+        return NULL;
+
     new_dentry->d_inode = new_inode->i_ino;  /* File inode */
     new_dentry->d_parent = inode_dir->i_ino; /* Parent inode */
     strncpy(new_dentry->d_name, mnt_dentry->d_name, NAME_MAX); /* File name */
@@ -606,10 +638,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
     list_add_tail(&new_dentry->d_list, &inode_dir->i_dentry);
 
     /* Update the inode size and block information */
-    inode_dir->i_size += sizeof(struct dentry);
-
-    int dentry_cnt = inode_dir->i_size / sizeof(struct dentry);
-    inode_dir->i_blocks = fs_calculate_dentry_blocks(FS_BLK_SIZE, dentry_cnt);
+    fs_dir_update(inode_dir);
 
     return new_inode;
 }
