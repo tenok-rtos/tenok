@@ -406,6 +406,15 @@ static int thread_create(struct thread_info **new_thread,
     thread->stack_top =
         thread_signal_queue_alloc(&thread->signal_queue, thread->stack_top);
 
+    /* The procedure call standard of ARM requires the stack pointer to be
+     * eight byte aligned at every public interface. The regions carved out
+     * above are only aligned to a word, and a stack that is off by four
+     * breaks the alignment va_arg() applies before it reads a 64 bit
+     * argument: every "%lld" would then read one word too early.
+     */
+    thread->stack_top =
+        (unsigned long *) ((uintptr_t) thread->stack_top & ~(uintptr_t) 7);
+
     /* Initialize thread stack */
     uint32_t func_args[4] = {0};
     if (thread_arg)
