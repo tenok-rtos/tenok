@@ -23,4 +23,15 @@ typedef long int off_t;
 typedef unsigned long useconds_t;
 typedef unsigned long clock_t;
 
+/* Tenok has no sockets. The type is named so that a program that mentions one
+ * compiles
+ */
+typedef unsigned int socklen_t;
+
+/* The older spellings, which BSD derived headers still use */
+typedef unsigned int u_int;
+typedef unsigned long u_long;
+typedef unsigned short u_short;
+typedef unsigned char u_char;
+
 #endif

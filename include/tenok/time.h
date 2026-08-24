@@ -5,6 +5,7 @@
 #define __TIME_H__
 
 #include <signal.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -112,5 +113,29 @@ int clock_nanosleep(clockid_t clockid,
                     int flags,
                     const struct timespec *req,
                     struct timespec *rem);
+
+/* Broken down time. The layout matches newlib, whose implementations of the
+ * calendar helpers below are the ones that get linked
+ */
+struct tm {
+    int tm_sec;
+    int tm_min;
+    int tm_hour;
+    int tm_mday;
+    int tm_mon;
+    int tm_year;
+    int tm_wday;
+    int tm_yday;
+    int tm_isdst;
+};
+
+struct tm *localtime(const time_t *timep);
+struct tm *localtime_r(const time_t *timep, struct tm *result);
+struct tm *gmtime(const time_t *timep);
+struct tm *gmtime_r(const time_t *timep, struct tm *result);
+time_t mktime(struct tm *tm);
+size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
+char *ctime(const time_t *timep);
+char *ctime_r(const time_t *timep, char *buf);
 
 #endif

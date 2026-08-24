@@ -16,7 +16,46 @@ struct timespec;
 #define SIGKILL 9
 #define SIGNAL_CNT 6
 
+/* The rest of the POSIX set. Tenok delivers none of them, the numbers are
+ * named so that a program written for a POSIX system compiles
+ */
+#define SIGHUP 1
+#define SIGINT 2
+#define SIGQUIT 3
+#define SIGILL 4
+#define SIGTRAP 5
+#define SIGABRT 6
+#define SIGBUS 7
+#define SIGFPE 8
+#define SIGSEGV 11
+#define SIGPIPE 13
+#define SIGALRM 14
+#define SIGTERM 15
+#define SIGCHLD 17
+#define SIGTSTP 20
+#define SIGTTIN 21
+#define SIGTTOU 22
+#define SIGURG 23
+#define SIGXCPU 24
+#define SIGXFSZ 25
+#define SIGVTALRM 26
+#define SIGPROF 27
+#define SIGWINCH 28
+#define SIGSYS 31
+
+#define NSIG 32
+
+#define SIG_DFL ((void (*)(int)) 0)
+#define SIG_IGN ((void (*)(int)) 1)
+#define SIG_ERR ((void (*)(int)) - 1)
+
+#define SIG_BLOCK 0
+#define SIG_UNBLOCK 1
+#define SIG_SETMASK 2
+
 #define SA_SIGINFO 0x2
+#define SA_RESTART 0x10000000
+#define SA_NOCLDSTOP 0x00000001
 
 #define SIGEV_NONE 1
 #define SIGEV_SIGNAL 2

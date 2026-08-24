@@ -52,4 +52,14 @@ extern int *__errno(void);
 #define ETIMEDOUT 110   /**< Connection timed out */
 #define EOVERFLOW 139   /**< Numerical overflow */
 
+/* Numbers Tenok never returns of its own. They are named so that a program
+ * written for a POSIX system compiles, and they follow newlib, which is the
+ * library the numbers have to agree with
+ */
+#define ENOEXEC 8   /**< Exec format error */
+#define ECHILD 10   /**< No child processes */
+#define ERANGE 34   /**< Result too large */
+#define ELOOP 92    /**< Too many levels of symbolic links */
+#define ENOTSUP 134 /**< Not supported */
+
 #endif
