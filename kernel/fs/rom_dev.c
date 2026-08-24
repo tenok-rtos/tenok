@@ -16,12 +16,22 @@ int rom_dev_open(struct inode *inode, struct file *file)
 
 ssize_t rom_dev_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    char *read_addr = &_rom_start + offset;
+    size_t rom_size = (size_t) (&_rom_end - &_rom_start);
 
-    if ((uint32_t) (read_addr + size) > (uint32_t) &_rom_end)
-        return -EFAULT;
+    if (offset < 0)
+        return -EINVAL;
 
-    memcpy(buf, read_addr, sizeof(char) * size);
+    /* Past the end is the end of the file, and a read that reaches it is
+     * shortened rather than refused: a reader of the whole device has to be
+     * able to stop.
+     */
+    if ((size_t) offset >= rom_size)
+        return 0;
+
+    if (size > (rom_size - (size_t) offset))
+        size = rom_size - (size_t) offset;
+
+    memcpy(buf, &_rom_start + offset, size);
 
     return size;
 }
