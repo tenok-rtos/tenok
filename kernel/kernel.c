@@ -1713,7 +1713,15 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
             filp = fdtable[fdesc_idx].file;
         }
-        uint32_t events = filp->f_events & fds[i].events;
+        /* A regular file is always ready, it has no event of its own to
+         * wait for. Reporting otherwise leaves a reader of a redirected
+         * standard input waiting for something that never arrives.
+         */
+        uint32_t ready_events = filp->f_events;
+        if (filp->f_inode && filp->f_inode->i_mode == S_IFREG)
+            ready_events |= POLLIN | POLLOUT;
+
+        uint32_t events = ready_events & fds[i].events;
         if (events) {
             fds[i].revents |= events;
             ready++;
@@ -1804,7 +1812,15 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
             filp = fdtable[fdesc_idx].file;
         }
-        uint32_t events = filp->f_events & fds[i].events;
+        /* A regular file is always ready, it has no event of its own to
+         * wait for. Reporting otherwise leaves a reader of a redirected
+         * standard input waiting for something that never arrives.
+         */
+        uint32_t ready_events = filp->f_events;
+        if (filp->f_inode && filp->f_inode->i_mode == S_IFREG)
+            ready_events |= POLLIN | POLLOUT;
+
+        uint32_t events = ready_events & fds[i].events;
         if (events) {
             fds[i].revents |= events;
             ready++;
