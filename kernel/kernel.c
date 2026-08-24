@@ -485,6 +485,7 @@ static int _task_create(thread_func_t task_func,
     memset(task, 0, sizeof(struct task_struct));
     task->pid = pid;
     task->main_thread = thread;
+    task->umask = FS_DEFAULT_UMASK;
     INIT_LIST_HEAD(&task->threads_list);
     list_add_tail(&thread->task_list, &task->threads_list);
     list_add_tail(&task->list, &tasks_list);
@@ -964,6 +965,12 @@ static int sys_mount(const char *source, const char *target)
     return vfs_mount(tid, source, target);
 }
 
+/* The permission bits a task is allowed to give a file it creates */
+static mode_t apply_umask(mode_t mode)
+{
+    return mode & ~current_task_info()->umask & 07777;
+}
+
 static int sys_open(const char *pathname, int flags, mode_t mode)
 {
     preempt_disable();
@@ -991,7 +998,7 @@ static int sys_open(const char *pathname, int flags, mode_t mode)
 
     if ((file_idx == -ENOENT) && (flags & O_CREAT)) {
         /* Create the file as it does not exist yet */
-        file_idx = vfs_create_file(tid, pathname, S_IFREG | (mode & 07777));
+        file_idx = vfs_create_file(tid, pathname, S_IFREG | apply_umask(mode));
     } else if ((file_idx >= 0) && (flags & O_CREAT) && (flags & O_EXCL)) {
         /* O_EXCL requires the file to be created by this very call */
         retval = -EEXIST;
@@ -1554,7 +1561,8 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 
     int tid = running_thread->tid;
 
-    int file_idx = vfs_create_file(tid, pathname, mode);
+    int file_idx =
+        vfs_create_file(tid, pathname, (mode & S_IFMT) | apply_umask(mode));
 
     if (file_idx == -1) {
         /* Failed to create file */
@@ -1574,7 +1582,7 @@ static int sys_mkdir(const char *pathname, mode_t mode)
     if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
-    return vfs_mkdir(running_thread->tid, pathname, mode);
+    return vfs_mkdir(running_thread->tid, pathname, apply_umask(mode));
 }
 
 static int sys_rename(const char *oldpath, const char *newpath)
@@ -1599,6 +1607,16 @@ static int sys_stat(const char *pathname, struct stat *statbuf)
         return -ENAMETOOLONG;
 
     return vfs_stat(running_thread->tid, pathname, statbuf);
+}
+
+static mode_t sys_umask(mode_t mask)
+{
+    struct task_struct *task = current_task_info();
+    mode_t previous = task->umask;
+
+    task->umask = mask & 07777;
+
+    return previous;
 }
 
 static int sys_chmod(const char *pathname, mode_t mode)
@@ -1645,7 +1663,7 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 
     int tid = running_thread->tid;
 
-    int file_idx = vfs_create_file(tid, pathname, S_IFIFO | (mode & 07777));
+    int file_idx = vfs_create_file(tid, pathname, S_IFIFO | apply_umask(mode));
 
     if (file_idx == -1) {
         /* Failed to create FIFO */

@@ -256,6 +256,12 @@ int mkdir(const char *pathname, mode_t mode)
     return set_errno(__mkdir(pathname, mode));
 }
 
+/* umask() has no way to fail, there is no error number to translate */
+NACKED mode_t umask(mode_t mask)
+{
+    SYSCALL(UMASK);
+}
+
 static NACKED int __chmod(const char *pathname, mode_t mode)
 {
     SYSCALL(CHMOD);

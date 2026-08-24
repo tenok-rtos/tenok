@@ -30,6 +30,7 @@ syscalls = \
      'mkfifo',
      'mkdir',
      'chmod',
+     'umask',
      'rmdir',
      'unlink',
      'stat',

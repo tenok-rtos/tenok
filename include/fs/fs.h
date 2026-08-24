@@ -23,6 +23,11 @@
 #define FS_DEFAULT_FILE_MODE 0644
 #define FS_DEFAULT_DIR_MODE 0755
 
+/* Withheld from the mode a task asks for, which is what turns the 0666 of
+ * an ordinary creation into the 0644 of an ordinary file
+ */
+#define FS_DEFAULT_UMASK 022
+
 #define FILE_RESERVED_NUM (THREAD_MAX + 3)
 #define THREAD_PIPE_FD(thread_id) (thread_id + 3)
 

@@ -61,6 +61,9 @@ struct task_struct {
     /* For recording message queue descriptors belongs to the task */
     uint32_t bitmap_mqds[BITMAP_SIZE(MQUEUE_MAX)];
 
+    /* Permission bits withheld from a file the task creates */
+    mode_t umask;
+
     struct list_head threads_list; /* List of all threads of the task */
     struct list_head list;         /* Linked to the global task list */
 };

@@ -98,6 +98,13 @@ int mkfifo(const char *pathname, mode_t mode);
 int mkdir(const char *pathname, mode_t mode);
 
 /**
+ * @brief  Set the permission bits withheld from the files the task creates
+ * @param  mask: The bits to withhold from now on.
+ * @retval mode_t: The mask that was in effect before the call.
+ */
+mode_t umask(mode_t mask);
+
+/**
  * @brief  Replace the permission bits of a file
  * @param  pathname: The pathname of the file.
  * @param  mode: The permission bits to give the file.
