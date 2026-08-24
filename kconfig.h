@@ -25,15 +25,15 @@
 #define PRINTKD_STACK_SIZE 1024
 
 /* Task */
-#define TASK_MAX 64 /* Max number of tasks in the system */
+#define TASK_MAX 32 /* Max number of tasks in the system */
 
 /* Thread */
 #define THREAD_PRIORITY_MAX 8 /* Max priority of user threads */
 #define THREAD_NAME_MAX 50    /* Max length of thread names */
-#define THREAD_MAX 64         /* Max number of threads in the system */
+#define THREAD_MAX 32         /* Max number of threads in the system */
 
 /* Message queue and pipe */
-#define MQUEUE_MAX 50  /* Max number of message queue can be allocated */
+#define MQUEUE_MAX 16  /* Max number of message queue can be allocated */
 #define _MQ_PRIO_MAX 5 /* Max message queue priority number */
 
 /* Pipe size. Note that if the size is too small, the file system daemon *
