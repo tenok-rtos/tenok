@@ -1,3 +1,9 @@
 [submodule "lib/mavlink"]
 	path = lib/mavlink
 	url = https://github.com/Tenok-RTOS/mavlink.git
+[submodule "lib/busybox"]
+	path = lib/busybox
+	url = https://git.busybox.net/busybox
+[submodule "lib/busybox-patches"]
+	path = lib/busybox-patches
+	url = https://github.com/tenok-rtos/busybox-patches.git
