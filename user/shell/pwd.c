@@ -12,7 +12,7 @@ int pwd(int argc, char *argv[])
 
     getcwd(path, PRINT_SIZE_MAX);
 
-    snprintf(str, PATH_MAX, "%s\n\r", path);
+    snprintf(str, PATH_MAX, "%s\n", path);
     shell_puts(str);
 
     return 0;

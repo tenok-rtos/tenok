@@ -16,7 +16,7 @@ void poll_task1(void)
 {
     setprogname("poll-ex-1");
 
-    char *s = "poll example.\n\r";
+    char *s = "poll example.\n";
 
     if (mkfifo("/poll_test", 0) < 0) {
         exit(1);
@@ -60,7 +60,7 @@ void poll_task2(void)
             ssize_t rbytes = read(fifo_fd, buffer, sizeof(buffer) - 1);
             buffer[rbytes] = '\0';
 
-            printf("[poll example] %d bytes is read from the fifo\n\r", rbytes);
+            printf("[poll example] %d bytes is read from the fifo\n", rbytes);
 
             fds[0].revents = 0;
         }

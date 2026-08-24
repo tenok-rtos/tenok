@@ -56,7 +56,7 @@ void message_queue_task2(void)
         mq_receive(mqdes_print, str, MSG_SIZE_MAX, &msg_prio);
 
         /* Print received message */
-        printf("[mqueue example] received \"%s\" with priority %d\n\r", str,
+        printf("[mqueue example] received \"%s\" with priority %d\n", str,
                msg_prio);
     }
 }

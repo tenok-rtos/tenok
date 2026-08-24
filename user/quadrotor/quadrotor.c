@@ -324,14 +324,14 @@ void flight_control_task(void)
     /* Open RGB LED */
     int led_fd = open("/dev/led", 0);
     if (led_fd < 0) {
-        printf("failed to open the RGB LED.\n\r");
+        printf("failed to open the RGB LED.\n");
         exit(1);
     }
 
     /* Open frequency test pin */
     int freq_tester_fd = open("/dev/freq_tester", 0);
     if (freq_tester_fd < 0) {
-        printf("failed to open the frequency tester.\n\r");
+        printf("failed to open the frequency tester.\n");
         exit(1);
     }
 
@@ -340,7 +340,7 @@ void flight_control_task(void)
     int gyro_fd = open("/dev/gyro0", 0);
 
     if (accel_fd < 0 || gyro_fd < 0) {
-        printf("failed to open the IMU.\n\r");
+        printf("failed to open the IMU.\n");
         exit(1);
     }
 
@@ -354,14 +354,14 @@ void flight_control_task(void)
     /* Open PWM interface of Electrical Speed Controllers (ESC) */
     int pwm_fd = open("/dev/pwm", 0);
     if (pwm_fd < 0) {
-        printf("failed to open PWM interface.\n\r");
+        printf("failed to open PWM interface.\n");
         exit(1);
     }
 
     /* Open remote control receiver */
     int rc_fd = open("/dev/sbus", 0);
     if (rc_fd < 0) {
-        printf("failed to open remote control receiver.\n\r");
+        printf("failed to open remote control receiver.\n");
         exit(1);
     }
 
@@ -470,7 +470,7 @@ void debug_link_task(void)
     int gyro_fd = open("/dev/gyro0", 0);
 
     if (accel_fd < 0 || gyro_fd < 0) {
-        printf("failed to open the IMU.\n\r");
+        printf("failed to open the IMU.\n");
         exit(1);
     }
 

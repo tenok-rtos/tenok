@@ -13,7 +13,7 @@ int cat(int argc, char *argv[])
     /* Open the file */
     FILE *file = fopen(path, "");
     if (!file) {
-        snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "cat: cannot open `%s'\n", path);
         shell_puts(str);
         return 1;
     }

@@ -14,7 +14,7 @@ int sbus(int argc, char *argv[])
     int sbus_fd = open("/dev/sbus", O_RDWR);
 
     if (sbus_fd < 0) {
-        shell_puts("no sbus receiver found.\n\r");
+        shell_puts("no sbus receiver found.\n");
         return 0;
     }
 
@@ -26,7 +26,7 @@ int sbus(int argc, char *argv[])
     /* Mapped signal */
     char *safety = sbus.dual_switch1 ? "[disarmed]" : "[armed]";
     snprintf(str, PRINT_SIZE_MAX,
-             "%s roll: %d, pitch: %d, yaw: %d, throttle: %d%%\n\r", safety,
+             "%s roll: %d, pitch: %d, yaw: %d, throttle: %d%%\n", safety,
              (int) sbus.roll, (int) sbus.pitch, (int) sbus.yaw,
              (int) sbus.throttle);
     shell_puts(str);
@@ -34,7 +34,7 @@ int sbus(int argc, char *argv[])
     /* Raw data */
     int i;
     for (i = 0; i < 16; i++) {
-        snprintf(str, PRINT_SIZE_MAX, "channel %d: %d\n\r", i + 1,
+        snprintf(str, PRINT_SIZE_MAX, "channel %d: %d\n", i + 1,
                  sbus.rc_val[i]);
         shell_puts(str);
     }

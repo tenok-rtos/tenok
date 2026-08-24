@@ -22,7 +22,7 @@ static void ps_print(void)
     struct thread_stat info;
     void *next = NULL;
 
-    shell_puts("PID\tPR\tSTAT\tSTACK\%\t  COMMAND\n\r");
+    shell_puts("PID\tPR\tSTAT\tSTACK\%\t  COMMAND\n");
 
     do {
         next = thread_info(&info, next);
@@ -31,11 +31,11 @@ static void ps_print(void)
         stack_usage(s_stack_usage, 10, info.stack_usage, info.stack_size);
 
         if (info.kernel_thread) {
-            snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n\r", info.pid,
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  [%s]\n", info.pid,
                      info.priority, info.status, s_stack_usage, info.name);
         } else {
-            snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n\r", info.pid,
-                     info.priority, info.status, s_stack_usage, info.name);
+            snprintf(s, 100, "%d\t%d\t%s\t%s\t  %s\n", info.pid, info.priority,
+                     info.status, s_stack_usage, info.name);
         }
 
         shell_puts(s);
@@ -50,13 +50,13 @@ int ps(int argc, char *argv[])
     } else if (argc == 2 &&
                (!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))) {
         shell_puts(
-            "process state codes:\n\r"
-            "  R    running or runnable\n\r"
-            "  T    stopped (suspended)\n\r"
-            "  S    sleep\n\r");
+            "process state codes:\n"
+            "  R    running or runnable\n"
+            "  T    stopped (suspended)\n"
+            "  S    sleep\n");
         return 0;
     } else {
-        shell_puts("Usage: ps [-h]\n\r");
+        shell_puts("Usage: ps [-h]\n");
         return 1;
     }
 }

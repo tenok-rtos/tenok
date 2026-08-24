@@ -14,7 +14,7 @@ void led_task1(void)
 
     int led_fd = open("/dev/led", 0);
     if (led_fd < 0) {
-        printf("failed to open the LED.\n\r");
+        printf("failed to open the LED.\n");
         exit(1);
     }
 

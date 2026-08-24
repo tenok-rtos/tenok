@@ -7,7 +7,7 @@
 int esc_calib(int argc, char *argv[])
 {
     if (is_flight_ctrl_running()) {
-        shell_puts("command rejected, flight control is running.\n\r");
+        shell_puts("command rejected, flight control is running.\n");
         return 0;
     }
 
@@ -19,11 +19,11 @@ int esc_calib(int argc, char *argv[])
 
     if (strcmp(shell.buf, "y") == 0 || strcmp(shell.buf, "Y") == 0) {
         shell_puts(
-            "start esc calibration.\n\r"
-            "restart the system after finishing the calibration.\n\r");
+            "start esc calibration.\n"
+            "restart the system after finishing the calibration.\n");
         trigger_esc_calibration();
     } else {
-        shell_puts("abort.\n\r");
+        shell_puts("abort.\n");
     }
 
     return 0;

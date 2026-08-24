@@ -14,14 +14,14 @@ int help(int argc, char *argv[])
     char s[LINE_MAX + 2] = {'\0'}; /* Reserved 2 for new line */
     int buf_len = 0;
 
-    shell_puts("supported commands:\n\r");
+    shell_puts("supported commands:\n");
 
     for (int i = 0; i < shell_cmd_cnt; i++) {
         int cmd_len = strlen(shell_cmds[i].name);
 
         /* Buffer is full, print the message out */
         if ((buf_len + cmd_len + 1) >= LINE_MAX) {
-            strcat(s, "\n\r");
+            strcat(s, "\n");
             shell_puts(s);
             buf_len = 0;
             s[0] = '\0';
@@ -35,7 +35,7 @@ int help(int argc, char *argv[])
 
     /* Print out the left message */
     if (buf_len > 0) {
-        strcat(s, "\n\r");
+        strcat(s, "\n");
         shell_puts(s);
     }
 

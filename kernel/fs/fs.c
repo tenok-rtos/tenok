@@ -1725,7 +1725,7 @@ void fs_print_inode_bitmap(void)
 {
     char buf[100] = {0};
 
-    shell_puts("inodes bitmap:\n\r");
+    shell_puts("inodes bitmap:\n");
 
     for (int i = 0; i < BITMAP_SIZE(INODE_MAX); i++) {
         for (int j = 0; j < 8; j++) {
@@ -1744,7 +1744,7 @@ void fs_print_block_bitmap(void)
 {
     char buf[100] = {0};
 
-    shell_puts("fs blocks bitmap:\n\r");
+    shell_puts("fs blocks bitmap:\n");
 
     for (int i = 0; i < BITMAP_SIZE(FS_BLK_CNT); i++) {
         for (int j = 0; j < 8; j++) {

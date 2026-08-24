@@ -62,7 +62,7 @@ static void xxd_print_line(unsigned int addr, char *buf, int nbytes)
     }
 
     /* Append new line */
-    strncat(s, "\n\r", 3);
+    strncat(s, "\n", 3);
 
     /* Print the xxd line out */
     shell_puts(s);
@@ -82,7 +82,7 @@ static char xxd_wait_key(void)
 int xxd(int argc, char *argv[])
 {
     if (argc != 2) {
-        shell_puts("usage: xxd file\n\r");
+        shell_puts("usage: xxd file\n");
         return 1;
     }
 
@@ -92,7 +92,7 @@ int xxd(int argc, char *argv[])
     /* Open file */
     FILE *file = fopen(path, "");
     if (!file) {
-        shell_puts("failed to open the file.\n\r");
+        shell_puts("failed to open the file.\n");
         return 1;
     }
 
@@ -136,7 +136,7 @@ int xxd(int argc, char *argv[])
         /* Pause the printing and wait for the key */
         line++;
         if (line == XXD_PAUSE_LINES) {
-            shell_puts("press [enter] to show more, [q] to leave.\n\r");
+            shell_puts("press [enter] to show more, [q] to leave.\n");
 
             char key = xxd_wait_key();
             if (key == ENTER) {

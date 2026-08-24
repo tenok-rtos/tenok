@@ -10,7 +10,7 @@
 
 #include "uart.h"
 
-#define TEST_STR "[fifo example] hello world\n\r"
+#define TEST_STR "[fifo example] hello world\n"
 #define LEN strlen(TEST_STR)
 
 static volatile bool fifo_init_ready = false;

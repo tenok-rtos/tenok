@@ -19,18 +19,17 @@ int cd(int argc, char *argv[])
         if (retval == 0) {
             return 0;
         } else if (errno == ENOENT) {
-            snprintf(str, PRINT_SIZE_MAX,
-                     "cd: %s: No such file or directory\n\r", argv[1]);
+            snprintf(str, PRINT_SIZE_MAX, "cd: %s: No such file or directory\n",
+                     argv[1]);
             shell_puts(str);
         } else if (errno == ENOTDIR) {
-            snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r",
-                     argv[1]);
+            snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n", argv[1]);
             shell_puts(str);
         }
         return 1;
     }
     default:
-        shell_puts("cd: too many arguments\n\r");
+        shell_puts("cd: too many arguments\n");
         return 1;
     }
 

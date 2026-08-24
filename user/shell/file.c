@@ -14,10 +14,10 @@ int file(int argc, char *argv[])
     char str[PRINT_SIZE_MAX] = {0};
 
     if (argc == 1) {
-        shell_puts("Usage: file <file>\n\r");
+        shell_puts("Usage: file <file>\n");
         return 1;
     } else if (argc > 2) {
-        shell_puts("file: too many arguments\n\r");
+        shell_puts("file: too many arguments\n");
         return 1;
     }
 
@@ -31,14 +31,14 @@ int file(int argc, char *argv[])
         DIR *dir = opendir(path);
         if (dir) {
             closedir(dir);
-            snprintf(str, PRINT_SIZE_MAX, "%s: directory\n\r", path);
+            snprintf(str, PRINT_SIZE_MAX, "%s: directory\n", path);
             shell_puts(str);
             return 0;
         }
 
         /* The given path is neither a file or direcotry */
         snprintf(str, PRINT_SIZE_MAX,
-                 "%s: cannot open `%s' (No such file or directory)\n\r", path,
+                 "%s: cannot open `%s' (No such file or directory)\n", path,
                  path);
         shell_puts(str);
         return 1;
@@ -53,19 +53,19 @@ int file(int argc, char *argv[])
 
     switch (stat.st_mode & S_IFMT) {
     case S_IFIFO:
-        snprintf(str, PRINT_SIZE_MAX, "%s: fifo (named pipe)\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "%s: fifo (named pipe)\n", path);
         break;
     case S_IFCHR:
-        snprintf(str, PRINT_SIZE_MAX, "%s: character device\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "%s: character device\n", path);
         break;
     case S_IFBLK:
-        snprintf(str, PRINT_SIZE_MAX, "%s: block device\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "%s: block device\n", path);
         break;
     case S_IFREG:
-        snprintf(str, PRINT_SIZE_MAX, "%s: regular file\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "%s: regular file\n", path);
         break;
     default:
-        snprintf(str, PRINT_SIZE_MAX, "%s: unknown\n\r", path);
+        snprintf(str, PRINT_SIZE_MAX, "%s: unknown\n", path);
         break;
     }
 

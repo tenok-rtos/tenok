@@ -94,7 +94,7 @@ void printk(char *format, ...)
     char buf[PRINT_SIZE_MAX] = {'\r', 0};
     int pos = snprintf(&buf[1], PRINT_SIZE_MAX, "[%5s.%s%s] ", sec, zeros, rem);
     vsnprintf(&buf[pos + 1], PRINT_SIZE_MAX, format, args);
-    strcat(buf, "\n\r");
+    strcat(buf, "\n");
 
     console_write(buf, strlen(buf));
 

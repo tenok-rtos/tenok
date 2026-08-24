@@ -34,7 +34,7 @@ void shell_task(void)
                autocompl);
     shell_serial_init();
 
-    shell_puts("type `help' for more information\n\r");
+    shell_puts("type `help' for more information\n");
 
     while (1) {
         getcwd(shell_path, PATH_MAX);

@@ -11,7 +11,7 @@
 
 void timer_callback(union sigval sv)
 {
-    printf("[timer handler] time's up!\n\r");
+    printf("[timer handler] time's up!\n");
 }
 
 void timer_task(void)
@@ -30,7 +30,7 @@ void timer_task(void)
 
     /* Create a timer */
     if (timer_create(CLOCK_MONOTONIC, &sev, &timerid) == -1) {
-        printf("failed to create timer.\n\r");
+        printf("failed to create timer.\n");
         exit(1);
     }
 
@@ -44,7 +44,7 @@ void timer_task(void)
 
     /* Arm the timer */
     if (timer_settime(timerid, 0, &its, NULL) == -1) {
-        printf("failed to set the timer.\n\r");
+        printf("failed to set the timer.\n");
     }
 
     /* Sleep */

@@ -63,7 +63,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
     shell_reset_autocomplete(shell);
     shell_reset_history_scrolling(shell);
 
-    shell_puts("^C\n\r");
+    shell_puts("^C\n");
     shell_puts(shell->prompt);
     shell_reset_line(shell);
 }
@@ -71,7 +71,7 @@ static void shell_ctrl_c_handler(struct shell *shell)
 static void shell_unknown_cmd_handler(int argc, char *argv[])
 {
     char s[50 + LINE_MAX];
-    snprintf(s, 50 + LINE_MAX, "unknown command: %s\n\r", argv[0]);
+    snprintf(s, 50 + LINE_MAX, "unknown command: %s\n", argv[0]);
     shell_puts(s);
 }
 
@@ -387,7 +387,7 @@ void shell_print_history(struct shell *shell)
     list_for_each (list_curr, &shell->history_head) {
         history = list_entry(list_curr, struct shell_history, list);
 
-        snprintf(s, LINE_MAX * 3, "%d %s\n\r", ++i, history->cmd);
+        snprintf(s, LINE_MAX * 3, "%d %s\n", ++i, history->cmd);
         shell_puts(s);
     }
 }
@@ -580,12 +580,12 @@ void shell_listen(struct shell *shell)
             shell_reset_history_scrolling(shell);
             shell_reset_autocomplete(shell);
             if (shell->char_cnt > 0) {
-                shell_puts("\n\r");
+                shell_puts("\n");
                 shell_reset_line(shell);
                 shell_push_new_history(shell, shell->buf);
                 return;
             } else {
-                shell_puts("\n\r");
+                shell_puts("\n");
                 shell_puts(shell->prompt);
             }
             break;

@@ -13,7 +13,7 @@ int ls(int argc, char *argv[])
     char str[PRINT_SIZE_MAX] = {0};
 
     if (argc > 2) {
-        shell_puts("ls: too many arguments\n\r");
+        shell_puts("ls: too many arguments\n");
         return 1;
     }
 
@@ -26,7 +26,7 @@ int ls(int argc, char *argv[])
     /* Check if the directory is open successfully */
     if (!dir) {
         snprintf(str, PRINT_SIZE_MAX,
-                 "ls: cannot access '%s': No such file or directory\n\r", path);
+                 "ls: cannot access '%s': No such file or directory\n", path);
         shell_puts(str);
         return 1;
     }
@@ -44,7 +44,7 @@ int ls(int argc, char *argv[])
 
     closedir(dir);
 
-    snprintf(&str[pos], PRINT_SIZE_MAX, "\n\r");
+    snprintf(&str[pos], PRINT_SIZE_MAX, "\n");
 
     shell_puts(str);
 

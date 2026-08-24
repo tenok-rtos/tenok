@@ -12,7 +12,7 @@ int echo(int argc, char *argv[])
         pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s ", argv[i]);
     }
 
-    pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n\r", argv[argc - 1]);
+    pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s\n", argv[argc - 1]);
 
     shell_puts(str);
 

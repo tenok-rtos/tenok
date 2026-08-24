@@ -36,13 +36,13 @@ void mutex_task1(void)
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == BUFFER_SIZE) {
-            printf("[mutex task 1] buffer is full, wait for consumer\n\r");
+            printf("[mutex task 1] buffer is full, wait for consumer\n");
             pthread_cond_wait(&cond_producer, &mutex);
         }
 
         /* Produce an item and add it to the buffer */
         my_buffer[my_cnt++] = item;
-        printf("[mutex task 1] produced item %d\n\r", item);
+        printf("[mutex task 1] produced item %d\n", item);
         item++;
 
         /* Signal to consumers that an item is available */
@@ -65,13 +65,13 @@ void mutex_task2(void)
         pthread_mutex_lock(&mutex);
 
         if (my_cnt == 0) {
-            printf("[mutex task 2] buffer is empty, wait for producer\n\r");
+            printf("[mutex task 2] buffer is empty, wait for producer\n");
             pthread_cond_wait(&cond_consumer, &mutex);
         }
 
         /* Consume an item from the buffer */
         int item = my_buffer[--my_cnt];
-        printf("[mutex task 2] consumed item %d\n\r", item);
+        printf("[mutex task 2] consumed item %d\n", item);
 
         /* Signal to producers that there is space in the buffer */
         pthread_cond_signal(&cond_producer);
