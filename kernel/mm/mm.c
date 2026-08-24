@@ -223,10 +223,10 @@ NACKED int minfo(int name)
     SYSCALL(MINFO);
 }
 
-/* Not implemented. The function is defined only
- * to supress the newlib warning.
+/* Tenok has no break to move. Answering with the value the C library reads as
+ * a failure keeps its allocator from handing out addresses near zero
  */
 void *_sbrk(int incr)
 {
-    return NULL;
+    return (void *) -1;
 }
