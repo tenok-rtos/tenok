@@ -15,6 +15,8 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
+#define EOF (-1)
+
 #define fopen _fopen
 #define fclose _fclose
 #define fread _fread
@@ -23,6 +25,21 @@
 #define ftell _ftell
 #define rewind _rewind
 #define fileno _fileno
+#define fputs _fputs
+#define fputc _fputc
+#define putchar _putchar
+#define puts _puts
+#define fgetc _fgetc
+#define getchar _getchar
+#define fgets _fgets
+#define feof _feof
+#define ferror _ferror
+#define clearerr _clearerr
+#define fflush _fflush
+
+/* The two the standard allows to be macros over the calls above */
+#define putc(c, stream) fputc(c, stream)
+#define getc(stream) fgetc(stream)
 
 #define __SIZEOF_FILE sizeof(__FILE)
 
@@ -223,5 +240,86 @@ int vsprintf(char *str, const char *format, va_list ap);
  *         characters printed; otherwie a negative value is returned.
  */
 int vsnprintf(char *str, size_t size, const char *format, va_list ap);
+
+/**
+ * @brief  Write a string to the stream, without its terminating null byte
+ * @param  s: The string to write.
+ * @param  stream: The file stream to provide.
+ * @retval int: A nonnegative number on success and EOF on error.
+ */
+int fputs(const char *s, FILE *stream);
+
+/**
+ * @brief  Write a character to the stream
+ * @param  c: The character to write.
+ * @param  stream: The file stream to provide.
+ * @retval int: The character written on success and EOF on error.
+ */
+int fputc(int c, FILE *stream);
+
+/**
+ * @brief  Write a character to the standard output
+ * @param  c: The character to write.
+ * @retval int: The character written on success and EOF on error.
+ */
+int putchar(int c);
+
+/**
+ * @brief  Write a string and a newline to the standard output
+ * @param  s: The string to write.
+ * @retval int: A nonnegative number on success and EOF on error.
+ */
+int puts(const char *s);
+
+/**
+ * @brief  Read a character from the stream
+ * @param  stream: The file stream to provide.
+ * @retval int: The character read, and EOF at the end of the file or on error.
+ */
+int fgetc(FILE *stream);
+
+/**
+ * @brief  Read a character from the standard input
+ * @retval int: The character read, and EOF at the end of the file or on error.
+ */
+int getchar(void);
+
+/**
+ * @brief  Read a line from the stream, the newline included, and terminate it
+ * @param  s: The buffer to read into.
+ * @param  size: The size of the buffer, the null byte included.
+ * @param  stream: The file stream to provide.
+ * @retval char *: The buffer on success and a null pointer at the end of the
+ *         file or on error.
+ */
+char *fgets(char *s, int size, FILE *stream);
+
+/**
+ * @brief  Tell whether the end of the stream has been reached
+ * @param  stream: The file stream to provide.
+ * @retval int: Nonzero once the end of the file was reached.
+ */
+int feof(FILE *stream);
+
+/**
+ * @brief  Tell whether the stream has failed
+ * @param  stream: The file stream to provide.
+ * @retval int: Nonzero once a call on the stream has failed.
+ */
+int ferror(FILE *stream);
+
+/**
+ * @brief  Clear the end of file and the error state of the stream
+ * @param  stream: The file stream to provide.
+ */
+void clearerr(FILE *stream);
+
+/**
+ * @brief  Hand over what the stream is holding. Tenok does not buffer, so
+ *         there is never anything to hand over
+ * @param  stream: The file stream to provide.
+ * @retval int: 0 on success and EOF on error.
+ */
+int fflush(FILE *stream);
 
 #endif

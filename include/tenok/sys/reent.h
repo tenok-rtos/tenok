@@ -8,6 +8,9 @@
 
 typedef struct {
     int fd;
+    /* Set by the end of the file and by a failure, until clearerr() */
+    int eof;
+    int err;
 } __FILE;
 
 #endif
