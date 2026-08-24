@@ -25,6 +25,11 @@ typedef struct {
     struct mutex rx_mtx;
     size_t rx_wait_size;
     void (*rx_callback)(uint8_t c);
+
+    /* Set when the device is opened, so the interrupt handler can report
+     * readability to poll()
+     */
+    struct file *filp;
 } uart_dev_t;
 
 void uart_putc(USART_TypeDef *uart, char c);

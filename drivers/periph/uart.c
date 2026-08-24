@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 #include <kernel/kernel.h>
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>
+#include <kernel/poll.h>
 #include <kernel/preempt.h>
 #include <kernel/printk.h>
 #include <kernel/sched.h>
@@ -73,6 +75,12 @@ static ssize_t uart1_read(struct file *filp,
 {
     mutex_lock(&uart1.rx_mtx);
 
+    /* Remember the file so that the interrupt handler can report readability
+     * to poll(). fs_open_file() never calls the open operation of a driver,
+     * so this is the first place the device learns which file it is.
+     */
+    uart1.filp = filp;
+
     preempt_disable();
 
     /* Block until the device has something, then hand over whatever arrived.
@@ -94,6 +102,14 @@ static ssize_t uart1_read(struct file *filp,
      */
     for (size_t i = 0; i < size; i++)
         kfifo_out(uart1.rx_fifo, &buf[i], sizeof(char));
+
+    /* The interrupt handler is masked by the preemption lock, so the buffer
+     * cannot refill in between
+     */
+    preempt_disable();
+    if (kfifo_len(uart1.rx_fifo) == 0)
+        filp->f_events &= ~POLLIN;
+    preempt_enable();
 
     mutex_unlock(&uart1.rx_mtx);
 
@@ -162,6 +178,11 @@ static struct file_operations uart1_file_ops = {
 static void serial1_rx_interrupt_handler(uint8_t c)
 {
     kfifo_put(uart1.rx_fifo, &c);
+
+    if (uart1.filp) {
+        uart1.filp->f_events |= POLLIN;
+        poll_notify(uart1.filp);
+    }
 
     if (uart1.rx_wait_size && kfifo_len(uart1.rx_fifo) >= uart1.rx_wait_size) {
         uart1.rx_wait_size = 0;
@@ -299,6 +320,12 @@ static ssize_t uart2_read(struct file *filp,
 {
     mutex_lock(&uart2.rx_mtx);
 
+    /* Remember the file so that the interrupt handler can report readability
+     * to poll(). fs_open_file() never calls the open operation of a driver,
+     * so this is the first place the device learns which file it is.
+     */
+    uart2.filp = filp;
+
     preempt_disable();
 
     /* Block until the device has something, then hand over whatever arrived.
@@ -320,6 +347,14 @@ static ssize_t uart2_read(struct file *filp,
      */
     for (size_t i = 0; i < size; i++)
         kfifo_out(uart2.rx_fifo, &buf[i], sizeof(char));
+
+    /* The interrupt handler is masked by the preemption lock, so the buffer
+     * cannot refill in between
+     */
+    preempt_disable();
+    if (kfifo_len(uart2.rx_fifo) == 0)
+        filp->f_events &= ~POLLIN;
+    preempt_enable();
 
     mutex_unlock(&uart2.rx_mtx);
 
@@ -343,6 +378,11 @@ static struct file_operations uart2_file_ops = {
 static void serial2_rx_interrupt_handler(uint8_t c)
 {
     kfifo_put(uart2.rx_fifo, &c);
+
+    if (uart2.filp) {
+        uart2.filp->f_events |= POLLIN;
+        poll_notify(uart2.filp);
+    }
 
     if (uart2.rx_wait_size && kfifo_len(uart2.rx_fifo) >= uart2.rx_wait_size) {
         uart2.rx_wait_size = 0;
@@ -437,6 +477,12 @@ static ssize_t uart3_read(struct file *filp,
 {
     mutex_lock(&uart3.rx_mtx);
 
+    /* Remember the file so that the interrupt handler can report readability
+     * to poll(). fs_open_file() never calls the open operation of a driver,
+     * so this is the first place the device learns which file it is.
+     */
+    uart3.filp = filp;
+
     preempt_disable();
 
     /* Block until the device has something, then hand over whatever arrived.
@@ -458,6 +504,14 @@ static ssize_t uart3_read(struct file *filp,
      */
     for (size_t i = 0; i < size; i++)
         kfifo_out(uart3.rx_fifo, &buf[i], sizeof(char));
+
+    /* The interrupt handler is masked by the preemption lock, so the buffer
+     * cannot refill in between
+     */
+    preempt_disable();
+    if (kfifo_len(uart3.rx_fifo) == 0)
+        filp->f_events &= ~POLLIN;
+    preempt_enable();
 
     mutex_unlock(&uart3.rx_mtx);
 
@@ -526,6 +580,11 @@ static struct file_operations uart3_file_ops = {
 static void serial3_rx_interrupt_handler(uint8_t c)
 {
     kfifo_put(uart3.rx_fifo, &c);
+
+    if (uart3.filp) {
+        uart3.filp->f_events |= POLLIN;
+        poll_notify(uart3.filp);
+    }
 
     if (uart3.rx_wait_size && kfifo_len(uart3.rx_fifo) >= uart3.rx_wait_size) {
         uart3.rx_wait_size = 0;
