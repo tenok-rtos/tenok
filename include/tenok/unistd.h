@@ -129,4 +129,18 @@ int unlink(const char *pathname);
  */
 int rmdir(const char *pathname);
 
+/* Accessibility asked about by access() */
+#define F_OK 0 /* The file exists */
+#define X_OK 1 /* The file can be executed */
+#define W_OK 2 /* The file can be written */
+#define R_OK 4 /* The file can be read */
+
+/**
+ * @brief  Check whether the calling task can reach a file the way it asks
+ * @param  pathname: The pathname of the file to check.
+ * @param  mode: F_OK, or the R_OK, W_OK and X_OK to check for.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int access(const char *pathname, int mode);
+
 #endif

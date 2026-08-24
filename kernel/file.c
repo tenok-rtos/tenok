@@ -338,6 +338,16 @@ int remove(const char *pathname)
     return S_ISDIR(statbuf.st_mode) ? rmdir(pathname) : unlink(pathname);
 }
 
+/* Tenok has a single user and checks no permission bit, so a file that
+ * exists can be reached every way the caller asks about
+ */
+int access(const char *pathname, int mode)
+{
+    struct stat statbuf;
+
+    return stat(pathname, &statbuf);
+}
+
 static NACKED int __poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
     SYSCALL(POLL);
