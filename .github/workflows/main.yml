@@ -17,13 +17,16 @@ jobs:
     - name: install dependencies
       run: |
            sudo apt update
-           sudo apt install gcc-multilib
+           sudo apt install gcc-multilib qemu-system-arm
     - name: checkout 
       uses: actions/checkout@v3
     - name: build default 
       run: |
            git submodule update --init --recursive
            make
+
+    - name: smoke test
+      run: make qemu-test
 
   code-check:
     runs-on: ubuntu-22.04
