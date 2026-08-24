@@ -19,8 +19,11 @@
 
 #define NAME_MAX _NAME_MAX
 
-#define S_IFREG 3 /* Regular file */
-#define S_IFDIR 4 /* Directory */
+/* The mode is written into the image, so these are the values Tenok reads */
+#undef S_IFREG
+#undef S_IFDIR
+#define S_IFREG 0100000 /* Regular file */
+#define S_IFDIR 0040000 /* Directory */
 
 bool _verbose = false;
 
@@ -46,7 +49,7 @@ struct list_head {
 
 /* index node */
 struct inode {
-    uint8_t i_mode;    /* File type: e.g., S_IFIFO, S_IFCHR, etc. */
+    uint16_t i_mode;   /* File type and permission bits */
     uint8_t i_rdev;    /* The device on which this file system is mounted */
     bool i_sync;       /* The mounted file is loaded into the rootfs or not */
     uint32_t i_ino;    /* inode number */
@@ -165,7 +168,7 @@ void romfs_init(void)
 {
     /* Configure the root directory inode */
     struct inode *inode_root = &inodes[0];
-    inode_root->i_mode = S_IFDIR;
+    inode_root->i_mode = S_IFDIR | 0755;
     inode_root->i_ino = 0;
     inode_root->i_size = 0;
     inode_root->i_blocks = 0;
@@ -214,7 +217,7 @@ int fs_calculate_dentry_blocks(size_t block_size, size_t dentry_cnt)
 
 struct inode *fs_add_file(struct inode *inode_dir,
                           char *file_name,
-                          int file_type)
+                          uint16_t file_type)
 {
     /* inodes numbers is full */
     if (romfs_sb.s_inode_cnt >= INODE_MAX)
@@ -264,7 +267,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
     /* File instantiation */
     switch (file_type) {
     case S_IFREG: {
-        new_inode->i_mode = S_IFREG;
+        new_inode->i_mode = S_IFREG | 0644;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
         new_inode->i_data = 0; /* Empty file */
@@ -272,7 +275,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
         break;
     }
     case S_IFDIR: {
-        new_inode->i_mode = S_IFDIR;
+        new_inode->i_mode = S_IFDIR | 0755;
         new_inode->i_size = 0;
         new_inode->i_blocks = 0;
         new_inode->i_data = 0; /* Empty directory */
@@ -332,7 +335,7 @@ char *fs_split_path(char *entry, char *path)
     return path;
 }
 
-static struct inode *fs_create_file(char *pathname, uint8_t file_type)
+static struct inode *fs_create_file(char *pathname, uint16_t file_type)
 {
     /* The path name must start with '/' */
     if (pathname[0] != '/')

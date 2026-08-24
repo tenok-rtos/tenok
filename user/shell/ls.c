@@ -36,7 +36,7 @@ int ls(int argc, char *argv[])
     int pos = 0;
     struct dirent dirent;
     while ((readdir(&dir, &dirent)) != -1) {
-        if (dirent.d_type == S_IFDIR) {
+        if (dirent.d_type == DT_DIR) {
             pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s/  ", dirent.d_name);
         } else {
             pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s  ", dirent.d_name);

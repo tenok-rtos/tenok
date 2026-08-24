@@ -162,7 +162,7 @@ int remove(const char *pathname)
     if (retval != 0)
         return retval;
 
-    return (statbuf.st_mode == S_IFDIR) ? rmdir(pathname) : unlink(pathname);
+    return S_ISDIR(statbuf.st_mode) ? rmdir(pathname) : unlink(pathname);
 }
 
 NACKED int poll(struct pollfd *fds, nfds_t nfds, int timeout)

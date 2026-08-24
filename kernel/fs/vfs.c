@@ -71,10 +71,10 @@ int vfs_open_file(int tid, const char *pathname)
     return file_idx;
 }
 
-int vfs_create_file(int tid, const char *pathname, uint8_t file_type)
+int vfs_create_file(int tid, const char *pathname, mode_t mode)
 {
     /* Send file create request to the file system daemon */
-    request_create_file(tid, pathname, file_type);
+    request_create_file(tid, pathname, mode);
 
     /* Read file index from the file system daemon  */
     int file_idx;

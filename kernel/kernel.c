@@ -1037,7 +1037,7 @@ static int sys_open(const char *pathname, int flags)
      * is owned by the file rather than by the file descriptor, so opening a
      * file has to reset it.
      */
-    if (filp->f_inode && (filp->f_inode->i_mode == S_IFREG)) {
+    if (filp->f_inode && S_ISREG(filp->f_inode->i_mode)) {
         if (flags & O_TRUNC) {
             if (filp->f_inode->i_rdev != RDEV_ROOTFS) {
                 /* Release the file descriptor */
@@ -1492,11 +1492,7 @@ static int sys_fstat(int fd, struct stat *statbuf)
 
     /* Check if the inode exists */
     if (inode != NULL) { /* XXX */
-        statbuf->st_mode = inode->i_mode;
-        statbuf->st_ino = inode->i_ino;
-        statbuf->st_rdev = inode->i_rdev;
-        statbuf->st_size = inode->i_size;
-        statbuf->st_blocks = inode->i_blocks;
+        fs_fill_stat(statbuf, inode);
     }
 
     /* Return success */
@@ -1558,7 +1554,7 @@ static int sys_mknod(const char *pathname, mode_t mode, dev_t dev)
 
     int tid = running_thread->tid;
 
-    int file_idx = vfs_create_file(tid, pathname, dev);
+    int file_idx = vfs_create_file(tid, pathname, mode);
 
     if (file_idx == -1) {
         /* Failed to create file */
@@ -1637,7 +1633,8 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 
     int tid = running_thread->tid;
 
-    int file_idx = vfs_create_file(tid, pathname, S_IFIFO);
+    int file_idx =
+        vfs_create_file(tid, pathname, S_IFIFO | FS_DEFAULT_FILE_MODE);
 
     if (file_idx == -1) {
         /* Failed to create FIFO */
@@ -1724,7 +1721,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
          * standard input waiting for something that never arrives.
          */
         uint32_t ready_events = filp->f_events;
-        if (filp->f_inode && filp->f_inode->i_mode == S_IFREG)
+        if (filp->f_inode && S_ISREG(filp->f_inode->i_mode))
             ready_events |= POLLIN | POLLOUT;
 
         uint32_t events = ready_events & fds[i].events;
@@ -1823,7 +1820,7 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
          * standard input waiting for something that never arrives.
          */
         uint32_t ready_events = filp->f_events;
-        if (filp->f_inode && filp->f_inode->i_mode == S_IFREG)
+        if (filp->f_inode && S_ISREG(filp->f_inode->i_mode))
             ready_events |= POLLIN | POLLOUT;
 
         uint32_t events = ready_events & fds[i].events;

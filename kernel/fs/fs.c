@@ -21,9 +21,7 @@
 
 static void fs_mount_directory(struct inode *inode_src,
                                struct inode *inode_target);
-static int fs_create_file(const char *pathname,
-                          uint8_t file_type,
-                          bool create_dirs);
+static int fs_create_file(const char *pathname, mode_t mode, bool create_dirs);
 static int fs_open_file(const char *pathname);
 ssize_t rootfs_read(struct file *filp, char *buf, size_t size, off_t offset);
 ssize_t rootfs_write(struct file *filp,
@@ -101,7 +99,7 @@ int register_chrdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new character device file */
-    int fd = fs_create_file(dev_path, S_IFCHR, true);
+    int fd = fs_create_file(dev_path, S_IFCHR | FS_DEFAULT_FILE_MODE, true);
 
     /* Link the file operations */
     files[fd]->f_op = fops;
@@ -115,7 +113,7 @@ int register_blkdev(char *name, struct file_operations *fops)
     snprintf(dev_path, PATH_MAX, "/dev/%s", name);
 
     /* Create new block device file */
-    int fd = fs_create_file(dev_path, S_IFBLK, true);
+    int fd = fs_create_file(dev_path, S_IFBLK | FS_DEFAULT_FILE_MODE, true);
 
     /* Link the file operations */
     files[fd]->f_op = fops;
@@ -237,7 +235,7 @@ void rootfs_init(void)
 
     /* Configure the root directory inode */
     struct inode *inode_root = fs_alloc_inode();
-    inode_root->i_mode = S_IFDIR;
+    inode_root->i_mode = S_IFDIR | FS_DEFAULT_DIR_MODE;
     inode_root->i_rdev = RDEV_ROOTFS;
     inode_root->i_sync = true;
     inode_root->i_size = 0;
@@ -495,7 +493,7 @@ uint32_t fs_file_append_block(struct inode *inode)
 static void fs_free_file_blocks(struct inode *inode)
 {
     /* Files provided by an external storage own no rootfs block */
-    if (inode->i_rdev != RDEV_ROOTFS || inode->i_mode != S_IFREG)
+    if (inode->i_rdev != RDEV_ROOTFS || !S_ISREG(inode->i_mode))
         return;
 
     uint32_t blk_addr = inode->i_data;
@@ -514,7 +512,7 @@ static void fs_free_file_blocks(struct inode *inode)
 /* Create a file under the given directory (currently only supports rootfs) */
 static struct inode *fs_add_file(struct inode *inode_dir,
                                  char *file_name,
-                                 int file_type)
+                                 mode_t mode)
 {
     int fd = -1;
     struct inode *new_inode = NULL;
@@ -534,6 +532,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     if (!new_inode)
         goto failed;
 
+    new_inode->i_mode = mode;
     new_inode->i_rdev = RDEV_ROOTFS;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd = fd;
@@ -555,7 +554,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
     /* File instantiation */
     int result = 0;
 
-    switch (file_type) {
+    switch (mode & S_IFMT) {
     case S_IFIFO: {
         /* Named pipe */
         struct pipe *pipe = kmalloc(sizeof(struct pipe));
@@ -572,8 +571,6 @@ static struct inode *fs_add_file(struct inode *inode_dir,
 
         pipe->fifo = pipe_fifo;
         result = fifo_init(fd, (struct file **) &files, new_inode, pipe);
-
-        new_inode->i_mode = S_IFIFO;
 
         break;
     }
@@ -593,9 +590,7 @@ static struct inode *fs_add_file(struct inode *inode_dir,
         dev_file->f_inode = new_inode;
         files[fd] = dev_file;
 
-        new_inode->i_mode = file_type;
-
-        if (file_type == S_IFDIR)
+        if (S_ISDIR(mode))
             INIT_LIST_HEAD(&new_inode->i_dentry);
 
         break;
@@ -609,8 +604,6 @@ static struct inode *fs_add_file(struct inode *inode_dir,
             goto failed;
 
         result = reg_file_init((struct file **) &files, new_inode, reg_file);
-
-        new_inode->i_mode = S_IFREG;
 
         break;
     }
@@ -695,7 +688,7 @@ static bool fs_sync_file(struct inode *inode)
         return false;
 
     /* Only regular files require synchronization */
-    if (inode->i_mode != S_IFREG)
+    if (!S_ISREG(inode->i_mode))
         return false;
 
     /* The file is already synchronized */
@@ -854,13 +847,14 @@ static int fs_path_lookup(const char *pathname,
                 return -ENOENT;
 
             /* Create the missing directory */
-            inode = fs_add_file(inode_dir, entry_name, S_IFDIR);
+            inode = fs_add_file(inode_dir, entry_name,
+                                S_IFDIR | FS_DEFAULT_DIR_MODE);
             if (!inode)
                 return -ENOSPC;
         }
 
         /* Failed, not a directory */
-        if (inode->i_mode != S_IFDIR)
+        if (!S_ISDIR(inode->i_mode))
             return -ENOTDIR;
 
         inode_dir = inode;
@@ -895,9 +889,7 @@ static struct inode *fs_resolve_path(const char *pathname)
  * Input : Path name and file type
  * Output: File descriptor number
  */
-static int fs_create_file(const char *pathname,
-                          uint8_t file_type,
-                          bool create_dirs)
+static int fs_create_file(const char *pathname, mode_t mode, bool create_dirs)
 {
     struct inode *inode_dir;
     char name[NAME_MAX];
@@ -915,7 +907,7 @@ static int fs_create_file(const char *pathname,
         return -EEXIST;
 
     /* Create new inode for the file */
-    struct inode *inode = fs_add_file(inode_dir, name, file_type);
+    struct inode *inode = fs_add_file(inode_dir, name, mode);
     if (!inode)
         return -ENOSPC;
 
@@ -935,7 +927,7 @@ static int fs_open_file(const char *pathname)
         return -ENOENT;
 
     /* A directory can only be opened with opendir() */
-    if (inode->i_mode == S_IFDIR)
+    if (S_ISDIR(inode->i_mode))
         return -EISDIR;
 
     /* Check if the file requires synchronization */
@@ -1002,18 +994,18 @@ static int fs_remove(const char *pathname, bool rm_dir)
         return -EBUSY;
 
     if (rm_dir) {
-        if (inode->i_mode != S_IFDIR)
+        if (!S_ISDIR(inode->i_mode))
             return -ENOTDIR;
 
         /* Only an empty directory can be removed */
         if (!list_empty(&inode->i_dentry))
             return -ENOTEMPTY;
     } else {
-        if (inode->i_mode == S_IFDIR)
+        if (S_ISDIR(inode->i_mode))
             return -EISDIR;
 
         /* Device files and named pipes are owned by the kernel */
-        if (inode->i_mode != S_IFREG)
+        if (!S_ISREG(inode->i_mode))
             return -EPERM;
     }
 
@@ -1024,7 +1016,7 @@ static int fs_remove(const char *pathname, bool rm_dir)
         return -EBUSY;
 
     /* Release the resources owned by the file */
-    if (inode->i_mode == S_IFREG) {
+    if (S_ISREG(inode->i_mode)) {
         fs_free_file_blocks(inode);
 
         if (files[inode->i_fd])
@@ -1053,11 +1045,7 @@ static int fs_stat(const char *pathname, struct stat *statbuf)
     if (!inode)
         return -ENOENT;
 
-    statbuf->st_mode = inode->i_mode;
-    statbuf->st_ino = inode->i_ino;
-    statbuf->st_rdev = inode->i_rdev;
-    statbuf->st_size = inode->i_size;
-    statbuf->st_blocks = inode->i_blocks;
+    fs_fill_stat(statbuf, inode);
 
     return 0;
 }
@@ -1094,7 +1082,7 @@ static int fs_rename(const char *oldpath, const char *newpath)
     /* Moving a directory into its own subtree would create a loop on the
      * dentry tree, which hangs every path walk afterwards
      */
-    if (inode->i_mode == S_IFDIR) {
+    if (S_ISDIR(inode->i_mode)) {
         struct inode *ancestor = new_dir;
 
         while (1) {
@@ -1116,7 +1104,7 @@ static int fs_rename(const char *oldpath, const char *newpath)
             return 0;
 
         /* Overwriting a directory is not supported */
-        if (inode_new->i_mode == S_IFDIR)
+        if (S_ISDIR(inode_new->i_mode))
             return -EEXIST;
 
         /* Remove the file that is being overwritten */
@@ -1160,7 +1148,7 @@ static int fs_mkdir(const char *pathname)
     if (fs_search_file(inode_dir, name))
         return -EEXIST;
 
-    if (!fs_add_file(inode_dir, name, S_IFDIR))
+    if (!fs_add_file(inode_dir, name, S_IFDIR | FS_DEFAULT_DIR_MODE))
         return -ENOSPC;
 
     return 0;
@@ -1174,7 +1162,7 @@ struct inode *fs_open_directory(const char *pathname)
     struct inode *inode = fs_resolve_path(pathname);
 
     /* Directory does not exist or the path refers to a file */
-    if (!inode || (inode->i_mode != S_IFDIR))
+    if (!inode || !S_ISDIR(inode->i_mode))
         return NULL;
 
     /* Synchronize the directory */
@@ -1269,7 +1257,7 @@ int fs_chdir(const char *path)
         return -ENOENT;
 
     /* Not a directory */
-    if (inode->i_mode != S_IFDIR)
+    if (!S_ISDIR(inode->i_mode))
         return -ENOTDIR;
 
     /* Synchronize the directory */
@@ -1293,7 +1281,7 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent)
 
     /* Copy dirent data */
     dirent->d_ino = dentry->d_inode;
-    dirent->d_type = inodes[dentry->d_inode].i_mode;
+    dirent->d_type = IFTODT(inodes[dentry->d_inode].i_mode);
     strncpy(dirent->d_name, dentry->d_name, NAME_MAX);
 
     /* Update the dentry pointer */
@@ -1394,14 +1382,14 @@ void request_mkdir(int thread_id, const char *path)
     fs_request(FS_MAKE_DIR, THREAD_PIPE_FD(thread_id), &path, sizeof(path));
 }
 
-void request_create_file(int thread_id, const char *path, uint8_t file_type)
+void request_create_file(int thread_id, const char *path, mode_t mode)
 {
     preempt_disable();
 
     int fs_cmd = FS_CREATE_FILE;
     int reply_fd = THREAD_PIPE_FD(thread_id);
     const size_t overhead =
-        sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path) + sizeof(file_type);
+        sizeof(fs_cmd) + sizeof(reply_fd) + sizeof(path) + sizeof(mode);
     char buf[overhead];
     int buf_size = 0;
 
@@ -1414,8 +1402,8 @@ void request_create_file(int thread_id, const char *path, uint8_t file_type)
     memcpy(&buf[buf_size], &path, sizeof(path));
     buf_size += sizeof(path);
 
-    memcpy(&buf[buf_size], &file_type, sizeof(file_type));
-    buf_size += sizeof(file_type);
+    memcpy(&buf[buf_size], &mode, sizeof(mode));
+    buf_size += sizeof(mode);
 
     const int filesysd_fd = THREAD_PIPE_FD(get_daemon_id(FILESYSD));
     fifo_write(files[filesysd_fd], buf, buf_size, 0);
@@ -1575,10 +1563,10 @@ void filesysd(void)
             char *path;
             read(filesysd_fd, &path, sizeof(path));
 
-            uint8_t file_type;
-            read(filesysd_fd, &file_type, sizeof(file_type));
+            mode_t mode;
+            read(filesysd_fd, &mode, sizeof(mode));
 
-            int new_fd = fs_create_file(path, file_type, false);
+            int new_fd = fs_create_file(path, mode, false);
             write(reply_fd, &new_fd, sizeof(new_fd));
 
             break;

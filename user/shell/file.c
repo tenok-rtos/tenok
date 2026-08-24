@@ -50,7 +50,7 @@ int file(int argc, char *argv[])
     /* Close the file */
     close(fd);
 
-    switch (stat.st_mode) {
+    switch (stat.st_mode & S_IFMT) {
     case S_IFIFO:
         snprintf(str, PRINT_SIZE_MAX, "%s: fifo (named pipe)\n\r", path);
         break;

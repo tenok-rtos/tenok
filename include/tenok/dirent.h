@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <sys/limits.h>
+#include <sys/stat.h>
 
 #include "kconfig.h"
 
@@ -15,11 +16,26 @@ typedef struct dirstream {
     struct list_head *dentry_list; /* List pointer of the dentry to return */
 } DIR;
 
+/* File types of d_type, which is the file type of the mode shifted down by
+ * twelve bits
+ */
+#define DT_UNKNOWN 0
+#define DT_FIFO 1
+#define DT_CHR 2
+#define DT_DIR 4
+#define DT_BLK 6
+#define DT_REG 8
+#define DT_LNK 10
+#define DT_SOCK 12
+
+#define IFTODT(mode) (((mode) &S_IFMT) >> 12)
+#define DTTOIF(dirtype) ((dirtype) << 12)
+
 /* Return type of the readdir() */
 struct dirent {
     char d_name[NAME_MAX]; /* File name */
     uint32_t d_ino;        /* The inode of the file */
-    uint8_t d_type;        /* File type */
+    uint8_t d_type;        /* File type, one of the DT_ values above */
 };
 
 /**

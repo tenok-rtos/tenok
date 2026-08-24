@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -17,6 +18,10 @@
 #include "kconfig.h"
 
 #define RDEV_ROOTFS 0
+
+/* Mode of a new file, the one a Linux system gives under a umask of 022 */
+#define FS_DEFAULT_FILE_MODE 0644
+#define FS_DEFAULT_DIR_MODE 0755
 
 #define FILE_RESERVED_NUM (THREAD_MAX + 3)
 #define THREAD_PIPE_FD(thread_id) (thread_id + 3)
@@ -85,8 +90,8 @@ struct mount {
 
 /* index node */
 struct inode {
-    /* File type: S_IFIFO, S_IFCHR, etc. */
-    uint8_t i_mode;
+    /* File type and permission bits: S_IFREG | 0644, and so on */
+    uint16_t i_mode;
     /* The device on which the file is mounted */
     uint8_t i_rdev;
     /* The mounted file is loaded into the rootfs or not */
@@ -166,7 +171,24 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
-void request_create_file(int thread_id, const char *path, uint8_t file_type);
+/* Fill in a stat buffer from an inode. Tenok tracks no ownership, no link
+ * count and no time stamp, so those fields read back as zero
+ */
+static inline void fs_fill_stat(struct stat *statbuf, const struct inode *inode)
+{
+    memset(statbuf, 0, sizeof(*statbuf));
+
+    statbuf->st_dev = inode->i_rdev;
+    statbuf->st_ino = inode->i_ino;
+    statbuf->st_mode = inode->i_mode;
+    statbuf->st_nlink = 1;
+    statbuf->st_rdev = inode->i_rdev;
+    statbuf->st_size = inode->i_size;
+    statbuf->st_blksize = FS_BLK_SIZE;
+    statbuf->st_blocks = inode->i_blocks;
+}
+
+void request_create_file(int thread_id, const char *path, mode_t mode);
 void request_mkdir(int thread_id, const char *path);
 void request_remove(int thread_id, const char *path, bool rm_dir);
 void request_stat(int thread_id, const char *path, struct stat *statbuf);
