@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -216,6 +217,40 @@ void *calloc(size_t nmemb, size_t size)
     /* Reset the memory data */
     memset(mem, 0, nmemb * size);
     return mem;
+}
+
+/* The duplicators of the C library allocate, so they belong next to the
+ * allocator: the ones newlib provides take the memory from its own heap
+ */
+char *strdup(const char *s)
+{
+    size_t size = strlen(s) + 1;
+    char *copy = malloc(size);
+
+    if (!copy) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    memcpy(copy, s, size);
+
+    return copy;
+}
+
+char *strndup(const char *s, size_t n)
+{
+    size_t len = strnlen(s, n);
+    char *copy = malloc(len + 1);
+
+    if (!copy) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    memcpy(copy, s, len);
+    copy[len] = '\0';
+
+    return copy;
 }
 
 NACKED int minfo(int name)
