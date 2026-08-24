@@ -127,7 +127,13 @@ void *__malloc(size_t size)
                                             malloc_get_block_length(blk));
                 malloc_set_block_free(new_blk, false);
                 malloc_set_block_length(new_blk, alloc_size);
-                list_add_tail(&new_blk->list, &malloc_list);
+
+                /* The splitted part sits right behind the block it came from.
+                 * __free() merges with the list neighbors of a block, so the
+                 * list has to stay sorted by address, or blocks that are not
+                 * adjacent in memory end up being merged.
+                 */
+                list_add(&new_blk->list, &blk->list);
 
                 /* Return the memory address */
                 return new_blk->data;
