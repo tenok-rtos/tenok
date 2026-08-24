@@ -4,6 +4,18 @@
 #ifndef __ERRNO_H__
 #define __ERRNO_H__
 
+/* The system calls report a failure by returning a negative error number, but
+ * the standard library reports one through this variable, and that is where a
+ * program that was not written for Tenok looks.
+ *
+ * It lives in the reentrancy structure of the C library, of which Tenok keeps
+ * a single one: two threads that fail at the same time overwrite each other.
+ */
+#ifndef errno
+extern int *__errno(void);
+#define errno (*__errno())
+#endif
+
 #define EPERM 1         /**< Not the owner */
 #define ENOENT 2        /**< No such file or directory */
 #define ESRCH 3         /**< No such task */
