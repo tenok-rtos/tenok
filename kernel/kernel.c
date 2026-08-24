@@ -964,7 +964,7 @@ static int sys_mount(const char *source, const char *target)
     return vfs_mount(tid, source, target);
 }
 
-static int sys_open(const char *pathname, int flags)
+static int sys_open(const char *pathname, int flags, mode_t mode)
 {
     preempt_disable();
 
@@ -991,7 +991,7 @@ static int sys_open(const char *pathname, int flags)
 
     if ((file_idx == -ENOENT) && (flags & O_CREAT)) {
         /* Create the file as it does not exist yet */
-        file_idx = vfs_create_file(tid, pathname, S_IFREG);
+        file_idx = vfs_create_file(tid, pathname, S_IFREG | (mode & 07777));
     } else if ((file_idx >= 0) && (flags & O_CREAT) && (flags & O_EXCL)) {
         /* O_EXCL requires the file to be created by this very call */
         retval = -EEXIST;
@@ -1574,7 +1574,7 @@ static int sys_mkdir(const char *pathname, mode_t mode)
     if (strlen(pathname) >= PATH_MAX)
         return -ENAMETOOLONG;
 
-    return vfs_mkdir(running_thread->tid, pathname);
+    return vfs_mkdir(running_thread->tid, pathname, mode);
 }
 
 static int sys_rename(const char *oldpath, const char *newpath)
@@ -1633,8 +1633,7 @@ static int sys_mkfifo(const char *pathname, mode_t mode)
 
     int tid = running_thread->tid;
 
-    int file_idx =
-        vfs_create_file(tid, pathname, S_IFIFO | FS_DEFAULT_FILE_MODE);
+    int file_idx = vfs_create_file(tid, pathname, S_IFIFO | (mode & 07777));
 
     if (file_idx == -1) {
         /* Failed to create FIFO */

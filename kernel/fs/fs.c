@@ -1131,7 +1131,7 @@ static int fs_rename(const char *oldpath, const char *newpath)
 /* Create a directory by given a pathname. Unlike fs_create_file(), the
  * missing directories of the path are never created implicitly.
  */
-static int fs_mkdir(const char *pathname)
+static int fs_mkdir(const char *pathname, mode_t mode)
 {
     struct inode *inode_dir;
     char name[NAME_MAX];
@@ -1148,7 +1148,7 @@ static int fs_mkdir(const char *pathname)
     if (fs_search_file(inode_dir, name))
         return -EEXIST;
 
-    if (!fs_add_file(inode_dir, name, S_IFDIR | FS_DEFAULT_DIR_MODE))
+    if (!fs_add_file(inode_dir, name, S_IFDIR | (mode & 07777)))
         return -ENOSPC;
 
     return 0;
@@ -1377,9 +1377,14 @@ void request_remove(int thread_id, const char *path, bool rm_dir)
     fs_request(FS_REMOVE, THREAD_PIPE_FD(thread_id), args, sizeof(args));
 }
 
-void request_mkdir(int thread_id, const char *path)
+void request_mkdir(int thread_id, const char *path, mode_t mode)
 {
-    fs_request(FS_MAKE_DIR, THREAD_PIPE_FD(thread_id), &path, sizeof(path));
+    struct {
+        const char *path;
+        mode_t mode;
+    } args = {path, mode};
+
+    fs_request(FS_MAKE_DIR, THREAD_PIPE_FD(thread_id), &args, sizeof(args));
 }
 
 void request_create_file(int thread_id, const char *path, mode_t mode)
@@ -1627,7 +1632,10 @@ void filesysd(void)
             char *path;
             read(filesysd_fd, &path, sizeof(path));
 
-            int result = fs_mkdir(path);
+            mode_t mode;
+            read(filesysd_fd, &mode, sizeof(mode));
+
+            int result = fs_mkdir(path, mode);
             write(reply_fd, &result, sizeof(result));
 
             break;

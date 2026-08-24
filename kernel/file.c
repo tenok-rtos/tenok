@@ -1,6 +1,8 @@
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,14 +39,21 @@ int mount(const char *source, const char *target)
     return set_errno(__mount(source, target));
 }
 
-static NACKED int __open(const char *pathname, int flags)
+static NACKED int __open(const char *pathname, int flags, mode_t mode)
 {
     SYSCALL(OPEN);
 }
 
-int open(const char *pathname, int flags)
+int open(const char *pathname, int flags, ...)
 {
-    return set_errno(__open(pathname, flags));
+    va_list ap;
+
+    /* The mode is only given when the file may have to be created */
+    va_start(ap, flags);
+    mode_t mode = (flags & O_CREAT) ? va_arg(ap, mode_t) : 0;
+    va_end(ap);
+
+    return set_errno(__open(pathname, flags, mode));
 }
 
 static NACKED int __close(int fd)

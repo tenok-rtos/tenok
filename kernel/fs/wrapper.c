@@ -37,7 +37,8 @@ FILE *_fopen(const char *pathname, const char *mode)
         return NULL;
 
     /* Open the file with the system call */
-    int fd = open(pathname, flags);
+    /* POSIX has fopen() create with 0666 */
+    int fd = open(pathname, flags, 0666);
 
     /* open() has already left the reason in errno */
     if (fd < 0)

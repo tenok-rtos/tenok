@@ -170,10 +170,10 @@ int vfs_chdir(int tid, const char *path)
     return chdir_result;
 }
 
-int vfs_mkdir(int tid, const char *pathname)
+int vfs_mkdir(int tid, const char *pathname, mode_t mode)
 {
     /* Send mkdir request to the file system daemon */
-    request_mkdir(tid, pathname);
+    request_mkdir(tid, pathname, mode);
 
     /* Read mkdir result from the file system daemon */
     int result;

@@ -18,9 +18,11 @@
  * @brief  Open the file specified by the pathname
  * @param  pathname: The pathname of the file.
  * @param  flags: Flags for opening the file.
+ * @param  mode: The permission bits of the file, when O_CREAT is given and
+ *         the file has to be created. Ignored otherwise.
  * @retval int: The file descriptor of the file on success and -1 on error,
  *         with the reason left in errno.
  */
-int open(const char *pathname, int flags);
+int open(const char *pathname, int flags, ...);
 
 #endif
