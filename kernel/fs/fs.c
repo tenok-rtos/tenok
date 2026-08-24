@@ -1037,6 +1037,20 @@ static int fs_remove(const char *pathname, bool rm_dir)
     return 0;
 }
 
+/* Replace the permission bits of the file specified by the pathname */
+static int fs_chmod(const char *pathname, mode_t mode)
+{
+    struct inode *inode = fs_resolve_path(pathname);
+
+    if (!inode)
+        return -ENOENT;
+
+    /* The file type is the caller's to read and not the caller's to change */
+    inode->i_mode = (inode->i_mode & S_IFMT) | (mode & 07777);
+
+    return 0;
+}
+
 /* Return the information of the file specified by the pathname */
 static int fs_stat(const char *pathname, struct stat *statbuf)
 {
@@ -1357,6 +1371,16 @@ void request_rename(int thread_id, const char *oldpath, const char *newpath)
     fs_request(FS_RENAME, THREAD_PIPE_FD(thread_id), args, sizeof(args));
 }
 
+void request_chmod(int thread_id, const char *path, mode_t mode)
+{
+    struct {
+        const char *path;
+        mode_t mode;
+    } args = {path, mode};
+
+    fs_request(FS_CHANGE_MODE, THREAD_PIPE_FD(thread_id), &args, sizeof(args));
+}
+
 void request_stat(int thread_id, const char *path, struct stat *statbuf)
 {
     char args[sizeof(path) + sizeof(statbuf)];
@@ -1648,6 +1672,18 @@ void filesysd(void)
             read(filesysd_fd, &rm_dir, sizeof(rm_dir));
 
             int result = fs_remove(path, rm_dir);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_CHANGE_MODE: {
+            char *path;
+            read(filesysd_fd, &path, sizeof(path));
+
+            mode_t mode;
+            read(filesysd_fd, &mode, sizeof(mode));
+
+            int result = fs_chmod(path, mode);
             write(reply_fd, &result, sizeof(result));
 
             break;

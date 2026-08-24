@@ -256,6 +256,16 @@ int mkdir(const char *pathname, mode_t mode)
     return set_errno(__mkdir(pathname, mode));
 }
 
+static NACKED int __chmod(const char *pathname, mode_t mode)
+{
+    SYSCALL(CHMOD);
+}
+
+int chmod(const char *pathname, mode_t mode)
+{
+    return set_errno(__chmod(pathname, mode));
+}
+
 static NACKED int __rmdir(const char *pathname)
 {
     SYSCALL(RMDIR);

@@ -98,6 +98,14 @@ int mkfifo(const char *pathname, mode_t mode);
 int mkdir(const char *pathname, mode_t mode);
 
 /**
+ * @brief  Replace the permission bits of a file
+ * @param  pathname: The pathname of the file.
+ * @param  mode: The permission bits to give the file.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int chmod(const char *pathname, mode_t mode);
+
+/**
  * @brief  Return information about the file specified by the pathname, in
  *         the buffer pointed to by statbuf
  * @param  pathname: The pathname of the file.

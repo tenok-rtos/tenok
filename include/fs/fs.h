@@ -65,6 +65,7 @@ enum {
     FS_REMOVE = 8,
     FS_STAT = 9,
     FS_RENAME = 10,
+    FS_CHANGE_MODE = 11,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -190,6 +191,7 @@ static inline void fs_fill_stat(struct stat *statbuf, const struct inode *inode)
 
 void request_create_file(int thread_id, const char *path, mode_t mode);
 void request_mkdir(int thread_id, const char *path, mode_t mode);
+void request_chmod(int thread_id, const char *path, mode_t mode);
 void request_remove(int thread_id, const char *path, bool rm_dir);
 void request_stat(int thread_id, const char *path, struct stat *statbuf);
 void request_rename(int thread_id, const char *oldpath, const char *newpath);

@@ -1601,6 +1601,18 @@ static int sys_stat(const char *pathname, struct stat *statbuf)
     return vfs_stat(running_thread->tid, pathname, statbuf);
 }
 
+static int sys_chmod(const char *pathname, mode_t mode)
+{
+    if (!pathname)
+        return -EFAULT;
+
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    return vfs_chmod(running_thread->tid, pathname, mode);
+}
+
 static int sys_rmdir(const char *pathname)
 {
     if (!pathname)

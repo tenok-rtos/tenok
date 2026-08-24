@@ -29,6 +29,7 @@ syscalls = \
      'mknod',
      'mkfifo',
      'mkdir',
+     'chmod',
      'rmdir',
      'unlink',
      'stat',
