@@ -88,7 +88,12 @@ static ssize_t uart1_read(struct file *filp,
 
     preempt_enable();
 
-    kfifo_out(uart1.rx_fifo, buf, size);
+    /* kfifo_out() pops a single element however large its size argument is,
+     * so the bytes have to be taken one at a time. The interrupt handler only
+     * ever adds, the buffer cannot shrink under this loop.
+     */
+    for (size_t i = 0; i < size; i++)
+        kfifo_out(uart1.rx_fifo, &buf[i], sizeof(char));
 
     mutex_unlock(&uart1.rx_mtx);
 
@@ -309,7 +314,12 @@ static ssize_t uart2_read(struct file *filp,
 
     preempt_enable();
 
-    kfifo_out(uart2.rx_fifo, buf, size);
+    /* kfifo_out() pops a single element however large its size argument is,
+     * so the bytes have to be taken one at a time. The interrupt handler only
+     * ever adds, the buffer cannot shrink under this loop.
+     */
+    for (size_t i = 0; i < size; i++)
+        kfifo_out(uart2.rx_fifo, &buf[i], sizeof(char));
 
     mutex_unlock(&uart2.rx_mtx);
 
@@ -442,7 +452,12 @@ static ssize_t uart3_read(struct file *filp,
 
     preempt_enable();
 
-    kfifo_out(uart3.rx_fifo, buf, size);
+    /* kfifo_out() pops a single element however large its size argument is,
+     * so the bytes have to be taken one at a time. The interrupt handler only
+     * ever adds, the buffer cannot shrink under this loop.
+     */
+    for (size_t i = 0; i < size; i++)
+        kfifo_out(uart3.rx_fifo, &buf[i], sizeof(char));
 
     mutex_unlock(&uart3.rx_mtx);
 
