@@ -155,6 +155,13 @@ NACKED void *malloc(size_t size)
 
 void __free(void *ptr)
 {
+    /* Freeing a null pointer does nothing, which the C standard requires and
+     * which callers rely on: "free(p)" where p may or may not have been
+     * allocated is an ordinary thing to write.
+     */
+    if (!ptr)
+        return;
+
     struct malloc_info *curr_blk = container_of(ptr, struct malloc_info, data);
     struct malloc_info *prev_blk, *next_blk;
 
