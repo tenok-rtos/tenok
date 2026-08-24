@@ -11,11 +11,15 @@ CFLAGS += -I../../ \
 
 SRC := ./mkromfs.c
 
+# The image has to be built again when its contents change, not only when the
+# tool that packs them does. HOST_INPUT_DIR of mkromfs.c names the directory.
+ROM_SRC := $(shell find ../../rom -type f 2>/dev/null)
+
 MKROMFS_FLAGS := -v # Verbose option
 
 all: $(ROMFS_OBJ)
 
-$(ROMFS): $(SRC)
+$(ROMFS): $(SRC) $(ROM_SRC)
 	gcc $(CFLAGS) -o mkromfs $(SRC)
 	./mkromfs $(MKROMFS_FLAGS) 
 

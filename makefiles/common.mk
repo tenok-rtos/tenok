@@ -157,7 +157,12 @@ gen_syscalls:
 
 -include $(DEPEND)
 
-tools/mkromfs/romfs.o:
+# The image is linked into the firmware, so it has to be packed again before
+# the link and not only in the "all" recipe, which runs after it. The contents
+# come from the directory HOST_INPUT_DIR of tools/mkromfs/mkromfs.c names.
+ROM_SRC := $(shell find ./rom -type f 2>/dev/null)
+
+tools/mkromfs/romfs.o: tools/mkromfs/mkromfs.c $(ROM_SRC)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(LD_GENERATED): $(LD_SCRIPT) 
