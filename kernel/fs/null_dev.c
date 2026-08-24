@@ -10,7 +10,11 @@ int null_dev_open(struct inode *inode, struct file *file)
 
 ssize_t null_dev_read(struct file *filp, char *buf, size_t size, off_t offset)
 {
-    return size;
+    /* Reading the null device reports the end of the file at once. Returning
+     * the requested size instead hands the caller a buffer that was never
+     * written, and one that never runs out.
+     */
+    return 0;
 }
 
 ssize_t null_dev_write(struct file *filp,
