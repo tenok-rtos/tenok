@@ -55,10 +55,7 @@ char *getenv(const char *name);
  * Non-standard extensions:
  */
 
-char *itoa(int value, char *buffer, int radix);
-char *utoa(unsigned int value, char *buffer, int radix);
 char *ltoa(long value, char *buffer, int radix);
-char *ultoa(unsigned long value, char *buffer, int radix);
 
 /*
  * Functions provided by the compiler:

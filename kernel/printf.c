@@ -7,10 +7,7 @@
 
 #include "kconfig.h"
 
-#define ITOA_BUF_LEN (sizeof(int) * 8)
-#define UTOA_BUF_LEN (sizeof(unsigned int) * 8)
 #define LTOA_BUF_LEN (sizeof(long) * 8)
-#define ULTOA_BUF_LEN (sizeof(unsigned long) * 8)
 
 #define XTOA(TYPE, VALUE, BUF, BUF_SIZE, RADIX)        \
     TYPE remainder;                                    \
@@ -46,24 +43,9 @@
                                                        \
     return BUF;
 
-char *itoa(int value, char *buffer, int radix)
-{
-    XTOA(int, value, buffer, ITOA_BUF_LEN, radix);
-}
-
-char *utoa(unsigned int value, char *buffer, int radix)
-{
-    XTOA(unsigned int, value, buffer, UTOA_BUF_LEN, radix);
-}
-
 char *ltoa(long value, char *buffer, int radix)
 {
     XTOA(long, value, buffer, LTOA_BUF_LEN, radix);
-}
-
-char *ultoa(unsigned long value, char *buffer, int radix)
-{
-    XTOA(unsigned long, value, buffer, ULTOA_BUF_LEN, radix);
 }
 
 #if (USE_TENOK_PRINTF != 0)
