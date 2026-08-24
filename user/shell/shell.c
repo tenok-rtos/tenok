@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/termios.h>
 #include <unistd.h>
 
 #include <common/list.h>
@@ -16,11 +17,31 @@ static void shell_reset_history_scrolling(struct shell *shell);
 
 static int serial_fd = 0;
 
+/* The settings a command runs with, taken before the line editor changes them
+ */
+static struct termios cooked;
+
+/* The shell edits the line itself, so it takes the terminal out of cooked */
+static void shell_set_raw(bool raw)
+{
+    struct termios t = cooked;
+
+    if (raw) {
+        t.c_iflag &= ~ICRNL;
+        t.c_lflag &= ~(ICANON | ECHO | ECHOE);
+    }
+
+    tcsetattr(serial_fd, TCSANOW, &t);
+}
+
 void shell_serial_init(void)
 {
     serial_fd = open("/dev/console", O_RDWR);
     if (serial_fd < 0)
         serial_fd = 0;
+
+    if (tcgetattr(serial_fd, &cooked) == 0)
+        shell_set_raw(true);
 }
 
 int shell_getc(void)
@@ -706,10 +727,14 @@ void shell_execute(struct shell *shell)
         return;
     }
 
+    /* A command runs with the terminal as a terminal is expected to be */
+    shell_set_raw(false);
+
     int i;
     for (i = 0; i < shell->cmd_cnt; i++) {
         if (strcmp(argv[0], shell->shell_cmds[i].name) == 0) {
             shell->shell_cmds[i].handler(argc, argv);
+            shell_set_raw(true);
             shell->buf[0] = '\0';
             shell_reset_line(shell);
             return;
@@ -717,6 +742,7 @@ void shell_execute(struct shell *shell)
     }
 
     shell_unknown_cmd_handler(argc, argv);
+    shell_set_raw(true);
     shell->buf[0] = '\0';
     shell_reset_line(shell);
 }
