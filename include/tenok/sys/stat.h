@@ -67,7 +67,7 @@ struct stat {
 /**
  * @brief  Return information about a file, in the buffer pointed to by statbuf
  * @param  fd: The file descriptor to provide.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int fstat(int fd, struct stat *statbuf);
 
@@ -77,7 +77,7 @@ int fstat(int fd, struct stat *statbuf);
  * @param  pathname: The pathname to create the new file.
  * @param  mode: The file type and the permission bits of the new file.
  * @param  dev: The device number, when the file is a device. Not used.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int mknod(const char *pathname, mode_t mode, dev_t dev);
 
@@ -85,7 +85,7 @@ int mknod(const char *pathname, mode_t mode, dev_t dev);
  * @brief  Makes a FIFO special file with name pathname.
  * @param  pathname: The path name to create the new fifo file.
  * @param  mode: The permission bits of the new file.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int mkfifo(const char *pathname, mode_t mode);
 
@@ -93,7 +93,7 @@ int mkfifo(const char *pathname, mode_t mode);
  * @brief  Create a directory named pathname
  * @param  pathname: The pathname of the directory to create.
  * @param  mode: The permission bits of the new directory.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int mkdir(const char *pathname, mode_t mode);
 
@@ -102,7 +102,7 @@ int mkdir(const char *pathname, mode_t mode);
  *         the buffer pointed to by statbuf
  * @param  pathname: The pathname of the file.
  * @param  statbuf: The buffer for returning the file information.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int stat(const char *pathname, struct stat *statbuf);
 

@@ -39,14 +39,9 @@ FILE *_fopen(const char *pathname, const char *mode)
     /* Open the file with the system call */
     int fd = open(pathname, flags);
 
-    /* Failed to open the file. The system call reports the reason as a
-     * negative error number and does not touch errno, which is where a
-     * caller of the standard library looks for it.
-     */
-    if (fd < 0) {
-        errno = -fd;
+    /* open() has already left the reason in errno */
+    if (fd < 0)
         return NULL;
-    }
 
     /* Allocate new file stream */
     FILE *stream = malloc(sizeof(FILE));

@@ -37,7 +37,7 @@ int usleep(useconds_t usec);
  * @brief  Close a file descriptor, so that it no longer refers to any file
  *         and may be reused
  * @param  fd: The file descriptor to provide.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int close(int fd);
 
@@ -45,8 +45,8 @@ int close(int fd);
  * @brief  Create a copy of the file descriptor oldfd, using the lowest-numbered
  *         unused file descriptor for the new descriptor
  * @param  oldfd: The file descriptor to duplicate.
- * @retval int: New file descriptor on success and nonzero error number on
- * error.
+ * @retval int: The new file descriptor on success and -1 on error, with the
+ *         reason left in errno.
  */
 int dup(int oldfd);
 
@@ -55,8 +55,8 @@ int dup(int oldfd);
  *         specified by newfd.
  * @param  oldfd: The file descriptor to duplicate.
  * @param  newfd: The number to specify the new file descriptor.
- * @retval int: New file descriptor on success and nonzero error number on
- * error.
+ * @retval int: The new file descriptor on success and -1 on error, with the
+ *         reason left in errno.
  */
 int dup2(int oldfd, int newfd);
 
@@ -66,7 +66,7 @@ int dup2(int oldfd, int newfd);
  * @param  fd: The file descriptor to provide.
  * @param  buf: The memory space for storing read data.
  * @param  count: The number of bytes to read.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 ssize_t read(int fd, void *buf, size_t count);
 
@@ -76,7 +76,7 @@ ssize_t read(int fd, void *buf, size_t count);
  * @param  fd: The file descriptor to provide.
  * @param  buf: The data to write.
  * @param  count: The number of bytes to write.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 ssize_t write(int fd, const void *buf, size_t count);
 
@@ -86,7 +86,8 @@ ssize_t write(int fd, const void *buf, size_t count);
  * @param  fd: The file descriptor to provide.
  * @param  offset: The new offset to the position specified by whence.
  * @param  whence: The start position of the new offset.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval off_t: The new offset on success and -1 on error, with the reason
+ *         left in errno.
  */
 off_t lseek(int fd, long offset, int whence);
 
@@ -110,21 +111,21 @@ char *getcwd(char *buf, size_t size);
 /**
  * @brief  Change working directory
  * @param  path: Pathname of the new working directory.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int chdir(const char *path);
 
 /**
  * @brief  Delete a name from the file system
  * @param  pathname: The pathname of the file to remove.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int unlink(const char *pathname);
 
 /**
  * @brief  Delete a directory, which must be empty
  * @param  pathname: The pathname of the directory to remove.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int rmdir(const char *pathname);
 

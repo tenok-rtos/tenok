@@ -43,7 +43,8 @@ typedef struct dirstream {
  * @brief  Open a directory stream corresponding to the directory name,
  *         and return a pointer to the directory stream
  * @param  name: The file path to the directory.
- * @retval DIR *: The directory stream on success and a null pointer on error.
+ * @retval DIR *: The directory stream on success and a null pointer on
+ *         error, with the reason left in errno.
  */
 DIR *opendir(const char *name);
 
@@ -52,14 +53,14 @@ DIR *opendir(const char *name);
  *         to the stream and is overwritten by the next call on it.
  * @param  dirp: The directory stream to read.
  * @retval struct dirent *: The entry on success, and a null pointer at the
- *         end of the directory or on error.
+ *         end of the directory or on error, which are told apart by errno.
  */
 struct dirent *readdir(DIR *dirp);
 
 /**
  * @brief  Close a directory stream and release what it holds
  * @param  dirp: The directory stream to close.
- * @retval int: 0 on success and nonzero on error.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
 int closedir(DIR *dirp);
 

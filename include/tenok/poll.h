@@ -26,7 +26,8 @@ struct pollfd {
  * @param  timeout: The number of milliseconds that poll() should block waiting
  *         for a file descriptor to become ready. Negative value means an
  *         infinite timeout and zero causes poll() to return immediately.
- * @retval int: 0 on success and nonzero error number on error.
+ * @retval int: The number of the ready descriptors on success and -1 on
+ *         error, with the reason left in errno.
  */
 int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 

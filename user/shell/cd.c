@@ -16,11 +16,13 @@ int cd(int argc, char *argv[])
         return 0;
     case 2: {
         retval = chdir(argv[1]);
-        if (retval == -ENOENT) {
+        if (retval == 0) {
+            return 0;
+        } else if (errno == ENOENT) {
             snprintf(str, PRINT_SIZE_MAX,
                      "cd: %s: No such file or directory\n\r", argv[1]);
             shell_puts(str);
-        } else if (retval == -ENOTDIR) {
+        } else if (errno == ENOTDIR) {
             snprintf(str, PRINT_SIZE_MAX, "cd: %s: Not a directory\n\r",
                      argv[1]);
             shell_puts(str);

@@ -18,8 +18,8 @@
  * @brief  Open the file specified by the pathname
  * @param  pathname: The pathname of the file.
  * @param  flags: Flags for opening the file.
- * @retval int: The function returns file descriptor number of the
- *         file on success and nonzero error number on error.
+ * @retval int: The file descriptor of the file on success and -1 on error,
+ *         with the reason left in errno.
  */
 int open(const char *pathname, int flags);
 
