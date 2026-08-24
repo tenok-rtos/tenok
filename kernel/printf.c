@@ -68,39 +68,110 @@ char *ultoa(unsigned long value, char *buffer, int radix)
 
 #if (USE_TENOK_PRINTF != 0)
 
-static void format_write(char *str,
-                         char *format_str,
-                         char *padding_str,
-                         int *padding_end,
-                         bool *pad_with_zeros)
+#define LLTOA_BUF_LEN (sizeof(long long) * 8)
+
+/* Not exported: the printf family needs them for the length modifiers, and
+ * one more non standard name in the public headers is one more thing for a
+ * ported program to collide with.
+ */
+static char *ulltoa(unsigned long long value, char *buffer, int radix)
 {
-    /* Read length setting */
-    padding_str[*padding_end] = '\0';
-    *padding_end = 0;
-    int desired_len = atoi(padding_str);
+    char reversed[LLTOA_BUF_LEN + 1];
+    int digits = 0;
 
-    /* Deterimine the padding symbol */
-    char symbol = *pad_with_zeros ? '0' : ' ';
-    *pad_with_zeros = false;
+    if (value == 0)
+        reversed[digits++] = '0';
 
-    /* Check if the format string requires paddings */
-    size_t format_str_len = strlen(format_str);
-    if (format_str_len >= desired_len) {
-        /* no, output without padding */
-        strcat(str, format_str);
+    while (value) {
+        int digit = value % radix;
+        reversed[digits++] =
+            (digit < 10) ? (digit + '0') : "abcdef"[digit - 10];
+        value /= radix;
+    }
+
+    int pos = 0;
+    while (digits > 0)
+        buffer[pos++] = reversed[--digits];
+
+    buffer[pos] = '\0';
+
+    return buffer;
+}
+
+static char *lltoa(long long value, char *buffer, int radix)
+{
+    if (value >= 0)
+        return ulltoa((unsigned long long) value, buffer, radix);
+
+    buffer[0] = '-';
+
+    /* Negating the most negative value overflows, so the magnitude is taken
+     * in the unsigned type instead
+     */
+    ulltoa(-(unsigned long long) value, &buffer[1], radix);
+
+    return buffer;
+}
+
+/* Bounded output of the printf family. A null buffer or a size of zero
+ * measures the output without writing it, which is what a caller sizing a
+ * buffer relies on, and the return value is the length the whole output would
+ * have had rather than the part that fitted.
+ */
+struct fmt_out {
+    char *buf;
+    size_t size;
+    size_t len;
+};
+
+static void fmt_char(struct fmt_out *out, char c)
+{
+    if (out->buf && (out->len + 1) < out->size)
+        out->buf[out->len] = c;
+
+    out->len++;
+}
+
+static void fmt_str(struct fmt_out *out, const char *str, int limit)
+{
+    for (int i = 0; str[i] && (limit < 0 || i < limit); i++)
+        fmt_char(out, str[i]);
+}
+
+static void fmt_end(struct fmt_out *out)
+{
+    if (!out->buf || out->size == 0)
+        return;
+
+    out->buf[(out->len < out->size) ? out->len : (out->size - 1)] = '\0';
+}
+
+/* Writes one converted item, padded out to the requested width */
+static void format_write(struct fmt_out *out,
+                         const char *text,
+                         int width,
+                         int limit,
+                         bool pad_with_zeros,
+                         bool left_align)
+{
+    int len = 0;
+    while (text[len] && (limit < 0 || len < limit))
+        len++;
+
+    if (left_align) {
+        fmt_str(out, text, limit);
+
+        /* Zero padding on the right would change the value */
+        for (int i = len; i < width; i++)
+            fmt_char(out, ' ');
+
         return;
     }
 
-    /* Generate paddings */
-    size_t padding_size = desired_len - format_str_len;
-    for (int i = 0; i < padding_size; i++) {
-        padding_str[i] = symbol;
-    }
-    padding_str[padding_size] = '\0';
+    for (int i = len; i < width; i++)
+        fmt_char(out, pad_with_zeros ? '0' : ' ');
 
-    /* Write output */
-    strcat(str, padding_str);
-    strcat(str, format_str);
+    fmt_str(out, text, limit);
 }
 
 static int __vsnprintf(char *str,
@@ -109,128 +180,184 @@ static int __vsnprintf(char *str,
                        const char *format,
                        va_list ap)
 {
-    str[0] = 0;
+    struct fmt_out out = {
+        .buf = str,
+        .size = check_size ? size : (size_t) -1,
+        .len = 0,
+    };
+
+    /* Room for the digits of the widest conversion, a sign and a terminator */
+    char number[LLTOA_BUF_LEN + 2];
     char c_str[2] = {0};
-
-    bool pad_with_zeros = false;
-
-    char buf[100];  // XXX
-    int buf_pos = 0;
 
     int pos = 0;
     while (format[pos]) {
-        /* Boundary check */
-        if (check_size && pos >= size)
-            return strlen(str);
-
         if (format[pos] != '%') {
-            /* Copy */
-            c_str[0] = format[pos];
+            fmt_char(&out, format[pos]);
             pos++;
-            strcat(str, c_str);
+            continue;
+        }
 
-            /* Reset flags */
-            pad_with_zeros = false;
-            buf_pos = 0;
+        pos++;
+
+        bool pad_with_zeros = false;
+        bool left_align = false;
+        int width = 0;
+        int limit = -1; /* Precision, -1 when none was given */
+        int length = 0; /* 0 for an int, 1 for a long, 2 for a long long */
+        bool leave = false;
+
+        /* Flags. A '0' is one of them only before the width digits, and the
+         * sign and alternate form flags are accepted and discarded.
+         */
+        for (;;) {
+            if (format[pos] == '-') {
+                left_align = true;
+            } else if (format[pos] == '0') {
+                pad_with_zeros = true;
+            } else if (format[pos] != '+' && format[pos] != ' ' &&
+                       format[pos] != '#') {
+                break;
+            }
+            pos++;
+        }
+
+        if (format[pos] == '*') {
+            /* The width comes from the arguments. A negative one asks for
+             * the item to be aligned to the left.
+             */
+            width = va_arg(ap, int);
+            pos++;
+
+            if (width < 0) {
+                left_align = true;
+                width = -width;
+            }
         } else {
-            pos++;
-
-            bool leave = false;
-            while (!leave && format[pos] != '\0') {
-                /* Boundary check */
-                if (check_size && pos >= size)
-                    return strlen(str);
-
-                /* Handle specifiers */
-                switch (format[pos]) {
-                case '0': {
-                    if (buf_pos == 0) {
-                        pad_with_zeros = true;
-                    } else {
-                        buf[buf_pos] = format[pos];
-                        buf_pos++;
-                    }
-                    break;
-                }
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9': {
-                    buf[buf_pos] = format[pos];
-                    buf_pos++;
-                    break;
-                }
-                case '.': {
-                    break;
-                }
-                case 's': {
-                    char *s = va_arg(ap, char *);
-                    format_write(str, s, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'c': {
-                    c_str[0] = (char) va_arg(ap, int);
-                    format_write(str, c_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'o': {
-                    int o = va_arg(ap, int);
-                    char o_str[sizeof(int) * 8 + 1];
-                    itoa(o, o_str, 8);
-                    format_write(str, o_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'x': {
-                    int x = va_arg(ap, int);
-                    char x_str[sizeof(int) * 8 + 1];
-                    itoa(x, x_str, 16);
-                    format_write(str, x_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'p': {
-                    unsigned long p = (long) va_arg(ap, void *);
-                    char p_str[sizeof(unsigned long) * 8 + 1];
-                    ultoa(p, p_str, 16);
-                    strcat(str, "0x");
-                    format_write(str, p_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'd': {
-                    int d = va_arg(ap, int);
-                    char d_str[sizeof(int) * 8 + 1];
-                    itoa(d, d_str, 10);
-                    format_write(str, d_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                case 'u': {
-                    unsigned int u = va_arg(ap, unsigned int);
-                    char u_str[sizeof(unsigned int) * 8 + 1];
-                    utoa(u, u_str, 10);
-                    format_write(str, u_str, buf, &buf_pos, &pad_with_zeros);
-                    leave = true;
-                    break;
-                }
-                default:
-                    break;
-                }
-
+            while (format[pos] >= '0' && format[pos] <= '9') {
+                width = (width * 10) + (format[pos] - '0');
                 pos++;
             }
         }
+
+        if (format[pos] == '.') {
+            pos++;
+            limit = 0;
+
+            if (format[pos] == '*') {
+                limit = va_arg(ap, int);
+                pos++;
+            } else {
+                while (format[pos] >= '0' && format[pos] <= '9') {
+                    limit = (limit * 10) + (format[pos] - '0');
+                    pos++;
+                }
+            }
+        }
+
+        /* Length modifiers. "h" and "hh" need none of their own, what they
+         * describe is promoted to an int by the ellipsis.
+         */
+        while (!leave && format[pos]) {
+            switch (format[pos]) {
+            case 'h':
+                break;
+            case 'l':
+                if (length < 2)
+                    length++;
+                break;
+            case 'z':
+            case 'j':
+            case 't':
+                /* size_t, intmax_t and ptrdiff_t are as wide as a long here */
+                length = 1;
+                break;
+            default:
+                leave = true;
+                continue;
+            }
+            pos++;
+        }
+
+        switch (format[pos]) {
+        case 's': {
+            const char *s = va_arg(ap, char *);
+            format_write(&out, s ? s : "(null)", width, limit, pad_with_zeros,
+                         left_align);
+            break;
+        }
+        case 'c': {
+            c_str[0] = (char) va_arg(ap, int);
+            format_write(&out, c_str, width, -1, pad_with_zeros, left_align);
+            break;
+        }
+        case 'd':
+        case 'i': {
+            long long value;
+
+            if (length == 2)
+                value = va_arg(ap, long long);
+            else if (length == 1)
+                value = va_arg(ap, long);
+            else
+                value = va_arg(ap, int);
+            lltoa(value, number, 10);
+            format_write(&out, number, width, -1, pad_with_zeros, left_align);
+            break;
+        }
+        case 'u':
+        case 'o':
+        case 'x':
+        case 'X': {
+            unsigned long long value;
+
+            if (length == 2)
+                value = va_arg(ap, unsigned long long);
+            else if (length == 1)
+                value = va_arg(ap, unsigned long);
+            else
+                value = va_arg(ap, unsigned int);
+            int radix = (format[pos] == 'u')   ? 10
+                        : (format[pos] == 'o') ? 8
+                                               : 16;
+            ulltoa(value, number, radix);
+
+            if (format[pos] == 'X') {
+                for (int i = 0; number[i]; i++) {
+                    if (number[i] >= 'a' && number[i] <= 'f')
+                        number[i] -= 'a' - 'A';
+                }
+            }
+
+            format_write(&out, number, width, -1, pad_with_zeros, left_align);
+            break;
+        }
+        case 'p': {
+            unsigned long value = (unsigned long) va_arg(ap, void *);
+            fmt_str(&out, "0x", -1);
+            ulltoa(value, number, 16);
+            format_write(&out, number, width, -1, pad_with_zeros, left_align);
+            break;
+        }
+        case '%':
+            fmt_char(&out, '%');
+            break;
+        case '\0':
+            /* A trailing '%', nothing follows it */
+            continue;
+        default:
+            /* Not a conversion this library knows, copy it as it stands */
+            fmt_char(&out, '%');
+            fmt_char(&out, format[pos]);
+            break;
+        }
+
+        pos++;
     }
 
-    return strlen(str);
+    fmt_end(&out);
+
+    return (int) out.len;
 }
 
 int vsprintf(char *str, const char *format, va_list ap)
@@ -263,6 +390,44 @@ int snprintf(char *str, size_t size, const char *format, ...)
     va_end(args);
 
     return retval;
+}
+
+/* Newlib names the integer only forms of these differently and something in
+ * the libraries of the toolchain refers to them. Answering here keeps their
+ * copies, which define sprintf() and snprintf() in the same object, out of
+ * the link. Tenok's printf converts no floating point, so the integer only
+ * form is the same function.
+ */
+int siprintf(char *str, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    int retval = vsprintf(str, format, args);
+    va_end(args);
+
+    return retval;
+}
+
+int sniprintf(char *str, size_t size, const char *format, ...)
+{
+    va_list args;
+
+    va_start(args, format);
+    int retval = vsnprintf(str, size, format, args);
+    va_end(args);
+
+    return retval;
+}
+
+int vsiprintf(char *str, const char *format, va_list ap)
+{
+    return vsprintf(str, format, ap);
+}
+
+int vsniprintf(char *str, size_t size, const char *format, va_list ap)
+{
+    return vsnprintf(str, size, format, ap);
 }
 
 #endif
