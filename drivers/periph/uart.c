@@ -74,8 +74,18 @@ static ssize_t uart1_read(struct file *filp,
     mutex_lock(&uart1.rx_mtx);
 
     preempt_disable();
-    uart1.rx_wait_size = size;
-    wait_event(uart1.rx_wait_list, kfifo_len(uart1.rx_fifo) >= size);
+
+    /* Block until the device has something, then hand over whatever arrived.
+     * Waiting for the full request would hang any reader that asks for more
+     * than the sender is about to send.
+     */
+    uart1.rx_wait_size = 1;
+    wait_event(uart1.rx_wait_list, kfifo_len(uart1.rx_fifo) > 0);
+
+    size_t avail = kfifo_len(uart1.rx_fifo);
+    if (size > avail)
+        size = avail;
+
     preempt_enable();
 
     kfifo_out(uart1.rx_fifo, buf, size);
@@ -285,8 +295,18 @@ static ssize_t uart2_read(struct file *filp,
     mutex_lock(&uart2.rx_mtx);
 
     preempt_disable();
-    uart2.rx_wait_size = size;
-    wait_event(uart2.rx_wait_list, kfifo_len(uart2.rx_fifo) >= size);
+
+    /* Block until the device has something, then hand over whatever arrived.
+     * Waiting for the full request would hang any reader that asks for more
+     * than the sender is about to send.
+     */
+    uart2.rx_wait_size = 1;
+    wait_event(uart2.rx_wait_list, kfifo_len(uart2.rx_fifo) > 0);
+
+    size_t avail = kfifo_len(uart2.rx_fifo);
+    if (size > avail)
+        size = avail;
+
     preempt_enable();
 
     kfifo_out(uart2.rx_fifo, buf, size);
@@ -408,8 +428,18 @@ static ssize_t uart3_read(struct file *filp,
     mutex_lock(&uart3.rx_mtx);
 
     preempt_disable();
-    uart3.rx_wait_size = size;
-    wait_event(uart3.rx_wait_list, kfifo_len(uart3.rx_fifo) >= size);
+
+    /* Block until the device has something, then hand over whatever arrived.
+     * Waiting for the full request would hang any reader that asks for more
+     * than the sender is about to send.
+     */
+    uart3.rx_wait_size = 1;
+    wait_event(uart3.rx_wait_list, kfifo_len(uart3.rx_fifo) > 0);
+
+    size_t avail = kfifo_len(uart3.rx_fifo);
+    if (size > avail)
+        size = avail;
+
     preempt_enable();
 
     kfifo_out(uart3.rx_fifo, buf, size);
