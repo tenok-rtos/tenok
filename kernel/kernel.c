@@ -1265,13 +1265,16 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
 
     /* Call read operation */
     while (1) {
-        retval = filp->f_op->read(filp, buf, count, 0);
+        retval = filp->f_op->read(filp, buf, count, filp->f_pos);
 
         if (retval != -ERESTARTSYS)
             break;
 
         schedule();
     }
+
+    if (retval > 0)
+        filp->f_pos += retval;
 
     return retval;
 
@@ -1326,13 +1329,16 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
 
     /* Call write operation */
     while (1) {
-        retval = filp->f_op->write(filp, buf, count, 0);
+        retval = filp->f_op->write(filp, buf, count, filp->f_pos);
 
         if (retval != -ERESTARTSYS)
             break;
 
         schedule();
     };
+
+    if (retval > 0)
+        filp->f_pos += retval;
 
     return retval;
 

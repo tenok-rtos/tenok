@@ -127,6 +127,11 @@ struct file {
     struct file_operations *f_op;
     uint32_t f_events;
     int f_flags;
+    /* Where the next read or write starts. A regular file keeps its own
+     * position in struct reg_file and ignores this one; it is what gives a
+     * device file, /dev/rom for instance, a position of its own.
+     */
+    off_t f_pos;
     struct list_head list;
 };
 
