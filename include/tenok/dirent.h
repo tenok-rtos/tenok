@@ -10,12 +10,6 @@
 
 #include "kconfig.h"
 
-/* Return type of the opendir() */
-typedef struct dirstream {
-    struct inode *inode_dir;       /* Directory inode */
-    struct list_head *dentry_list; /* List pointer of the dentry to return */
-} DIR;
-
 /* File types of d_type, which is the file type of the mode shifted down by
  * twelve bits
  */
@@ -38,23 +32,35 @@ struct dirent {
     uint8_t d_type;        /* File type, one of the DT_ values above */
 };
 
-/**
- * @brief  Open a directory stream corresponding to the directory name,
- *         and returns a pointer to the directory stream
- * @param  name: The file path to the directory.
- * @param  dir: The directory stream to return.
- * @retval int: 0 on success and nonzero error number on error.
- */
-int opendir(const char *name, DIR *dir);
+/* Return type of the opendir(). The entry readdir() answers with lives here */
+typedef struct dirstream {
+    struct inode *inode_dir;       /* Directory inode */
+    struct list_head *dentry_list; /* List pointer of the dentry to return */
+    struct dirent entry;           /* Storage of the entry readdir() returns */
+} DIR;
 
 /**
- * @brief  Return a pointer to a dirent structure representing the next
- *         directory entry in the directory stream pointed to by dirp
- * @param  dirp: Pointer to the dirent object.
- * @param  dirent: The structure of file entries under the directory to
- *         return.
- * @retval int: 0 on success and nonzero error number on error.
+ * @brief  Open a directory stream corresponding to the directory name,
+ *         and return a pointer to the directory stream
+ * @param  name: The file path to the directory.
+ * @retval DIR *: The directory stream on success and a null pointer on error.
  */
-int readdir(DIR *dirp, struct dirent *dirent);
+DIR *opendir(const char *name);
+
+/**
+ * @brief  Return the next entry of the directory stream. The entry belongs
+ *         to the stream and is overwritten by the next call on it.
+ * @param  dirp: The directory stream to read.
+ * @retval struct dirent *: The entry on success, and a null pointer at the
+ *         end of the directory or on error.
+ */
+struct dirent *readdir(DIR *dirp);
+
+/**
+ * @brief  Close a directory stream and release what it holds
+ * @param  dirp: The directory stream to close.
+ * @retval int: 0 on success and nonzero on error.
+ */
+int closedir(DIR *dirp);
 
 #endif

@@ -2,6 +2,7 @@
 #include <poll.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -84,14 +85,46 @@ int fstat(int fd, struct stat *statbuf)
     return _fstat(fd, statbuf);
 }
 
-NACKED int opendir(const char *name, DIR *dir)
+static NACKED int __opendir(const char *name, DIR *dir)
 {
     SYSCALL(OPENDIR);
 }
 
-NACKED int readdir(DIR *dirp, struct dirent *dirent)
+/* POSIX hands the caller a stream instead of taking storage from it */
+DIR *opendir(const char *name)
+{
+    DIR *dirp = malloc(sizeof(DIR));
+
+    if (!dirp)
+        return NULL;
+
+    if (__opendir(name, dirp) < 0) {
+        free(dirp);
+        return NULL;
+    }
+
+    return dirp;
+}
+
+static NACKED int __readdir(DIR *dirp, struct dirent *dirent)
 {
     SYSCALL(READDIR);
+}
+
+/* The end of the directory and a failure are both a null pointer */
+struct dirent *readdir(DIR *dirp)
+{
+    if (__readdir(dirp, &dirp->entry) != 0)
+        return NULL;
+
+    return &dirp->entry;
+}
+
+int closedir(DIR *dirp)
+{
+    free(dirp);
+
+    return 0;
 }
 
 NACKED char *getcwd(char *buf, size_t len)

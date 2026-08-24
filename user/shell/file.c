@@ -28,8 +28,9 @@ int file(int argc, char *argv[])
     int fd = open(path, 0);
     if (fd < 0) {
         /* Check if it is a direcotry */
-        DIR dir;
-        if (opendir(path, &dir) == 0) {
+        DIR *dir = opendir(path);
+        if (dir) {
+            closedir(dir);
             snprintf(str, PRINT_SIZE_MAX, "%s: directory\n\r", path);
             shell_puts(str);
             return 0;

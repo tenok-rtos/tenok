@@ -21,11 +21,10 @@ int ls(int argc, char *argv[])
     const char *path = (argc == 2) ? argv[1] : ".";
 
     /* Open the directory */
-    DIR dir;
-    int retval = opendir(path, &dir);
+    DIR *dir = opendir(path);
 
     /* Check if the directory is open successfully */
-    if (retval != 0) {
+    if (!dir) {
         snprintf(str, PRINT_SIZE_MAX,
                  "ls: cannot access '%s': No such file or directory\n\r", path);
         shell_puts(str);
@@ -34,14 +33,16 @@ int ls(int argc, char *argv[])
 
     /* Enumerate the directory */
     int pos = 0;
-    struct dirent dirent;
-    while ((readdir(&dir, &dirent)) != -1) {
-        if (dirent.d_type == DT_DIR) {
-            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s/  ", dirent.d_name);
+    struct dirent *dirent;
+    while ((dirent = readdir(dir)) != NULL) {
+        if (dirent->d_type == DT_DIR) {
+            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s/  ", dirent->d_name);
         } else {
-            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s  ", dirent.d_name);
+            pos += snprintf(&str[pos], PRINT_SIZE_MAX, "%s  ", dirent->d_name);
         }
     }
+
+    closedir(dir);
 
     snprintf(&str[pos], PRINT_SIZE_MAX, "\n\r");
 
