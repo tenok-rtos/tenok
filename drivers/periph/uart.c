@@ -35,6 +35,69 @@ static uart_dev_t uart3;
  * UART common driver *
  *====================*/
 
+/* The settings a terminal starts with. The input side is not processed yet,
+ * so nothing is claimed for it
+ */
+static void tty_init(uart_dev_t *dev, speed_t speed)
+{
+    dev->termios.c_oflag = OPOST | ONLCR;
+    dev->termios.c_cflag = CS8;
+    dev->termios.c_ispeed = speed;
+    dev->termios.c_ospeed = speed;
+}
+
+/* Output processing: with ONLCR a newline goes out as a return and a newline.
+ * The pair is a local because DMA reads the memory it is handed, and DMA1 has
+ * no port to the flash a literal would live in
+ */
+static int tty_write(uart_dev_t *dev,
+                     int (*put)(const char *buf, size_t size),
+                     const char *buf,
+                     size_t size)
+{
+    const tcflag_t on = OPOST | ONLCR;
+
+    if ((dev->termios.c_oflag & on) != on)
+        return put(buf, size);
+
+    char crlf[2] = {'\r', '\n'};
+    size_t done = 0;
+
+    while (done < size) {
+        size_t run = done;
+
+        while (run < size && buf[run] != '\n')
+            run++;
+
+        if (run > done)
+            put(&buf[done], run - done);
+
+        if (run < size)
+            put(crlf, sizeof(crlf));
+
+        done = (run < size) ? run + 1 : run;
+    }
+
+    return size;
+}
+
+/* Answer the requests of the line discipline. A device that is not a terminal
+ * has no settings to give, which is what ENOTTY says
+ */
+static int tty_ioctl(uart_dev_t *dev, unsigned int cmd, unsigned long arg)
+{
+    switch (cmd) {
+    case TCGETS:
+        *(struct termios *) arg = dev->termios;
+        return 0;
+    case TCSETS:
+        dev->termios = *(struct termios *) arg;
+        return 0;
+    default:
+        return -ENOTTY;
+    }
+}
+
 void uart_putc(USART_TypeDef *uart, char c)
 {
     while (USART_GetFlagStatus(uart, USART_FLAG_TXE) == RESET)
@@ -157,10 +220,7 @@ static int uart1_dma_puts(const char *data, size_t size)
     return size;
 }
 
-static ssize_t uart1_write(struct file *filp,
-                           const char *buf,
-                           size_t size,
-                           off_t offset)
+static int uart1_put(const char *buf, size_t size)
 {
 #if (ENABLE_UART1_DMA != 0)
     return uart1_dma_puts(buf, size);
@@ -169,9 +229,23 @@ static ssize_t uart1_write(struct file *filp,
 #endif
 }
 
+static ssize_t uart1_write(struct file *filp,
+                           const char *buf,
+                           size_t size,
+                           off_t offset)
+{
+    return tty_write(&uart1, uart1_put, buf, size);
+}
+
+static int uart1_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    return tty_ioctl(&uart1, cmd, arg);
+}
+
 static struct file_operations uart1_file_ops = {
     .read = uart1_read,
     .write = uart1_write,
+    .ioctl = uart1_ioctl,
     .open = uart1_open,
 };
 
@@ -267,6 +341,9 @@ void serial1_init(uint32_t baudrate, char *dev_name, char *desc)
     /* Register UART1 to the file system */
     register_chrdev(dev_name, &uart1_file_ops);
 
+    /* Give the terminal its settings */
+    tty_init(&uart1, baudrate);
+
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart1.tx_wait_list);
     init_waitqueue_head(&uart1.rx_wait_list);
@@ -361,17 +438,28 @@ static ssize_t uart2_read(struct file *filp,
     return size;
 }
 
+static int uart2_put(const char *buf, size_t size)
+{
+    return uart_puts(USART2, buf, size);
+}
+
 static ssize_t uart2_write(struct file *filp,
                            const char *buf,
                            size_t size,
                            off_t offset)
 {
-    return uart_puts(USART2, buf, size);
+    return tty_write(&uart2, uart2_put, buf, size);
+}
+
+static int uart2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    return tty_ioctl(&uart2, cmd, arg);
 }
 
 static struct file_operations uart2_file_ops = {
     .read = uart2_read,
     .write = uart2_write,
+    .ioctl = uart2_ioctl,
     .open = uart2_open,
 };
 
@@ -434,6 +522,9 @@ void serial2_init(uint32_t baudrate, char *dev_name, char *desc)
 {
     /* Register UART2 to the file system */
     register_chrdev(dev_name, &uart2_file_ops);
+
+    /* Give the terminal its settings */
+    tty_init(&uart2, baudrate);
 
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart2.tx_wait_list);
@@ -559,10 +650,7 @@ static int uart3_dma_puts(const char *data, size_t size)
     return size;
 }
 
-static ssize_t uart3_write(struct file *filp,
-                           const char *buf,
-                           size_t size,
-                           off_t offset)
+static int uart3_put(const char *buf, size_t size)
 {
 #if (ENABLE_UART3_DMA != 0)
     return uart3_dma_puts(buf, size);
@@ -571,9 +659,23 @@ static ssize_t uart3_write(struct file *filp,
 #endif
 }
 
+static ssize_t uart3_write(struct file *filp,
+                           const char *buf,
+                           size_t size,
+                           off_t offset)
+{
+    return tty_write(&uart3, uart3_put, buf, size);
+}
+
+static int uart3_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    return tty_ioctl(&uart3, cmd, arg);
+}
+
 static struct file_operations uart3_file_ops = {
     .read = uart3_read,
     .write = uart3_write,
+    .ioctl = uart3_ioctl,
     .open = uart3_open,
 };
 
@@ -665,6 +767,9 @@ void serial3_init(uint32_t baudrate, char *dev_name, char *desc)
 {
     /* Register UART3 to the file system */
     register_chrdev(dev_name, &uart3_file_ops);
+
+    /* Give the terminal its settings */
+    tty_init(&uart3, baudrate);
 
     /* Create wait queues for synchronization */
     init_waitqueue_head(&uart3.tx_wait_list);

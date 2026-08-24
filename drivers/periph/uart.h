@@ -9,6 +9,7 @@
 #include <kernel/kfifo.h>
 #include <kernel/mutex.h>
 #include <kernel/wait.h>
+#include <sys/termios.h>
 
 #include "stm32f4xx.h"
 
@@ -30,6 +31,9 @@ typedef struct {
      * readability to poll()
      */
     struct file *filp;
+
+    /* What the line discipline does to the bytes on their way through */
+    struct termios termios;
 } uart_dev_t;
 
 void uart_putc(USART_TypeDef *uart, char c);
