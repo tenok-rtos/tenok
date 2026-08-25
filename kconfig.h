@@ -53,9 +53,13 @@
 #define USE_TENOK_PRINTF 1 /* 1: Use Tenok printf, 0: Use NewlibC printf */
 
 /* File system */
-#define _NAME_MAX 30    /* Max length of files in bytes */
-#define _PATH_MAX 128   /* Max length of pathname in bytes */
-#define _OPEN_MAX 100   /* Max number of files a task can open */
+#define _NAME_MAX 30       /* Max length of files in bytes */
+#define _PATH_MAX 128      /* Max length of pathname in bytes */
+#define STD_STREAM_CNT 3   /* stdin, stdout and stderr */
+#define _FILE_OPEN_MAX 100 /* Max number of files a task can open */
+
+/* A task holds the three streams besides the files it opens */
+#define _OPEN_MAX (STD_STREAM_CNT + _FILE_OPEN_MAX)
 #define FILE_MAX 100    /* Max number of the files can be created */
 #define MOUNT_MAX 5     /* Max number of storages can be mounted */
 #define INODE_MAX 100   /* Max number of the inode can have */

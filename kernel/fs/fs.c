@@ -31,7 +31,7 @@ ssize_t rootfs_write(struct file *filp,
                      size_t size,
                      off_t offset);
 
-extern struct file *files[FILE_RESERVED_NUM + FILE_MAX];
+extern struct file *files[STD_STREAM_CNT + FILE_MAX];
 extern int file_cnt;
 
 struct inode inodes[INODE_MAX];
@@ -136,7 +136,7 @@ static int fs_alloc_fd(void)
     if (file_cnt >= FILE_MAX)
         return -ENFILE;
 
-    int fd = file_cnt + FILE_RESERVED_NUM;
+    int fd = file_cnt + STD_STREAM_CNT;
     file_cnt++;
 
     return fd;

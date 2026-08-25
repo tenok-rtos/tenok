@@ -92,11 +92,14 @@ static char *deamon_names[] = {DAEMON_LIST};
 #undef DECLARE_DAEMON
 
 /* Files */
-struct file *files[FILE_RESERVED_NUM + FILE_MAX];
+struct file *files[STD_STREAM_CNT + FILE_MAX];
 struct file *thread_pipe[THREAD_MAX];
 int file_cnt;
 
 /* File descriptor table */
+/* A descriptor is its own index into this table, the standard streams among
+ * them, so there is nothing to add or subtract anywhere
+ */
 static struct fdtable fdtable[OPEN_MAX];
 static uint32_t bitmap_fds[BITMAP_SIZE(OPEN_MAX)];
 
@@ -263,6 +266,62 @@ void kfree(void *ptr)
 
     /* End the critical section */
     preempt_enable();
+}
+
+/* The file a descriptor of the running task refers to, and a null pointer if
+ * it refers to nothing
+ */
+static struct file *fd_file(struct task_struct *task, int fd)
+{
+    if (fd < 0 || fd >= OPEN_MAX)
+        return NULL;
+
+    if (!bitmap_get_bit(bitmap_fds, fd) ||
+        !bitmap_get_bit(task->bitmap_fds, fd))
+        return NULL;
+
+    struct file *filp = fdtable[fd].file;
+
+    filp->f_flags = fdtable[fd].flags;
+
+    return filp;
+}
+
+/* Give the task the lowest descriptor it does not already hold, which is what
+ * POSIX promises a caller that closes one and opens another
+ */
+static int fd_take(struct task_struct *task, struct file *filp, int flags)
+{
+    int fd = find_first_zero_bit(bitmap_fds, OPEN_MAX);
+
+    if (fd >= OPEN_MAX)
+        return -ENFILE;
+
+    bitmap_set_bit(bitmap_fds, fd);
+    bitmap_set_bit(task->bitmap_fds, fd);
+
+    fdtable[fd].file = filp;
+    fdtable[fd].flags = flags;
+
+    return fd;
+}
+
+static void fd_give_up(struct task_struct *task, int fd)
+{
+    bitmap_clear_bit(bitmap_fds, fd);
+    bitmap_clear_bit(task->bitmap_fds, fd);
+}
+
+/* A task starts with the three streams a program expects to find open */
+static void fd_open_std_streams(struct task_struct *task)
+{
+    for (int fd = 0; fd < STD_STREAM_CNT; fd++) {
+        bitmap_set_bit(bitmap_fds, fd);
+        bitmap_set_bit(task->bitmap_fds, fd);
+
+        fdtable[fd].file = files[fd];
+        fdtable[fd].flags = 0;
+    }
 }
 
 static inline struct task_struct *current_task_info(void)
@@ -487,6 +546,7 @@ static int _task_create(thread_func_t task_func,
     task->pid = pid;
     task->main_thread = thread;
     task->umask = FS_DEFAULT_UMASK;
+    fd_open_std_streams(task);
     INIT_LIST_HEAD(&task->threads_list);
     list_add_tail(&thread->task_list, &task->threads_list);
     list_add_tail(&task->list, &tasks_list);
@@ -1013,28 +1073,18 @@ static int sys_open(const char *pathname, int flags, mode_t mode)
         goto err;
     }
 
-    /* Find a free entry on the file descriptor entry table */
-    int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
-    if (fdesc_idx >= OPEN_MAX) {
-        /* Return error */
-        retval = -ENFILE;
-        goto err;
-    }
-    bitmap_set_bit(bitmap_fds, fdesc_idx);
-    bitmap_set_bit(task->bitmap_fds, fdesc_idx);
-
     struct file *filp = files[file_idx];
 
-    /* Register new file descriptor on the table */
-    struct fdtable *fdesc = &fdtable[fdesc_idx];
-    fdesc->file = filp;
-    fdesc->flags = flags;
+    /* Take a descriptor for the file */
+    int fd = fd_take(task, filp, flags);
+    if (fd < 0) {
+        retval = fd;
+        goto err;
+    }
 
     /* Check if the file operation is undefined */
     if (!filp->f_op->open) {
-        /* Release the file descriptor */
-        bitmap_clear_bit(bitmap_fds, fdesc_idx);
-        bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
+        fd_give_up(task, fd);
 
         /* Return error */
         retval = -ENXIO;
@@ -1048,9 +1098,7 @@ static int sys_open(const char *pathname, int flags, mode_t mode)
     if (filp->f_inode && S_ISREG(filp->f_inode->i_mode)) {
         if (flags & O_TRUNC) {
             if (filp->f_inode->i_rdev != RDEV_ROOTFS) {
-                /* Release the file descriptor */
-                bitmap_clear_bit(bitmap_fds, fdesc_idx);
-                bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
+                fd_give_up(task, fd);
 
                 /* Return error */
                 retval = -EROFS;
@@ -1071,7 +1119,6 @@ static int sys_open(const char *pathname, int flags, mode_t mode)
     filp->f_op->open(filp->f_inode, filp);
 
     /* Return the file descriptor number */
-    int fd = fdesc_idx + FILE_RESERVED_NUM;
     return fd;
 
 err:
@@ -1088,25 +1135,14 @@ static int sys_close(int fd)
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
-    /* Invalid file descriptor number */
-    if (fd < FILE_RESERVED_NUM) {
-        retval = -EBADF;
-        goto leave;
-    }
-
-    /* Calculate the index number of the file descriptor */
-    int fdesc_idx = fd - FILE_RESERVED_NUM;
-
     /* Check if the file descriptor belongs to current task */
-    if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-        !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
+    if (!fd_file(task, fd)) {
         retval = -EBADF;
         goto leave;
     }
 
     /* Free the file descriptor */
-    bitmap_clear_bit(bitmap_fds, fdesc_idx);
-    bitmap_clear_bit(task->bitmap_fds, fdesc_idx);
+    fd_give_up(task, fd);
 
     /* Return success */
     retval = 0;
@@ -1122,38 +1158,17 @@ static int sys_dup(int oldfd)
 
     int retval;
 
-    if (oldfd < FILE_RESERVED_NUM) {
-        retval = -EBADF;
-        goto leave;
-    }
-
-    /* Convert oldfd to the index numbers on the table */
-    int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
-
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
     /* Check if the file descriptor is invalid */
-    if (!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
-        !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx)) {
+    if (!fd_file(task, oldfd)) {
         retval = -EBADF;
         goto leave;
     }
 
-    /* Find a free entry on the file descriptor table */
-    int fdesc_idx = find_first_zero_bit(bitmap_fds, OPEN_MAX);
-    if (fdesc_idx >= OPEN_MAX) {
-        retval = -ENFILE;
-        goto leave;
-    }
-    bitmap_set_bit(bitmap_fds, fdesc_idx);
-    bitmap_set_bit(task->bitmap_fds, fdesc_idx);
-
-    /* Copy the old file descriptor content to the new one */
-    fdtable[fdesc_idx] = fdtable[old_fdesc_idx];
-
-    /* Return new file descriptor number */
-    retval = fdesc_idx + FILE_RESERVED_NUM;
+    /* The copy refers to the same file and carries the same flags */
+    retval = fd_take(task, fdtable[oldfd].file, fdtable[oldfd].flags);
 
 leave:
     preempt_enable();
@@ -1166,58 +1181,34 @@ static int sys_dup2(int oldfd, int newfd)
 
     int retval;
 
+    /* Acquire the running task */
+    struct task_struct *task = current_task_info();
+
+    /* Check if the file descriptor to copy is invalid */
+    if (!fd_file(task, oldfd)) {
+        retval = -EBADF;
+        goto leave;
+    }
+
+    /* Copying a descriptor onto itself changes nothing */
     if (oldfd == newfd) {
-        /* Validate oldfd */
-        int idx = oldfd - FILE_RESERVED_NUM;
-        if (oldfd < FILE_RESERVED_NUM || idx < 0 || idx >= OPEN_MAX) {
-            retval = -EBADF;
-            goto leave;
-        }
-
-        struct task_struct *task = current_task_info();
-        if (!bitmap_get_bit(bitmap_fds, idx) ||
-            !bitmap_get_bit(task->bitmap_fds, idx)) {
-            retval = -EBADF;
-            goto leave;
-        }
-
         retval = newfd;
         goto leave;
     }
 
-    /* Convert fds to the index numbers on the table */
-    int old_fdesc_idx = oldfd - FILE_RESERVED_NUM;
-    int new_fdesc_idx = newfd - FILE_RESERVED_NUM;
-
-    if (oldfd < FILE_RESERVED_NUM || newfd < FILE_RESERVED_NUM ||
-        old_fdesc_idx < 0 || new_fdesc_idx < 0 || new_fdesc_idx >= OPEN_MAX) {
+    if (newfd < 0 || newfd >= OPEN_MAX) {
         retval = -EBADF;
         goto leave;
     }
 
-    /* Acquire the running task */
-    struct task_struct *task = current_task_info();
+    /* The one being replaced is closed, the way POSIX asks */
+    fd_give_up(task, newfd);
 
-    /* Check if the file descriptors are invalid */
-    if (!bitmap_get_bit(bitmap_fds, old_fdesc_idx) ||
-        !bitmap_get_bit(task->bitmap_fds, old_fdesc_idx)) {
-        retval = -EBADF;
-        goto leave;
-    }
-
-    /* Close newfd if it is open */
-    if (bitmap_get_bit(bitmap_fds, new_fdesc_idx) &&
-        bitmap_get_bit(task->bitmap_fds, new_fdesc_idx)) {
-        bitmap_clear_bit(bitmap_fds, new_fdesc_idx);
-        bitmap_clear_bit(task->bitmap_fds, new_fdesc_idx);
-    }
-
-    /* Mark newfd as open */
-    bitmap_set_bit(bitmap_fds, new_fdesc_idx);
-    bitmap_set_bit(task->bitmap_fds, new_fdesc_idx);
+    bitmap_set_bit(bitmap_fds, newfd);
+    bitmap_set_bit(task->bitmap_fds, newfd);
 
     /* Copy the old file descriptor content to the new one */
-    fdtable[new_fdesc_idx] = fdtable[old_fdesc_idx];
+    fdtable[newfd] = fdtable[oldfd];
 
     /* Return new file descriptor */
     retval = newfd;
@@ -1242,24 +1233,10 @@ static ssize_t sys_read(int fd, void *buf, size_t count)
     struct task_struct *task = current_task_info();
 
     /* Get the file to read */
-    struct file *filp;
-    if (fd < FILE_RESERVED_NUM) {
-        /* Read target is the anonymous pipe of a thread */
-        filp = files[fd];
-    } else {
-        /* Calculate the index number of the file descriptor
-         * on the table */
-        int fdesc_idx = fd - FILE_RESERVED_NUM;
-
-        /* Check if the file descriptor is invalid */
-        if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-            !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            retval = -EBADF;
-            goto err;
-        }
-
-        filp = fdtable[fdesc_idx].file;
-        filp->f_flags = fdtable[fdesc_idx].flags;
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
+        retval = -EBADF;
+        goto err;
     }
 
     /* Check if the file operation is undefined */
@@ -1306,24 +1283,10 @@ static ssize_t sys_write(int fd, const void *buf, size_t count)
     struct task_struct *task = current_task_info();
 
     /* Get the file pointer */
-    struct file *filp;
-    if (fd < FILE_RESERVED_NUM) {
-        /* Write target is the anonymous pipe of a thread */
-        filp = files[fd];
-    } else {
-        /* Calculate the index number of the file descriptor
-         * on the table */
-        int fdesc_idx = fd - FILE_RESERVED_NUM;
-
-        /* Check if the file descriptor is invalid */
-        if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-            !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            retval = -EBADF;
-            goto err;
-        }
-
-        filp = fdtable[fdesc_idx].file;
-        filp->f_flags = fdtable[fdesc_idx].flags;
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
+        retval = -EBADF;
+        goto err;
     }
 
     /* Check if the file operation is undefined */
@@ -1365,23 +1328,10 @@ static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
     struct task_struct *task = current_task_info();
 
     /* Get the file pointer */
-    struct file *filp;
-    if (fd < FILE_RESERVED_NUM) {
-        /* I/O control target is the anonymous pipe of a thread */
-        filp = files[fd];
-    } else {
-        /* calculate the index number of the file descriptor
-         * on the table */
-        int fdesc_idx = fd - FILE_RESERVED_NUM;
-
-        /* Check if the file descriptor is invalid */
-        if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-            !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            retval = -EBADF;
-            goto err;
-        }
-
-        filp = fdtable[fdesc_idx].file;
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
+        retval = -EBADF;
+        goto err;
     }
 
     /* Check if the file operation is undefined */
@@ -1420,23 +1370,10 @@ static off_t sys_lseek(int fd, long offset, int whence)
     struct task_struct *task = current_task_info();
 
     /* Get the file pointer */
-    struct file *filp;
-    if (fd < FILE_RESERVED_NUM) {
-        /* lseek target is the anonymous pipe of a thread */
-        filp = files[fd];
-    } else {
-        /* Calculate the index number of the file descriptor
-         * on the table */
-        int fdesc_idx = fd - FILE_RESERVED_NUM;
-
-        /* Check if the file descriptor is invalid */
-        if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-            !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-            retval = -EBADF;
-            goto err;
-        }
-
-        filp = fdtable[fdesc_idx].file;
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
+        retval = -EBADF;
+        goto err;
     }
 
     /* Check if the file operation is undefined */
@@ -1479,24 +1416,15 @@ static int sys_fstat(int fd, struct stat *statbuf)
     /* Acquire the running task */
     struct task_struct *task = current_task_info();
 
-    if (fd < FILE_RESERVED_NUM) {
-        retval = -EBADF;
-        goto leave;
-    }
-
-    /* Calculate the index number of the file descriptor
-     * on the table */
-    int fdesc_idx = fd - FILE_RESERVED_NUM;
-
     /* Check if the file descriptor is invalid */
-    if (!bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-        !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
         retval = -EBADF;
         goto leave;
     }
 
     /* Get file inode */
-    struct inode *inode = fdtable[fdesc_idx].file->f_inode;
+    struct inode *inode = filp->f_inode;
 
     /* Check if the inode exists */
     if (inode != NULL) { /* XXX */
@@ -1741,26 +1669,14 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         fds[i].revents = 0;
 
         int fd = fds[i].fd;
-        if (fd < 0) {
+        if (fd < 0)
             continue; /* Ignore */
-        } else if (fd < FILE_RESERVED_NUM) {
-            filp = files[fd];
-            if (!filp) {
-                fds[i].revents |= POLLNVAL;
-                ready++;
-                continue;
-            }
-        } else {
-            int fdesc_idx = fd - FILE_RESERVED_NUM;
-            if (fdesc_idx < 0 || fdesc_idx >= OPEN_MAX ||
-                !bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-                !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-                fds[i].revents |= POLLNVAL;
-                ready++;
-                continue;
-            }
 
-            filp = fdtable[fdesc_idx].file;
+        filp = fd_file(task, fd);
+        if (!filp) {
+            fds[i].revents |= POLLNVAL;
+            ready++;
+            continue;
         }
         /* A regular file is always ready, it has no event of its own to
          * wait for. Reporting otherwise leaves a reader of a redirected
@@ -1802,19 +1718,11 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         if (fd < 0)
             continue;
 
-        if (fd < FILE_RESERVED_NUM) {
-            filp = files[fd];
-            if (!filp)
-                continue;
-        } else {
-            int fdesc_idx = fd - FILE_RESERVED_NUM;
-            if (fdesc_idx < 0 || fdesc_idx >= OPEN_MAX ||
-                !bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-                !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-                continue;
-            }
-
-            filp = fdtable[fdesc_idx].file;
+        filp = fd_file(task, fd);
+        if (!filp) {
+            fds[i].revents |= POLLNVAL;
+            ready++;
+            continue;
         }
 
         list_add_tail(&filp->list, &running_thread->poll_files_list);
@@ -1840,26 +1748,14 @@ static int sys_poll(struct pollfd *fds, nfds_t nfds, int timeout)
         fds[i].revents = 0;
 
         int fd = fds[i].fd;
-        if (fd < 0) {
+        if (fd < 0)
             continue; /* Ignore */
-        } else if (fd < FILE_RESERVED_NUM) {
-            filp = files[fd];
-            if (!filp) {
-                fds[i].revents |= POLLNVAL;
-                ready++;
-                continue;
-            }
-        } else {
-            int fdesc_idx = fd - FILE_RESERVED_NUM;
-            if (fdesc_idx < 0 || fdesc_idx >= OPEN_MAX ||
-                !bitmap_get_bit(bitmap_fds, fdesc_idx) ||
-                !bitmap_get_bit(task->bitmap_fds, fdesc_idx)) {
-                fds[i].revents |= POLLNVAL;
-                ready++;
-                continue;
-            }
 
-            filp = fdtable[fdesc_idx].file;
+        filp = fd_file(task, fd);
+        if (!filp) {
+            fds[i].revents |= POLLNVAL;
+            ready++;
+            continue;
         }
         /* A regular file is always ready, it has no event of its own to
          * wait for. Reporting otherwise leaves a reader of a redirected

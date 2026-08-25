@@ -30,8 +30,6 @@
  */
 #define FS_DEFAULT_UMASK 022
 
-#define FILE_RESERVED_NUM 3
-
 /* Every thread has a pipe the file system daemon answers it through. It is
  * reached by the thread that owns it and by the daemon, never by a program,
  * so it carries no descriptor number

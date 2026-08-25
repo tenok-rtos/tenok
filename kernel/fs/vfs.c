@@ -7,7 +7,7 @@
 #include <kernel/pipe.h>
 #include <kernel/sched.h>
 
-extern struct file *files[FILE_RESERVED_NUM + FILE_MAX];
+extern struct file *files[STD_STREAM_CNT + FILE_MAX];
 
 /* Read the reply of a file system request from the anonymous pipe of the
  * calling thread
