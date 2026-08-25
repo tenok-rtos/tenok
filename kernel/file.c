@@ -421,6 +421,19 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout)
     return set_errno(__poll(fds, nfds, timeout));
 }
 
+int ppoll(struct pollfd *fds,
+          nfds_t nfds,
+          const struct timespec *timeout_ts,
+          const sigset_t *sigmask)
+{
+    int timeout = -1;
+
+    if (timeout_ts)
+        timeout = (timeout_ts->tv_sec * 1000) + (timeout_ts->tv_nsec / 1000000);
+
+    return poll(fds, nfds, timeout);
+}
+
 /* A terminal is a device that answers the settings of a line discipline,
  * which is what POSIX means by one
  */

@@ -4,6 +4,7 @@
 #ifndef __POLL_H__
 #define __POLL_H__
 
+#include <signal.h>
 #include <stdint.h>
 
 #define POLLIN 1
@@ -30,5 +31,21 @@ struct pollfd {
  *         error, with the reason left in errno.
  */
 int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+/**
+ * @brief  Wait for one of the descriptors to become ready, with the timeout
+ *         given as a timespec. Tenok blocks no signal, so the mask is
+ *         accepted and has nothing to do
+ * @param  fds: The descriptors to wait on.
+ * @param  nfds: How many of them there are.
+ * @param  timeout_ts: How long to wait, or a null pointer to wait forever.
+ * @param  sigmask: The signals to block while waiting. Not used.
+ * @retval int: The number of the ready descriptors on success and -1 on
+ *         error, with the reason left in errno.
+ */
+int ppoll(struct pollfd *fds,
+          nfds_t nfds,
+          const struct timespec *timeout_ts,
+          const sigset_t *sigmask);
 
 #endif
