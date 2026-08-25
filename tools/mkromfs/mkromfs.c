@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "kconfig.h"
@@ -26,6 +27,7 @@
 #define S_IFDIR 0040000 /* Directory */
 
 bool _verbose = false;
+uint32_t _build_time;
 
 struct super_block {
     bool s_rd_only;       /* Read-only flag */
@@ -58,9 +60,9 @@ struct inode {
     uint32_t i_size;   /* File size (bytes) */
     uint32_t i_blocks; /* Block_numbers = file_size / block_size */
     uint32_t i_data;   /* Virtual address for accessing the storage */
-    uint32_t reserved1;
     struct list_head i_dentry; /* List head of the dentry table */
-    uint32_t reserved2[2];
+    uint32_t i_mtime;          /* Seconds since the epoch, last written */
+    uint32_t reserved[2];
 } __attribute__((aligned(4)));
 
 /* Directory entry */
@@ -169,6 +171,7 @@ void romfs_init(void)
     /* Configure the root directory inode */
     struct inode *inode_root = &inodes[0];
     inode_root->i_mode = S_IFDIR | 0755;
+    inode_root->i_mtime = _build_time;
     inode_root->i_ino = 0;
     inode_root->i_size = 0;
     inode_root->i_blocks = 0;
@@ -263,6 +266,7 @@ struct inode *fs_add_file(struct inode *inode_dir,
     new_inode->i_ino = romfs_sb.s_inode_cnt;
     new_inode->i_parent = inode_dir->i_ino;
     new_inode->i_fd = 0;
+    new_inode->i_mtime = _build_time;
 
     /* File instantiation */
     switch (file_type) {
@@ -591,6 +595,9 @@ int main(int argc, char **argv)
             break;
         }
     }
+
+    /* Every file of the image is as old as the image */
+    _build_time = (uint32_t) time(NULL);
 
     romfs_init();
     romfs_import_dir(HOST_INPUT_DIR, ROMFS_OUTPUT_DIR);

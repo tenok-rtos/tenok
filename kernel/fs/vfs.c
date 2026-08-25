@@ -206,6 +206,18 @@ int vfs_chmod(int tid, const char *pathname, mode_t mode)
     return result;
 }
 
+int vfs_utime(int tid, const char *pathname, uint32_t mtime)
+{
+    /* Send the change time request to the file system daemon */
+    request_utime(tid, pathname, mtime);
+
+    /* Read the result from the file system daemon */
+    int result;
+    vfs_read_reply(tid, &result, sizeof(result));
+
+    return result;
+}
+
 int vfs_stat(int tid, const char *pathname, struct stat *statbuf)
 {
     /* Send stat request to the file system daemon */

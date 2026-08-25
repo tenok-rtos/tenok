@@ -11,8 +11,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 
 #include <common/list.h>
+#include <kernel/time.h>
 #include <kernel/wait.h>
 
 #include "kconfig.h"
@@ -71,6 +73,7 @@ enum {
     FS_STAT = 9,
     FS_RENAME = 10,
     FS_CHANGE_MODE = 11,
+    FS_CHANGE_TIME = 12,
 } FS_SERVER_CMDS;
 
 struct super_block {
@@ -114,10 +117,11 @@ struct inode {
     uint32_t i_blocks;
     /* Virtual address for accessing the storage */
     uint32_t i_data;
-    uint32_t reserved1;
     /* List head of the dentry table */
     struct list_head i_dentry;
-    uint32_t reserved2[2];
+    /* Seconds since the epoch, last written. Thirty two of them reach 2106 */
+    uint32_t i_mtime;
+    uint32_t reserved[2];
 };
 
 /* Directory entry */
@@ -177,8 +181,18 @@ int fs_read_dir(DIR *dirp, struct dirent *dirent);
 uint32_t fs_get_block_addr(struct inode *inode, int blk_index);
 uint32_t fs_file_append_block(struct inode *inode);
 
-/* Fill in a stat buffer from an inode. Tenok tracks no ownership, no link
- * count and no time stamp, so those fields read back as zero
+/* What an inode stamps itself with. The clock reads zero until it is set */
+static inline uint32_t fs_now(void)
+{
+    struct timespec tp;
+
+    get_sys_time(&tp);
+
+    return (uint32_t) tp.tv_sec;
+}
+
+/* Fill in a stat buffer from an inode. Tenok tracks no ownership and no link
+ * count, so those fields read back as zero
  */
 static inline void fs_fill_stat(struct stat *statbuf, const struct inode *inode)
 {
@@ -192,11 +206,13 @@ static inline void fs_fill_stat(struct stat *statbuf, const struct inode *inode)
     statbuf->st_size = inode->i_size;
     statbuf->st_blksize = FS_BLK_SIZE;
     statbuf->st_blocks = inode->i_blocks;
+    statbuf->st_mtim.tv_sec = inode->i_mtime;
 }
 
 void request_create_file(int thread_id, const char *path, mode_t mode);
 void request_mkdir(int thread_id, const char *path, mode_t mode);
 void request_chmod(int thread_id, const char *path, mode_t mode);
+void request_utime(int thread_id, const char *path, uint32_t mtime);
 void request_remove(int thread_id, const char *path, bool rm_dir);
 void request_stat(int thread_id, const char *path, struct stat *statbuf);
 void request_rename(int thread_id, const char *oldpath, const char *newpath);

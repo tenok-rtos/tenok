@@ -180,6 +180,10 @@ ssize_t reg_file_write(struct file *filp,
     ssize_t retval = __reg_file_write(filp, buf, size, offset);
     preempt_enable();
 
+    /* The contents changed, so the file is as new as this moment */
+    if (retval > 0)
+        filp->f_inode->i_mtime = fs_now();
+
     return retval;
 }
 

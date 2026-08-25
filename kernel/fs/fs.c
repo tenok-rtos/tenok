@@ -169,6 +169,7 @@ static struct inode *fs_alloc_inode(void)
         /* Allocate new inode */
         new_inode = &inodes[free_idx];
         new_inode->i_ino = free_idx;
+        new_inode->i_mtime = fs_now();
         mount_points[RDEV_ROOTFS].super_blk.s_inode_cnt++;
 
         /* Update the inode bitmap */
@@ -660,6 +661,7 @@ static struct inode *fs_mount_file(struct inode *inode_dir,
     new_inode->i_size = mnt_inode->i_size;
     new_inode->i_blocks = mnt_inode->i_blocks;
     new_inode->i_data = mnt_inode->i_data;
+    new_inode->i_mtime = mnt_inode->i_mtime;
     new_inode->i_sync = false; /* Synchronized when the file is open */
     INIT_LIST_HEAD(&new_inode->i_dentry);
 
@@ -1051,6 +1053,19 @@ static int fs_chmod(const char *pathname, mode_t mode)
     return 0;
 }
 
+/* Replace the time the file specified by the pathname was written */
+static int fs_utime(const char *pathname, uint32_t mtime)
+{
+    struct inode *inode = fs_resolve_path(pathname);
+
+    if (!inode)
+        return -ENOENT;
+
+    inode->i_mtime = mtime;
+
+    return 0;
+}
+
 /* Return the information of the file specified by the pathname */
 static int fs_stat(const char *pathname, struct stat *statbuf)
 {
@@ -1381,6 +1396,16 @@ void request_chmod(int thread_id, const char *path, mode_t mode)
     fs_request(FS_CHANGE_MODE, THREAD_PIPE_FD(thread_id), &args, sizeof(args));
 }
 
+void request_utime(int thread_id, const char *path, uint32_t mtime)
+{
+    struct {
+        const char *path;
+        uint32_t mtime;
+    } args = {path, mtime};
+
+    fs_request(FS_CHANGE_TIME, THREAD_PIPE_FD(thread_id), &args, sizeof(args));
+}
+
 void request_stat(int thread_id, const char *path, struct stat *statbuf)
 {
     char args[sizeof(path) + sizeof(statbuf)];
@@ -1684,6 +1709,18 @@ void filesysd(void)
             read(filesysd_fd, &mode, sizeof(mode));
 
             int result = fs_chmod(path, mode);
+            write(reply_fd, &result, sizeof(result));
+
+            break;
+        }
+        case FS_CHANGE_TIME: {
+            char *path;
+            read(filesysd_fd, &path, sizeof(path));
+
+            uint32_t mtime;
+            read(filesysd_fd, &mtime, sizeof(mtime));
+
+            int result = fs_utime(path, mtime);
             write(reply_fd, &result, sizeof(result));
 
             break;

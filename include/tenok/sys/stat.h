@@ -59,7 +59,7 @@ struct stat {
     struct timespec st_ctim; /* Time of the last status change */
 };
 
-/* Tenok keeps no time stamp, so all three read back as zero */
+/* Tenok keeps the modification time, the other two read back as zero */
 #define st_atime st_atim.tv_sec
 #define st_mtime st_mtim.tv_sec
 #define st_ctime st_ctim.tv_sec
@@ -67,7 +67,7 @@ struct stat {
 /**
  * @brief  Return information about a file, in the buffer pointed to by statbuf
  * @param  fd: The file descriptor to provide.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int fstat(int fd, struct stat *statbuf);
 
@@ -77,7 +77,7 @@ int fstat(int fd, struct stat *statbuf);
  * @param  pathname: The pathname to create the new file.
  * @param  mode: The file type and the permission bits of the new file.
  * @param  dev: The device number, when the file is a device. Not used.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int mknod(const char *pathname, mode_t mode, dev_t dev);
 
@@ -85,7 +85,7 @@ int mknod(const char *pathname, mode_t mode, dev_t dev);
  * @brief  Makes a FIFO special file with name pathname.
  * @param  pathname: The path name to create the new fifo file.
  * @param  mode: The permission bits of the new file.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int mkfifo(const char *pathname, mode_t mode);
 
@@ -93,7 +93,7 @@ int mkfifo(const char *pathname, mode_t mode);
  * @brief  Create a directory named pathname
  * @param  pathname: The pathname of the directory to create.
  * @param  mode: The permission bits of the new directory.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int mkdir(const char *pathname, mode_t mode);
 
@@ -104,11 +104,26 @@ int mkdir(const char *pathname, mode_t mode);
  */
 mode_t umask(mode_t mask);
 
+/* Given to utime() in place of a time, asking for the present one */
+#define UTIME_TO_NOW ((uint32_t) -1)
+
+/* What utimensat() of POSIX is given in place of a time */
+#define UTIME_NOW ((1l << 30) - 1l)
+#define UTIME_OMIT ((1l << 30) - 2l)
+
+/**
+ * @brief  Replace the time the contents of a file were last written
+ * @param  pathname: The pathname of the file.
+ * @param  mtime: Seconds since the epoch, or UTIME_TO_NOW for the present.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int utime(const char *pathname, uint32_t mtime);
+
 /**
  * @brief  Replace the permission bits of a file
  * @param  pathname: The pathname of the file.
  * @param  mode: The permission bits to give the file.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and -1 on error, with the reason in errno.
  */
 int chmod(const char *pathname, mode_t mode);
 
@@ -117,7 +132,7 @@ int chmod(const char *pathname, mode_t mode);
  *         the buffer pointed to by statbuf
  * @param  pathname: The pathname of the file.
  * @param  statbuf: The buffer for returning the file information.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @retval int: 0 on success and nonzero error number on error.
  */
 int stat(const char *pathname, struct stat *statbuf);
 

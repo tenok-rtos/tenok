@@ -262,6 +262,17 @@ NACKED mode_t umask(mode_t mask)
     SYSCALL(UMASK);
 }
 
+static NACKED int __utime(const char *pathname, uint32_t mtime)
+{
+    SYSCALL(UTIME);
+}
+
+/* POSIX spells this with two times and a timespec each, Tenok keeps one */
+int utime(const char *pathname, uint32_t mtime)
+{
+    return set_errno(__utime(pathname, mtime));
+}
+
 static NACKED int __chmod(const char *pathname, mode_t mode)
 {
     SYSCALL(CHMOD);

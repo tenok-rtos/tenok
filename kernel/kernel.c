@@ -1619,6 +1619,22 @@ static mode_t sys_umask(mode_t mask)
     return previous;
 }
 
+static int sys_utime(const char *pathname, uint32_t mtime)
+{
+    if (!pathname)
+        return -EFAULT;
+
+    /* Check the length of the pathname */
+    if (strlen(pathname) >= PATH_MAX)
+        return -ENAMETOOLONG;
+
+    /* The caller asks for this moment by naming no other */
+    if (mtime == UTIME_TO_NOW)
+        mtime = fs_now();
+
+    return vfs_utime(running_thread->tid, pathname, mtime);
+}
+
 static int sys_chmod(const char *pathname, mode_t mode)
 {
     if (!pathname)

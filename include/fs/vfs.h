@@ -19,6 +19,7 @@ char *vfs_getcwd(int tid, char *buf, size_t size);
 int vfs_chdir(int tid, const char *path);
 int vfs_mkdir(int tid, const char *pathname, mode_t mode);
 int vfs_chmod(int tid, const char *pathname, mode_t mode);
+int vfs_utime(int tid, const char *pathname, uint32_t mtime);
 int vfs_remove(int tid, const char *pathname, bool rm_dir);
 int vfs_stat(int tid, const char *pathname, struct stat *statbuf);
 int vfs_rename(int tid, const char *oldpath, const char *newpath);
