@@ -25,6 +25,9 @@
 #define ftell _ftell
 #define rewind _rewind
 #define fileno _fileno
+#define freopen _freopen
+#define fseeko _fseeko
+#define ftello _ftello
 #define fputs _fputs
 #define fputc _fputc
 #define putchar _putchar
@@ -92,6 +95,34 @@ FILE *fopen(const char *pathname, const char *mode);
  *         the reason left in errno.
  */
 FILE *fdopen(int fd, const char *mode);
+
+/**
+ * @brief  Point a stream that is already open at another file, which is how
+ *         a program replaces one of the standard streams
+ * @param  pathname: The pathname of the file to open.
+ * @param  mode: The mode to open it with.
+ * @param  stream: The stream to point at it.
+ * @retval FILE *: The stream on success and a null pointer on error, with
+ *         the reason left in errno.
+ */
+FILE *freopen(const char *pathname, const char *mode, FILE *stream);
+
+/**
+ * @brief  Reposition a stream, with the offset given as an off_t
+ * @param  stream: The file stream to provide.
+ * @param  offset: The new offset from the position whence names.
+ * @param  whence: SEEK_SET, SEEK_CUR or SEEK_END.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int fseeko(FILE *stream, off_t offset, int whence);
+
+/**
+ * @brief  Report where a stream is, as an off_t
+ * @param  stream: The file stream to provide.
+ * @retval off_t: The position on success and -1 on error, with the reason
+ *         left in errno.
+ */
+off_t ftello(FILE *stream);
 
 /**
  * @brief  Close the given file stream

@@ -76,6 +76,46 @@ FILE *fdopen(int fd, const char *mode)
     return stream;
 }
 
+/* The stream keeps its identity and takes on another file */
+FILE *_freopen(const char *pathname, const char *mode, FILE *stream)
+{
+    __FILE *_stream = (__FILE *) stream;
+
+    if (!stream) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    int flags = (!mode || mode[0] == '\0') ? O_RDONLY : fopen_flags(mode);
+    if (flags < 0) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    int fd = open(pathname, flags, FS_DEFAULT_FILE_MODE);
+    if (fd < 0)
+        return NULL;
+
+    close(_stream->fd);
+
+    _stream->fd = fd;
+    _stream->eof = 0;
+    _stream->err = 0;
+
+    return stream;
+}
+
+/* The offset of Tenok is an off_t already, these are the other names */
+int _fseeko(FILE *stream, off_t offset, int whence)
+{
+    return _fseek(stream, offset, whence);
+}
+
+off_t _ftello(FILE *stream)
+{
+    return _ftell(stream);
+}
+
 int _fclose(FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
