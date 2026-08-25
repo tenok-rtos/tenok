@@ -93,10 +93,16 @@ off_t lseek(int fd, long offset, int whence);
 
 /**
  * @brief  Return the ID of the calling task
- * @param  None
- * @retval int: Task ID.
+ * @retval pid_t: The task ID.
  */
-int getpid(void);
+pid_t getpid(void);
+
+/**
+ * @brief  Return the ID of the task that started the calling one. Every task
+ *         of Tenok is started by the one that brings the system up
+ * @retval pid_t: Always 1.
+ */
+pid_t getppid(void);
 
 /**
  * @brief  Get current working directory
