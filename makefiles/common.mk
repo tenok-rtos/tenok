@@ -104,6 +104,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/fs/reg_file.c \
        ./kernel/fs/rom_dev.c \
        ./kernel/fs/null_dev.c \
+       ./kernel/utsname.c \
        ./kernel/termios.c \
        ./kernel/fnmatch.c \
        ./kernel/libgen.c \

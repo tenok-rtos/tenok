@@ -1,16 +1,20 @@
 #include <stdio.h>
+#include <sys/utsname.h>
 
 #include "kconfig.h"
 #include "shell.h"
 
-int uname(int argc, char *argv[])
+static int uname_cmd(int argc, char *argv[])
 {
     char str[PRINT_SIZE_MAX] = {0};
-    snprintf(str, sizeof(str), "Tenok %s %s %s\n", __REVISION__, __TIMESTAMP__,
-             __ARCH__);
+    struct utsname buf;
+
+    uname(&buf);
+    snprintf(str, sizeof(str), "%s %s %s %s\n", buf.sysname, buf.release,
+             buf.version, buf.machine);
     shell_puts(str);
 
     return 0;
 }
 
-HOOK_SHELL_CMD("uname", uname);
+HOOK_SHELL_CMD("uname", uname_cmd);
