@@ -158,7 +158,14 @@ struct file_operations {
 };
 
 struct fdtable {
+    /* The flags the file was opened with */
     int flags;
+    /* The flags of the descriptor itself, which is FD_CLOEXEC and nothing
+     * else. They are kept apart from the ones above because FD_CLOEXEC and
+     * O_WRONLY are both one, and a descriptor would otherwise report the
+     * access mode as the close on exec bit and lose it when the bit is set.
+     */
+    int fd_flags;
     struct file *file;
 };
 

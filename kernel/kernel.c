@@ -320,6 +320,7 @@ static int fd_take(struct task_struct *task, struct file *filp, int flags)
 
     fdtable[fd].file = filp;
     fdtable[fd].flags = flags;
+    fdtable[fd].fd_flags = 0;
     fd_pipe_take(fd);
 
     return fd;
@@ -344,6 +345,7 @@ static void fd_open_std_streams(struct task_struct *task)
 
         fdtable[fd].file = files[fd];
         fdtable[fd].flags = 0;
+        fdtable[fd].fd_flags = 0;
     }
 }
 
@@ -1269,6 +1271,7 @@ static int fd_take_above(struct task_struct *task,
 
         fdtable[fd].file = filp;
         fdtable[fd].flags = flags;
+        fdtable[fd].fd_flags = 0;
         fd_pipe_take(fd);
 
         return fd;
@@ -1294,20 +1297,26 @@ static int sys_fcntl(int fd, int cmd, unsigned long arg)
     case F_DUPFD_CLOEXEC:
         retval =
             fd_take_above(task, fdtable[fd].file, fdtable[fd].flags, (int) arg);
+
+        /* The copy is closed on exec only when it was asked to be, whatever
+         * the descriptor it came from does
+         */
+        if (retval >= 0)
+            fdtable[retval].fd_flags =
+                (cmd == F_DUPFD_CLOEXEC) ? FD_CLOEXEC : 0;
         break;
     case F_GETFD:
         /* Tenok has no exec() for the close on exec bit to act on, it is
          * stored so that what a program sets it can read back
          */
-        retval = fdtable[fd].flags & FD_CLOEXEC;
+        retval = fdtable[fd].fd_flags;
         break;
     case F_SETFD:
-        fdtable[fd].flags &= ~FD_CLOEXEC;
-        fdtable[fd].flags |= (int) arg & FD_CLOEXEC;
+        fdtable[fd].fd_flags = (int) arg & FD_CLOEXEC;
         retval = 0;
         break;
     case F_GETFL:
-        retval = fdtable[fd].flags & ~FD_CLOEXEC;
+        retval = fdtable[fd].flags;
         break;
     case F_SETFL:
         /* The access mode of an open file cannot be changed */
@@ -1357,8 +1366,12 @@ static int sys_dup2(int oldfd, int newfd)
     bitmap_set_bit(bitmap_fds, newfd);
     bitmap_set_bit(task->bitmap_fds, newfd);
 
-    /* Copy the old file descriptor content to the new one */
+    /* Copy the old file descriptor content to the new one. The copy is not
+     * closed on exec even when the one it came from is, which is what POSIX
+     * asks of dup2()
+     */
     fdtable[newfd] = fdtable[oldfd];
+    fdtable[newfd].fd_flags = 0;
     fd_pipe_take(newfd);
 
     /* Return new file descriptor */
