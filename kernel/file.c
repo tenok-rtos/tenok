@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/termios.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -394,10 +395,22 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout)
     return set_errno(__poll(fds, nfds, timeout));
 }
 
-/* Not implemented. The function is defined only
- * to supress the newlib warning.
+/* A terminal is a device that answers the settings of a line discipline,
+ * which is what POSIX means by one
  */
+int isatty(int fd)
+{
+    struct termios termios;
+
+    if (ioctl(fd, TCGETS, (unsigned long) &termios) != 0) {
+        errno = ENOTTY;
+        return 0;
+    }
+
+    return 1;
+}
+
 int _isatty(int fd)
 {
-    return 0;
+    return isatty(fd);
 }

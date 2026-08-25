@@ -136,6 +136,14 @@ int rmdir(const char *pathname);
 #define R_OK 4 /* The file can be read */
 
 /**
+ * @brief  Tell whether a descriptor refers to a terminal
+ * @param  fd: The file descriptor to provide.
+ * @retval int: One when it does, and zero when it does not, with the reason
+ *         left in errno.
+ */
+int isatty(int fd);
+
+/**
  * @brief  Check whether the calling task can reach a file the way it asks
  * @param  pathname: The pathname of the file to check.
  * @param  mode: F_OK, or the R_OK, W_OK and X_OK to check for.
