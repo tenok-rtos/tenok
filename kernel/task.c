@@ -1,4 +1,6 @@
+#include <errno.h>
 #include <stdint.h>
+#include <sys/wait.h>
 #include <task.h>
 #include <tenok.h>
 
@@ -37,6 +39,21 @@ int _getpid(void)
 pid_t getppid(void)
 {
     return 0;
+}
+
+/* A task is never the child of another, so a caller of these never has one to
+ * wait for. That is the answer POSIX gives when the children have run out, and
+ * on Tenok it is the answer from the start
+ */
+int waitpid(int pid, int *status, int options)
+{
+    errno = ECHILD;
+    return -1;
+}
+
+int wait(int *status)
+{
+    return waitpid(-1, status, 0);
 }
 
 NACKED int task_create(task_func_t task_func, uint8_t priority, int stack_size)
