@@ -81,6 +81,25 @@ int dup(int oldfd)
     return set_errno(__dup(oldfd));
 }
 
+static NACKED int __fcntl(int fd, int cmd, unsigned long arg)
+{
+    SYSCALL(FCNTL);
+}
+
+int fcntl(int fd, int cmd, ...)
+{
+    va_list ap;
+
+    /* Every command Tenok answers takes one argument, and the ones that take
+     * none do not mind being handed one
+     */
+    va_start(ap, cmd);
+    unsigned long arg = va_arg(ap, unsigned long);
+    va_end(ap);
+
+    return set_errno(__fcntl(fd, cmd, arg));
+}
+
 static NACKED int __dup2(int oldfd, int newfd)
 {
     SYSCALL(DUP2);

@@ -16,6 +16,7 @@ syscalls = \
      'close',
      'dup',
      'dup2',
+     'fcntl',
      'read',
      'write',
      'ioctl',

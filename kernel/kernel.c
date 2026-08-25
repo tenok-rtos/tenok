@@ -1175,6 +1175,81 @@ leave:
     return retval;
 }
 
+/* Take the lowest descriptor at or above the one asked for, which is what
+ * F_DUPFD promises and what a shell saves a descriptor with
+ */
+static int fd_take_above(struct task_struct *task,
+                         struct file *filp,
+                         int flags,
+                         int lowest)
+{
+    if (lowest < 0 || lowest >= OPEN_MAX)
+        return -EINVAL;
+
+    for (int fd = lowest; fd < OPEN_MAX; fd++) {
+        if (bitmap_get_bit(bitmap_fds, fd))
+            continue;
+
+        bitmap_set_bit(bitmap_fds, fd);
+        bitmap_set_bit(task->bitmap_fds, fd);
+
+        fdtable[fd].file = filp;
+        fdtable[fd].flags = flags;
+
+        return fd;
+    }
+
+    return -EMFILE;
+}
+
+static int sys_fcntl(int fd, int cmd, unsigned long arg)
+{
+    preempt_disable();
+
+    int retval;
+    struct task_struct *task = current_task_info();
+
+    if (!fd_file(task, fd)) {
+        retval = -EBADF;
+        goto leave;
+    }
+
+    switch (cmd) {
+    case F_DUPFD:
+    case F_DUPFD_CLOEXEC:
+        retval =
+            fd_take_above(task, fdtable[fd].file, fdtable[fd].flags, (int) arg);
+        break;
+    case F_GETFD:
+        /* Tenok has no exec() for the close on exec bit to act on, it is
+         * stored so that what a program sets it can read back
+         */
+        retval = fdtable[fd].flags & FD_CLOEXEC;
+        break;
+    case F_SETFD:
+        fdtable[fd].flags &= ~FD_CLOEXEC;
+        fdtable[fd].flags |= (int) arg & FD_CLOEXEC;
+        retval = 0;
+        break;
+    case F_GETFL:
+        retval = fdtable[fd].flags & ~FD_CLOEXEC;
+        break;
+    case F_SETFL:
+        /* The access mode of an open file cannot be changed */
+        fdtable[fd].flags &= (O_ACCMODE | FD_CLOEXEC);
+        fdtable[fd].flags |= (int) arg & ~(O_ACCMODE | FD_CLOEXEC);
+        retval = 0;
+        break;
+    default:
+        retval = -EINVAL;
+        break;
+    }
+
+leave:
+    preempt_enable();
+    return retval;
+}
+
 static int sys_dup2(int oldfd, int newfd)
 {
     preempt_disable();
