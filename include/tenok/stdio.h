@@ -85,6 +85,15 @@ extern FILE *stderr;
 FILE *fopen(const char *pathname, const char *mode);
 
 /**
+ * @brief  Put a stream on a descriptor that is already open
+ * @param  fd: The file descriptor to provide.
+ * @param  mode: Not used, the descriptor carries how it was opened.
+ * @retval FILE *: The stream on success and a null pointer on error, with
+ *         the reason left in errno.
+ */
+FILE *fdopen(int fd, const char *mode);
+
+/**
  * @brief  Close the given file stream
  * @param  stream: The file stream to provide.
  * @retval int: 0 on success and nonzero error number on error.

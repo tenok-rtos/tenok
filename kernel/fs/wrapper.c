@@ -59,6 +59,23 @@ FILE *_fopen(const char *pathname, const char *mode)
     return stream;
 }
 
+/* The descriptor is already open, the stream only has to name it */
+FILE *fdopen(int fd, const char *mode)
+{
+    FILE *stream = malloc(sizeof(FILE));
+
+    if (!stream) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    ((__FILE *) stream)->fd = fd;
+    ((__FILE *) stream)->eof = 0;
+    ((__FILE *) stream)->err = 0;
+
+    return stream;
+}
+
 int _fclose(FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
