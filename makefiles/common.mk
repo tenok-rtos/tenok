@@ -16,8 +16,13 @@ MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg
 
 LDFLAGS += -Wl,--no-warn-rwx-segments
+
+# Every function and every object gets a section of its own, so that the
+# linker can drop the ones nothing reaches
+LDFLAGS += -Wl,--gc-sections
 LDFLAGS += -lm
 
+CFLAGS += -ffunction-sections -fdata-sections
 CFLAGS += -O2 -g -mlittle-endian -mthumb \
           -fcommon \
           -mcpu=cortex-m4 \
