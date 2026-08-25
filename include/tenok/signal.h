@@ -134,6 +134,32 @@ int sigdelset(sigset_t *set, int signum);
 int sigismember(const sigset_t *set, int signum);
 
 /**
+ * @brief  Set up a handler for a signal, the older way POSIX keeps
+ * @param  signum: The number of the signal to attach.
+ * @param  handler: The function to call, SIG_DFL or SIG_IGN.
+ * @retval sa_handler_t: The handler that was in place, and SIG_ERR on error.
+ */
+sa_handler_t signal(int signum, sa_handler_t handler);
+
+/**
+ * @brief  Read and replace the set of signals the thread blocks. Tenok blocks
+ *         none, so the set is accepted and the old one reads back empty
+ * @param  how: SIG_BLOCK, SIG_UNBLOCK or SIG_SETMASK.
+ * @param  set: The set to apply.
+ * @param  oldset: For returning the set that was in place.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+
+/**
+ * @brief  Wait for a signal that is not in the mask. Tenok blocks no signal,
+ *         so there is never one to wait for and this always fails with EINTR
+ * @param  mask: The signals to leave blocked while waiting.
+ * @retval int: Always -1, with the reason left in errno.
+ */
+int sigsuspend(const sigset_t *mask);
+
+/**
  * @brief  Set up a signal for the task to catch.
  * @param  signum: The number of the signal to attach.
  * @param  act: Pointer of the new action setting.
