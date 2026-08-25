@@ -202,6 +202,48 @@ NACKED void free(void *ptr)
     SYSCALL(FREE);
 }
 
+void *__realloc(void *ptr, size_t size)
+{
+    /* Growing nothing is an allocation and shrinking to nothing is a free,
+     * both of which the C standard asks for
+     */
+    if (!ptr)
+        return __malloc(size);
+    if (size == 0) {
+        __free(ptr);
+        return NULL;
+    }
+
+    /* The header of the block already records how much room it has, so the
+     * old size is there to be read rather than to be remembered
+     */
+    struct malloc_info *blk = container_of(ptr, struct malloc_info, data);
+    size_t old_size = malloc_get_block_length(blk) - sizeof(struct malloc_info);
+
+    /* The block the caller already holds is large enough. Handing it back
+     * keeps the contents where they are and costs nothing
+     */
+    if (old_size >= size)
+        return ptr;
+
+    /* The block has to move. The old contents come along, which is what
+     * separates realloc() from a free() followed by a malloc()
+     */
+    void *new_ptr = __malloc(size);
+    if (!new_ptr)
+        return NULL;
+
+    memcpy(new_ptr, ptr, old_size);
+    __free(ptr);
+
+    return new_ptr;
+}
+
+NACKED void *realloc(void *ptr, size_t size)
+{
+    SYSCALL(REALLOC);
+}
+
 void *calloc(size_t nmemb, size_t size)
 {
     /* Calculate the allocation size and detect the overflow */

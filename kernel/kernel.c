@@ -3575,6 +3575,20 @@ static void sys_free(void *ptr)
     preempt_enable();
 }
 
+static void *sys_realloc(void *ptr, size_t size)
+{
+    preempt_disable();
+
+    /* Resize the memory. The move of the contents happens under the same
+     * lock as the allocation and the release, so no other thread sees the
+     * block in two places at once
+     */
+    void *new_ptr = __realloc(ptr, size);
+
+    preempt_enable();
+    return new_ptr;
+}
+
 static void threads_ticks_update(void)
 {
     /* Update sleep ticks */

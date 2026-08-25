@@ -37,6 +37,16 @@ void free(void *ptr);
  */
 void *calloc(size_t nmemb, size_t size);
 
+/**
+ * @brief  Resize an allocated memory space, preserving its contents.
+ * @param  ptr: Pointer to the allocated memory, or NULL to allocate anew.
+ * @param  size: The new number of bytes, or zero to free the memory.
+ * @retval void *: The pointer to the resized memory, which may differ from
+ *         ptr. If the allocation failed, the function returns NULL and the
+ *         memory pointed to by ptr is left untouched.
+ */
+void *realloc(void *ptr, size_t size);
+
 /*
  * Currently not implemented:
  */

@@ -84,7 +84,8 @@ syscalls = \
      'mq_timedsend',
      'mq_timedreceive',
      'malloc',
-     'free']
+     'free',
+     'realloc']
 
 reserved_events = [
     'SYSCALL_RETURN_EVENT',
