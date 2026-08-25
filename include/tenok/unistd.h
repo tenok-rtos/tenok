@@ -130,6 +130,22 @@ int unlink(const char *pathname);
  */
 int rmdir(const char *pathname);
 
+/* Values sysconf() reports, with the numbers Linux gives them */
+#define _SC_ARG_MAX 0
+#define _SC_CLK_TCK 2
+#define _SC_OPEN_MAX 4
+#define _SC_PAGESIZE 8
+
+/**
+ * @brief  Report a value of the system that is decided when it is built
+ * @param  name: One of the _SC_ values.
+ * @retval long: The value on success and -1 when Tenok has no such value,
+ *         with the reason left in errno.
+ */
+/* Newlib ships one that answers for a system Tenok is not */
+#define sysconf _sysconf
+long sysconf(int name);
+
 /* Accessibility asked about by access() */
 #define F_OK 0 /* The file exists */
 #define X_OK 1 /* The file can be executed */
