@@ -136,4 +136,14 @@ int chmod(const char *pathname, mode_t mode);
  */
 int stat(const char *pathname, struct stat *statbuf);
 
+/**
+ * @brief  Return information about the file specified by the pathname, the
+ *         way stat() does. Tenok gives a file one name, so there is no link
+ *         for the call to stop at and the two report the same thing.
+ * @param  pathname: The pathname of the file.
+ * @param  statbuf: The buffer for returning the file information.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int lstat(const char *pathname, struct stat *statbuf);
+
 #endif

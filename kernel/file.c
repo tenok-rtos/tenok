@@ -385,6 +385,12 @@ int _stat(const char *pathname, struct stat *statbuf)
     return stat(pathname, statbuf);
 }
 
+/* Tenok gives a file one name, so nothing a path names is a link to stop at */
+int lstat(const char *pathname, struct stat *statbuf)
+{
+    return stat(pathname, statbuf);
+}
+
 static NACKED int __rename(const char *oldpath, const char *newpath)
 {
     SYSCALL(RENAME);
