@@ -30,8 +30,13 @@
  */
 #define FS_DEFAULT_UMASK 022
 
-#define FILE_RESERVED_NUM (THREAD_MAX + 3)
-#define THREAD_PIPE_FD(thread_id) (thread_id + 3)
+#define FILE_RESERVED_NUM 3
+
+/* Every thread has a pipe the file system daemon answers it through. It is
+ * reached by the thread that owns it and by the daemon, never by a program,
+ * so it carries no descriptor number
+ */
+extern struct file *thread_pipe[THREAD_MAX];
 
 /* +---------------------------+
  * |     File table layout     |
@@ -42,20 +47,13 @@
  * +-----------+---------------+
  * |     2     |     stderr    |
  * +-----------+---------------+
- * |     3     | Thread pipe 1 |
+ * |     3     |     File 1    |
  * +-----------+---------------+
  * |    ...    |      ...      |
  * +-----------+---------------+
- * |   N + 2   | Thread pipe N |
- * +-----------+---------------+
- * |   N + 3   |     File 1    |
- * +-----------+---------------+
- * |    ...    |      ...      |
- * +-----------+---------------+
- * | N + M + 3 |     File M    |
+ * |   M + 2   |     File M    |
  * +-----------+---------------+
  *
- * N = THREAD_MAX
  * M = OPEN_MAX
  */
 

@@ -93,6 +93,7 @@ static char *deamon_names[] = {DAEMON_LIST};
 
 /* Files */
 struct file *files[FILE_RESERVED_NUM + FILE_MAX];
+struct file *thread_pipe[THREAD_MAX];
 int file_cnt;
 
 /* File descriptor table */
@@ -330,7 +331,7 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 
     kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_BUF);
     pipe->fifo = pipe_fifo;
-    fifo_init(THREAD_PIPE_FD(tid), (struct file **) &files, NULL, pipe);
+    thread_pipe[tid] = fifo_init(NULL, pipe);
 
     return (void *) buf;
 }

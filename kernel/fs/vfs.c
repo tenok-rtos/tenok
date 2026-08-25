@@ -17,8 +17,7 @@ static int vfs_read_reply(int tid, void *reply, size_t size)
     int fifo_retval;
 
     while (1) {
-        fifo_retval =
-            fifo_read(files[THREAD_PIPE_FD(tid)], (char *) reply, size, 0);
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) reply, size, 0);
 
         if (fifo_retval != -ERESTARTSYS)
             break;
@@ -37,8 +36,8 @@ int vfs_mount(int tid, const char *source, const char *target)
     /* Read mount result from the file system daemon */
     int fifo_retval, mnt_result;
     while (1) {
-        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)],
-                                (char *) &mnt_result, sizeof(mnt_result), 0);
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) &mnt_result,
+                                sizeof(mnt_result), 0);
 
         if (fifo_retval != -ERESTARTSYS)
             break;
@@ -58,7 +57,7 @@ int vfs_open_file(int tid, const char *pathname)
     int file_idx;
     int fifo_retval;
     while (1) {
-        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) &file_idx,
                                 sizeof(file_idx), 0);
 
         if (fifo_retval != -ERESTARTSYS)
@@ -80,7 +79,7 @@ int vfs_create_file(int tid, const char *pathname, mode_t mode)
     int file_idx;
     int fifo_retval;
     while (1) {
-        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &file_idx,
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) &file_idx,
                                 sizeof(file_idx), 0);
 
         if (fifo_retval != -ERESTARTSYS)
@@ -101,7 +100,7 @@ int vfs_open_dir(int tid, const char *pathname, DIR *dirp)
     struct inode *inode_dir;
     int fifo_retval;
     while (1) {
-        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &inode_dir,
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) &inode_dir,
                                 sizeof(inode_dir), 0);
 
         if (fifo_retval != -ERESTARTSYS)
@@ -136,8 +135,8 @@ char *vfs_getcwd(int tid, char *buf, size_t size)
     char *path;
     int fifo_retval;
     while (1) {
-        fifo_retval = fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &path,
-                                sizeof(path), 0);
+        fifo_retval =
+            fifo_read(thread_pipe[tid], (char *) &path, sizeof(path), 0);
 
         if (fifo_retval != -ERESTARTSYS)
             break;
@@ -157,9 +156,8 @@ int vfs_chdir(int tid, const char *path)
     int chdir_result;
     int fifo_retval;
     while (1) {
-        fifo_retval =
-            fifo_read(files[THREAD_PIPE_FD(tid)], (char *) &chdir_result,
-                      sizeof(chdir_result), 0);
+        fifo_retval = fifo_read(thread_pipe[tid], (char *) &chdir_result,
+                                sizeof(chdir_result), 0);
 
         if (fifo_retval != -ERESTARTSYS)
             break;

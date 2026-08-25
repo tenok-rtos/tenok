@@ -163,20 +163,15 @@ static struct file_operations fifo_ops = {
     .open = fifo_open,
 };
 
-int fifo_init(int fd,
-              struct file **files,
-              struct inode *file_inode,
-              struct pipe *pipe)
+struct file *fifo_init(struct inode *file_inode, struct pipe *pipe)
 {
     /* Initialize the pipe */
     INIT_LIST_HEAD(&pipe->r_wait_list);
     INIT_LIST_HEAD(&pipe->w_wait_list);
 
-    /* Register the pipe on the file table */
     memset(&pipe->file, 0, sizeof(pipe->file));
     pipe->file.f_op = &fifo_ops;
     pipe->file.f_inode = file_inode;
-    files[fd] = &pipe->file;
 
-    return 0;
+    return &pipe->file;
 }
