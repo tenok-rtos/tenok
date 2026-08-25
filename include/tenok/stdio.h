@@ -39,6 +39,8 @@
 #define ferror _ferror
 #define clearerr _clearerr
 #define fflush _fflush
+#define setvbuf _setvbuf
+#define setbuf _setbuf
 
 /* The two the standard allows to be macros over the calls above */
 #define putc(c, stream) fputc(c, stream)
@@ -384,5 +386,36 @@ void clearerr(FILE *stream);
  * @retval int: 0 on success and EOF on error.
  */
 int fflush(FILE *stream);
+
+/* How a stream may be asked to buffer. Tenok writes every stream straight
+ * through, which is the last of the three
+ */
+#define _IOFBF 0
+#define _IOLBF 1
+#define _IONBF 2
+
+/* The size a program is invited to hand setvbuf(), which Tenok does not use */
+#define BUFSIZ 1024
+
+/**
+ * @brief  Ask the stream to buffer what is written to it. Tenok reaches the
+ *         device on the call that writes, so the only buffering it can be
+ *         given is the one it already has.
+ * @param  stream: The file stream to provide.
+ * @param  buf: The buffer to use, which Tenok does not take.
+ * @param  mode: One of _IOFBF, _IOLBF and _IONBF.
+ * @param  size: The size of the buffer.
+ * @retval int: 0 when _IONBF was asked for and nonzero otherwise, with errno
+ *         set to EINVAL.
+ */
+int setvbuf(FILE *stream, char *buf, int mode, size_t size);
+
+/**
+ * @brief  Ask the stream to buffer what is written to it, the way setvbuf()
+ *         does, without reporting whether it could be done.
+ * @param  stream: The file stream to provide.
+ * @param  buf: The buffer to use, or NULL to ask for no buffering.
+ */
+void setbuf(FILE *stream, char *buf);
 
 #endif

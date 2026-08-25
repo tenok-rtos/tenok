@@ -370,6 +370,24 @@ int _ferror(FILE *stream)
     return ((__FILE *) stream)->err;
 }
 
+/* Every stream of Tenok reaches the device on the call that writes it, so a
+ * program asking for no buffering is asking for what it already has, and one
+ * asking for buffering is asking for what there is no room to give
+ */
+int _setvbuf(FILE *stream, char *buf, int mode, size_t size)
+{
+    if (mode == _IONBF)
+        return 0;
+
+    errno = EINVAL;
+    return -1;
+}
+
+void _setbuf(FILE *stream, char *buf)
+{
+    _setvbuf(stream, buf, buf ? _IOFBF : _IONBF, BUFSIZ);
+}
+
 void _clearerr(FILE *stream)
 {
     __FILE *_stream = (__FILE *) stream;
