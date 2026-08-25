@@ -61,6 +61,15 @@ int dup(int oldfd);
 int dup2(int oldfd, int newfd);
 
 /**
+ * @brief  Create a pipe, a stream that is written to through one descriptor
+ *         and read from through the other.
+ * @param  pipefd: Where to store the two descriptors, the read end first and
+ *         the write end second.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int pipe(int pipefd[2]);
+
+/**
  * @brief  Attempt to read up to count bytes from file descriptor fd into
            the buffer starting at buf
  * @param  fd: The file descriptor to provide.

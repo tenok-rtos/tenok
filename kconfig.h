@@ -36,9 +36,16 @@
 #define MQUEUE_MAX 16  /* Max number of message queue can be allocated */
 #define _MQ_PRIO_MAX 5 /* Max message queue priority number */
 
-/* Pipe size. Note that if the size is too small, the file system daemon *
- * may not work properly                                                 */
-#define _PIPE_BUF 100 /* Bytes */
+/* The reply pipe every thread is given, which the file system daemon answers
+ * through. Note that if the size is too small, the daemon may not work
+ * properly. Every thread pays for this one, so it is kept small.
+ */
+#define THREAD_PIPE_BUF 100 /* Bytes */
+
+/* How much a pipe holds, which POSIX also makes the largest write that reaches
+ * it whole. Only a live pipe pays for this one.
+ */
+#define _PIPE_BUF 512 /* Bytes */
 
 /* Signals */
 #define SIGNAL_QUEUE_SIZE 5

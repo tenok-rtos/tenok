@@ -287,6 +287,24 @@ static struct file *fd_file(struct task_struct *task, int fd)
     return filp;
 }
 
+/* A pipe belongs to nothing but the descriptors that name it, so every one
+ * that is handed out or given up is counted. Every other file is owned by the
+ * file system and outlives the descriptors that name it.
+ */
+static void fd_pipe_take(int fd)
+{
+    if (file_is_pipe(fdtable[fd].file))
+        pipe_take(fdtable[fd].file,
+                  (fdtable[fd].flags & O_ACCMODE) == O_WRONLY);
+}
+
+static void fd_pipe_give_up(int fd)
+{
+    if (file_is_pipe(fdtable[fd].file))
+        pipe_give_up(fdtable[fd].file,
+                     (fdtable[fd].flags & O_ACCMODE) == O_WRONLY);
+}
+
 /* Give the task the lowest descriptor it does not already hold, which is what
  * POSIX promises a caller that closes one and opens another
  */
@@ -302,12 +320,17 @@ static int fd_take(struct task_struct *task, struct file *filp, int flags)
 
     fdtable[fd].file = filp;
     fdtable[fd].flags = flags;
+    fd_pipe_take(fd);
 
     return fd;
 }
 
 static void fd_give_up(struct task_struct *task, int fd)
 {
+    /* A descriptor that is not held names nothing to give up */
+    if (bitmap_get_bit(bitmap_fds, fd) && bitmap_get_bit(task->bitmap_fds, fd))
+        fd_pipe_give_up(fd);
+
     bitmap_clear_bit(bitmap_fds, fd);
     bitmap_clear_bit(task->bitmap_fds, fd);
 }
@@ -382,13 +405,13 @@ static void *thread_pipe_alloc(uint32_t tid, void *stack_top)
 {
     size_t pipe_size = ALIGN(sizeof(struct pipe), sizeof(long));
     size_t kfifo_size = ALIGN(sizeof(struct kfifo), sizeof(long));
-    size_t buf_size = ALIGN(sizeof(char) * PIPE_BUF, sizeof(long));
+    size_t buf_size = ALIGN(sizeof(char) * THREAD_PIPE_BUF, sizeof(long));
 
     struct pipe *pipe = (struct pipe *) ((uintptr_t) stack_top - pipe_size);
     struct kfifo *pipe_fifo = (struct kfifo *) ((uintptr_t) pipe - kfifo_size);
     char *buf = (char *) ((uintptr_t) pipe_fifo - buf_size);
 
-    kfifo_init(pipe_fifo, buf, sizeof(char), PIPE_BUF);
+    kfifo_init(pipe_fifo, buf, sizeof(char), THREAD_PIPE_BUF);
     pipe->fifo = pipe_fifo;
     thread_pipe[tid] = fifo_init(NULL, pipe);
 
@@ -1152,6 +1175,57 @@ leave:
     return retval;
 }
 
+static int sys_pipe(int pipefd[2])
+{
+    preempt_disable();
+
+    int retval;
+
+    if (!pipefd) {
+        retval = -EFAULT;
+        goto err;
+    }
+
+    /* Acquire the running task */
+    struct task_struct *task = current_task_info();
+
+    struct file *filp = pipe_alloc();
+    if (!filp) {
+        retval = -ENFILE;
+        goto err;
+    }
+
+    /* One end is read from and the other is written to, and both name the
+     * same pipe
+     */
+    int read_fd = fd_take(task, filp, O_RDONLY);
+    if (read_fd < 0) {
+        retval = read_fd;
+        goto undo_pipe;
+    }
+
+    int write_fd = fd_take(task, filp, O_WRONLY);
+    if (write_fd < 0) {
+        retval = write_fd;
+        goto undo_read_fd;
+    }
+
+    pipefd[0] = read_fd;
+    pipefd[1] = write_fd;
+
+    preempt_enable();
+    return 0;
+
+undo_read_fd:
+    fd_give_up(task, read_fd);
+    goto err;
+undo_pipe:
+    pipe_release(filp);
+err:
+    preempt_enable();
+    return retval;
+}
+
 static int sys_dup(int oldfd)
 {
     preempt_disable();
@@ -1195,6 +1269,7 @@ static int fd_take_above(struct task_struct *task,
 
         fdtable[fd].file = filp;
         fdtable[fd].flags = flags;
+        fd_pipe_take(fd);
 
         return fd;
     }
@@ -1284,6 +1359,7 @@ static int sys_dup2(int oldfd, int newfd)
 
     /* Copy the old file descriptor content to the new one */
     fdtable[newfd] = fdtable[oldfd];
+    fd_pipe_take(newfd);
 
     /* Return new file descriptor */
     retval = newfd;

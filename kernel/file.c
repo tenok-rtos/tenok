@@ -111,6 +111,16 @@ int dup2(int oldfd, int newfd)
     return set_errno(__dup2(oldfd, newfd));
 }
 
+static NACKED int __pipe(int pipefd[2])
+{
+    SYSCALL(PIPE);
+}
+
+int pipe(int pipefd[2])
+{
+    return set_errno(__pipe(pipefd));
+}
+
 static NACKED ssize_t __read(int fd, void *buf, size_t count)
 {
     SYSCALL(READ);

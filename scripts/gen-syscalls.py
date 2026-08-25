@@ -85,6 +85,7 @@ syscalls = \
      'mq_timedreceive',
      'malloc',
      'free',
+     'pipe',
      'realloc']
 
 reserved_events = [

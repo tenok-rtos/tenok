@@ -44,6 +44,7 @@ extern int *__errno(void);
 #define ENOSPC 28       /**< No space left */
 #define ESPIPE 29       /**< Illegal seek */
 #define EROFS 30        /**< Read-only file system */
+#define EPIPE 32        /**< Broken pipe */
 #define EDEADLK 45      /**< Deadlock */
 #define ENOSYS 88       /**< Function not implemented */
 #define ENOTEMPTY 90    /**< Directory not empty */
