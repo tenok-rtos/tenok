@@ -168,4 +168,47 @@ int isatty(int fd);
  */
 int access(const char *pathname, int mode);
 
+/**
+ * @brief  Report the user a task runs as, which on Tenok is always root
+ * @retval uid_t: Always 0.
+ */
+uid_t getuid(void);
+uid_t geteuid(void);
+
+/**
+ * @brief  Report the group a task runs as, which on Tenok is always root
+ * @retval gid_t: Always 0.
+ */
+gid_t getgid(void);
+gid_t getegid(void);
+
+/**
+ * @brief  Report the supplementary groups of the task. Tenok has one group
+ *         and root is in it, so there is never a supplementary one
+ * @param  size: How many the list holds.
+ * @param  list: For returning the groups.
+ * @retval int: Always 0.
+ */
+int getgroups(int size, gid_t list[]);
+
+/**
+ * @brief  Replace the owner of a file. Tenok has one user, so only a request
+ *         that names it can be granted
+ * @param  pathname: The pathname of the file.
+ * @param  owner: The user to give it to, or -1 to leave it alone.
+ * @param  group: The group to give it to, or -1 to leave it alone.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int chown(const char *pathname, uid_t owner, gid_t group);
+
+/**
+ * @brief  Replace the owner of a file without following a symbolic link.
+ *         Tenok has no symbolic link, so this is chown()
+ * @param  pathname: The pathname of the file.
+ * @param  owner: The user to give it to, or -1 to leave it alone.
+ * @param  group: The group to give it to, or -1 to leave it alone.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
+int lchown(const char *pathname, uid_t owner, gid_t group);
+
 #endif

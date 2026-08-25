@@ -109,6 +109,7 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/fs/reg_file.c \
        ./kernel/fs/rom_dev.c \
        ./kernel/fs/null_dev.c \
+       ./kernel/pwd.c \
        ./kernel/resource.c \
        ./kernel/sysconf.c \
        ./kernel/signal_posix.c \
