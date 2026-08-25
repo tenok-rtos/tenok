@@ -41,6 +41,29 @@
 #define putc(c, stream) fputc(c, stream)
 #define getc(stream) fgetc(stream)
 
+/* A stream of Tenok carries no lock, so these are the locked half under
+ * another name. They name the implementations, which a caller cannot redefine
+ */
+#define getc_unlocked(stream) _fgetc(stream)
+#define getchar_unlocked() _getchar()
+#define putc_unlocked(c, stream) _fputc(c, stream)
+#define putchar_unlocked(c) _putchar(c)
+#define fputc_unlocked(c, stream) _fputc(c, stream)
+#define fgetc_unlocked(stream) _fgetc(stream)
+#define fgets_unlocked(s, size, stream) _fgets(s, size, stream)
+#define fputs_unlocked(s, stream) _fputs(s, stream)
+#define fread_unlocked(p, size, n, stream) _fread(p, size, n, stream)
+#define fwrite_unlocked(p, size, n, stream) _fwrite(p, size, n, stream)
+#define feof_unlocked(stream) _feof(stream)
+#define ferror_unlocked(stream) _ferror(stream)
+#define clearerr_unlocked(stream) _clearerr(stream)
+#define fflush_unlocked(stream) _fflush(stream)
+#define fileno_unlocked(stream) _fileno(stream)
+
+#define flockfile(stream) ((void) (stream))
+#define funlockfile(stream) ((void) (stream))
+#define ftrylockfile(stream) (0)
+
 #define __SIZEOF_FILE sizeof(__FILE)
 
 typedef union {
