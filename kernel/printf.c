@@ -414,15 +414,44 @@ int vsniprintf(char *str, size_t size, const char *format, va_list ap)
 
 #endif
 
-int vdprintf(int fd, const char *format, va_list ap)
+/* The buffer on the stack serves what a program usually prints. What does not
+ * fit is formatted a second time into the heap instead of being cut short,
+ * which the caller has no way of noticing
+ */
+static int vwrite_fd(int fd, const char *format, va_list ap)
 {
     char buf[PRINT_SIZE_MAX];
-    vsnprintf(buf, PRINT_SIZE_MAX, format, ap);
+    va_list copy;
 
-    size_t len = strlen(buf);
-    int retval = write(fd, buf, len);
+    /* The first pass consumes the arguments, so the second one needs its own */
+    va_copy(copy, ap);
+    int len = vsnprintf(buf, sizeof(buf), format, copy);
+    va_end(copy);
+
+    if (len < 0)
+        return len;
+
+    if ((size_t) len < sizeof(buf))
+        return write(fd, buf, len);
+
+    char *heap = malloc(len + 1);
+
+    /* Without the room to say it whole, saying as much as there is room for
+     * beats saying nothing
+     */
+    if (!heap)
+        return write(fd, buf, sizeof(buf) - 1);
+
+    vsnprintf(heap, len + 1, format, ap);
+    int retval = write(fd, heap, len);
+    free(heap);
 
     return retval;
+}
+
+int vdprintf(int fd, const char *format, va_list ap)
+{
+    return vwrite_fd(fd, format, ap);
 }
 
 int dprintf(int fd, const char *format, ...)
@@ -454,14 +483,9 @@ int printf(const char *format, ...)
 
 int vfprintf(FILE *stream, const char *format, va_list ap)
 {
-    char buf[PRINT_SIZE_MAX];
-    vsnprintf(buf, PRINT_SIZE_MAX, format, ap);
-
     __FILE *_stream = (__FILE *) stream;
-    size_t len = strlen(buf);
-    int retval = write(_stream->fd, buf, len);
 
-    return retval;
+    return vwrite_fd(_stream->fd, format, ap);
 }
 
 int fprintf(FILE *stream, const char *format, ...)
