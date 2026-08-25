@@ -56,6 +56,31 @@ int wait(int *status)
     return waitpid(-1, status, 0);
 }
 
+/* Every task of Tenok comes from the image the system booted, and nothing can
+ * make another one from a running task
+ */
+pid_t vfork(void)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+/* A program of Tenok is linked into the firmware and reached by calling it.
+ * No file the file system holds is in a format the system can execute, which
+ * is what POSIX has ENOEXEC say
+ */
+int execve(const char *pathname, char *const argv[], char *const envp[])
+{
+    errno = ENOEXEC;
+    return -1;
+}
+
+int execvp(const char *file, char *const argv[])
+{
+    errno = ENOEXEC;
+    return -1;
+}
+
 NACKED int task_create(task_func_t task_func, uint8_t priority, int stack_size)
 {
     SYSCALL(TASK_CREATE);

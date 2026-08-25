@@ -70,6 +70,33 @@ int dup2(int oldfd, int newfd);
 int pipe(int pipefd[2]);
 
 /**
+ * @brief  Create a child process. Tenok runs every task from the image it
+ *         booted and has no way to make another, so the call always fails.
+ * @retval pid_t: -1 with errno set to ENOSYS.
+ */
+pid_t vfork(void);
+
+/**
+ * @brief  Replace the running program with the one the pathname names. No
+ *         file of Tenok is in a format the system can execute, so the call
+ *         always fails.
+ * @param  pathname: The pathname of the program.
+ * @param  argv: The arguments to hand the program.
+ * @param  envp: The environment to hand the program.
+ * @retval int: -1 with errno set to ENOEXEC.
+ */
+int execve(const char *pathname, char *const argv[], char *const envp[]);
+
+/**
+ * @brief  Replace the running program with the one found by searching PATH
+ *         for the file, the way execve() does.
+ * @param  file: The name of the program to search for.
+ * @param  argv: The arguments to hand the program.
+ * @retval int: -1 with errno set to ENOEXEC.
+ */
+int execvp(const char *file, char *const argv[]);
+
+/**
  * @brief  Attempt to read up to count bytes from file descriptor fd into
            the buffer starting at buf
  * @param  fd: The file descriptor to provide.
