@@ -6,6 +6,13 @@
 
 #include <stddef.h>
 
+/* What a program hands exit() to say how it went */
+#define EXIT_SUCCESS 0
+#define EXIT_FAILURE 1
+
+/* The largest number rand() returns */
+#define RAND_MAX 0x7fffffff
+
 /**
  * @brief  To cause task termination
  * @param  status: Not used.

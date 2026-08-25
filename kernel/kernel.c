@@ -320,7 +320,7 @@ static int fd_take(struct task_struct *task, struct file *filp, int flags)
 
     fdtable[fd].file = filp;
     fdtable[fd].flags = flags;
-    fdtable[fd].fd_flags = 0;
+    fdtable[fd].fd_flags = (flags & O_CLOEXEC) ? FD_CLOEXEC : 0;
     fd_pipe_take(fd);
 
     return fd;
@@ -1100,6 +1100,13 @@ static int sys_open(const char *pathname, int flags, mode_t mode)
 
     struct file *filp = files[file_idx];
 
+    /* A caller that asks for a directory is told when it did not get one */
+    if ((flags & O_DIRECTORY) && filp->f_inode &&
+        !S_ISDIR(filp->f_inode->i_mode)) {
+        retval = -ENOTDIR;
+        goto err;
+    }
+
     /* Take a descriptor for the file */
     int fd = fd_take(task, filp, flags);
     if (fd < 0) {
@@ -1271,7 +1278,7 @@ static int fd_take_above(struct task_struct *task,
 
         fdtable[fd].file = filp;
         fdtable[fd].flags = flags;
-        fdtable[fd].fd_flags = 0;
+        fdtable[fd].fd_flags = (flags & O_CLOEXEC) ? FD_CLOEXEC : 0;
         fd_pipe_take(fd);
 
         return fd;
