@@ -333,3 +333,25 @@ int _fflush(FILE *stream)
 {
     return 0;
 }
+
+/* Tenok gives a file exactly one name, so it has neither kind of link */
+int link(const char *oldpath, const char *newpath)
+{
+    errno = ENOSYS;
+
+    return -1;
+}
+
+int symlink(const char *target, const char *linkpath)
+{
+    errno = ENOSYS;
+
+    return -1;
+}
+
+int readlink(const char *pathname, char *buf, size_t bufsiz)
+{
+    errno = EINVAL;
+
+    return -1;
+}

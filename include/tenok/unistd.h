@@ -205,6 +205,11 @@ int getgroups(int size, gid_t list[]);
  * @param  group: The group to give it to, or -1 to leave it alone.
  * @retval int: 0 on success and -1 on error, with the reason left in errno.
  */
+/* Tenok gives a file one name, these are named and always fail */
+int link(const char *oldpath, const char *newpath);
+int symlink(const char *target, const char *linkpath);
+int readlink(const char *pathname, char *buf, size_t bufsiz);
+
 int chown(const char *pathname, uid_t owner, gid_t group);
 
 /**
