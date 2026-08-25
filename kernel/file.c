@@ -140,14 +140,20 @@ ssize_t _write(int fd, const void *buf, size_t count)
     return write(fd, buf, count);
 }
 
-static NACKED int __ioctl(int fd, unsigned int cmd, unsigned long arg)
+static NACKED int __ioctl(int fd, unsigned long request, unsigned long arg)
 {
     SYSCALL(IOCTL);
 }
 
-int ioctl(int fd, unsigned int cmd, unsigned long arg)
+int ioctl(int fd, unsigned long request, ...)
 {
-    return set_errno(__ioctl(fd, cmd, arg));
+    va_list ap;
+
+    va_start(ap, request);
+    unsigned long arg = va_arg(ap, unsigned long);
+    va_end(ap);
+
+    return set_errno(__ioctl(fd, request, arg));
 }
 
 static NACKED off_t __lseek(int fd, long offset, int whence)

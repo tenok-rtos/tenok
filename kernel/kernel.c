@@ -1393,7 +1393,7 @@ err:
     return retval;
 }
 
-static int sys_ioctl(int fd, unsigned int request, unsigned long arg)
+static int sys_ioctl(int fd, unsigned long request, unsigned long arg)
 {
     int retval;
 

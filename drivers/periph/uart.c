@@ -227,6 +227,9 @@ static int tty_ioctl(uart_dev_t *dev, unsigned int cmd, unsigned long arg)
         dev->termios = *(struct termios *) arg;
         return 0;
     default:
+        /* A serial line has no window size to report, and nothing else to
+         * say either. A caller that asks falls back on its own default
+         */
         return -ENOTTY;
     }
 }
