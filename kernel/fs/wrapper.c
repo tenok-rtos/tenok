@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <fs/fs.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +9,8 @@
 #include <string.h>
 #include <sys/reent.h>
 #include <unistd.h>
+
+#include "kconfig.h"
 
 #define MAX_READ_SIZE 100
 #define MAX_WRITE_SIZE 100
@@ -247,6 +250,53 @@ int _fputc(int c, FILE *stream)
 int _putchar(int c)
 {
     return _fputc(c, stdout);
+}
+
+/* Newlib reports a failed assertion and the statistics of its allocator
+ * through these, under the names Tenok has taken for its own. The stream is
+ * not looked at: what a library says while it is failing belongs on the error
+ * output, which is where the report of the kernel goes as well.
+ */
+#undef fputs
+int fputs(const char *s, FILE *stream)
+{
+    size_t len = strlen(s);
+
+    return (write(STDERR_FILENO, s, len) == (ssize_t) len) ? (int) len : EOF;
+}
+
+#undef fputc
+int fputc(int c, FILE *stream)
+{
+    char ch = (char) c;
+
+    return (write(STDERR_FILENO, &ch, 1) == 1) ? c : EOF;
+}
+
+/* fiprintf() is the integer only printf of newlib, which its assertions
+ * report through. It shares an object file with the fprintf() of newlib, so
+ * leaving it to be linked would bring a second fprintf() and vfprintf() in
+ * beside the ones of Tenok.
+ */
+int fiprintf(FILE *stream, const char *format, ...)
+{
+    char buf[PRINT_SIZE_MAX];
+    va_list ap;
+
+    va_start(ap, format);
+    int len = vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+
+    if (len < 0)
+        return len;
+
+    /* The report is cut to what the buffer holds rather than being left out */
+    if (len > (int) sizeof(buf) - 1)
+        len = sizeof(buf) - 1;
+
+    write(STDERR_FILENO, buf, len);
+
+    return len;
 }
 
 int _puts(const char *s)
