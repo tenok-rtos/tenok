@@ -237,9 +237,35 @@ int closedir(DIR *dirp)
 }
 
 /* getcwd() answers with a pointer, there is no error number to translate */
-NACKED char *getcwd(char *buf, size_t len)
+static NACKED char *__getcwd(char *buf, size_t len)
 {
     SYSCALL(GETCWD);
+}
+
+/* A null buffer asks the library to allocate one, which is what glibc does
+ * and what a caller that does not want to guess the length relies on
+ */
+char *getcwd(char *buf, size_t size)
+{
+    if (buf)
+        return __getcwd(buf, size);
+
+    if (size == 0)
+        size = PATH_MAX;
+
+    buf = malloc(size);
+    if (!buf) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    if (!__getcwd(buf, size)) {
+        free(buf);
+        errno = ERANGE;
+        return NULL;
+    }
+
+    return buf;
 }
 
 static NACKED int __chdir(const char *path)

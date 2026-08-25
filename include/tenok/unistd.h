@@ -102,9 +102,10 @@ int getpid(void);
  * @brief  Get current working directory
  * @param  buf: Buffer space for storing path of the current working space.
  * @param  size: Size of the buffer space.
- * @retval char *: The function returns a pointer to a string containing the
- *         pathname of current working directory if success; otherwise it
- *         returns NULL.
+ * @param  buf: Buffer space for storing path of the current working space,
+ *         or a null pointer to ask for one that free() takes back.
+ * @retval char *: The buffer on success and a null pointer on error, with
+ *         the reason left in errno.
  */
 char *getcwd(char *buf, size_t size);
 
