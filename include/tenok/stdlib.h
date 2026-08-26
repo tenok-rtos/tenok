@@ -54,6 +54,11 @@ void *calloc(size_t nmemb, size_t size);
  */
 void *realloc(void *ptr, size_t size);
 
+/* Room on the stack of the caller, which goes away when the caller does. The
+ * compiler is the one that can take it, so it is the one that is asked
+ */
+#define alloca(size) __builtin_alloca(size)
+
 /*
  * Currently not implemented:
  */
