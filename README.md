@@ -1,7 +1,7 @@
 Tenok
 =====
 
-The [Tenok project](https://github.com/shengwen-tw/tenok) is a real-time operating system (RTOS) designed for robotic applications and the
+The [Tenok project](https://github.com/tenok-rtos/tenok) is a real-time operating system (RTOS) designed for robotic applications and the
 Internet of Things (IoT). The name originated from the language of an indigenous tribe called Amis in Taiwan, where "tenok" means
 "kernel" in their language. It resembles various designs from Linux and maintains a small code footprint for ARM Cortex-M processors. In
 contrast to NuttX, Tenok does not implement a set of low-level hardware drivers as a part of the system. Instead, it adopts an approach
@@ -39,7 +39,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 
 ## Benchmarking
 
-`Tenok` currently supports [Dhrystone](https://en.wikipedia.org/wiki/Dhrystone) and [CoreMark](https://www.eembc.org/coremark/) for basic benchmarking. Please refer to [benchmarks.mk](https://github.com/shengwen-tw/tenok/blob/master/user/benchmarks/benchmarks.mk) for details.
+`Tenok` currently supports [Dhrystone](https://en.wikipedia.org/wiki/Dhrystone) and [CoreMark](https://www.eembc.org/coremark/) for basic benchmarking. Please refer to [benchmarks.mk](https://github.com/tenok-rtos/tenok/blob/master/user/benchmarks/benchmarks.mk) for details.
 
 ## Getting Started
 
@@ -58,7 +58,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 
 ## License
 
-`Tenok` is released under the BSD 2-Clause License. For detailed information please read the [LICENSE](https://github.com/shengwen-tw/neo-rtenv/blob/master/LICENSE).
+`Tenok` is released under the BSD 2-Clause License. For detailed information please read the [LICENSE](https://github.com/tenok-rtos/tenok/blob/master/LICENSE).
 
 ## Related Projects
 

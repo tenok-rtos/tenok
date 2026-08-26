@@ -21,7 +21,7 @@ function download_examples
 {
     rm -rf /tmp/tenok
     pushd /tmp/
-    ASSERT git clone https://github.com/shengwen-tw/tenok.git -b blob
+    ASSERT git clone https://github.com/tenok-rtos/tenok.git -b blob
     popd
     mkdir -p rom/
     cp -r /tmp/tenok/rom/* rom/

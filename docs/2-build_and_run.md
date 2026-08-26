@@ -6,7 +6,7 @@ Build and Run the Tenok
 The following instructions demonstrate the procedures of building Tenok with example ROM files:
 
 ```
-git clone https://github.com/shengwen-tw/tenok.git
+git clone https://github.com/tenok-rtos/tenok.git
 cd tenok
 git submodule update --init --recursive # MAVLink library
 ./scripts/download-examples.sh # Example ROM files
