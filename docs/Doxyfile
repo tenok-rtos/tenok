@@ -956,7 +956,11 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                =
+# The compatibility layer is what BusyBox is given, not what Tenok offers. It
+# lives in the tree so that the firmware can be built, and is described by the
+# comments in its own files rather than by this manual.
+EXCLUDE                = include/busybox \
+                         user/busybox
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
