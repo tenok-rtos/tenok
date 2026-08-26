@@ -155,12 +155,25 @@ SECTIONS
   {
     . = ALIGN(4);
     _sdata = .;        /* create a global symbol at data start */
+
+    /* BusyBox is written for a system where a command runs as a process and
+     * therefore starts from the initial state of the program. Its globals are
+     * kept apart so that applet_run() can restore them before every run.
+     */
+    . = ALIGN(4);
+    _bb_data_start = .;
+    *lib*busybox*.o(.data .data*)
+    . = ALIGN(4);
+    _bb_data_end = .;
+
     *(.data)           /* .data sections */
     *(.data*)          /* .data* sections */
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
   } >RAM
+
+  _bb_data_load = LOADADDR(.data) + (_bb_data_start - ADDR(.data));
 
   /* Uninitialized data section */
   . = ALIGN(4);
@@ -169,6 +182,14 @@ SECTIONS
     /* This is used by the startup in order to initialize the .bss secion */
     _sbss = .;         /* define a global symbol at bss start */
     __bss_start__ = _sbss;
+
+    /* Restored by applet_run(), see the note in .data */
+    . = ALIGN(4);
+    _bb_bss_start = .;
+    *lib*busybox*.o(.bss .bss* COMMON)
+    . = ALIGN(4);
+    _bb_bss_end = .;
+
     *(.bss)
     *(.bss*)
     *(COMMON)
@@ -195,14 +216,6 @@ SECTIONS
     *(.mb1rodata)      /* read-only data (constants) */
     *(.mb1rodata*)
   } >MEMORY_B1
-
-  /* Remove information from the standard libraries */
-  /DISCARD/ :
-  {
-    libc.a ( * )
-    libm.a ( * )
-    libgcc.a ( * )
-  }
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
