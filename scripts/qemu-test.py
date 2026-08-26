@@ -95,21 +95,22 @@ def main():
             time.sleep(0.005)
         os.write(fd, b"\r")
 
-        output = read_until_prompt()
+        raw = read_until_prompt()
 
         # The line editor echoes every keystroke, the output of the command
         # only starts after the first line break
-        start = output.find("\r\n")
-        output = output[start + 2:] if start >= 0 else output
+        start = raw.find("\r\n")
+        output = raw[start + 2:] if start >= 0 else raw
 
-        return re.sub(r"[^\r\n]*[$#] ?$", "", output).replace("\r\n", "\n")
+        return (re.sub(r"[^\r\n]*[$#] ?$", "", output).replace("\r\n", "\n"),
+                raw)
 
     read_until_prompt()
 
     failed = 0
 
     for command, expected, forbidden in TESTS:
-        output = run(command)
+        output, raw = run(command)
         errors = [s for s in expected if s not in output]
         errors += ["(unexpected) " + s for s in forbidden if s in output]
 
@@ -119,6 +120,9 @@ def main():
             for error in errors:
                 print("      missing: %s" % error)
             print("      output: %r" % output)
+            # The console has no flow control, so a failure can be a character
+            # the target never received. The echo is in here to say so
+            print("      echoed: %r" % raw)
         else:
             print("ok    %s" % command)
 
