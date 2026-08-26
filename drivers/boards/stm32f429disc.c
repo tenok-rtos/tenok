@@ -112,12 +112,15 @@ void lcd_init(void)
     LCD_LayerInit();
     LTDC_Cmd(ENABLE);
 
-    LTDC_ReloadConfig(LTDC_IMReload);
+    /* The controller takes what it is told at the next reload, so the alpha of
+     * each layer is set before the reload and not after it
+     */
     LTDC_LayerAlpha(lcd_layers[0].ltdc_layer, 0xff);
     LTDC_LayerAlpha(lcd_layers[1].ltdc_layer, 0x00);
+    LTDC_ReloadConfig(LTDC_IMReload);
 
-    LCD_SetLayer(lcd_layers[1].lcd_layer);
-    LCD_Clear(LCD_COLOR_WHITE);
+    LCD_SetLayer(lcd_layers[0].lcd_layer);
+    LCD_Clear(LCD_COLOR_BLACK);
     LCD_DisplayStringLine(LCD_LINE_1, (uint8_t *) "Tenok RTOS");
 
     LCD_DisplayOn();
