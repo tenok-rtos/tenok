@@ -49,8 +49,8 @@ extern int *__errno(void);
 #define ENOSYS 88       /**< Function not implemented */
 #define ENOTEMPTY 90    /**< Directory not empty */
 #define ENAMETOOLONG 91 /**< File or path name too long */
+#define ETIMEDOUT 116   /**< Connection timed out */
 #define EMSGSIZE 122    /**< Message to long */
-#define ETIMEDOUT 110   /**< Connection timed out */
 #define EOVERFLOW 139   /**< Numerical overflow */
 
 /* Numbers Tenok never returns of its own. They are named so that a program
