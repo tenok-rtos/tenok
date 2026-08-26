@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef _TENOK_MNTENT_H
 #define _TENOK_MNTENT_H
 

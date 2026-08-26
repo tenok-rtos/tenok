@@ -1,4 +1,8 @@
-/* The knobs of the line discipline, see drivers/periph/uart.c */
+/**
+ * @file
+ *
+ * The knobs of the line discipline, see drivers/periph/uart.c
+ */
 #ifndef _TENOK_SYS_TERMIOS_H
 #define _TENOK_SYS_TERMIOS_H
 

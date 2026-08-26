@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef _TENOK_SYS_STATFS_H
 #define _TENOK_SYS_STATFS_H
 

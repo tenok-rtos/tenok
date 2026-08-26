@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef __LPF_H__
 #define __LPF_H__
 

@@ -1,4 +1,8 @@
-/* Tenok has no MMU, these are named and nothing implements them */
+/**
+ * @file
+ *
+ * Tenok has no MMU, these are named and nothing implements them
+ */
 #ifndef _TENOK_SYS_MMAN_H
 #define _TENOK_SYS_MMAN_H
 

@@ -1,4 +1,8 @@
-/* Tenok has no network stack, only the types and constants are named */
+/**
+ * @file
+ *
+ * Tenok has no network stack, only the types and constants are named
+ */
 #ifndef _TENOK_SYS_SOCKET_H
 #define _TENOK_SYS_SOCKET_H
 

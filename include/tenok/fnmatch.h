@@ -1,4 +1,8 @@
-/* Newlib does not ship fnmatch(), see kernel/fnmatch.c */
+/**
+ * @file
+ *
+ * Newlib does not ship fnmatch(), see kernel/fnmatch.c
+ */
 #ifndef _TENOK_FNMATCH_H
 #define _TENOK_FNMATCH_H
 

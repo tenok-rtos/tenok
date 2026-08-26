@@ -1,4 +1,8 @@
-/* Tenok targets little endian ARM only */
+/**
+ * @file
+ *
+ * Tenok targets little endian ARM only
+ */
 #ifndef _TENOK_ENDIAN_H
 #define _TENOK_ENDIAN_H
 

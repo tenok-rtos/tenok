@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef _TENOK_BYTESWAP_H
 #define _TENOK_BYTESWAP_H
 

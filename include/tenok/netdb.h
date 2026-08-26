@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef _TENOK_NETDB_H
 #define _TENOK_NETDB_H
 

@@ -1,3 +1,6 @@
+/**
+ * @file
+ */
 #ifndef _TENOK_SYS_SYSMACROS_H
 #define _TENOK_SYS_SYSMACROS_H
 

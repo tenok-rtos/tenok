@@ -1,4 +1,8 @@
-/* Newlib's own would redefine struct timespec, which time.h already has */
+/**
+ * @file
+ *
+ * Newlib's own would redefine struct timespec, which time.h already has
+ */
 #ifndef _TENOK_SYS_TIME_H
 #define _TENOK_SYS_TIME_H
 
