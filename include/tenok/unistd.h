@@ -283,16 +283,30 @@ gid_t getegid(void);
 int getgroups(int size, gid_t list[]);
 
 /**
- * @brief  Replace the owner of a file. Tenok has one user, so only a request
- *         that names it can be granted
- * @param  pathname: The pathname of the file.
- * @param  owner: The user to give it to, or -1 to leave it alone.
- * @param  group: The group to give it to, or -1 to leave it alone.
- * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ * @brief  Give a file a second name. Tenok gives a file one name.
+ * @param  oldpath: The file to name again.
+ * @param  newpath: The name to give it.
+ * @retval int: -1 with errno set to ENOSYS.
  */
-/* Tenok gives a file one name, these are named and always fail */
 int link(const char *oldpath, const char *newpath);
+
+/**
+ * @brief  Make a name that stands for another. Tenok has no symbolic link.
+ * @param  target: What the name would stand for.
+ * @param  linkpath: The name to make.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
 int symlink(const char *target, const char *linkpath);
+
+/**
+ * @brief  Read what a symbolic link stands for. Nothing a path of Tenok names
+ *         is one.
+ * @param  pathname: The name to read.
+ * @param  buf: Where to put what it stands for.
+ * @param  bufsiz: The room there is for it.
+ * @retval int: -1 with errno set to EINVAL, which is what POSIX says of a
+ *         name that is not a symbolic link.
+ */
 int readlink(const char *pathname, char *buf, size_t bufsiz);
 
 /**
@@ -321,6 +335,14 @@ int ttyname_r(int fd, char *buf, size_t buflen);
  */
 int chroot(const char *path);
 
+/**
+ * @brief  Replace the owner of a file. Tenok has one user, so only a request
+ *         that names it can be granted
+ * @param  pathname: The pathname of the file.
+ * @param  owner: The user to give it to, or -1 to leave it alone.
+ * @param  group: The group to give it to, or -1 to leave it alone.
+ * @retval int: 0 on success and -1 on error, with the reason left in errno.
+ */
 int chown(const char *pathname, uid_t owner, gid_t group);
 
 /**
