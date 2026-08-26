@@ -15,13 +15,9 @@
 #define O_NONBLOCK 0x4000
 /* Tenok has no controlling terminal for a file to become */
 #define O_NOCTTY 0x8000
-/* An off_t of Tenok already reaches as far as a file can, so there is no
- * larger file for this to ask for
- */
+/* An off_t of Tenok already reaches as far as a file can */
 #define O_LARGEFILE 0
-/* Refuses to open what is not a directory. Tenok refuses to open one either
- * way, so this is what tells the two refusals apart
- */
+/* Refuses what is not a directory, Tenok refuses one either way */
 #define O_DIRECTORY 0x200000
 #define O_CLOEXEC 0x400000
 
@@ -36,9 +32,7 @@
 /* Tenok has no exec() for this to act on, it is stored and read back */
 #define FD_CLOEXEC 1
 
-/* Where a call that takes a directory descriptor starts from. Tenok resolves
- * every path from the directory the task is in
- */
+/* Tenok resolves every path from the directory the task is in */
 #define AT_FDCWD (-100)
 #define AT_SYMLINK_NOFOLLOW 0x100
 

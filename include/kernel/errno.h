@@ -8,9 +8,7 @@
 
 #define ERESTARTSYS 512 /**< Syscall requires restart */
 
-/* The kernel answers a failure with the negation of its error number, POSIX
- * asks for minus one with the number left in errno
- */
+/* The kernel negates its error number, POSIX leaves it in errno */
 static inline long set_errno(long retval)
 {
     if (retval < 0) {

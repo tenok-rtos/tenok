@@ -179,9 +179,7 @@ int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr)
     return 0;
 }
 
-/* The threads of POSIX are the one part of it that answers with the error
- * number itself instead of leaving it in errno
- */
+/* A thread call answers with the number instead of leaving it in errno */
 static inline int set_error(int retval)
 {
     return (retval < 0) ? -retval : retval;
