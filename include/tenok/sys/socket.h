@@ -68,4 +68,51 @@ struct msghdr {
     int msg_flags;
 };
 
+/* Tenok carries no network, so a program that asks for one is told there is
+ * none rather than being left to find out
+ */
+
+/**
+ * @brief  Create an endpoint for communication.
+ * @param  domain: The family the endpoint speaks in.
+ * @param  type: How it carries what is sent.
+ * @param  protocol: Which protocol of the family to use.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int socket(int domain, int type, int protocol);
+
+/**
+ * @brief  Give the endpoint the address it answers on.
+ * @param  sockfd: The endpoint.
+ * @param  addr: The address to answer on.
+ * @param  addrlen: The size of the address.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+/**
+ * @brief  Let the endpoint take the connections that arrive.
+ * @param  sockfd: The endpoint.
+ * @param  backlog: How many may wait to be taken.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int listen(int sockfd, int backlog);
+
+/**
+ * @brief  Send a message to the address given.
+ * @param  sockfd: The endpoint to send from.
+ * @param  buf: What to send.
+ * @param  len: How much of it.
+ * @param  flags: How to send it.
+ * @param  dest_addr: Where to send it.
+ * @param  addrlen: The size of the address.
+ * @retval ssize_t: -1 with errno set to ENOSYS.
+ */
+ssize_t sendto(int sockfd,
+               const void *buf,
+               size_t len,
+               int flags,
+               const struct sockaddr *dest_addr,
+               socklen_t addrlen);
+
 #endif

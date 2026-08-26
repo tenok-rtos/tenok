@@ -67,6 +67,39 @@ gid_t getegid(void)
 }
 
 /* Root already owns every file, so asking for that is already met */
+/* Tenok runs as the one user it has, so becoming that user is the only change
+ * these can make and any other is refused, the way chown() refuses one
+ */
+int setuid(uid_t uid)
+{
+    if (uid != 0) {
+        errno = EPERM;
+        return -1;
+    }
+
+    return 0;
+}
+
+int setgid(gid_t gid)
+{
+    if (gid != 0) {
+        errno = EPERM;
+        return -1;
+    }
+
+    return 0;
+}
+
+int seteuid(uid_t uid)
+{
+    return setuid(uid);
+}
+
+int setegid(gid_t gid)
+{
+    return setgid(gid);
+}
+
 int chown(const char *pathname, uid_t owner, gid_t group)
 {
     struct stat statbuf;

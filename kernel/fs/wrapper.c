@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/reent.h>
+#include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "kconfig.h"
@@ -420,6 +422,41 @@ int symlink(const char *target, const char *linkpath)
 int readlink(const char *pathname, char *buf, size_t bufsiz)
 {
     errno = EINVAL;
+
+    return -1;
+}
+
+/* Tenok resolves a path from the directory the task is in and keeps no way
+ * back from a descriptor to the name it was opened by, which is what these
+ * two would need
+ */
+int fchdir(int fd)
+{
+    errno = ENOSYS;
+
+    return -1;
+}
+
+int ttyname_r(int fd, char *buf, size_t buflen)
+{
+    errno = ENOSYS;
+
+    return -1;
+}
+
+/* The root of Tenok is the whole of what it mounted, there is nothing outside
+ * for a task to be shut away from
+ */
+int chroot(const char *path)
+{
+    errno = ENOSYS;
+
+    return -1;
+}
+
+int futimens(int fd, const struct timespec times[2])
+{
+    errno = ENOSYS;
 
     return -1;
 }

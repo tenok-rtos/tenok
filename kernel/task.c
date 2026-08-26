@@ -65,6 +65,21 @@ pid_t vfork(void)
     return -1;
 }
 
+pid_t fork(void)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+/* A session gathers the tasks a terminal speaks to. Tenok has the one console
+ * and nothing to gather
+ */
+pid_t setsid(void)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
 /* A program of Tenok is linked into the firmware and reached by calling it.
  * No file the file system holds is in a format the system can execute, which
  * is what POSIX has ENOEXEC say

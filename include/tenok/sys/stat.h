@@ -146,4 +146,14 @@ int stat(const char *pathname, struct stat *statbuf);
  */
 int lstat(const char *pathname, struct stat *statbuf);
 
+/**
+ * @brief  Stamp the file a descriptor is open on with the times given. Tenok
+ *         keeps no way back from a descriptor to the file it was opened on,
+ *         which is what the call would need.
+ * @param  fd: The descriptor.
+ * @param  times: The times to stamp it with.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int futimens(int fd, const struct timespec times[2]);
+
 #endif

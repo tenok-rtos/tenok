@@ -77,6 +77,19 @@ int pipe(int pipefd[2]);
 pid_t vfork(void);
 
 /**
+ * @brief  Create a child process, the way vfork() does not either.
+ * @retval pid_t: -1 with errno set to ENOSYS.
+ */
+pid_t fork(void);
+
+/**
+ * @brief  Start a session. Tenok has the one console and no sessions to give
+ *         it out to.
+ * @retval pid_t: -1 with errno set to ENOSYS.
+ */
+pid_t setsid(void);
+
+/**
  * @brief  Replace the running program with the one the pathname names. No
  *         file of Tenok is in a format the system can execute, so the call
  *         always fails.
@@ -215,6 +228,24 @@ int access(const char *pathname, int mode);
  * @retval uid_t: Always 0.
  */
 uid_t getuid(void);
+
+/**
+ * @brief  Become the user of the given identifier. Tenok runs as the one user
+ *         it has, so only that one can be become.
+ * @param  uid: The user to become.
+ * @retval int: 0 for the user Tenok runs as, and -1 with errno set to EPERM
+ *         for any other.
+ */
+int setuid(uid_t uid);
+
+/**
+ * @brief  Become the effective user of the given identifier, the way setuid()
+ *         does.
+ * @param  uid: The user to become.
+ * @retval int: 0 for the user Tenok runs as, and -1 with errno set to EPERM
+ *         for any other.
+ */
+int seteuid(uid_t uid);
 uid_t geteuid(void);
 
 /**
@@ -222,6 +253,24 @@ uid_t geteuid(void);
  * @retval gid_t: Always 0.
  */
 gid_t getgid(void);
+
+/**
+ * @brief  Join the group of the given identifier. Tenok has the one group, so
+ *         only that one can be joined.
+ * @param  gid: The group to join.
+ * @retval int: 0 for the group Tenok runs as, and -1 with errno set to EPERM
+ *         for any other.
+ */
+int setgid(gid_t gid);
+
+/**
+ * @brief  Join the effective group of the given identifier, the way setgid()
+ *         does.
+ * @param  gid: The group to join.
+ * @retval int: 0 for the group Tenok runs as, and -1 with errno set to EPERM
+ *         for any other.
+ */
+int setegid(gid_t gid);
 gid_t getegid(void);
 
 /**
@@ -245,6 +294,32 @@ int getgroups(int size, gid_t list[]);
 int link(const char *oldpath, const char *newpath);
 int symlink(const char *target, const char *linkpath);
 int readlink(const char *pathname, char *buf, size_t bufsiz);
+
+/**
+ * @brief  Change the working directory to the one the descriptor names. Tenok
+ *         keeps no way back from a descriptor to the name it was opened by.
+ * @param  fd: The descriptor of the directory.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int fchdir(int fd);
+
+/**
+ * @brief  Name the terminal the descriptor is open on. Tenok keeps no way
+ *         back from a descriptor to the name it was opened by.
+ * @param  fd: The descriptor.
+ * @param  buf: Where to put the name.
+ * @param  buflen: The room there is for it.
+ * @retval int: ENOSYS.
+ */
+int ttyname_r(int fd, char *buf, size_t buflen);
+
+/**
+ * @brief  Make the given directory the root. The root of Tenok is the whole
+ *         of what it mounted, with nothing outside to be shut away from.
+ * @param  path: The directory to make the root.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int chroot(const char *path);
 
 int chown(const char *pathname, uid_t owner, gid_t group);
 
