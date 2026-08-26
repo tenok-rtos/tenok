@@ -135,6 +135,11 @@ struct tm *gmtime(const time_t *timep);
 struct tm *gmtime_r(const time_t *timep, struct tm *result);
 time_t mktime(struct tm *tm);
 size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
+
+/* Reads back what strftime() writes. The C library brings this one: it reads
+ * a string and writes a struct, and asks the system for nothing
+ */
+char *strptime(const char *s, const char *format, struct tm *tm);
 char *ctime(const time_t *timep);
 char *ctime_r(const time_t *timep, char *buf);
 

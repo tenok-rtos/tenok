@@ -307,6 +307,26 @@ int vsprintf(char *str, const char *format, va_list ap);
 int vsnprintf(char *str, size_t size, const char *format, va_list ap);
 
 /**
+ * @brief  Read from the string what the format says is in it. Only the string
+ *         half of scanf is here: the stream half would have to read a FILE of
+ *         Tenok, which the one the C library brings is not.
+ * @param  str: The string to read from.
+ * @param  format: What to look for.
+ * @retval int: The number of items read, and EOF if the string ran out first.
+ */
+int sscanf(const char *str, const char *format, ...);
+
+/**
+ * @brief  Read from the string what the format says is in it, taking the
+ *         places to put it from a variable argument list.
+ * @param  str: The string to read from.
+ * @param  format: What to look for.
+ * @param  ap: The places to put what was read.
+ * @retval int: The number of items read, and EOF if the string ran out first.
+ */
+int vsscanf(const char *str, const char *format, va_list ap);
+
+/**
  * @brief  Write a string to the stream, without its terminating null byte
  * @param  s: The string to write.
  * @param  stream: The file stream to provide.
