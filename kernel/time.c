@@ -1,4 +1,6 @@
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/times.h>
 #include <tenok.h>
 #include <time.h>
 
@@ -287,4 +289,38 @@ int clock_nanosleep(clockid_t clockid,
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
     return clock_nanosleep(CLOCK_MONOTONIC, 0, req, rem);
+}
+
+
+/* The time of day, which POSIX counts in microseconds where Tenok counts in
+ * nanoseconds
+ */
+int gettimeofday(struct timeval *tv, void *tz)
+{
+    struct timespec now;
+
+    if (clock_gettime(CLOCK_REALTIME, &now) != 0)
+        return -1;
+
+    if (tv) {
+        tv->tv_sec = now.tv_sec;
+        tv->tv_usec = now.tv_nsec / 1000;
+    }
+
+    return 0;
+}
+
+int _gettimeofday(struct timeval *tv, void *tz)
+{
+    return gettimeofday(tv, tz);
+}
+
+/* What a task spent on itself and on the kernel. Tenok keeps no such account,
+ * and POSIX lets the call say so
+ */
+clock_t _times(struct tms *buf)
+{
+    errno = ENOSYS;
+
+    return (clock_t) -1;
 }
