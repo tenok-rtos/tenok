@@ -56,25 +56,15 @@ hello world!
 
 ### 3. The BusyBox shell
 
-BusyBox is built into the firmware alongside the shell of Tenok. `busybox`
-runs an applet by name, and `busybox sh` starts `ash`:
+`BusyBox` is built into the firmware alongside the shell of Tenok. `busybox`
+runs an applet by name and `busybox sh` starts `ash`:
 
 ```
-USER@stm32f407:/$ busybox ls -l /rom_data
 USER@stm32f407:/$ busybox sh
-/ $ help
-Built-in commands:
-------------------
-	. : [ alias break cd command continue eval exec exit export false
-	getopts hash help history let local ...
+/ $ echo hello
+hello
 / $ exit
 ```
 
-Tenok has neither `fork()` nor `exec()`, so an applet is reached by calling it
-rather than by starting a process. Everything a process exit would have given
-back is given back by the run instead: the globals of BusyBox are laid out
-again, and the memory and the descriptors it left behind are taken back.
-
-What this leaves out is what needs a second process: `a | b` and `$(cmd)` both
-report that a pipe cannot be created. A here-document works, because BusyBox
-writes a short one into the pipe without forking.
+See [BusyBox on Tenok](https://tenok-rtos.github.io/md_docs_8_busybox.html) for
+what is there and what a second process would be needed for.
