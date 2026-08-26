@@ -161,6 +161,10 @@ Tenok API List
 
 * write()
 
+* pipe()
+
+* fcntl()
+
 * ioctl()
 
 * poll()
@@ -171,33 +175,125 @@ Tenok API List
 
 * dup2()
 
+* isatty()
+
+* access()
+
 * mkfifo()
 
 * mknod()
 
 * mount()
 
+* statfs()
+
 * opendir()
 
 * readdir()
 
-* fclose()
-
-* fileno()
-
-* fopen()
-
-* fread()
-
-* fseek()
-
-* fstat() 
-
-* fwrite() 
+* closedir()
 
 * getcwd()
 
 * chdir()
+
+* fchdir()
+
+* chroot()
+
+* ttyname_r()
+
+### Files and Directories:
+
+* stat()
+
+* lstat()
+
+* fstat()
+
+* chmod()
+
+* umask()
+
+* chown()
+
+* lchown()
+
+* utime()
+
+* utimes()
+
+* futimens()
+
+* mkdir()
+
+* rmdir()
+
+* unlink()
+
+* remove()
+
+* rename()
+
+* link()
+
+* symlink()
+
+* readlink()
+
+* mkstemp()
+
+### Streams:
+
+* fopen()
+
+* fdopen()
+
+* freopen()
+
+* fclose()
+
+* fread()
+
+* fwrite()
+
+* fseek()
+
+* fseeko()
+
+* ftell()
+
+* ftello()
+
+* rewind()
+
+* fileno()
+
+* feof()
+
+* ferror()
+
+* clearerr()
+
+* fflush()
+
+* setbuf()
+
+* setvbuf()
+
+* fgetc()
+
+* getchar()
+
+* fgets()
+
+* fputc()
+
+* putchar()
+
+* fputs()
+
+* puts()
 
 * printf()
 
@@ -218,6 +314,91 @@ Tenok API List
 * vsprintf()
 
 * vsnprintf()
+
+* sscanf()
+
+* vsscanf()
+
+### Process:
+
+Tenok has neither `fork()` nor `exec()`: a task comes from the image the system
+booted and is reached by calling it. The calls are named so that a program
+written for POSIX compiles, and each says so when it is made.
+
+* getpid()
+
+* getppid()
+
+* fork()
+
+* vfork()
+
+* execve()
+
+* execvp()
+
+* wait()
+
+* waitpid()
+
+* setsid()
+
+### User and Group:
+
+Tenok runs as the one user it has.
+
+* getuid()
+
+* geteuid()
+
+* getgid()
+
+* getegid()
+
+* getgroups()
+
+* setuid()
+
+* seteuid()
+
+* setgid()
+
+* setegid()
+
+* getpwuid()
+
+* getpwnam()
+
+* getgrgid()
+
+* getgrnam()
+
+### System:
+
+* uname()
+
+* sysconf()
+
+* getrlimit()
+
+* setrlimit()
+
+* gettimeofday()
+
+* settimeofday()
+
+### Network:
+
+Tenok carries no network. The calls are named so that a program written for
+POSIX compiles, and each says so when it is made.
+
+* socket()
+
+* bind()
+
+* listen()
+
+* sendto()
 
 ### Signals:
 
@@ -259,6 +440,10 @@ Tenok API List
 
 * time()
 
+* strptime()
+
+* nanosleep()
+
 ### Memory Allocation:
 
 * mpool_init()
@@ -269,7 +454,11 @@ Tenok API List
 
 * calloc()
 
+* realloc()
+
 * free()
+
+* alloca()
 
 ---
 

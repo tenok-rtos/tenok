@@ -19,11 +19,12 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * Linux-like designs: Wait queue, kthread, tasklet, kfifo, printk, and more
 * Task and Thread (Task resembles UNIX process as a group of threads)
 * Synchronization: Mutex (supports priority inheritance), Semaphore, and Spinlock
-* Inter-Process Communication (IPC): FIFO (Named pipe), Message Queue, and Signals
+* Inter-Process Communication (IPC): Pipe, FIFO (Named pipe), Message Queue, and Signals
 * Kernel-space memory allocation: Buddy system and Slab allocator
 * User-space memory allocation: Dynamic allocation (First-Fit Free List) and Memory pool
 * Software timer and clock
 * Built-in Shell with command completion and history saving
+* BusyBox built into the firmware: the `ash` shell and thirty four applets beside it, called rather than started
 * Root and ROM file systems
 * Real-time plotting and customizable debug messaging with a metalanguage
 * Integrated with MAVLink communication protocol
