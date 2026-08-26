@@ -3,6 +3,7 @@
 #include <time.h>
 
 #include <arch/port.h>
+#include <kernel/errno.h>
 #include <kernel/syscall.h>
 #include <kernel/time.h>
 
@@ -110,39 +111,73 @@ int clock_getres(clockid_t clockid, struct timespec *res)
     return 0;
 }
 
-NACKED int clock_gettime(clockid_t clockid, struct timespec *tp)
+static NACKED int __clock_gettime(clockid_t clockid, struct timespec *tp)
 {
     SYSCALL(CLOCK_GETTIME);
 }
 
-NACKED int clock_settime(clockid_t clk_id, const struct timespec *tp)
+int clock_gettime(clockid_t clockid, struct timespec *tp)
+{
+    return set_errno(__clock_gettime(clockid, tp));
+}
+
+static NACKED int __clock_settime(clockid_t clk_id, const struct timespec *tp)
 {
     SYSCALL(CLOCK_SETTIME);
 }
 
-NACKED int timer_create(clockid_t clockid,
-                        struct sigevent *sevp,
-                        timer_t *timerid)
+int clock_settime(clockid_t clk_id, const struct timespec *tp)
+{
+    return set_errno(__clock_settime(clk_id, tp));
+}
+
+static NACKED int __timer_create(clockid_t clockid,
+                                 struct sigevent *sevp,
+                                 timer_t *timerid)
 {
     SYSCALL(TIMER_CREATE);
 }
 
-NACKED int timer_delete(timer_t timerid)
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid)
+{
+    return set_errno(__timer_create(clockid, sevp, timerid));
+}
+
+static NACKED int __timer_delete(timer_t timerid)
 {
     SYSCALL(TIMER_DELETE);
 }
 
-NACKED int timer_settime(timer_t timerid,
-                         int flags,
-                         const struct itimerspec *new_value,
-                         struct itimerspec *old_value)
+int timer_delete(timer_t timerid)
+{
+    return set_errno(__timer_delete(timerid));
+}
+
+static NACKED int __timer_settime(timer_t timerid,
+                                  int flags,
+                                  const struct itimerspec *new_value,
+                                  struct itimerspec *old_value)
 {
     SYSCALL(TIMER_SETTIME);
 }
 
-NACKED int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
+int timer_settime(timer_t timerid,
+                  int flags,
+                  const struct itimerspec *new_value,
+                  struct itimerspec *old_value)
+{
+    return set_errno(__timer_settime(timerid, flags, new_value, old_value));
+}
+
+static NACKED int __timer_gettime(timer_t timerid,
+                                  struct itimerspec *curr_value)
 {
     SYSCALL(TIMER_GETTIME);
+}
+
+int timer_gettime(timer_t timerid, struct itimerspec *curr_value)
+{
+    return set_errno(__timer_gettime(timerid, curr_value));
 }
 
 time_t time(time_t *tloc)

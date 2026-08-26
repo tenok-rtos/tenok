@@ -2229,8 +2229,8 @@ static ssize_t sys_mq_receive(mqd_t mqdes,
 
     /* Read message */
     while (1) {
-        retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
-                              msg_prio);
+        retval = mq_do_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
+                               msg_prio);
 
         if (retval != -ERESTARTSYS)
             break;
@@ -2276,8 +2276,8 @@ static ssize_t sys_mq_timedreceive(mqd_t mqdes,
     }
 
     while (1) {
-        retval = __mq_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
-                              msg_prio);
+        retval = mq_do_receive(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len,
+                               msg_prio);
 
         if (retval != -ERESTARTSYS)
             break;
@@ -2348,7 +2348,7 @@ static int sys_mq_send(mqd_t mqdes,
     /* Send message */
     while (1) {
         retval =
-            __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
+            mq_do_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
 
         if (retval != -ERESTARTSYS)
             break;
@@ -2401,7 +2401,7 @@ static int sys_mq_timedsend(mqd_t mqdes,
 
     while (1) {
         retval =
-            __mq_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
+            mq_do_send(mq, &mqd_table[mqdes].attr, msg_ptr, msg_len, msg_prio);
 
         if (retval != -ERESTARTSYS)
             break;

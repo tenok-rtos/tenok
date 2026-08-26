@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <arch/port.h>
+#include <kernel/errno.h>
 #include <kernel/syscall.h>
 
 #define DEF_SIG_BIT(name, bit) \
@@ -115,28 +116,50 @@ int sigismember(const sigset_t *set, int signum)
     return (*set & mask) ? 1 : 0;
 }
 
-NACKED int sigaction(int signum,
-                     const struct sigaction *act,
-                     struct sigaction *oldact)
+static NACKED int __sigaction(int signum,
+                              const struct sigaction *act,
+                              struct sigaction *oldact)
 {
     SYSCALL(SIGACTION);
 }
 
-NACKED int sigwait(const sigset_t *set, int *sig)
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
+{
+    return set_errno(__sigaction(signum, act, oldact));
+}
+
+static NACKED int __sigwait(const sigset_t *set, int *sig)
 {
     SYSCALL(SIGWAIT);
 }
 
-NACKED int sigwaitinfo(const sigset_t *set, siginfo_t *info)
+int sigwait(const sigset_t *set, int *sig)
+{
+    return set_errno(__sigwait(set, sig));
+}
+
+static NACKED int __sigwaitinfo(const sigset_t *set, siginfo_t *info)
 {
     SYSCALL(SIGWAITINFO);
 }
 
-NACKED int sigtimedwait(const sigset_t *set,
-                        siginfo_t *info,
-                        const struct timespec *timeout)
+int sigwaitinfo(const sigset_t *set, siginfo_t *info)
+{
+    return set_errno(__sigwaitinfo(set, info));
+}
+
+static NACKED int __sigtimedwait(const sigset_t *set,
+                                 siginfo_t *info,
+                                 const struct timespec *timeout)
 {
     SYSCALL(SIGTIMEDWAIT);
+}
+
+int sigtimedwait(const sigset_t *set,
+                 siginfo_t *info,
+                 const struct timespec *timeout)
+{
+    return set_errno(__sigtimedwait(set, info, timeout));
 }
 
 int pause(void)
@@ -153,9 +176,14 @@ NACKED int _kill(pid_t pid, int sig)
     SYSCALL(KILL);
 }
 
-NACKED int raise(int sig)
+static NACKED int __raise(int sig)
 {
     SYSCALL(RAISE);
+}
+
+int raise(int sig)
+{
+    return set_errno(__raise(sig));
 }
 
 int kill(pid_t pid, int sig)

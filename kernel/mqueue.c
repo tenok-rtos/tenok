@@ -116,11 +116,11 @@ static void __mq_in(struct mqueue *mq,
     list_move_tail(&element->list, &mq->used_list[msg_prio]);
 }
 
-ssize_t __mq_receive(struct mqueue *mq,
-                     const struct mq_attr *attr,
-                     char *msg_ptr,
-                     size_t msg_len,
-                     unsigned int *msg_prio)
+ssize_t mq_do_receive(struct mqueue *mq,
+                      const struct mq_attr *attr,
+                      char *msg_ptr,
+                      size_t msg_len,
+                      unsigned int *msg_prio)
 {
     /* The message queue descriptor is not open with reading flag */
     if ((attr->mq_flags & (0x1)) != O_RDONLY && !(attr->mq_flags & O_RDWR))
@@ -153,11 +153,11 @@ ssize_t __mq_receive(struct mqueue *mq,
     return read_size;
 }
 
-ssize_t __mq_send(struct mqueue *mq,
-                  const struct mq_attr *attr,
-                  const char *msg_ptr,
-                  size_t msg_len,
-                  unsigned int msg_prio)
+ssize_t mq_do_send(struct mqueue *mq,
+                   const struct mq_attr *attr,
+                   const char *msg_ptr,
+                   size_t msg_len,
+                   unsigned int msg_prio)
 {
     /* The message queue descriptor is not open with writing flag */
     if ((attr->mq_flags & (0x1)) != O_WRONLY && !(attr->mq_flags & O_RDWR))
@@ -190,63 +190,126 @@ ssize_t __mq_send(struct mqueue *mq,
     return 0;
 }
 
-NACKED int mq_getattr(mqd_t mqdes, struct mq_attr *attr)
+static NACKED int __mq_getattr(mqd_t mqdes, struct mq_attr *attr)
 {
     SYSCALL(MQ_GETATTR);
 }
 
-NACKED int mq_setattr(mqd_t mqdes,
-                      const struct mq_attr *newattr,
-                      struct mq_attr *oldattr)
+int mq_getattr(mqd_t mqdes, struct mq_attr *attr)
+{
+    return set_errno(__mq_getattr(mqdes, attr));
+}
+
+static NACKED int __mq_setattr(mqd_t mqdes,
+                               const struct mq_attr *newattr,
+                               struct mq_attr *oldattr)
 {
     SYSCALL(MQ_SETATTR);
 }
 
-NACKED mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
+int mq_setattr(mqd_t mqdes,
+               const struct mq_attr *newattr,
+               struct mq_attr *oldattr)
+{
+    return set_errno(__mq_setattr(mqdes, newattr, oldattr));
+}
+
+static NACKED mqd_t __mq_open(const char *name, int oflag, struct mq_attr *attr)
 {
     SYSCALL(MQ_OPEN);
 }
 
-NACKED int mq_close(mqd_t mqdes)
+mqd_t mq_open(const char *name, int oflag, struct mq_attr *attr)
+{
+    return set_errno(__mq_open(name, oflag, attr));
+}
+
+static NACKED int __mq_close(mqd_t mqdes)
 {
     SYSCALL(MQ_CLOSE);
 }
 
-NACKED int mq_unlink(const char *name)
+int mq_close(mqd_t mqdes)
+{
+    return set_errno(__mq_close(mqdes));
+}
+
+static NACKED int __mq_unlink(const char *name)
 {
     SYSCALL(MQ_UNLINK);
 }
 
-NACKED ssize_t mq_receive(mqd_t mqdes,
-                          char *msg_ptr,
-                          size_t msg_len,
-                          unsigned int *msg_prio)
+int mq_unlink(const char *name)
+{
+    return set_errno(__mq_unlink(name));
+}
+
+static NACKED ssize_t __mq_receive(mqd_t mqdes,
+                                   char *msg_ptr,
+                                   size_t msg_len,
+                                   unsigned int *msg_prio)
 {
     SYSCALL(MQ_RECEIVE);
 }
 
-NACKED int mq_send(mqd_t mqdes,
-                   const char *msg_ptr,
+ssize_t mq_receive(mqd_t mqdes,
+                   char *msg_ptr,
                    size_t msg_len,
-                   unsigned int msg_prio)
+                   unsigned int *msg_prio)
+{
+    return set_errno(__mq_receive(mqdes, msg_ptr, msg_len, msg_prio));
+}
+
+static NACKED int __mq_send(mqd_t mqdes,
+                            const char *msg_ptr,
+                            size_t msg_len,
+                            unsigned int msg_prio)
 {
     SYSCALL(MQ_SEND);
 }
 
-NACKED int mq_timedsend(mqd_t mqdes,
-                        const char *msg_ptr,
-                        size_t msg_len,
-                        unsigned int msg_prio,
-                        const struct timespec *abs_timeout)
+int mq_send(mqd_t mqdes,
+            const char *msg_ptr,
+            size_t msg_len,
+            unsigned int msg_prio)
+{
+    return set_errno(__mq_send(mqdes, msg_ptr, msg_len, msg_prio));
+}
+
+static NACKED int __mq_timedsend(mqd_t mqdes,
+                                 const char *msg_ptr,
+                                 size_t msg_len,
+                                 unsigned int msg_prio,
+                                 const struct timespec *abs_timeout)
 {
     SYSCALL(MQ_TIMEDSEND);
 }
 
-NACKED ssize_t mq_timedreceive(mqd_t mqdes,
-                               char *msg_ptr,
-                               size_t msg_len,
-                               unsigned int *msg_prio,
-                               const struct timespec *abs_timeout)
+int mq_timedsend(mqd_t mqdes,
+                 const char *msg_ptr,
+                 size_t msg_len,
+                 unsigned int msg_prio,
+                 const struct timespec *abs_timeout)
+{
+    return set_errno(
+        __mq_timedsend(mqdes, msg_ptr, msg_len, msg_prio, abs_timeout));
+}
+
+static NACKED ssize_t __mq_timedreceive(mqd_t mqdes,
+                                        char *msg_ptr,
+                                        size_t msg_len,
+                                        unsigned int *msg_prio,
+                                        const struct timespec *abs_timeout)
 {
     SYSCALL(MQ_TIMEDRECEIVE);
+}
+
+ssize_t mq_timedreceive(mqd_t mqdes,
+                        char *msg_ptr,
+                        size_t msg_len,
+                        unsigned int *msg_prio,
+                        const struct timespec *abs_timeout)
+{
+    return set_errno(
+        __mq_timedreceive(mqdes, msg_ptr, msg_len, msg_prio, abs_timeout));
 }

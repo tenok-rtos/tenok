@@ -12,20 +12,8 @@
 #include <unistd.h>
 
 #include <arch/port.h>
+#include <kernel/errno.h>
 #include <kernel/syscall.h>
-
-/* The kernel answers a failure with the negation of its error number, POSIX
- * asks for minus one with the number left in errno
- */
-static long set_errno(long retval)
-{
-    if (retval < 0) {
-        errno = -retval;
-        return -1;
-    }
-
-    return retval;
-}
 
 /* The __ functions are the raw traps, the ones named after the call
  * translate what comes back

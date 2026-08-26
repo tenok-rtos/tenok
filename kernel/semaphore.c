@@ -104,27 +104,52 @@ int sem_destroy(sem_t *sem)
     return 0;
 }
 
-NACKED int sem_post(sem_t *sem)
+static NACKED int __sem_post(sem_t *sem)
 {
     SYSCALL(SEM_POST);
 }
 
-NACKED int sem_trywait(sem_t *sem)
+int sem_post(sem_t *sem)
+{
+    return set_errno(__sem_post(sem));
+}
+
+static NACKED int __sem_trywait(sem_t *sem)
 {
     SYSCALL(SEM_TRYWAIT);
 }
 
-NACKED int sem_wait(sem_t *sem)
+int sem_trywait(sem_t *sem)
+{
+    return set_errno(__sem_trywait(sem));
+}
+
+static NACKED int __sem_wait(sem_t *sem)
 {
     SYSCALL(SEM_WAIT);
 }
 
-NACKED int sem_timedwait(sem_t *sem, const struct timespec *abstime)
+int sem_wait(sem_t *sem)
+{
+    return set_errno(__sem_wait(sem));
+}
+
+static NACKED int __sem_timedwait(sem_t *sem, const struct timespec *abstime)
 {
     SYSCALL(SEM_TIMEDWAIT);
 }
 
-NACKED int sem_getvalue(sem_t *sem, int *sval)
+int sem_timedwait(sem_t *sem, const struct timespec *abstime)
+{
+    return set_errno(__sem_timedwait(sem, abstime));
+}
+
+static NACKED int __sem_getvalue(sem_t *sem, int *sval)
 {
     SYSCALL(SEM_GETVALUE);
+}
+
+int sem_getvalue(sem_t *sem, int *sval)
+{
+    return set_errno(__sem_getvalue(sem, sval));
 }
