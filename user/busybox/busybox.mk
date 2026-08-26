@@ -70,10 +70,20 @@ NR == FNR { if ($$0 ~ /^CONFIG_/) { split($$0, a, "="); want[a[1]] = $$0 } ; nex
 }
 endef
 
-$(BB_DIR)/.config: $(PROJ_ROOT)/configs/busybox.config
+# The BusyBox submodule stays exactly as its release left it, so what Tenok
+# changes is put on before anything is built. Applying it resets the submodule
+# first, which is why it happens once from a stamp and not on every build.
+BB_PATCHES := $(wildcard $(PROJ_ROOT)/lib/busybox-patches/patches/*.patch)
+BB_PATCHED := $(BB_DIR)/.tenok-patched
+
+$(BB_PATCHED): $(BB_PATCHES)
+	@$(PROJ_ROOT)/scripts/busybox-prepare.sh
+	@touch $@
+
+$(BB_DIR)/.config: $(BB_PATCHED) $(PROJ_ROOT)/configs/busybox.config
 	@echo "BUSYBOX config"
 	@$(MAKE) -C $(BB_DIR) CROSS_COMPILE=$(CROSS_COMPILE) allnoconfig >/dev/null
-	@awk '$(BB_MERGE_CONFIG)' $< $@ > $@.merged
+	@awk '$(BB_MERGE_CONFIG)' $(PROJ_ROOT)/configs/busybox.config $@ > $@.merged
 	@mv $@.merged $@
 
 # The applet table is derived from the //applet: comments of the applet
@@ -85,7 +95,7 @@ $(BB_STAMP): $(BB_DIR)/.config $(BB_SRC)
 	@test -f $(BB_DIR)/include/autoconf.h
 	@touch $@
 
-$(BB_SRC:.c=.o): $(BB_STAMP)
+$(BB_SRC:.c=.o): $(BB_STAMP) $(BB_PATCHED)
 $(BB_SRC:.c=.o): CFLAGS := $(BB_CFLAGS)
 
 SRC += $(BB_SRC)
