@@ -10,7 +10,11 @@
 /* BusyBox leaves its applets through exit(). On Tenok that would terminate
  * the shell thread, so it is redirected into a longjmp back to the caller.
  */
-void applet_exit(int status);
+/* An applet that leaves does not come back: the call either unwinds into
+ * applet_run() or, with nothing to unwind to, stops there. Saying so is what
+ * lets the functions BusyBox marks NORETURN keep their word.
+ */
+void applet_exit(int status) __attribute__((noreturn));
 #define exit(s) applet_exit(s)
 #define _exit(s) applet_exit(s)
 
