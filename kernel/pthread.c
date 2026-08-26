@@ -5,6 +5,7 @@
 
 #include <arch/port.h>
 #include <common/list.h>
+#include <kernel/errno.h>
 #include <kernel/mutex.h>
 #include <kernel/syscall.h>
 #include <kernel/thread.h>
@@ -178,12 +179,28 @@ int pthread_attr_getstackaddr(const pthread_attr_t *attr, void **stackaddr)
     return 0;
 }
 
-NACKED int pthread_create(pthread_t *thread,
-                          const pthread_attr_t *attr,
-                          void *(*start_routine)(void *),
-                          void *arg)
+/* The threads of POSIX are the one part of it that answers with the error
+ * number itself instead of leaving it in errno
+ */
+static inline int set_error(int retval)
+{
+    return (retval < 0) ? -retval : retval;
+}
+
+static NACKED int __pthread_create(pthread_t *thread,
+                                   const pthread_attr_t *attr,
+                                   void *(*start_routine)(void *),
+                                   void *arg)
 {
     SYSCALL(PTHREAD_CREATE);
+}
+
+int pthread_create(pthread_t *thread,
+                   const pthread_attr_t *attr,
+                   void *(*start_routine)(void *),
+                   void *arg)
+{
+    return set_error(__pthread_create(thread, attr, start_routine, arg));
 }
 
 NACKED pthread_t pthread_self(void)
@@ -191,19 +208,34 @@ NACKED pthread_t pthread_self(void)
     SYSCALL(PTHREAD_SELF);
 }
 
-NACKED int pthread_join(pthread_t thread, void **retval)
+static NACKED int __pthread_join(pthread_t thread, void **retval)
 {
     SYSCALL(PTHREAD_JOIN);
 }
 
-NACKED int pthread_detach(pthread_t thread)
+int pthread_join(pthread_t thread, void **retval)
+{
+    return set_error(__pthread_join(thread, retval));
+}
+
+static NACKED int __pthread_detach(pthread_t thread)
 {
     SYSCALL(PTHREAD_DETACH);
 }
 
-NACKED int pthread_cancel(pthread_t thread)
+int pthread_detach(pthread_t thread)
+{
+    return set_error(__pthread_detach(thread));
+}
+
+static NACKED int __pthread_cancel(pthread_t thread)
 {
     SYSCALL(PTHREAD_CANCEL);
+}
+
+int pthread_cancel(pthread_t thread)
+{
+    return set_error(__pthread_cancel(thread));
 }
 
 int pthread_equal(pthread_t t1, pthread_t t2)
@@ -211,18 +243,32 @@ int pthread_equal(pthread_t t1, pthread_t t2)
     return t1 == t2;
 }
 
-NACKED int pthread_setschedparam(pthread_t thread,
-                                 int policy,
-                                 const struct sched_param *param)
+static NACKED int __pthread_setschedparam(pthread_t thread,
+                                          int policy,
+                                          const struct sched_param *param)
 {
     SYSCALL(PTHREAD_SETSCHEDPARAM);
 }
 
-NACKED int pthread_getschedparam(pthread_t thread,
-                                 int *policy,
-                                 struct sched_param *param)
+int pthread_setschedparam(pthread_t thread,
+                          int policy,
+                          const struct sched_param *param)
+{
+    return set_error(__pthread_setschedparam(thread, policy, param));
+}
+
+static NACKED int __pthread_getschedparam(pthread_t thread,
+                                          int *policy,
+                                          struct sched_param *param)
 {
     SYSCALL(PTHREAD_GETSCHEDPARAM);
+}
+
+int pthread_getschedparam(pthread_t thread,
+                          int *policy,
+                          struct sched_param *param)
+{
+    return set_error(__pthread_getschedparam(thread, policy, param));
 }
 
 int pthread_mutexattr_init(pthread_mutexattr_t *attr)
@@ -270,14 +316,24 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex)
     return 0;
 }
 
-NACKED int pthread_yield(void)
+static NACKED int __pthread_yield(void)
 {
     SYSCALL(PTHREAD_YIELD);
 }
 
-NACKED int pthread_kill(pthread_t thread, int sig)
+int pthread_yield(void)
+{
+    return set_error(__pthread_yield());
+}
+
+static NACKED int __pthread_kill(pthread_t thread, int sig)
 {
     SYSCALL(PTHREAD_KILL);
+}
+
+int pthread_kill(pthread_t thread, int sig)
+{
+    return set_error(__pthread_kill(thread, sig));
 }
 
 NACKED void pthread_exit(void *retval)
@@ -285,25 +341,46 @@ NACKED void pthread_exit(void *retval)
     SYSCALL(PTHREAD_EXIT);
 }
 
-NACKED int pthread_mutex_unlock(pthread_mutex_t *mutex)
+static NACKED int __pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     SYSCALL(PTHREAD_MUTEX_UNLOCK);
 }
 
-NACKED int pthread_mutex_lock(pthread_mutex_t *mutex)
+int pthread_mutex_unlock(pthread_mutex_t *mutex)
+{
+    return set_error(__pthread_mutex_unlock(mutex));
+}
+
+static NACKED int __pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     SYSCALL(PTHREAD_MUTEX_LOCK);
 }
 
-NACKED int pthread_mutex_trylock(pthread_mutex_t *mutex)
+int pthread_mutex_lock(pthread_mutex_t *mutex)
+{
+    return set_error(__pthread_mutex_lock(mutex));
+}
+
+static NACKED int __pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
     SYSCALL(PTHREAD_MUTEX_TRYLOCK);
 }
 
-NACKED int pthread_mutex_timedlock(pthread_mutex_t *mutex,
-                                   const struct timespec *abstime)
+int pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
+    return set_error(__pthread_mutex_trylock(mutex));
+}
+
+static NACKED int __pthread_mutex_timedlock(pthread_mutex_t *mutex,
+                                            const struct timespec *abstime)
 {
     SYSCALL(PTHREAD_MUTEX_TIMEDLOCK);
+}
+
+int pthread_mutex_timedlock(pthread_mutex_t *mutex,
+                            const struct timespec *abstime)
+{
+    return set_error(__pthread_mutex_timedlock(mutex, abstime));
 }
 int pthread_condattr_init(pthread_condattr_t *attr)
 {
@@ -342,30 +419,58 @@ int pthread_cond_destroy(pthread_cond_t *cond)
     return 0;
 }
 
-NACKED int pthread_cond_signal(pthread_cond_t *cond)
+static NACKED int __pthread_cond_signal(pthread_cond_t *cond)
 {
     SYSCALL(PTHREAD_COND_SIGNAL);
 }
 
-NACKED int pthread_cond_broadcast(pthread_cond_t *cond)
+int pthread_cond_signal(pthread_cond_t *cond)
+{
+    return set_error(__pthread_cond_signal(cond));
+}
+
+static NACKED int __pthread_cond_broadcast(pthread_cond_t *cond)
 {
     SYSCALL(PTHREAD_COND_BROADCAST);
 }
 
-NACKED int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+int pthread_cond_broadcast(pthread_cond_t *cond)
+{
+    return set_error(__pthread_cond_broadcast(cond));
+}
+
+static NACKED int __pthread_cond_wait(pthread_cond_t *cond,
+                                      pthread_mutex_t *mutex)
 {
     SYSCALL(PTHREAD_COND_WAIT);
 }
 
-NACKED int pthread_cond_timedwait(pthread_cond_t *cond,
-                                  pthread_mutex_t *mutex,
-                                  const struct timespec *abstime)
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+    return set_error(__pthread_cond_wait(cond, mutex));
+}
+
+static NACKED int __pthread_cond_timedwait(pthread_cond_t *cond,
+                                           pthread_mutex_t *mutex,
+                                           const struct timespec *abstime)
 {
     SYSCALL(PTHREAD_COND_TIMEDWAIT);
 }
 
-NACKED int pthread_once(pthread_once_t *once_control,
-                        void (*init_routine)(void))
+int pthread_cond_timedwait(pthread_cond_t *cond,
+                           pthread_mutex_t *mutex,
+                           const struct timespec *abstime)
+{
+    return set_error(__pthread_cond_timedwait(cond, mutex, abstime));
+}
+
+static NACKED int __pthread_once(pthread_once_t *once_control,
+                                 void (*init_routine)(void))
 {
     SYSCALL(PTHREAD_ONCE);
+}
+
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+{
+    return set_error(__pthread_once(once_control, init_routine));
 }
