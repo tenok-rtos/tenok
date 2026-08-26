@@ -47,4 +47,5 @@ void shell_task(void)
     }
 }
 
-HOOK_USER_TASK(shell_task, 3, 4096);
+/* An applet of BusyBox asks for more stack than a command of Tenok */
+HOOK_USER_TASK(shell_task, 3, 8192);
