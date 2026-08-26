@@ -54,6 +54,16 @@ void *calloc(size_t nmemb, size_t size);
  */
 void *realloc(void *ptr, size_t size);
 
+/**
+ * @brief  Create a file no other name stands for and open it. The last six
+ *         characters of the template must be XXXXXX and are replaced with the
+ *         name the file was given.
+ * @param  template: The name to make unique, ending in XXXXXX.
+ * @retval int: The descriptor of the new file, and -1 on error with the
+ *         reason left in errno.
+ */
+int mkstemp(char *template);
+
 /* Room on the stack of the caller, which goes away when the caller does. The
  * compiler is the one that can take it, so it is the one that is asked
  */

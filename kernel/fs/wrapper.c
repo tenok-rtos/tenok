@@ -460,3 +460,47 @@ int futimens(int fd, const struct timespec times[2])
 
     return -1;
 }
+
+/* The last six characters of the template stand in for a name no file has
+ * yet. O_EXCL is what settles which caller got it, so the loop only has to
+ * try again with the next name
+ */
+int mkstemp(char *template)
+{
+    static const char letters[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+    size_t len = strlen(template);
+
+    if (len < 6 || strcmp(template + len - 6, "XXXXXX") != 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    char *slot = template + len - 6;
+
+    /* Every name the six characters can spell, walked from where the clock
+     * happens to be so that two callers a moment apart do not start together
+     */
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+
+    unsigned seed = (unsigned) now.tv_nsec;
+
+    for (int attempt = 0; attempt < 256; attempt++) {
+        unsigned value = seed + attempt;
+
+        for (int i = 0; i < 6; i++) {
+            slot[i] = letters[value % (sizeof(letters) - 1)];
+            value /= sizeof(letters) - 1;
+        }
+
+        int fd = open(template, O_RDWR | O_CREAT | O_EXCL, 0600);
+        if (fd >= 0)
+            return fd;
+
+        if (errno != EEXIST)
+            return -1;
+    }
+
+    errno = EEXIST;
+    return -1;
+}
