@@ -155,6 +155,11 @@ struct file_operations {
                      off_t offset);
     int (*ioctl)(struct file *, unsigned int cmd, unsigned long arg);
     int (*open)(struct inode *inode, struct file *file);
+    /* Where the file already lives in memory. Tenok has no address space to
+     * map anything into, so a device that answers this is one whose contents
+     * a program can reach where they already are
+     */
+    void *(*mmap)(struct file *filp, size_t length, off_t offset);
 };
 
 struct fdtable {

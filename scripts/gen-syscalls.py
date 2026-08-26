@@ -86,7 +86,8 @@ syscalls = \
      'malloc',
      'free',
      'pipe',
-     'realloc']
+     'realloc',
+     'mmap']
 
 reserved_events = [
     'SYSCALL_RETURN_EVENT',

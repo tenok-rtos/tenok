@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/termios.h>
 #include <sys/types.h>
@@ -97,6 +98,51 @@ static NACKED int __dup2(int oldfd, int newfd)
 int dup2(int oldfd, int newfd)
 {
     return set_errno(__dup2(oldfd, newfd));
+}
+
+/* A system call of Tenok carries four arguments, and mmap() of POSIX has six.
+ * Three of them are all Tenok can act on: it has no address space to honour a
+ * requested address in, nothing to enforce a protection with, and nothing for
+ * a mapping to be private from
+ */
+static NACKED void *__mmap(int fd, size_t length, off_t offset)
+{
+    SYSCALL(MMAP);
+}
+
+/* Every other call says it failed by answering minus one and leaving the
+ * number in errno. This one answers with the address itself, so a failure has
+ * to be told apart from an address by its value: the error numbers are small
+ * and an address is not. The frame buffer of this board sits at 0xd0000000,
+ * which read as a signed number is far below the smallest of them.
+ */
+#define MMAP_ERROR_MAX 256
+
+void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset)
+{
+    void *mem = __mmap(fd, length, offset);
+    long answer = (long) mem;
+
+    if (answer < 0 && answer > -MMAP_ERROR_MAX) {
+        errno = -answer;
+        return MAP_FAILED;
+    }
+
+    return mem;
+}
+
+int munmap(void *addr, size_t length)
+{
+    /* Nothing was mapped, so there is nothing to give back. Tenok keeps no
+     * list of what was handed out, so the only thing that can be said about
+     * an address is whether it could have come from mmap() at all.
+     */
+    if (!addr || addr == MAP_FAILED || !length) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return 0;
 }
 
 static NACKED int __pipe(int pipefd[2])

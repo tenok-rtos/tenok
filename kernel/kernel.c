@@ -1184,6 +1184,37 @@ leave:
     return retval;
 }
 
+/* A program of Tenok reaches memory where it already is: there is no address
+ * space to put a second name for it in. So the call asks the file whether it
+ * has somewhere to be reached, and hands back that, or fails
+ */
+static void *sys_mmap(int fd, size_t length, off_t offset)
+{
+    preempt_disable();
+
+    void *retval;
+    struct task_struct *task = current_task_info();
+
+    struct file *filp = fd_file(task, fd);
+    if (!filp) {
+        retval = (void *) -EBADF;
+        goto leave;
+    }
+
+    if (!filp->f_op->mmap) {
+        retval = (void *) -ENODEV;
+        goto leave;
+    }
+
+    preempt_enable();
+
+    return filp->f_op->mmap(filp, length, offset);
+
+leave:
+    preempt_enable();
+    return retval;
+}
+
 static int sys_pipe(int pipefd[2])
 {
     preempt_disable();
