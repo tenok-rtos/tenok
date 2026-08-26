@@ -19,7 +19,7 @@ BB_LIBBB := appletlib ask_confirmation auto_string bb_bswap_64 bb_cat \
             wfopen_input xatonum xfunc_die xfuncs xfuncs_printf xgetcwd \
             xreadlink xrealloc_vector
 BB_APPLETS := coreutils/basename coreutils/cat coreutils/chmod coreutils/cp \
-              coreutils/cut \
+              coreutils/cut console-tools/clear \
               coreutils/date coreutils/dirname coreutils/echo coreutils/env \
               coreutils/false coreutils/head \
               coreutils/libcoreutils/cp_mv_stat coreutils/ls \

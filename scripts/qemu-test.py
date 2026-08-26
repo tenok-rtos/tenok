@@ -170,6 +170,13 @@ TESTS = [
     ("free", ["User heap"], []),
     # A shell script out of the read only file system. Running it needs no
     # fork, the shell of BusyBox is the one being started
+    # The shell says what it can do on its own, and clears the screen with the
+    # escape sequence a terminal understands
+    ("busybox sh", ["ash"], []),
+    ("help", ["Built-in commands", "getopts"], []),
+    ("clear", [], ["not found"]),
+    ("exit", [], []),
+
     ("busybox sh /rom_data/demo.sh", ["6 passed, 0 failed"], ["FAIL"]),
 ]
 
