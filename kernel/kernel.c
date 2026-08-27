@@ -145,12 +145,12 @@ NACKED void thread_once_return_handler(void)
     SYSCALL(THREAD_ONCE_EVENT);
 }
 
-inline void preempt_count_inc(void)
+void preempt_count_inc(void)
 {
     preempt_cnt++;
 }
 
-inline void preempt_count_dec(void)
+void preempt_count_dec(void)
 {
     if (preempt_cnt > 0)
         preempt_cnt--;
@@ -354,7 +354,7 @@ static inline struct task_struct *current_task_info(void)
     return running_thread->task;
 }
 
-inline struct thread_info *current_thread_info(void)
+struct thread_info *current_thread_info(void)
 {
     return running_thread;
 }

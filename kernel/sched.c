@@ -9,12 +9,12 @@
 
 #include "kconfig.h"
 
-inline int sched_get_priority_max(int policy)
+int sched_get_priority_max(int policy)
 {
     return THREAD_PRIORITY_MAX;
 }
 
-inline int sched_get_priority_min(int policy)
+int sched_get_priority_min(int policy)
 {
     return 0;
 }
