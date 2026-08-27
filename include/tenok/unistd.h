@@ -10,6 +10,50 @@
 
 #include "kconfig.h"
 
+/* Which edition of POSIX the calls Tenok has are written against. Tenok is not
+ * a conforming implementation of it: a task comes from the image the system
+ * booted and there is no fork() or exec() for one to come from anywhere else.
+ * What the system does have is said one option at a time below, which is what
+ * a program asking a question this precise wants to know
+ */
+#define _POSIX_VERSION 200809L
+
+/* The options every call of is present. A program can reach for any of these
+ * and find all of it
+ */
+#define _POSIX_THREADS 200809L
+#define _POSIX_THREAD_ATTR_STACKSIZE 200809L
+#define _POSIX_THREAD_PRIO_INHERIT 200809L
+#define _POSIX_READER_WRITER_LOCKS 200809L
+#define _POSIX_MONOTONIC_CLOCK 200809L
+
+/* The options no call of is present, said plainly rather than left out, so
+ * that a program is answered rather than left to find out by linking
+ */
+#define _POSIX_BARRIERS -1
+#define _POSIX_SPIN_LOCKS -1
+#define _POSIX_THREAD_PROCESS_SHARED -1
+
+/* The attributes are kept and given back, but a thread is always given the
+ * stack the system allocates for it, so the address asked for is never used
+ */
+#define _POSIX_THREAD_ATTR_STACKADDR -1
+
+/* One reentrancy structure serves the whole system, so two threads that fail
+ * at the same time overwrite each other errno
+ */
+#define _POSIX_THREAD_SAFE_FUNCTIONS -1
+
+/* The options Tenok has most but not all of are left unsaid, so that a program
+ * asks after the one call it wants rather than after the whole of them:
+ *
+ *   _POSIX_SEMAPHORES                 no sem_open(), sem_close(), sem_unlink()
+ *   _POSIX_MESSAGE_PASSING            no mq_notify()
+ *   _POSIX_TIMERS                     no timer_getoverrun()
+ *   _POSIX_THREAD_PRIORITY_SCHEDULING no pthread_attr_setscope() and no
+ *                                     sched_setscheduler() and its three
+ */
+
 #define MQ_PRIO_MAX _MQ_PRIO_MAX
 
 #define STDIN_FILENO 0  /* Standard input file descriptor */
