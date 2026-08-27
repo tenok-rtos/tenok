@@ -160,6 +160,11 @@ void early_write(char *buf, size_t size)
     uart_puts(USART1, buf, size);
 }
 
+/* This board adds no memory of its own, so there is nothing to bring up */
+void __board_memory_init(void)
+{
+}
+
 void __board_init(void)
 {
     serial1_init(115200, "console", "shell (alias serial0)");

@@ -4420,6 +4420,12 @@ static void idle(void)
 void sched_start(void)
 {
     __platform_init();
+
+    /* Before slab_init() and heap_init(), which are the two that lay something
+     * out in memory the board may be the one to bring up
+     */
+    __board_memory_init();
+
     slab_init();
     heap_init();
     printkd_init();

@@ -147,9 +147,16 @@ void early_write(char *buf, size_t size)
     uart_puts(USART1, buf, size);
 }
 
-void __board_init(void)
+/* The board carries SDRAM that the chip has no equivalent of, and the heap of
+ * the user space is laid out in it, so the controller has to be up first
+ */
+void __board_memory_init(void)
 {
     SDRAM_Init();
+}
+
+void __board_init(void)
+{
     lcd_init();
     serial1_init(115200, "console", "shell (alias: serial0)");
     serial2_init(115200, "mavlink", "mavlink (alias: serial1)");

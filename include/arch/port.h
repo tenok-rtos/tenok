@@ -57,6 +57,14 @@ void jump_to_kernel(void);
 void __platform_init(void);
 
 /**
+ * @brief  Bring up whatever memory the board adds, before the system lays
+ *         anything out in it
+ * @param  None
+ * @retval None
+ */
+void __board_memory_init(void);
+
+/**
  * @brief  Initialize board drivers
  * @param  None
  * @retval None
