@@ -369,7 +369,21 @@ struct thread_info *acquire_thread(int tid)
 {
     struct thread_info *thread;
     list_for_each_entry (thread, &threads_list, thread_list) {
-        if (thread->tid == tid)
+        if (thread->tid == tid && thread->status != THREAD_TERMINATED)
+            return thread;
+    }
+
+    return NULL;
+}
+
+/* A thread that has ended but still holds its number, waiting for someone to
+ * ask it for its return value
+ */
+static struct thread_info *acquire_ended_thread(int tid)
+{
+    struct thread_info *thread;
+    list_for_each_entry (thread, &threads_list, thread_list) {
+        if (thread->tid == tid && thread->status == THREAD_TERMINATED)
             return thread;
     }
 
@@ -674,19 +688,26 @@ static void thread_resume(struct thread_info *thread)
     list_move_tail(&thread->list, &ready_list[thread->priority]);
 }
 
+/* Give back everything a thread was still holding after it ended: its number,
+ * its place in the lists, and the memory its stack was in
+ */
+static void thread_reap(struct thread_info *thread)
+{
+    list_del(&thread->thread_list);
+    list_del(&thread->task_list);
+    bitmap_clear_bit(bitmap_threads, thread->tid);
+
+    free_pages((uint32_t) thread->stack,
+               size_to_page_order(thread->stack_size));
+}
+
 static void thread_delete(struct thread_info *thread)
 {
     /* Remove the thread from the system */
-    list_del(&thread->task_list);
-    list_del(&thread->thread_list);
     if (thread != running_thread)
         list_del(&thread->list);
     thread->status = THREAD_TERMINATED;
-    bitmap_clear_bit(bitmap_threads, thread->tid);
-
-    /* Free the thread stack memory */
-    free_pages((uint32_t) thread->stack,
-               size_to_page_order(thread->stack_size));
+    thread_reap(thread);
 
     /* Remove the task from the system if it contains no more thread */
     struct task_struct *task = current_task_info();
@@ -762,6 +783,8 @@ void wake_up_all(struct list_head *wait_list)
 
 static inline void thread_join_handler(void)
 {
+    bool asked_for = false;
+
     /* Wake up the threads that waiting to join */
     struct list_head *curr, *next;
     list_for_each_safe (curr, next, &running_thread->join_list) {
@@ -773,24 +796,20 @@ static inline void thread_join_handler(void)
         }
 
         finish_wait(thread);
+        asked_for = true;
     }
 
-    /* Remove the task from the system if it contains no more thread */
-    struct task_struct *task = current_task_info();
-    if (list_empty(&task->threads_list)) {
-        /* Remove the task from the system */
-        task_delete(task);
+    if (running_thread->joinable && !running_thread->detached && !asked_for) {
+        /* Nobody has asked for the return value yet, and a joinable thread has
+         * to have one to give when somebody does. So the thread stays where it
+         * is, holding its number and its answer, until pthread_join() or
+         * pthread_detach() says it is no longer needed
+         */
+        running_thread->status = THREAD_TERMINATED;
+        return;
     }
 
-    /* Remove the thread from the system */
-    list_del(&running_thread->thread_list);
-    list_del(&running_thread->task_list);
-    running_thread->status = THREAD_TERMINATED;
-    bitmap_clear_bit(bitmap_threads, running_thread->tid);
-
-    /* Free the thread stack memory */
-    free_pages((uint32_t) running_thread->stack,
-               size_to_page_order(running_thread->stack_size));
+    thread_delete(running_thread);
 }
 
 static struct thread_info *thread_info_find_next(struct thread_info *curr)
@@ -2515,8 +2534,23 @@ static int sys_pthread_join(pthread_t tid, void **pthread_retval)
 
     struct thread_info *thread = acquire_thread(tid);
     if (!thread) {
-        /* Return error */
-        retval = -ESRCH;
+        /* The thread may have ended already, in which case its return value is
+         * waiting to be handed over and this call has nothing to wait for
+         */
+        thread = acquire_ended_thread(tid);
+        if (!thread) {
+            /* Return error */
+            retval = -ESRCH;
+            goto leave;
+        }
+
+        if (pthread_retval)
+            *pthread_retval = thread->retval;
+
+        thread_reap(thread);
+
+        /* Return success */
+        retval = 0;
         goto leave;
     }
 
@@ -2594,6 +2628,12 @@ static int sys_pthread_detach(pthread_t tid)
     }
 
     threads[tid].detached = true;
+
+    /* Nothing will ask a thread that has already ended for its return value
+     * once it is detached, so it has no reason to stay
+     */
+    if (threads[tid].status == THREAD_TERMINATED)
+        thread_reap(&threads[tid]);
 
     /* Return success */
     retval = 0;
