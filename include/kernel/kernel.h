@@ -121,6 +121,9 @@ struct thread_info {
     struct list_head join_list;  /* Linked to another thread waiting for join */
     struct list_head list;       /* Linked to a scheduling list */
     void *tls[PTHREAD_KEYS_MAX]; /* What the thread keeps under each key */
+    int cancel_state;            /* Whether a cancellation is let in at all */
+    bool cancel_pending; /* One was asked for and has not taken effect */
+    struct __pthread_cleanup *cleanup; /* The last handler pushed, or null */
 };
 
 #endif

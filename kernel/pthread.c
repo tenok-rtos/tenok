@@ -800,6 +800,96 @@ void __run_tls_destructors(void)
     }
 }
 
+static NACKED int __pthread_setcancelstate(int state, int *oldstate)
+{
+    SYSCALL(PTHREAD_SETCANCELSTATE);
+}
+
+static NACKED int __pthread_testcancel(void)
+{
+    SYSCALL(PTHREAD_TESTCANCEL);
+}
+
+static NACKED int __cleanup_push(struct __pthread_cleanup *node)
+{
+    SYSCALL(PTHREAD_CLEANUP_PUSH);
+}
+
+static NACKED int __cleanup_pop(struct __pthread_cleanup *node)
+{
+    SYSCALL(PTHREAD_CLEANUP_POP);
+}
+
+static NACKED void *__next_cleanup(void **arg)
+{
+    SYSCALL(PTHREAD_NEXT_CLEANUP);
+}
+
+void __pthread_cleanup_push(struct __pthread_cleanup *node,
+                            void (*routine)(void *arg),
+                            void *arg)
+{
+    node->routine = routine;
+    node->arg = arg;
+    __cleanup_push(node);
+}
+
+void __pthread_cleanup_pop(struct __pthread_cleanup *node, int execute)
+{
+    if (__cleanup_pop(node) != 0)
+        return;
+
+    if (execute)
+        node->routine(node->arg);
+}
+
+int pthread_setcancelstate(int state, int *oldstate)
+{
+    int retval = -__pthread_setcancelstate(state, oldstate);
+    if (retval != 0)
+        return retval;
+
+    /* A request that arrived while it was turned off is let in now */
+    if (state == PTHREAD_CANCEL_ENABLE)
+        pthread_testcancel();
+
+    return 0;
+}
+
+/* Tenok stops a thread only where stopping is safe, which is what POSIX calls
+ * deferred. Doing it anywhere would mean the kernel breaking into a thread
+ * wherever it happened to be, and almost nothing a thread does is safe to be
+ * broken into
+ */
+int pthread_setcanceltype(int type, int *oldtype)
+{
+    if (type != PTHREAD_CANCEL_DEFERRED && type != PTHREAD_CANCEL_ASYNCHRONOUS)
+        return EINVAL;
+
+    if (oldtype)
+        *oldtype = PTHREAD_CANCEL_DEFERRED;
+
+    return type == PTHREAD_CANCEL_DEFERRED ? 0 : ENOTSUP;
+}
+
+/* Where a thread stops if it was asked to. The handlers it pushed are run
+ * here, in the thread that pushed them, and pthread_exit() sees to the rest:
+ * the values it left under its keys, and the answer it leaves for a join
+ */
+void pthread_testcancel(void)
+{
+    if (!__pthread_testcancel())
+        return;
+
+    void (*routine)(void *arg);
+    void *arg;
+
+    while ((routine = __next_cleanup(&arg)))
+        routine(arg);
+
+    pthread_exit(PTHREAD_CANCELED);
+}
+
 /* Tenok has no fork() for these to be run either side of, so there is never
  * anything to remember
  */

@@ -81,6 +81,16 @@ Tenok API List
 
 * pthread_cancel()
 
+* pthread_setcancelstate()
+
+* pthread_setcanceltype()
+
+* pthread_testcancel()
+
+* pthread_cleanup_push()
+
+* pthread_cleanup_pop()
+
 * pthread_detach()
 
 * pthread_yield()

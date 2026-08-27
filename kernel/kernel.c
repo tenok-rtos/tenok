@@ -2654,7 +2654,11 @@ static int sys_pthread_cancel(pthread_t tid)
         goto leave;
     }
 
-    thread_delete(thread);
+    /* Asking is all this does. The thread itself is the one to stop, at a
+     * place where stopping is safe, so that what it holds is let go of and
+     * the handlers it pushed are run in the thread that pushed them
+     */
+    thread->cancel_pending = true;
 
     /* Return success */
     retval = 0;
@@ -3229,6 +3233,74 @@ static void *sys_pthread_next_destructor(void **value)
     preempt_enable();
 
     return destructor;
+}
+
+static int sys_pthread_setcancelstate(int state, int *oldstate)
+{
+    if (state != PTHREAD_CANCEL_ENABLE && state != PTHREAD_CANCEL_DISABLE)
+        return -EINVAL;
+
+    preempt_disable();
+
+    if (oldstate)
+        *oldstate = running_thread->cancel_state;
+
+    running_thread->cancel_state = state;
+
+    preempt_enable();
+
+    return 0;
+}
+
+/* Whether the thread is to stop here. The request is left standing: the thread
+ * is on its way out and nothing is going to ask again
+ */
+static int sys_pthread_testcancel(void)
+{
+    return running_thread->cancel_pending &&
+           running_thread->cancel_state == PTHREAD_CANCEL_ENABLE;
+}
+
+static int sys_pthread_cleanup_push(struct __pthread_cleanup *node)
+{
+    if (!node)
+        return -EINVAL;
+
+    node->prev = running_thread->cleanup;
+    running_thread->cleanup = node;
+
+    return 0;
+}
+
+static int sys_pthread_cleanup_pop(struct __pthread_cleanup *node)
+{
+    /* Only the handler pushed last can be taken off, which is what the two
+     * being a pair of brackets around a block already means
+     */
+    if (!node || running_thread->cleanup != node)
+        return -EINVAL;
+
+    running_thread->cleanup = node->prev;
+
+    return 0;
+}
+
+/* Handed over one at a time, in the order opposite to the one they were
+ * pushed in, so that the thread runs them itself on its way out
+ */
+static void *sys_pthread_next_cleanup(void **arg)
+{
+    if (!arg)
+        return NULL;
+
+    struct __pthread_cleanup *node = running_thread->cleanup;
+    if (!node)
+        return NULL;
+
+    running_thread->cleanup = node->prev;
+    *arg = node->arg;
+
+    return (void *) node->routine;
 }
 
 static int sys_pthread_once_begin(pthread_once_t *_once_control)

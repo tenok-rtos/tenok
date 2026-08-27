@@ -36,6 +36,18 @@
 #define PTHREAD_PRIO_NONE 0
 #define PTHREAD_PRIO_INHERIT 1
 
+/* Whether a thread can be cancelled at all, and when it is that a cancellation
+ * asked for takes effect. Tenok has only the deferred kind: a request waits
+ * until the thread reaches a place where stopping is safe
+ */
+#define PTHREAD_CANCEL_ENABLE 0
+#define PTHREAD_CANCEL_DISABLE 1
+#define PTHREAD_CANCEL_DEFERRED 0
+#define PTHREAD_CANCEL_ASYNCHRONOUS 1
+
+/* What pthread_join() is answered with for a thread that was cancelled */
+#define PTHREAD_CANCELED ((void *) -1)
+
 /* Whether the thread already holding a mutex is allowed to take it again. A
  * normal one deadlocks against itself; a recursive one counts how many times
  * over it was taken and is let go once for each
@@ -55,6 +67,15 @@ typedef uint32_t pthread_t;
 typedef uint32_t pthread_condattr_t;
 typedef uint32_t pthread_rwlockattr_t;
 typedef uint32_t pthread_key_t;
+
+/* What pthread_cleanup_push() writes down, which lives on the stack of the
+ * thread that pushes it and is linked into a list the kernel holds the end of
+ */
+struct __pthread_cleanup {
+    void (*routine)(void *arg);
+    void *arg;
+    struct __pthread_cleanup *prev;
+};
 
 typedef union {
     char __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
@@ -281,6 +302,56 @@ int pthread_detach(pthread_t thread);
  * @retval int: 0 on success and nonzero error number on error.
  */
 int pthread_cancel(pthread_t thread);
+
+/**
+ * @brief  Say whether a cancellation asked for is let in at all. A request
+ *         that arrives while it is turned off waits until it is turned back on
+ * @param  state: PTHREAD_CANCEL_ENABLE or PTHREAD_CANCEL_DISABLE.
+ * @param  oldstate: Where to put the state it had, or a null pointer.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_setcancelstate(int state, int *oldstate);
+
+/**
+ * @brief  Say when a cancellation takes effect. Tenok has only the deferred
+ *         kind, so asking for the other one is answered with ENOTSUP
+ * @param  type: PTHREAD_CANCEL_DEFERRED or PTHREAD_CANCEL_ASYNCHRONOUS.
+ * @param  oldtype: Where to put the type it had, or a null pointer.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_setcanceltype(int type, int *oldtype);
+
+/**
+ * @brief  Stop here if a cancellation was asked for and is let in. The
+ *         handlers pushed are run, and the thread ends with PTHREAD_CANCELED
+ * @retval None
+ */
+void pthread_testcancel(void);
+
+/* The two are a pair of brackets around a block, which is what lets the
+ * handler be written down on the stack of the thread that pushes it
+ */
+void __pthread_cleanup_push(struct __pthread_cleanup *node,
+                            void (*routine)(void *arg),
+                            void *arg);
+void __pthread_cleanup_pop(struct __pthread_cleanup *node, int execute);
+
+/**
+ * @brief  Say what to run if the thread is cancelled or ends before the
+ *         matching pthread_cleanup_pop()
+ */
+#define pthread_cleanup_push(routine, arg)  \
+    do {                                    \
+        struct __pthread_cleanup __cleanup; \
+        __pthread_cleanup_push(&__cleanup, routine, arg);
+
+/**
+ * @brief  Take the handler off again, running it first if asked to
+ */
+#define pthread_cleanup_pop(execute)            \
+    __pthread_cleanup_pop(&__cleanup, execute); \
+    }                                           \
+    while (0)
 
 /**
  * @brief  Compare thread IDs
