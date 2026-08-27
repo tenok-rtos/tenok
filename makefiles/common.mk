@@ -159,12 +159,6 @@ DEPEND = $(SRC:.c=.d)
 # on. The file is only written when the name in it is not the name being built,
 # so building the same platform again leaves it alone, and building a different
 # one makes every object out of date the way an edited header would.
-USER = $(shell whoami)
-CFLAGS += -D__USER_NAME__=\"$(USER)\"
-
-REVISION = $(shell git rev-parse --short=10 HEAD)
-CFLAGS += -D__REVISION__=\"$(REVISION)\"
-
 PLATFORM_STAMP := .platform
 
 $(PLATFORM_STAMP): FORCE
@@ -179,6 +173,16 @@ FORCE:
 .PHONY: FORCE
 
 $(OBJS): $(PLATFORM_STAMP)
+
+# What the build knows and the kernel does not: which revision this is, when it
+# was made, and by whom. Only what reads these is made to depend on them, so
+# that a new commit does not rebuild the whole system
+VERSION_HDR := include/kernel/version.h
+
+$(VERSION_HDR): FORCE
+	@./scripts/gen-version.sh $@
+
+./kernel/utsname.o ./user/tasks/shell_task.o: $(VERSION_HDR)
 
 ASM := ./kernel/arch/v7m_entry.S \
        ./platform/startup_stm32f4xx.s
@@ -225,6 +229,7 @@ check:
 
 clean:
 	rm -rf $(PLATFORM_STAMP)
+	rm -rf $(VERSION_HDR)
 	rm -rf $(LD_GENERATED)
 	rm -rf $(ELF)
 	rm -rf $(OBJS)

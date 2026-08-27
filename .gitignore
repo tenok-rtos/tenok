@@ -15,3 +15,5 @@ include/kernel/syscall.h
 build/
 html/
 latex/
+include/kernel/version.h
+.platform

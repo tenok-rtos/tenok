@@ -5,6 +5,8 @@
 #include <tenok.h>
 #include <unistd.h>
 
+#include <kernel/version.h>
+
 #include "kconfig.h"
 #include "shell.h"
 
