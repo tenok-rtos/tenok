@@ -1,8 +1,8 @@
 /**
  * @file
  */
-#ifndef __LIMITS_H__
-#define __LIMITS_H__
+#ifndef __SYS_LIMITS_H__
+#define __SYS_LIMITS_H__
 
 #include <sys/syslimits.h>
 
