@@ -113,6 +113,10 @@ Tenok API List
 
 * pthread_mutexattr_getprotocol()
 
+* pthread_mutexattr_settype()
+
+* pthread_mutexattr_gettype()
+
 * pthread_cond_init()
 
 * pthread_cond_destroy()

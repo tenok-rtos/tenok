@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -54,7 +55,15 @@ int mutex_trylock(struct mutex *mtx)
     CURRENT_THREAD_INFO(curr_thread);
 
     /* Check if the mutex is occupied */
-    if (mtx->owner != NULL) {
+    if (mtx->owner == curr_thread && mtx->type == PTHREAD_MUTEX_RECURSIVE) {
+        /* A recursive mutex is handed straight back to the thread already
+         * holding it, and is only let go once it has been let go as many times
+         * as it was taken
+         */
+        mtx->count++;
+
+        retval = 0;
+    } else if (mtx->owner != NULL) {
         retval = -EBUSY;
     } else {
         /* Occupy the mutex by setting the owner */
@@ -106,6 +115,15 @@ int mutex_unlock(struct mutex *mtx)
     /* Only the owner thread can unlock the mutex */
     if (mtx->owner != curr_thread) {
         retval = -EPERM;
+        goto leave;
+    }
+
+    /* A thread that took a recursive mutex more than once keeps it until it
+     * has let go of it as many times
+     */
+    if (mtx->count > 0) {
+        mtx->count--;
+        retval = 0;
         goto leave;
     }
 

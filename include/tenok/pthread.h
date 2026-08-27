@@ -35,8 +35,16 @@
 #define PTHREAD_PRIO_NONE 0
 #define PTHREAD_PRIO_INHERIT 1
 
-#define __SIZEOF_PTHREAD_MUTEXATTR_T 4 /* sizeof(struct mutex_attr) */
-#define __SIZEOF_PTHREAD_MUTEX_T 16    /* sizeof(struct mutex) */
+/* Whether the thread already holding a mutex is allowed to take it again. A
+ * normal one deadlocks against itself; a recursive one counts how many times
+ * over it was taken and is let go once for each
+ */
+#define PTHREAD_MUTEX_NORMAL 0
+#define PTHREAD_MUTEX_RECURSIVE 1
+#define PTHREAD_MUTEX_DEFAULT PTHREAD_MUTEX_NORMAL
+
+#define __SIZEOF_PTHREAD_MUTEXATTR_T 8 /* sizeof(struct mutex_attr) */
+#define __SIZEOF_PTHREAD_MUTEX_T 24    /* sizeof(struct mutex) */
 #define __SIZEOF_PTHREAD_ATTR_T 24     /* sizeof(struct thread_attr) */
 #define __SIZEOF_PTHREAD_COND_T 8      /* sizeof(struct cond) */
 #define __SIZEOF_PTHREAD_ONCE_T 12     /* sizeof(struct thread_once) */
@@ -134,6 +142,23 @@ int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
  */
 int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
                                   int *protocol);
+
+/**
+ * @brief  Set whether a mutex made with the attribute object may be taken
+ *         again by the thread already holding it
+ * @param  attr: The attribute object to set.
+ * @param  type: PTHREAD_MUTEX_NORMAL or PTHREAD_MUTEX_RECURSIVE.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
+
+/**
+ * @brief  Read which of the two a mutex made with the attribute object is
+ * @param  attr: The attribute object to read.
+ * @param  type: For returning the answer.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int *type);
 
 /**
  * @brief  Set stack size parameter of a thread attriute object

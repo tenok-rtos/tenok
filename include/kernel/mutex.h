@@ -10,10 +10,13 @@
 
 struct mutex_attr {
     int protocol;
+    int type;
 };
 
 struct mutex {
     int protocol;
+    int type;  /* Whether the owner is allowed to take it over again */
+    int count; /* How many times over the owner has taken it */
     struct thread_info *owner;
     struct list_head wait_list;
 };

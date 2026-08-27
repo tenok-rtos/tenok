@@ -123,6 +123,29 @@ int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
     return 0;
 }
 
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+    if (!attr)
+        return EINVAL;
+
+    if (type != PTHREAD_MUTEX_NORMAL && type != PTHREAD_MUTEX_RECURSIVE)
+        return EINVAL;
+
+    ((struct mutex_attr *) attr)->type = type;
+
+    return 0;
+}
+
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int *type)
+{
+    if (!attr || !type)
+        return EINVAL;
+
+    *type = ((struct mutex_attr *) attr)->type;
+
+    return 0;
+}
+
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
     if (!attr)
@@ -325,6 +348,7 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 
     struct mutex_attr *_attr = (struct mutex_attr *) attr;
     _attr->protocol = PTHREAD_PRIO_NONE;
+    _attr->type = PTHREAD_MUTEX_DEFAULT;
 
     return 0;
 }
@@ -349,6 +373,7 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
     if (attr) {
         struct mutex_attr *_attr = (struct mutex_attr *) attr;
         _mutex->protocol = _attr->protocol;
+        _mutex->type = _attr->type;
     }
 
     return 0;
