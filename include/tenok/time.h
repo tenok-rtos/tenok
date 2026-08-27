@@ -11,6 +11,12 @@
 
 #define CLOCK_REALTIME 0
 #define CLOCK_MONOTONIC 1
+
+/* Named so that a program written against POSIX builds. Tenok keeps no such
+ * count and clock_gettime() answers EINVAL for either of them
+ */
+#define CLOCK_PROCESS_CPUTIME_ID 2
+#define CLOCK_THREAD_CPUTIME_ID 3
 #define TIMER_ABSTIME 1
 
 struct timespec {
