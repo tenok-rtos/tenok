@@ -50,6 +50,10 @@ SRC += ./user/tasks/mavlink_task.c
 #SRC += ./user/tasks/examples/poll-ex.c
 #SRC += ./user/tasks/examples/pthread-ex.c
 
+
+# DirectFB2, which draws through /dev/fb0 onto the panel of this board
+-include ./user/directfb/directfb.mk
+
 flash:
 	openocd -f interface/stlink.cfg \
 	-f target/stm32f4x.cfg \

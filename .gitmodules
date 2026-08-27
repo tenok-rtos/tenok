@@ -7,3 +7,18 @@
 [submodule "lib/busybox-patches"]
 	path = lib/busybox-patches
 	url = https://github.com/tenok-rtos/busybox-patches.git
+[submodule "lib/directfb2"]
+	path = lib/directfb2
+	url = https://github.com/directfb2/DirectFB2.git
+[submodule "lib/directfb2-examples"]
+	path = lib/directfb2-examples
+	url = https://github.com/directfb2/directfb-examples.git
+[submodule "lib/directfbgl-portablegl"]
+	path = lib/directfbgl-portablegl
+	url = https://github.com/directfb2/DirectFBGL-PortableGL.git
+[submodule "lib/flux"]
+	path = lib/flux
+	url = https://github.com/deniskropp/flux.git
+[submodule "lib/portablegl"]
+	path = lib/portablegl
+	url = https://github.com/rswinkle/PortableGL.git
