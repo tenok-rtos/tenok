@@ -5,6 +5,7 @@
 #include <fs/fs.h>
 #include <printk.h>
 
+#include <drivers/fb.h>
 #include "bsp_drv.h"
 #include "stm32f429i_discovery_ioe.h"
 #include "stm32f429i_discovery_lcd.h"
@@ -106,6 +107,19 @@ void led_write(int fd, int state)
     ioctl(fd, LED1, state);
 }
 
+
+
+static struct fb_info lcd_fb = {
+    .name = "stm32f429",
+    .base = (void *) LCD_FRAME_BUFFER,
+    .size = LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT * 2,
+    .width = LCD_PIXEL_WIDTH,
+    .height = LCD_PIXEL_HEIGHT,
+    .bpp = 16,
+    .stride = LCD_PIXEL_WIDTH * 2,
+    .pages = 1,
+};
+
 void lcd_init(void)
 {
     LCD_Init();
@@ -124,6 +138,8 @@ void lcd_init(void)
     LCD_DisplayStringLine(LCD_LINE_1, (uint8_t *) "Tenok RTOS");
 
     LCD_DisplayOn();
+
+    fb_register(&lcd_fb);
 }
 
 void early_write(char *buf, size_t size)

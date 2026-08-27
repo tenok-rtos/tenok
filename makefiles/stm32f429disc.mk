@@ -32,6 +32,9 @@ SRC += ./lib/STM32F429I-Discovery/stm32f429i_discovery.c \
 # Board specific driver
 SRC += ./drivers/boards/stm32f429disc.c
 
+# The frame buffer the display controller scans out of
+SRC += ./drivers/display/fb.c
+
 # Example tasks
 SRC += ./user/tasks/led_task.c
 SRC += ./user/tasks/shell_task.c
