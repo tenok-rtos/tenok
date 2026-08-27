@@ -22,12 +22,20 @@
 #define PTHREAD_CREATE_DETACHED 0
 #define PTHREAD_CREATE_JOINABLE 1
 
+/* Whether a new thread is given the scheduling written in the attributes or
+ * the scheduling of the thread that creates it. POSIX starts an attribute out
+ * at PTHREAD_INHERIT_SCHED; Tenok starts it at PTHREAD_EXPLICIT_SCHED, on the
+ * grounds that attributes filled in are attributes meant
+ */
+#define PTHREAD_INHERIT_SCHED 0
+#define PTHREAD_EXPLICIT_SCHED 1
+
 #define PTHREAD_PRIO_NONE 0
 #define PTHREAD_PRIO_INHERIT 1
 
 #define __SIZEOF_PTHREAD_MUTEXATTR_T 4 /* sizeof(struct mutex_attr) */
 #define __SIZEOF_PTHREAD_MUTEX_T 16    /* sizeof(struct mutex) */
-#define __SIZEOF_PTHREAD_ATTR_T 20     /* sizeof(struct thread_attr) */
+#define __SIZEOF_PTHREAD_ATTR_T 24     /* sizeof(struct thread_attr) */
 #define __SIZEOF_PTHREAD_COND_T 8      /* sizeof(struct cond) */
 #define __SIZEOF_PTHREAD_ONCE_T 12     /* sizeof(struct thread_once) */
 
@@ -157,6 +165,23 @@ int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
  * @retval int: 0 on success and nonzero error number on error.
  */
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
+
+/**
+ * @brief  Set whether a thread made with the attribute object is scheduled as
+ *         the object says or as the thread that makes it is
+ * @param  attr: The attribute object to set.
+ * @param  inheritsched: PTHREAD_EXPLICIT_SCHED or PTHREAD_INHERIT_SCHED.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_attr_setinheritsched(pthread_attr_t *attr, int inheritsched);
+
+/**
+ * @brief  Read which of the two a thread made with the attribute object gets
+ * @param  attr: The attribute object to read.
+ * @param  inheritsched: For returning the answer.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched);
 
 /**
  * @brief  Set stack address parameter of a thread attriute object

@@ -2495,8 +2495,19 @@ static int sys_pthread_create(pthread_t *pthread,
     struct thread_attr default_attr;
     if (attr == NULL) {
         pthread_attr_init((pthread_attr_t *) &default_attr);
-        default_attr.schedparam.sched_priority = running_thread->priority;
+        default_attr.inheritsched = PTHREAD_INHERIT_SCHED;
         attr = &default_attr;
+    }
+
+    /* A thread told to inherit takes the priority of the one creating it, and
+     * whatever the attributes say about scheduling is passed over
+     */
+    struct thread_attr inherited_attr;
+    if (attr->inheritsched == PTHREAD_INHERIT_SCHED) {
+        inherited_attr = *attr;
+        inherited_attr.schedparam.sched_priority = running_thread->priority;
+        inherited_attr.schedpolicy = SCHED_RR;
+        attr = &inherited_attr;
     }
 
     /* Create new thread */

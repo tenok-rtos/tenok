@@ -16,6 +16,7 @@ struct thread_attr {
     void *stackaddr;
     size_t stacksize; /* Bytes */
     int schedpolicy;
+    int inheritsched; /* Whether the two scheduling fields are used at all */
     int detachstate;
 };
 

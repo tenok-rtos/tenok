@@ -38,6 +38,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     _attr->stacksize = STACK_SIZE_MIN;
     _attr->stackaddr = NULL;
     _attr->schedpolicy = SCHED_RR;
+    _attr->inheritsched = PTHREAD_EXPLICIT_SCHED;
     _attr->detachstate = PTHREAD_CREATE_JOINABLE;
     return 0;
 }
@@ -174,6 +175,30 @@ int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
 
     struct thread_attr *_attr = (struct thread_attr *) attr;
     *detachstate = _attr->detachstate;
+
+    return 0;
+}
+
+int pthread_attr_setinheritsched(pthread_attr_t *attr, int inheritsched)
+{
+    if (!attr)
+        return EINVAL;
+
+    if (inheritsched != PTHREAD_INHERIT_SCHED &&
+        inheritsched != PTHREAD_EXPLICIT_SCHED)
+        return EINVAL;
+
+    ((struct thread_attr *) attr)->inheritsched = inheritsched;
+
+    return 0;
+}
+
+int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched)
+{
+    if (!attr || !inheritsched)
+        return EINVAL;
+
+    *inheritsched = ((struct thread_attr *) attr)->inheritsched;
 
     return 0;
 }

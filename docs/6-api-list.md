@@ -47,6 +47,10 @@ Tenok API List
 
 * pthread_attr_getdetachstate()
 
+* pthread_attr_setinheritsched()
+
+* pthread_attr_getinheritsched()
+
 * pthread_attr_getschedparam()
 
 * pthread_attr_getschedpolicy()
