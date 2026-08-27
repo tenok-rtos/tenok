@@ -3856,6 +3856,13 @@ static inline void signal_cleanup_event_handler(void)
 
 static void thread_return_event_handler(void)
 {
+    /* A thread that returns leaves its answer in the first register, and the
+     * exception frame it is read out of is the same one a system call is read
+     * from. Nothing has filled in the argument pointers on this path, though:
+     * only a call listed in the system call table goes past the events above
+     */
+    get_syscall_args(running_thread->stack_top, running_thread->syscall_args);
+
     struct task_struct *task = current_task_info();
     if (running_thread == task->main_thread) {
         /* Returned from the main thread, thus the whole task should
