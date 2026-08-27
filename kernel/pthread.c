@@ -10,6 +10,22 @@
 #include <kernel/syscall.h>
 #include <kernel/thread.h>
 
+/* A program declares its objects with the opaque types, and the calls below
+ * write to the structures through them. The two sizes are written down in two
+ * places and nothing but this says they still agree; when they stop agreeing,
+ * a call writes past the end of what the program set aside
+ */
+_Static_assert(sizeof(pthread_mutexattr_t) == sizeof(struct mutex_attr),
+               "pthread_mutexattr_t no longer holds a struct mutex_attr");
+_Static_assert(sizeof(pthread_mutex_t) == sizeof(struct mutex),
+               "pthread_mutex_t no longer holds a struct mutex");
+_Static_assert(sizeof(pthread_attr_t) == sizeof(struct thread_attr),
+               "pthread_attr_t no longer holds a struct thread_attr");
+_Static_assert(sizeof(pthread_cond_t) == sizeof(struct cond),
+               "pthread_cond_t no longer holds a struct cond");
+_Static_assert(sizeof(pthread_once_t) == sizeof(struct thread_once),
+               "pthread_once_t no longer holds a struct thread_once");
+
 int pthread_attr_init(pthread_attr_t *attr)
 {
     if (!attr)

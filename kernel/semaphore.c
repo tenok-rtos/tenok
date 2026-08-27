@@ -14,6 +14,10 @@
 #include <kernel/thread.h>
 #include <kernel/wait.h>
 
+/* See the note beside the same check in kernel/pthread.c */
+_Static_assert(sizeof(sem_t) == sizeof(struct semaphore),
+               "sem_t no longer holds a struct semaphore");
+
 void sema_init(struct semaphore *sem, int val)
 {
     sem->count = val;
