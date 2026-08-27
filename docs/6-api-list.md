@@ -131,6 +131,22 @@ Tenok API List
 
 * pthread_cond_broadcast()
 
+### Read-Write Lock:
+
+* pthread_rwlock_init()
+
+* pthread_rwlock_destroy()
+
+* pthread_rwlock_rdlock()
+
+* pthread_rwlock_tryrdlock()
+
+* pthread_rwlock_wrlock()
+
+* pthread_rwlock_trywrlock()
+
+* pthread_rwlock_unlock()
+
 * pthread_cond_wait()
 
 * pthread_condattr_init()

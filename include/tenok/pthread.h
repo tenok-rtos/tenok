@@ -19,6 +19,7 @@
 #define PTHREAD_ONCE_INIT         {0}
 #define PTHREAD_MUTEX_INITIALIZER {0}
 #define PTHREAD_COND_INITIALIZER  {0}
+#define PTHREAD_RWLOCK_INITIALIZER {0}
 /* clang-format on */
 
 #define PTHREAD_CREATE_DETACHED 0
@@ -48,9 +49,11 @@
 #define __SIZEOF_PTHREAD_ATTR_T 24     /* sizeof(struct thread_attr) */
 #define __SIZEOF_PTHREAD_COND_T 8      /* sizeof(struct cond) */
 #define __SIZEOF_PTHREAD_ONCE_T 12     /* sizeof(struct thread_once) */
+#define __SIZEOF_PTHREAD_RWLOCK_T 52   /* sizeof(struct rwlock) */
 
 typedef uint32_t pthread_t;
 typedef uint32_t pthread_condattr_t;
+typedef uint32_t pthread_rwlockattr_t;
 
 typedef union {
     char __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
@@ -76,6 +79,11 @@ typedef union {
     char __size[__SIZEOF_PTHREAD_ONCE_T];
     uint32_t __align;
 } pthread_once_t;
+
+typedef union {
+    char __size[__SIZEOF_PTHREAD_RWLOCK_T];
+    uint32_t __align;
+} pthread_rwlock_t;
 
 /**
  * @brief  Initialize a thread attribute object with default values
@@ -436,6 +444,64 @@ int pthread_cond_signal(pthread_cond_t *cond);
  * @retval int: 0 on success and nonzero error number on error.
  */
 int pthread_cond_broadcast(pthread_cond_t *cond);
+
+/* Readers hold it together and a writer holds it alone. A writer that is
+ * waiting is let in before readers that arrive after it
+ */
+
+/**
+ * @brief  Initialize a read-write lock
+ * @param  rwlock: The lock to initialize.
+ * @param  attr: The attributes to give it, of which Tenok reads none.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlock_init(pthread_rwlock_t *rwlock,
+                        const pthread_rwlockattr_t *attr);
+
+/**
+ * @brief  Destroy a read-write lock
+ * @param  rwlock: The lock to destroy.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+
+/**
+ * @brief  Take the lock for reading, waiting until no writer holds it or is
+ *         waiting to
+ * @param  rwlock: The lock to take.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+
+/**
+ * @brief  Take the lock for reading, saying so at once if it cannot be taken
+ * @param  rwlock: The lock to take.
+ * @retval int: 0 on success, EBUSY when it is held, and another nonzero error
+ *         number otherwise.
+ */
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+
+/**
+ * @brief  Take the lock for writing, waiting until nobody holds it
+ * @param  rwlock: The lock to take.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
+
+/**
+ * @brief  Take the lock for writing, saying so at once if it cannot be taken
+ * @param  rwlock: The lock to take.
+ * @retval int: 0 on success, EBUSY when it is held, and another nonzero error
+ *         number otherwise.
+ */
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+
+/**
+ * @brief  Let go of the lock, however it was taken
+ * @param  rwlock: The lock to let go of.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
 
 /**
  * @brief  Atomically unlock the mutex and wait for the condition variable to

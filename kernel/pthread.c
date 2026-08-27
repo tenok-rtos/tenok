@@ -27,6 +27,8 @@ _Static_assert(sizeof(pthread_cond_t) == sizeof(struct cond),
                "pthread_cond_t no longer holds a struct cond");
 _Static_assert(sizeof(pthread_once_t) == sizeof(struct thread_once),
                "pthread_once_t no longer holds a struct thread_once");
+_Static_assert(sizeof(pthread_rwlock_t) == sizeof(struct rwlock),
+               "pthread_rwlock_t no longer holds a struct rwlock");
 
 int pthread_attr_init(pthread_attr_t *attr)
 {
@@ -509,6 +511,172 @@ static NACKED int __pthread_cond_broadcast(pthread_cond_t *cond)
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
     return set_error(__pthread_cond_broadcast(cond));
+}
+
+/* The mutex and the two waiting places inside are reached through the types a
+ * program uses, so that the calls below are the ones a program would write
+ */
+static struct rwlock *rwlock_of(pthread_rwlock_t *rwlock)
+{
+    return (struct rwlock *) rwlock;
+}
+
+static pthread_mutex_t *rwlock_mutex(struct rwlock *rw)
+{
+    return (pthread_mutex_t *) &rw->lock;
+}
+
+int pthread_rwlock_init(pthread_rwlock_t *rwlock,
+                        const pthread_rwlockattr_t *attr)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+
+    __mutex_init(&rw->lock);
+    INIT_LIST_HEAD(&rw->readable.task_wait_list);
+    INIT_LIST_HEAD(&rw->writable.task_wait_list);
+    rw->readers = 0;
+    rw->writers_waiting = 0;
+    rw->writing = false;
+
+    return 0;
+}
+
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    memset(rwlock, 0, sizeof(pthread_rwlock_t));
+
+    return 0;
+}
+
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+    pthread_mutex_t *mutex = rwlock_mutex(rw);
+
+    pthread_mutex_lock(mutex);
+
+    /* A writer already waiting is let in first, so that readers arriving one
+     * after another cannot keep it out forever
+     */
+    while (rw->writing || rw->writers_waiting > 0)
+        pthread_cond_wait((pthread_cond_t *) &rw->readable, mutex);
+
+    rw->readers++;
+
+    pthread_mutex_unlock(mutex);
+
+    return 0;
+}
+
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+    pthread_mutex_t *mutex = rwlock_mutex(rw);
+    int retval = 0;
+
+    pthread_mutex_lock(mutex);
+
+    if (rw->writing || rw->writers_waiting > 0)
+        retval = EBUSY;
+    else
+        rw->readers++;
+
+    pthread_mutex_unlock(mutex);
+
+    return retval;
+}
+
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+    pthread_mutex_t *mutex = rwlock_mutex(rw);
+
+    pthread_mutex_lock(mutex);
+
+    /* Counted as waiting before waiting, so that readers arriving in the
+     * meantime queue up behind rather than in front
+     */
+    rw->writers_waiting++;
+
+    while (rw->writing || rw->readers > 0)
+        pthread_cond_wait((pthread_cond_t *) &rw->writable, mutex);
+
+    rw->writers_waiting--;
+    rw->writing = true;
+
+    pthread_mutex_unlock(mutex);
+
+    return 0;
+}
+
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+    pthread_mutex_t *mutex = rwlock_mutex(rw);
+    int retval = 0;
+
+    pthread_mutex_lock(mutex);
+
+    if (rw->writing || rw->readers > 0)
+        retval = EBUSY;
+    else
+        rw->writing = true;
+
+    pthread_mutex_unlock(mutex);
+
+    return retval;
+}
+
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
+{
+    if (!rwlock)
+        return EINVAL;
+
+    struct rwlock *rw = rwlock_of(rwlock);
+    pthread_mutex_t *mutex = rwlock_mutex(rw);
+    int retval = 0;
+
+    pthread_mutex_lock(mutex);
+
+    if (rw->writing)
+        rw->writing = false;
+    else if (rw->readers > 0)
+        rw->readers--;
+    else
+        retval = EPERM;
+
+    if (retval == 0) {
+        /* The last one out lets a writer in if any is waiting, and every
+         * reader in otherwise. Only one writer can be let in, where every
+         * reader can go at once
+         */
+        if (rw->readers == 0 && rw->writers_waiting > 0)
+            pthread_cond_signal((pthread_cond_t *) &rw->writable);
+        else if (rw->writers_waiting == 0)
+            pthread_cond_broadcast((pthread_cond_t *) &rw->readable);
+    }
+
+    pthread_mutex_unlock(mutex);
+
+    return retval;
 }
 
 static NACKED int __pthread_cond_wait(pthread_cond_t *cond,

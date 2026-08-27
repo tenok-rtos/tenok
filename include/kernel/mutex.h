@@ -25,6 +25,19 @@ struct cond {
     struct list_head task_wait_list;
 };
 
+/* Readers hold it together and a writer holds it alone. The counts below say
+ * which of the two is going on, and the two waiting places keep the readers
+ * apart from the writers so that each can be let in on its own
+ */
+struct rwlock {
+    struct mutex lock;    /* Held while the counts below are looked at */
+    struct cond readable; /* Waited on while a writer holds the lock */
+    struct cond writable; /* Waited on while anyone holds the lock */
+    int readers;          /* How many hold it for reading */
+    int writers_waiting;  /* How many are waiting to hold it for writing */
+    bool writing;         /* Whether one holds it for writing */
+};
+
 void __mutex_init(struct mutex *mtx);
 void thread_inherit_priority(struct mutex *mutex);
 void thread_reset_inherited_priority(struct mutex *mutex);
