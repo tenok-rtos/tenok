@@ -2754,6 +2754,17 @@ static int sys_pthread_setschedparam(pthread_t tid,
         goto leave;
     }
 
+    /* Round robin is the only way Tenok schedules, and a thread asked to be
+     * scheduled another way is left as it was rather than told it was done
+     */
+    if (policy != SCHED_RR) {
+        retval = policy == SCHED_FIFO || policy == SCHED_OTHER ||
+                         policy == SCHED_SPORADIC
+                     ? -ENOTSUP
+                     : -EINVAL;
+        goto leave;
+    }
+
     /* Apply settings */
     if (thread->priority_inherited)
         thread->original_priority = param->sched_priority;

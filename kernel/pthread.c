@@ -86,8 +86,19 @@ int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy)
     if (!attr)
         return EINVAL;
 
-    struct thread_attr *_attr = (struct thread_attr *) attr;
-    _attr->schedpolicy = policy;
+    if (policy != SCHED_FIFO && policy != SCHED_RR && policy != SCHED_OTHER &&
+        policy != SCHED_SPORADIC)
+        return EINVAL;
+
+    /* Round robin is the only way Tenok schedules, and the object is left as
+     * it was. Saying so here is what lets a caller read the policy back and
+     * see what it really got, rather than find out when the thread it makes
+     * with the object fails to be created
+     */
+    if (policy != SCHED_RR)
+        return ENOTSUP;
+
+    ((struct thread_attr *) attr)->schedpolicy = policy;
 
     return 0;
 }

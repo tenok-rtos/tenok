@@ -140,9 +140,11 @@ int pthread_attr_getschedparam(const pthread_attr_t *attr,
                                struct sched_param *param);
 
 /**
- * @brief  Set scheduling policy of a thread attriute object
+ * @brief  Set scheduling policy of a thread attriute object. Round robin is
+ *         the only way Tenok schedules, and another policy of POSIX is
+ *         answered with ENOTSUP and leaves the object as it was
  * @param  attr: The attribute object to set.
- * @param  param: The scheduling policy for setting the attribute object.
+ * @param  policy: The scheduling policy for setting the attribute object.
  * @retval int: 0 on success and nonzero error number on error.
  */
 int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
