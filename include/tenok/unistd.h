@@ -147,6 +147,14 @@ off_t lseek(int fd, long offset, int whence);
 pid_t getpid(void);
 
 /**
+ * @brief  Read the identifier of the calling thread. Linux names this, and a
+ *         program written for it asks for it where POSIX would use
+ *         pthread_self()
+ * @retval pid_t: The thread identifier.
+ */
+pid_t gettid(void);
+
+/**
  * @brief  Return the ID of the task that started the calling one. Every task
  *         of Tenok is started by the one that brings the system up
  * @retval pid_t: Always 1.

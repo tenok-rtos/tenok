@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <sys/wait.h>
 #include <task.h>
@@ -94,6 +95,12 @@ int execvp(const char *file, char *const argv[])
 {
     errno = ENOEXEC;
     return -1;
+}
+
+/* A thread is known by the same number either way it is asked for */
+pid_t gettid(void)
+{
+    return (pid_t) pthread_self();
 }
 
 NACKED int task_create(task_func_t task_func, uint8_t priority, int stack_size)

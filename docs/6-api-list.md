@@ -93,6 +93,8 @@ Tenok API List
 
 * pthread_self()
 
+* gettid()
+
 ### Mutex and Conditional Variable:
 
 * pthread_mutex_init()
