@@ -11,9 +11,12 @@
 
 #include <common/list.h>
 
-#define PTHREAD_ONCE_INIT                                     \
-    {                                                         \
-        .wq = {.next = NULL, .prev = NULL}, .finished = false \
+/* What this describes is opaque to the caller and starts out as all zeros,
+ * which is how the kernel knows the routine has not been run yet
+ */
+#define PTHREAD_ONCE_INIT \
+    {                     \
+        0                 \
     }
 
 #define PTHREAD_CREATE_DETACHED 0
