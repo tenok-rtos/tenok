@@ -520,6 +520,14 @@ POSIX compiles, and each says so when it is made.
 
 * posix_memalign()
 
+* atexit()
+
+* rand()
+
+* srand()
+
+* getenv()
+
 * calloc()
 
 * realloc()

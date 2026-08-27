@@ -85,14 +85,44 @@ int mkstemp(char *template);
  */
 
 #if 0
-int atexit(void (*function)(void));
 void abort(void);
 int system(const char *command);
 int setenv(const char *name, const char *value, int overwrite);
 int unsetenv(const char *name);
 int putenv(char *string);
-char *getenv(const char *name);
 #endif
+
+/* What the C library brings with it. Tenok writes none of these itself, but a
+ * program that asks for them gets the ones the library links in
+ */
+
+/**
+ * @brief  Say what to run when the program ends
+ * @param  function: What to run.
+ * @retval int: 0 on success and nonzero otherwise.
+ */
+int atexit(void (*function)(void));
+
+/**
+ * @brief  Give back a pseudo-random number between 0 and RAND_MAX
+ * @retval int: The number.
+ */
+int rand(void);
+
+/**
+ * @brief  Say where the numbers rand() gives back are to start from
+ * @param  seed: What to start from.
+ * @retval None
+ */
+void srand(unsigned int seed);
+
+/**
+ * @brief  Read a variable of the environment. Tenok gives a program none, so
+ *         nothing is ever found
+ * @param  name: The name to look for.
+ * @retval char *: The value, and a null pointer when there is none.
+ */
+char *getenv(const char *name);
 
 /*
  * Non-standard extensions:
