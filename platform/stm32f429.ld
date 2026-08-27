@@ -57,7 +57,10 @@ ENTRY(Reset_Handler)
 RAM_ADDR = 0x20000000;
 RAM_SIZE = 192K;
 
-USER_STACK_SIZE = 20K;
+/* What the user space allocates from. It is in the SDRAM on this board, which
+ * has far more of it than the chip has of its own
+ */
+USER_STACK_SIZE = 4M;
 
 #if (PAGE_SIZE_SELECT == PAGE_SIZE_64K)
 PAGE_SECTION_SIZE = 64K;
@@ -78,7 +81,12 @@ MEMORY
   RAM (xrw)      : ORIGIN = RAM_ADDR, LENGTH = RAM_SIZE
   CCMRAM (xrw)   : ORIGIN = 0x10000000, LENGTH = 64K
   FLASH (rx)     : ORIGIN = 0x8000000,  LENGTH = 2048K
-  SDRAM (rw)     : ORIGIN = 0xD0000000, LENGTH = 8M
+  /* The two layers the display controller reads from live at the start of the
+   * SDRAM, at the addresses the board support names: one at the beginning and
+   * the other 320K after it. What is left over starts after both of them
+   */
+  FRAMEBUFFER (rw) : ORIGIN = 0xD0000000, LENGTH = 640K
+  SDRAM (rw)     : ORIGIN = 0xD00A0000, LENGTH = 8M - 640K
 }
 
 /* Define output sections */
@@ -248,7 +256,7 @@ SECTIONS
     PROVIDE (_user_stack_start = .);
     . += USER_STACK_SIZE;
     PROVIDE (_user_stack_end = .);
-  } >RAM
+  } >SDRAM
  
   .sdram (NOLOAD) :
   {

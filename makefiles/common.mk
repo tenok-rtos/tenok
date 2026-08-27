@@ -192,10 +192,12 @@ ASM := ./kernel/arch/v7m_entry.S \
 all: $(SYSCALL_HDR) msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
-$(ELF): $(ASM) $(OBJS)
+# The linker script is one of the things the firmware is made out of, so an
+# edit to it links again. It is left behind afterwards rather than removed, or
+# it would be missing on the next build and the link would happen every time
+$(ELF): $(ASM) $(OBJS) $(LD_GENERATED)
 	@echo "LD" $@
 	@$(CC) $(CFLAGS) $(OBJS) $(ASM) $(LDFLAGS) -o $@
-	@rm $(LD_GENERATED)
 
 $(BIN): $(ELF)
 	@echo "OBJCPY" $@
@@ -222,7 +224,9 @@ ROM_SRC := $(shell find ./rom -type f 2>/dev/null)
 tools/mkromfs/romfs.o: tools/mkromfs/mkromfs.c $(ROM_SRC)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
-$(LD_GENERATED): $(LD_SCRIPT) 
+# The script a platform links with is not the script another links with, and
+# the name of the file made from it is the same either way
+$(LD_GENERATED): $(LD_SCRIPT) $(PLATFORM_STAMP)
 	@echo "CC" $< ">" $@
 	@$(CC) -E -P -x c $(CFLAGS) $<>$@  
 
