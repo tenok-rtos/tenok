@@ -10,6 +10,8 @@
 #include <kernel/syscall.h>
 #include <kernel/thread.h>
 
+#include "kconfig.h"
+
 /* A program declares its objects with the opaque types, and the calls below
  * write to the structures through them. The two sizes are written down in two
  * places and nothing but this says they still agree; when they stop agreeing,
@@ -33,7 +35,7 @@ int pthread_attr_init(pthread_attr_t *attr)
 
     struct thread_attr *_attr = (struct thread_attr *) attr;
     _attr->schedparam.sched_priority = 0;
-    _attr->stacksize = 512;
+    _attr->stacksize = STACK_SIZE_MIN;
     _attr->stackaddr = NULL;
     _attr->schedpolicy = SCHED_RR;
     _attr->detachstate = PTHREAD_CREATE_JOINABLE;
@@ -123,6 +125,12 @@ int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
     if (!attr)
+        return EINVAL;
+
+    /* Say so here rather than let the thread run off the end of a stack that
+     * was never going to be enough
+     */
+    if (stacksize < STACK_SIZE_MIN)
         return EINVAL;
 
     struct thread_attr *_attr = (struct thread_attr *) attr;
