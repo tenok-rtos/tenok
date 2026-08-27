@@ -150,6 +150,8 @@ OBJS += ./tools/mkromfs/romfs.o
 
 DEPEND = $(SRC:.c=.d)
 
+SYSCALL_HDR := include/kernel/syscall.h
+
 # Every platform compiles the same sources with different pins, clocks and
 # board names, and the object files it makes look alike. Building one platform
 # on top of what another left gives firmware that is half of each, and it fails
@@ -172,7 +174,7 @@ FORCE:
 
 .PHONY: FORCE
 
-$(OBJS): $(PLATFORM_STAMP)
+$(OBJS): $(PLATFORM_STAMP) $(SYSCALL_HDR)
 
 # What the build knows and the kernel does not: which revision this is, when it
 # was made, and by whom. Only what reads these is made to depend on them, so
@@ -187,7 +189,7 @@ $(VERSION_HDR): FORCE
 ASM := ./kernel/arch/v7m_entry.S \
        ./platform/startup_stm32f4xx.s
 
-all: gen_syscalls msggen $(LD_GENERATED) $(ELF)
+all: $(SYSCALL_HDR) msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile
 
 $(ELF): $(ASM) $(OBJS)
@@ -199,8 +201,16 @@ $(BIN): $(ELF)
 	@echo "OBJCPY" $@
 	@$(OBJCOPY) -O binary $(PROJECT).elf $(PROJECT).bin
 
-gen_syscalls:
-	./scripts/gen-syscalls.py > include/kernel/syscall.h
+# A file and not a recipe of its own, so that what reads it is rebuilt after it
+# is written and not on the build after that. Written only when what it says
+# has changed, so that building again does not rebuild what reads it at all
+$(SYSCALL_HDR): scripts/gen-syscalls.py
+	@echo "GEN" $@
+	@./scripts/gen-syscalls.py > $@.new
+	@cmp -s $@.new $@ || mv $@.new $@
+	@rm -f $@.new
+
+gen_syscalls: $(SYSCALL_HDR)
 
 -include $(DEPEND)
 
