@@ -24,6 +24,16 @@ void mutex_init(struct mutex *mtx)
     mtx->protocol = PTHREAD_PRIO_INHERIT;
 }
 
+/* A mutex written down with PTHREAD_MUTEX_INITIALIZER is all zeros, and a list
+ * of zeros is not yet a list. The first thread to reach for it makes one, the
+ * same way pthread_once() does
+ */
+static void mutex_check_init(struct mutex *mtx)
+{
+    if (!mtx->wait_list.next || !mtx->wait_list.prev)
+        INIT_LIST_HEAD(&mtx->wait_list);
+}
+
 bool mutex_is_locked(struct mutex *mtx)
 {
     preempt_disable();
@@ -36,6 +46,8 @@ bool mutex_is_locked(struct mutex *mtx)
 int mutex_trylock(struct mutex *mtx)
 {
     preempt_disable();
+
+    mutex_check_init(mtx);
 
     int retval;
 
@@ -84,6 +96,8 @@ int mutex_lock(struct mutex *mtx)
 int mutex_unlock(struct mutex *mtx)
 {
     preempt_disable();
+
+    mutex_check_init(mtx);
 
     int retval;
 

@@ -2992,10 +2992,23 @@ static int sys_pthread_mutex_timedlock(pthread_mutex_t *mutex,
     }
 }
 
+/* A condition variable written down with PTHREAD_COND_INITIALIZER is all zeros
+ * in the same way a mutex is, and is made into a list here for the same reason
+ */
+static struct list_head *cond_wait_list(pthread_cond_t *cond)
+{
+    struct cond *_cond = (struct cond *) cond;
+
+    if (!_cond->task_wait_list.next || !_cond->task_wait_list.prev)
+        INIT_LIST_HEAD(&_cond->task_wait_list);
+
+    return &_cond->task_wait_list;
+}
+
 static int sys_pthread_cond_signal(pthread_cond_t *cond)
 {
     /* Wake up a thread from the wait list */
-    wake_up(&((struct cond *) cond)->task_wait_list);
+    wake_up(cond_wait_list(cond));
 
     /* Return success */
     return 0;
@@ -3004,7 +3017,7 @@ static int sys_pthread_cond_signal(pthread_cond_t *cond)
 static int sys_pthread_cond_broadcast(pthread_cond_t *cond)
 {
     /* Wake up all threads from the wait list */
-    wake_up_all(&((struct cond *) cond)->task_wait_list);
+    wake_up_all(cond_wait_list(cond));
 
     /* Return success */
     return 0;
@@ -3026,8 +3039,7 @@ static int sys_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     }
 
     /* Enqueue current thread into the wait list */
-    prepare_to_wait(&((struct cond *) cond)->task_wait_list, running_thread,
-                    THREAD_WAIT);
+    prepare_to_wait(cond_wait_list(cond), running_thread, THREAD_WAIT);
 
     preempt_enable();
 
@@ -3059,8 +3071,7 @@ static int sys_pthread_cond_timedwait(pthread_cond_t *cond,
     running_thread->syscall_timeout = *abstime;
     list_add_tail(&running_thread->timeout_list, &timeout_list);
 
-    prepare_to_wait(&((struct cond *) cond)->task_wait_list, running_thread,
-                    THREAD_WAIT);
+    prepare_to_wait(cond_wait_list(cond), running_thread, THREAD_WAIT);
     preempt_enable();
 
     schedule();

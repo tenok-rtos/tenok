@@ -11,13 +11,15 @@
 
 #include <common/list.h>
 
-/* What this describes is opaque to the caller and starts out as all zeros,
- * which is how the kernel knows the routine has not been run yet
+/* What these describe is opaque to the caller and starts out as all zeros. A
+ * list of zeros is not yet a list, which is how the kernel knows an object was
+ * written down this way and has not been reached for yet
  */
-#define PTHREAD_ONCE_INIT \
-    {                     \
-        0                 \
-    }
+/* clang-format off */
+#define PTHREAD_ONCE_INIT         {0}
+#define PTHREAD_MUTEX_INITIALIZER {0}
+#define PTHREAD_COND_INITIALIZER  {0}
+/* clang-format on */
 
 #define PTHREAD_CREATE_DETACHED 0
 #define PTHREAD_CREATE_JOINABLE 1
