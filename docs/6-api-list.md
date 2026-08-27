@@ -151,6 +151,10 @@ Tenok API List
 
 ### Read-Write Lock:
 
+* pthread_rwlockattr_init()
+
+* pthread_rwlockattr_destroy()
+
 * pthread_rwlock_init()
 
 * pthread_rwlock_destroy()

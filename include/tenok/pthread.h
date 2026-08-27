@@ -522,6 +522,20 @@ int pthread_cond_broadcast(pthread_cond_t *cond);
  */
 
 /**
+ * @brief  Initialize a read-write lock attribute object
+ * @param  attr: The attribute object to initialize.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlockattr_init(pthread_rwlockattr_t *attr);
+
+/**
+ * @brief  Destroy a read-write lock attribute object
+ * @param  attr: The attribute object to destroy.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr);
+
+/**
  * @brief  Initialize a read-write lock
  * @param  rwlock: The lock to initialize.
  * @param  attr: The attributes to give it, of which Tenok reads none.

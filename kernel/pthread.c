@@ -534,6 +534,27 @@ static pthread_mutex_t *rwlock_mutex(struct rwlock *rw)
     return (pthread_mutex_t *) &rw->lock;
 }
 
+/* Tenok reads nothing out of these: a read-write lock of it is always one
+ * that the threads of the running task share and nothing else can reach
+ */
+int pthread_rwlockattr_init(pthread_rwlockattr_t *attr)
+{
+    if (!attr)
+        return EINVAL;
+
+    *attr = 0;
+
+    return 0;
+}
+
+int pthread_rwlockattr_destroy(pthread_rwlockattr_t *attr)
+{
+    if (!attr)
+        return EINVAL;
+
+    return 0;
+}
+
 int pthread_rwlock_init(pthread_rwlock_t *rwlock,
                         const pthread_rwlockattr_t *attr)
 {
