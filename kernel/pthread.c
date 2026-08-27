@@ -288,7 +288,11 @@ static NACKED int __pthread_join(pthread_t thread, void **retval)
 
 int pthread_join(pthread_t thread, void **retval)
 {
-    return set_error(__pthread_join(thread, retval));
+    int ret = set_error(__pthread_join(thread, retval));
+
+    pthread_testcancel();
+
+    return ret;
 }
 
 static NACKED int __pthread_detach(pthread_t thread)
@@ -714,9 +718,16 @@ static NACKED int __pthread_cond_wait(pthread_cond_t *cond,
     SYSCALL(PTHREAD_COND_WAIT);
 }
 
+/* The mutex is taken again before this returns, which is what lets the
+ * handlers a cancelled thread runs find what it was holding still held
+ */
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    return set_error(__pthread_cond_wait(cond, mutex));
+    int ret = set_error(__pthread_cond_wait(cond, mutex));
+
+    pthread_testcancel();
+
+    return ret;
 }
 
 static NACKED int __pthread_cond_timedwait(pthread_cond_t *cond,
@@ -730,7 +741,11 @@ int pthread_cond_timedwait(pthread_cond_t *cond,
                            pthread_mutex_t *mutex,
                            const struct timespec *abstime)
 {
-    return set_error(__pthread_cond_timedwait(cond, mutex, abstime));
+    int ret = set_error(__pthread_cond_timedwait(cond, mutex, abstime));
+
+    pthread_testcancel();
+
+    return ret;
 }
 
 static NACKED int __pthread_once_begin(pthread_once_t *once_control)

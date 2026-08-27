@@ -373,6 +373,13 @@ struct thread_info *current_thread_info(void)
     return running_thread;
 }
 
+/* Whether the running thread has been asked to stop and is letting it in */
+bool thread_cancel_requested(void)
+{
+    return running_thread->cancel_pending &&
+           running_thread->cancel_state == PTHREAD_CANCEL_ENABLE;
+}
+
 static struct task_struct *acquire_task(int pid)
 {
     struct task_struct *task;
@@ -2660,6 +2667,21 @@ static int sys_pthread_cancel(pthread_t tid)
      */
     thread->cancel_pending = true;
 
+    /* A thread that is waiting will not reach one of those places on its own,
+     * so it is woken to be given the chance. What it was waiting for has not
+     * happened, and the call it is inside says so on the way back
+     */
+    if (thread->status == THREAD_WAIT &&
+        thread->cancel_state == PTHREAD_CANCEL_ENABLE) {
+        /* A thread waiting out a sleep keeps the ticks it has left, and the
+         * scheduler puts a thread that is still holding some back where it
+         * came from. The sleep is over, so what is left of it is given up
+         */
+        thread->sleep_ticks = 0;
+
+        finish_wait(thread);
+    }
+
     /* Return success */
     retval = 0;
 
@@ -3257,8 +3279,7 @@ static int sys_pthread_setcancelstate(int state, int *oldstate)
  */
 static int sys_pthread_testcancel(void)
 {
-    return running_thread->cancel_pending &&
-           running_thread->cancel_state == PTHREAD_CANCEL_ENABLE;
+    return thread_cancel_requested();
 }
 
 static int sys_pthread_cleanup_push(struct __pthread_cleanup *node)

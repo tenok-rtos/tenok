@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pthread.h>
 #include <semaphore.h>
 #include <stdint.h>
 #include <string.h>
@@ -34,6 +35,14 @@ int down(struct semaphore *sem)
         prepare_to_wait(&sem->wait_list, current_thread_info(), THREAD_WAIT);
 
         schedule();
+
+        /* Woken to be stopped rather than because the count moved. Waiting
+         * again would put the thread back where it can never be reached
+         */
+        if (thread_cancel_requested()) {
+            preempt_enable();
+            return -ECANCELED;
+        }
     }
 
     /* Acquired the semaphore successfully */
@@ -133,9 +142,14 @@ static NACKED int __sem_wait(sem_t *sem)
     SYSCALL(SEM_WAIT);
 }
 
+/* POSIX names this one of the places a thread that was asked to stop does */
 int sem_wait(sem_t *sem)
 {
-    return set_errno(__sem_wait(sem));
+    int retval = set_errno(__sem_wait(sem));
+
+    pthread_testcancel();
+
+    return retval;
 }
 
 static NACKED int __sem_timedwait(sem_t *sem, const struct timespec *abstime)
@@ -145,7 +159,11 @@ static NACKED int __sem_timedwait(sem_t *sem, const struct timespec *abstime)
 
 int sem_timedwait(sem_t *sem, const struct timespec *abstime)
 {
-    return set_errno(__sem_timedwait(sem, abstime));
+    int retval = set_errno(__sem_timedwait(sem, abstime));
+
+    pthread_testcancel();
+
+    return retval;
 }
 
 static NACKED int __sem_getvalue(sem_t *sem, int *sval)

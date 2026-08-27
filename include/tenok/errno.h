@@ -50,6 +50,7 @@ extern int *__errno(void);
 #define ENOTEMPTY 90    /**< Directory not empty */
 #define ENAMETOOLONG 91 /**< File or path name too long */
 #define ETIMEDOUT 116   /**< Connection timed out */
+#define ECANCELED 140   /**< Operation canceled */
 #define EMSGSIZE 122    /**< Message to long */
 #define EOVERFLOW 139   /**< Numerical overflow */
 

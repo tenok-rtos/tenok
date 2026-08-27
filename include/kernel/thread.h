@@ -29,6 +29,9 @@ struct thread_once {
 struct thread_info *current_thread_info(void);
 struct thread_info *acquire_thread(int tid);
 
+/* Whether the running thread has been asked to stop and is letting it in */
+bool thread_cancel_requested(void);
+
 /* Run in the thread that is ending, from either of the two ways out of one */
 void __run_tls_destructors(void);
 

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <tenok.h>
@@ -36,9 +37,21 @@ NACKED int sched_yield(void)
     SYSCALL(SCHED_YIELD);
 }
 
-NACKED int delay_ticks(uint32_t ticks)
+static NACKED int __delay_ticks(uint32_t ticks)
 {
     SYSCALL(DELAY_TICKS);
+}
+
+/* Every way of sleeping Tenok has goes through here, and POSIX names all of
+ * them places a thread that was asked to stop does
+ */
+int delay_ticks(uint32_t ticks)
+{
+    int retval = __delay_ticks(ticks);
+
+    pthread_testcancel();
+
+    return retval;
 }
 
 unsigned int sleep(unsigned int seconds)
