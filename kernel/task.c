@@ -1,6 +1,9 @@
 #include <errno.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <string.h>
+#include <sys/prctl.h>
 #include <sys/wait.h>
 #include <task.h>
 #include <tenok.h>
@@ -95,6 +98,53 @@ int execvp(const char *file, char *const argv[])
 {
     errno = ENOEXEC;
     return -1;
+}
+
+/* The name is the whole of what a thread of Tenok carries to be asked about,
+ * so the two options that ask about it are the two this answers
+ */
+int prctl(int option, ...)
+{
+    va_list ap;
+    va_start(ap, option);
+    char *name = va_arg(ap, char *);
+    va_end(ap);
+
+    if (!name) {
+        errno = EFAULT;
+        return -1;
+    }
+
+    switch (option) {
+    case PR_SET_NAME:
+        setprogname(name);
+        return 0;
+
+    case PR_GET_NAME: {
+        /* The caller says nothing about the room it hands over, so what is
+         * written is the longest name a thread of Tenok can be given
+         */
+        pthread_t self = pthread_self();
+        struct thread_stat info;
+        void *next = NULL;
+
+        while ((next = thread_info(&info, next))) {
+            if ((pthread_t) info.tid != self)
+                continue;
+
+            strncpy(name, info.name, PR_NAME_MAX - 1);
+            name[PR_NAME_MAX - 1] = '\0';
+            return 0;
+        }
+
+        errno = ESRCH;
+        return -1;
+    }
+
+    default:
+        errno = EINVAL;
+        return -1;
+    }
 }
 
 /* A thread is known by the same number either way it is asked for */

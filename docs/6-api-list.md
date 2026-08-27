@@ -35,6 +35,8 @@ Tenok API List
 
 * setprogname()
 
+* prctl()
+
 * getpid()
 
 * exit()
