@@ -93,6 +93,8 @@ Tenok API List
 
 * pthread_once()
 
+* pthread_atfork()
+
 * pthread_self()
 
 * gettid()

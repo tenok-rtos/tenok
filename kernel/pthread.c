@@ -562,3 +562,13 @@ int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
 
     return 0;
 }
+
+/* Tenok has no fork() for these to be run either side of, so there is never
+ * anything to remember
+ */
+int pthread_atfork(void (*prepare)(void),
+                   void (*parent)(void),
+                   void (*child)(void))
+{
+    return ENOSYS;
+}

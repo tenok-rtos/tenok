@@ -465,4 +465,15 @@ int pthread_cond_timedwait(pthread_cond_t *cond,
  */
 int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
 
+/**
+ * @brief  Say what to run either side of a fork(), which Tenok has none of
+ * @param  prepare: What to run before the fork.
+ * @param  parent: What to run after it in the calling task.
+ * @param  child: What to run after it in the new one.
+ * @retval int: Always ENOSYS.
+ */
+int pthread_atfork(void (*prepare)(void),
+                   void (*parent)(void),
+                   void (*child)(void));
+
 #endif
