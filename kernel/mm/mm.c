@@ -149,9 +149,78 @@ void *__malloc(size_t size)
     return NULL;
 }
 
+/* An aligned block is carved out of a plain one: the memory comes from
+ * __malloc() with room to spare, and the part in front of the address that
+ * answers is handed back as a free block of its own, so that __free() takes
+ * the result the same way it takes any other
+ */
+void *__memalign(size_t alignment, size_t size)
+{
+    /* Every allocation already comes back on a boundary this wide */
+    if (alignment <= sizeof(long))
+        return __malloc(size);
+
+    /* Room for the address to move up to a boundary, and for what is left in
+     * front of it to be long enough to be a block
+     */
+    void *ptr = __malloc(size + alignment + sizeof(struct malloc_info));
+    if (!ptr)
+        return NULL;
+
+    uintptr_t aligned = ALIGN_UP((uintptr_t) ptr, alignment);
+    if (aligned == (uintptr_t) ptr)
+        return ptr;
+
+    /* What is handed back in front has to hold a header, so the address moves
+     * up to the first boundary that leaves room for one
+     */
+    aligned = ALIGN_UP((uintptr_t) ptr + sizeof(struct malloc_info), alignment);
+
+    struct malloc_info *blk = container_of(ptr, struct malloc_info, data);
+    struct malloc_info *aligned_blk =
+        container_of((char *) aligned, struct malloc_info, data);
+
+    size_t front_len = (uintptr_t) aligned_blk - (uintptr_t) blk;
+    size_t blk_len = malloc_get_block_length(blk);
+
+    malloc_set_block_length(aligned_blk, blk_len - front_len);
+    malloc_set_block_free(aligned_blk, false);
+
+    /* The block in front sits before this one in memory, and __free() merges a
+     * block with its list neighbours, so the list has to stay sorted by address
+     */
+    list_add(&aligned_blk->list, &blk->list);
+
+    /* What is left in front is given back */
+    malloc_set_block_length(blk, front_len);
+    malloc_set_block_free(blk, true);
+
+    return aligned_blk->data;
+}
+
 NACKED void *malloc(size_t size)
 {
     SYSCALL(MALLOC);
+}
+
+static NACKED void *__sys_memalign(size_t alignment, size_t size)
+{
+    SYSCALL(MEMALIGN);
+}
+
+int posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+    /* POSIX asks for a power of two that a pointer fits in */
+    if (alignment < sizeof(void *) || (alignment & (alignment - 1)))
+        return EINVAL;
+
+    void *ptr = __sys_memalign(alignment, size);
+    if (!ptr && size)
+        return ENOMEM;
+
+    *memptr = ptr;
+
+    return 0;
 }
 
 void __free(void *ptr)

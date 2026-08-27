@@ -42,6 +42,7 @@ unsigned long heap_get_total_size(void);
 unsigned long heap_get_free_size(void);
 void heap_init(void);
 void *__malloc(size_t size);
+void *__memalign(size_t alignment, size_t size);
 void __free(void *ptr);
 void *__realloc(void *ptr, size_t size);
 

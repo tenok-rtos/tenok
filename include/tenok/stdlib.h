@@ -29,6 +29,17 @@ void exit(int status);
 void *malloc(size_t size);
 
 /**
+ * @brief  Allocate memory whose address is a multiple of the alignment
+ * @param  memptr: Where to put the address.
+ * @param  alignment: What the address is to be a multiple of, which has to be
+ *         a power of two and a multiple of the size of a pointer.
+ * @param  size: How much to allocate.
+ * @retval int: 0 on success and nonzero error number otherwise. What it gives
+ *         back is given up with free().
+ */
+int posix_memalign(void **memptr, size_t alignment, size_t size);
+
+/**
  * @brief  Free a memory space
  * @param  ptr: Pointer to the allocated memory.
  * @retval None

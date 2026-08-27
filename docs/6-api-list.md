@@ -480,6 +480,8 @@ POSIX compiles, and each says so when it is made.
 
 * malloc()
 
+* posix_memalign()
+
 * calloc()
 
 * realloc()

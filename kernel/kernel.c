@@ -3796,6 +3796,16 @@ leave:
     return ptr;
 }
 
+static void *sys_memalign(size_t alignment, size_t size)
+{
+    preempt_disable();
+
+    void *ptr = size ? __memalign(alignment, size) : NULL;
+
+    preempt_enable();
+    return ptr;
+}
+
 static void sys_free(void *ptr)
 {
     preempt_disable();

@@ -86,6 +86,7 @@ syscalls = \
      'mq_timedsend',
      'mq_timedreceive',
      'malloc',
+     'memalign',
      'free',
      'pipe',
      'realloc',
