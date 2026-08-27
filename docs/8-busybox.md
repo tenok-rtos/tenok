@@ -88,14 +88,14 @@ include/busybox/       the headers BusyBox is compiled against
 To apply the patches to a fresh checkout:
 
 ```
-./scripts/busybox-prepare.sh
+./scripts/package-prepare.sh busybox
 ```
 
 Running it again is safe and always produces the same tree. To turn what you
 changed in `lib/busybox` into a patch of the series:
 
 ```
-./scripts/busybox-refresh-patch.sh 0003-name-of-the-change
+./scripts/package-refresh-patch.sh busybox 0003-name-of-the-change
 ```
 
 The two patches are the whole of what BusyBox needs:
