@@ -48,11 +48,6 @@ CFLAGS += -D USE_STDPERIPH_DRIVER \
 
 CFLAGS += -Wl,-T,$(LD_GENERATED)
 
-USER = $(shell whoami)
-CFLAGS += -D__USER_NAME__=\"$(USER)\"
-
-REVISION = $(shell git rev-parse --short=10 HEAD)
-CFLAGS += -D__REVISION__=\"$(REVISION)\"
 
 CFLAGS += -I./lib/CMSIS/ST/STM32F4xx/Include
 CFLAGS += -I./lib/CMSIS/Include
@@ -155,6 +150,36 @@ OBJS += ./tools/mkromfs/romfs.o
 
 DEPEND = $(SRC:.c=.d)
 
+# Every platform compiles the same sources with different pins, clocks and
+# board names, and the object files it makes look alike. Building one platform
+# on top of what another left gives firmware that is half of each, and it fails
+# in ways that point nowhere near the build.
+#
+# The name of the platform is written down in a file that every object depends
+# on. The file is only written when the name in it is not the name being built,
+# so building the same platform again leaves it alone, and building a different
+# one makes every object out of date the way an edited header would.
+USER = $(shell whoami)
+CFLAGS += -D__USER_NAME__=\"$(USER)\"
+
+REVISION = $(shell git rev-parse --short=10 HEAD)
+CFLAGS += -D__REVISION__=\"$(REVISION)\"
+
+PLATFORM_STAMP := .platform
+
+$(PLATFORM_STAMP): FORCE
+	@last=$$(cat $@ 2>/dev/null); \
+	 if [ "$$last" != "$(PLATFORM)" ]; then \
+	     echo "PLATFORM $${last:+$$last -> }$(PLATFORM)"; \
+	     echo "$(PLATFORM)" > $@; \
+	 fi
+
+FORCE:
+
+.PHONY: FORCE
+
+$(OBJS): $(PLATFORM_STAMP)
+
 ASM := ./kernel/arch/v7m_entry.S \
        ./platform/startup_stm32f4xx.s
 
@@ -199,6 +224,7 @@ check:
 	$(CPPCHECK) . -i lib/
 
 clean:
+	rm -rf $(PLATFORM_STAMP)
 	rm -rf $(LD_GENERATED)
 	rm -rf $(ELF)
 	rm -rf $(OBJS)
