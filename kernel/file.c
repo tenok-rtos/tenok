@@ -254,6 +254,52 @@ DIR *opendir(const char *name)
     return dirp;
 }
 
+/* Tenok keeps no owner and no mode for an open file, and has no way to shorten
+ * one. A program written against POSIX still names these, and is told plainly
+ * that the system does not do them
+ */
+int fchown(int fd, uid_t owner, gid_t group)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int ftruncate(int fd, off_t length)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+int fchmod(int fd, mode_t mode)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
+/* Reading by a format is not something Tenok writes, and a program that asks
+ * is told so rather than left to think it read nothing
+ */
+int fscanf(FILE *stream, const char *format, ...)
+{
+    errno = ENOSYS;
+    return EOF;
+}
+
+/* Tenok runs no command of its own, so there is nothing to read from or write
+ * to and nothing to wait for afterwards
+ */
+FILE *popen(const char *command, const char *type)
+{
+    errno = ENOSYS;
+    return NULL;
+}
+
+int pclose(FILE *stream)
+{
+    errno = ENOSYS;
+    return -1;
+}
+
 static NACKED int __readdir(DIR *dirp, struct dirent *dirent)
 {
     SYSCALL(READDIR);

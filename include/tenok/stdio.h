@@ -326,6 +326,33 @@ int sscanf(const char *str, const char *format, ...);
  */
 int vsscanf(const char *str, const char *format, va_list ap);
 
+/* Tenok has no reader that takes a format from a stream, and runs no command
+ * of its own. They are named so that a program written against POSIX builds
+ */
+
+/**
+ * @brief  Read from a stream by a format, which Tenok has no reader for.
+ * @param  stream: The file stream to read from.
+ * @param  format: What to read.
+ * @retval int: EOF with errno set to ENOSYS.
+ */
+int fscanf(FILE *stream, const char *format, ...);
+
+/**
+ * @brief  Run a command and read from or write to it, which Tenok cannot do.
+ * @param  command: The command to run.
+ * @param  type: Whether to read from it or write to it.
+ * @retval FILE *: A null pointer with errno set to ENOSYS.
+ */
+FILE *popen(const char *command, const char *type);
+
+/**
+ * @brief  Wait for a command opened with popen(), which never opens one.
+ * @param  stream: The stream popen() gave back.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int pclose(FILE *stream);
+
 /**
  * @brief  Write a string to the stream, without its terminating null byte
  * @param  s: The string to write.

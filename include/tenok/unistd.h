@@ -355,4 +355,25 @@ int chown(const char *pathname, uid_t owner, gid_t group);
  */
 int lchown(const char *pathname, uid_t owner, gid_t group);
 
+/* Tenok keeps no owner for an open file and has no way to shorten one. They
+ * are named so that a program written against POSIX builds
+ */
+
+/**
+ * @brief  Replace the owner of an open file, which Tenok does not keep.
+ * @param  fd: The open file.
+ * @param  owner: The user to give it to.
+ * @param  group: The group to give it to.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int fchown(int fd, uid_t owner, gid_t group);
+
+/**
+ * @brief  Shorten an open file, which Tenok has no way to do.
+ * @param  fd: The open file.
+ * @param  length: What to shorten it to.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int ftruncate(int fd, off_t length);
+
 #endif

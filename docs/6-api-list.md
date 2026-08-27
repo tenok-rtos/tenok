@@ -171,6 +171,8 @@ Tenok API List
 
 * lseek()
 
+* ftruncate()
+
 * dup()
 
 * dup2()
@@ -213,11 +215,15 @@ Tenok API List
 
 * chmod()
 
+* fchmod()
+
 * umask()
 
 * chown()
 
 * lchown()
+
+* fchown()
 
 * utime()
 
@@ -318,6 +324,12 @@ Tenok API List
 * sscanf()
 
 * vsscanf()
+
+* fscanf()
+
+* popen()
+
+* pclose()
 
 ### Process:
 

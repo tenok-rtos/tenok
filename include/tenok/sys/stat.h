@@ -128,6 +128,15 @@ int utime(const char *pathname, uint32_t mtime);
 int chmod(const char *pathname, mode_t mode);
 
 /**
+ * @brief  Replace the permission bits of an open file, which Tenok reaches a
+ *         file by its pathname to do
+ * @param  fd: The open file.
+ * @param  mode: The permission bits to give it.
+ * @retval int: -1 with errno set to ENOSYS.
+ */
+int fchmod(int fd, mode_t mode);
+
+/**
  * @brief  Return information about the file specified by the pathname, in
  *         the buffer pointed to by statbuf
  * @param  pathname: The pathname of the file.
