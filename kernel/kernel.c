@@ -2597,8 +2597,12 @@ static int sys_pthread_cancel(pthread_t tid)
         goto leave;
     }
 
-    /* kthread can only be canceled by the kernel */
-    if (thread->privilege == KERNEL_THREAD) {
+    /* kthread can only be canceled by the kernel. What says a thread is one is
+     * the flag it was made with, not its privilege: that says which mode the
+     * thread is running in, and every thread runs in the kernel's while it is
+     * inside a system call, this one included
+     */
+    if (thread->kernel_thread) {
         /* Return error */
         retval = -EPERM;
         goto leave;
@@ -2664,7 +2668,7 @@ static int sys_pthread_setschedparam(pthread_t tid,
     }
 
     /* kthread can only be configured by the kernel */
-    if (thread->privilege == KERNEL_THREAD) {
+    if (thread->kernel_thread) {
         /* Return error */
         retval = -EPERM;
         goto leave;
@@ -2713,7 +2717,7 @@ static int sys_pthread_getschedparam(pthread_t tid,
     }
 
     /* kthread can only be set by the kernel */
-    if (thread->privilege == KERNEL_THREAD) {
+    if (thread->kernel_thread) {
         /* Return error */
         retval = -EPERM;
         goto leave;
@@ -2833,7 +2837,7 @@ static int sys_pthread_kill(pthread_t tid, int sig)
     }
 
     /* kthread does not receive signals */
-    if (thread->privilege == KERNEL_THREAD) {
+    if (thread->kernel_thread) {
         /* Return error */
         retval = -EPERM;
         goto leave;
