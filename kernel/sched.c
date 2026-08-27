@@ -31,7 +31,7 @@ int sched_rr_get_interval(pid_t pid, struct timespec *tp)
     return 0;
 }
 
-NACKED void sched_yield(void)
+NACKED int sched_yield(void)
 {
     SYSCALL(SCHED_YIELD);
 }
