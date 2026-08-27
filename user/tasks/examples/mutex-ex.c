@@ -26,8 +26,8 @@ void mutex_task1(void)
     setprogname("mutex-ex-1");
 
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&cond_producer, 0);
-    pthread_cond_init(&cond_consumer, 0);
+    pthread_cond_init(&cond_producer, NULL);
+    pthread_cond_init(&cond_consumer, NULL);
 
     int item = 1;
 

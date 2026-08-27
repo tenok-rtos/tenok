@@ -399,7 +399,7 @@ int pthread_condattr_destroy(pthread_condattr_t *attr)
     return 0;
 }
 
-int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr)
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *cond_attr)
 {
     if (!cond)
         return -EINVAL;

@@ -355,10 +355,11 @@ int pthread_condattr_destroy(pthread_condattr_t *attr);
  * @brief  Initializes the conditional variable with specified attributes
  * @param  cond: The conditional variable object to initialize.
  * @param  cond_attr: The attribute object for initializing the conditional
- *         variable.
+ *         variable, which Tenok has none of and ignores.
  * @retval int: 0 on success and nonzero error number on error.
  */
-int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t cond_attr);
+int pthread_cond_init(pthread_cond_t *cond,
+                      const pthread_condattr_t *cond_attr);
 
 /**
  * @brief  Destroy the conditional variable
