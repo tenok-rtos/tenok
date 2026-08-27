@@ -57,6 +57,11 @@ struct timespec;
 #define SA_RESTART 0x10000000
 #define SA_NOCLDSTOP 0x00000001
 
+/* Tenok never holds a signal back while its handler runs, so this describes
+ * what it already does
+ */
+#define SA_NODEFER 0x40000000
+
 #define SIGEV_NONE 1
 #define SIGEV_SIGNAL 2
 

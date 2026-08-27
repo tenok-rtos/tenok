@@ -16,6 +16,13 @@
 #define MAP_SHARED 0x01
 #define MAP_PRIVATE 0x02
 #define MAP_ANONYMOUS 0x20
+
+/* Asking for the mapping to be put where the caller says. The address it gives
+ * back is where the contents already are, so this is named and nothing acts
+ * on it, the same way the requested address itself is
+ */
+#define MAP_FIXED 0x10
+
 #define MAP_FAILED ((void *) -1)
 
 /**
