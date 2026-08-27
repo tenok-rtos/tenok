@@ -32,6 +32,16 @@
 #define THREAD_NAME_MAX 50    /* Max length of thread names */
 #define THREAD_MAX 32         /* Max number of threads in the system */
 
+/* Thread-local storage. A key names a slot that every thread has one of, so
+ * the count is paid for by every thread whether it uses one or not
+ */
+#define _PTHREAD_KEYS_MAX 8
+
+/* How many times over a destructor that leaves a new value behind is called
+ * again before the system gives up on it
+ */
+#define _PTHREAD_DESTRUCTOR_ITERATIONS 4
+
 /* Message queue and pipe */
 #define MQUEUE_MAX 16  /* Max number of message queue can be allocated */
 #define _MQ_PRIO_MAX 5 /* Max message queue priority number */

@@ -95,6 +95,14 @@ Tenok API List
 
 * pthread_atfork()
 
+* pthread_key_create()
+
+* pthread_key_delete()
+
+* pthread_setspecific()
+
+* pthread_getspecific()
+
 * pthread_self()
 
 * gettid()

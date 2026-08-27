@@ -118,8 +118,9 @@ struct thread_info {
     struct list_head task_list;       /* Linked to the task thread list */
     struct list_head thread_list;     /* Linked to the global thread list */
     struct list_head timeout_list;    /* Linked to the global timeout list */
-    struct list_head join_list; /* Linked to another thread waiting for join */
-    struct list_head list;      /* Linked to a scheduling list */
+    struct list_head join_list;  /* Linked to another thread waiting for join */
+    struct list_head list;       /* Linked to a scheduling list */
+    void *tls[PTHREAD_KEYS_MAX]; /* What the thread keeps under each key */
 };
 
 #endif

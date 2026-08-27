@@ -69,6 +69,14 @@ static LIST_HEAD(mqueue_list);  /* List of all posix message queues */
 struct list_head ready_list[KTHREAD_PRI_MAX + 1];
 
 /* Scheduler */
+/* A key names a slot that every thread has one of. The slot is the thread's
+ * own, and what is kept in it is reached only through the key
+ */
+static struct {
+    void (*destructor)(void *value);
+    bool taken;
+} tls_keys[PTHREAD_KEYS_MAX];
+
 static bool need_resched_flag;
 static uint32_t preempt_cnt;
 
@@ -130,9 +138,20 @@ NACKED void syscall_return_handler(void)
     SYSCALL(SYSCALL_RETURN_EVENT);
 }
 
-NACKED void thread_return_handler(void)
+static NACKED void __thread_return(void *retval)
 {
     SYSCALL(THREAD_RETURN_EVENT);
+}
+
+/* Where a thread lands when its routine returns. The value the routine gave
+ * back is in the first register, which is where the first argument of a
+ * function is, so it is taken as one and handed on after the destructors the
+ * thread still owes have been run
+ */
+void thread_return_handler(void *retval)
+{
+    __run_tls_destructors();
+    __thread_return(retval);
 }
 
 NACKED void signal_cleanup_handler(void)
@@ -3112,6 +3131,106 @@ static int sys_pthread_cond_timedwait(pthread_cond_t *cond,
  * The first says whether this thread is the one to run it, waiting if another
  * thread got there first; the second says it has been run.
  */
+static int sys_pthread_key_create(pthread_key_t *key,
+                                  void (*destructor)(void *value))
+{
+    if (!key)
+        return -EINVAL;
+
+    preempt_disable();
+
+    int retval = -EAGAIN;
+
+    for (int i = 0; i < PTHREAD_KEYS_MAX; i++) {
+        if (tls_keys[i].taken)
+            continue;
+
+        tls_keys[i].taken = true;
+        tls_keys[i].destructor = destructor;
+
+        /* A key handed out anew names an empty slot in every thread, whatever
+         * the thread that held it last left there
+         */
+        struct thread_info *thread;
+        list_for_each_entry (thread, &threads_list, thread_list)
+            thread->tls[i] = NULL;
+
+        *key = i;
+        retval = 0;
+        break;
+    }
+
+    preempt_enable();
+
+    return retval;
+}
+
+static int sys_pthread_key_delete(pthread_key_t key)
+{
+    if (key >= PTHREAD_KEYS_MAX || !tls_keys[key].taken)
+        return -EINVAL;
+
+    preempt_disable();
+
+    tls_keys[key].taken = false;
+    tls_keys[key].destructor = NULL;
+
+    preempt_enable();
+
+    return 0;
+}
+
+static int sys_pthread_setspecific(pthread_key_t key, const void *value)
+{
+    if (key >= PTHREAD_KEYS_MAX || !tls_keys[key].taken)
+        return -EINVAL;
+
+    running_thread->tls[key] = (void *) value;
+
+    return 0;
+}
+
+static void *sys_pthread_getspecific(pthread_key_t key)
+{
+    if (key >= PTHREAD_KEYS_MAX || !tls_keys[key].taken)
+        return NULL;
+
+    return running_thread->tls[key];
+}
+
+/* POSIX has a destructor run in the thread the value belongs to, so the kernel
+ * is not the one to call it. It hands over one at a time and the thread calls
+ * them itself, on its way out.
+ *
+ * The value is taken out of the slot before it is handed over, so a destructor
+ * that leaves a new value behind is answered by another turn rather than by
+ * the same one forever.
+ */
+static void *sys_pthread_next_destructor(void **value)
+{
+    if (!value)
+        return NULL;
+
+    preempt_disable();
+
+    void *destructor = NULL;
+
+    for (int i = 0; i < PTHREAD_KEYS_MAX; i++) {
+        if (!running_thread->tls[i] || !tls_keys[i].taken ||
+            !tls_keys[i].destructor)
+            continue;
+
+        *value = running_thread->tls[i];
+        running_thread->tls[i] = NULL;
+        destructor = (void *) tls_keys[i].destructor;
+        break;
+    }
+
+    preempt_enable();
+
+    return destructor;
+}
+
 static int sys_pthread_once_begin(pthread_once_t *_once_control)
 {
     preempt_disable();

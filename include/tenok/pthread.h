@@ -54,6 +54,7 @@
 typedef uint32_t pthread_t;
 typedef uint32_t pthread_condattr_t;
 typedef uint32_t pthread_rwlockattr_t;
+typedef uint32_t pthread_key_t;
 
 typedef union {
     char __size[__SIZEOF_PTHREAD_MUTEXATTR_T];
@@ -530,6 +531,42 @@ int pthread_cond_timedwait(pthread_cond_t *cond,
  * @retval int: 0 on success and nonzero error number on error.
  */
 int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
+
+/* A key names a slot that every thread has one of. What a thread keeps there
+ * is its own, and is reached only through the key
+ */
+
+/**
+ * @brief  Take a key, and say what to run on what a thread leaves under it
+ * @param  key: Where to put the key taken.
+ * @param  destructor: What to run on a value left behind when a thread ends,
+ *         or a null pointer for nothing to be run.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void *value));
+
+/**
+ * @brief  Give a key back. What threads left under it is not run over
+ * @param  key: The key to give back.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_key_delete(pthread_key_t key);
+
+/**
+ * @brief  Put a value under the key, in the slot of the calling thread
+ * @param  key: The key naming the slot.
+ * @param  value: What to keep there.
+ * @retval int: 0 on success and nonzero error number on error.
+ */
+int pthread_setspecific(pthread_key_t key, const void *value);
+
+/**
+ * @brief  Read what the calling thread keeps under the key
+ * @param  key: The key naming the slot.
+ * @retval void *: What is kept there, and a null pointer when the slot is
+ *         empty or the key is not one that was taken.
+ */
+void *pthread_getspecific(pthread_key_t key);
 
 /**
  * @brief  Say what to run either side of a fork(), which Tenok has none of

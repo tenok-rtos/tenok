@@ -29,4 +29,7 @@ struct thread_once {
 struct thread_info *current_thread_info(void);
 struct thread_info *acquire_thread(int tid);
 
+/* Run in the thread that is ending, from either of the two ways out of one */
+void __run_tls_destructors(void);
+
 #endif

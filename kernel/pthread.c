@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <sched.h>
 #include <string.h>
@@ -410,9 +411,16 @@ int pthread_kill(pthread_t thread, int sig)
     return set_error(__pthread_kill(thread, sig));
 }
 
-NACKED void pthread_exit(void *retval)
+static NACKED void __pthread_exit(void *retval)
 {
     SYSCALL(PTHREAD_EXIT);
+}
+
+/* The other way out of a thread, and the destructors are owed either way */
+void pthread_exit(void *retval)
+{
+    __run_tls_destructors();
+    __pthread_exit(retval);
 }
 
 static NACKED int __pthread_mutex_unlock(pthread_mutex_t *mutex)
@@ -729,6 +737,67 @@ int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
     }
 
     return 0;
+}
+
+static NACKED int __pthread_key_create(pthread_key_t *key,
+                                       void (*destructor)(void *value))
+{
+    SYSCALL(PTHREAD_KEY_CREATE);
+}
+
+int pthread_key_create(pthread_key_t *key, void (*destructor)(void *value))
+{
+    return set_error(__pthread_key_create(key, destructor));
+}
+
+static NACKED int __pthread_key_delete(pthread_key_t key)
+{
+    SYSCALL(PTHREAD_KEY_DELETE);
+}
+
+int pthread_key_delete(pthread_key_t key)
+{
+    return set_error(__pthread_key_delete(key));
+}
+
+static NACKED int __pthread_setspecific(pthread_key_t key, const void *value)
+{
+    SYSCALL(PTHREAD_SETSPECIFIC);
+}
+
+int pthread_setspecific(pthread_key_t key, const void *value)
+{
+    return set_error(__pthread_setspecific(key, value));
+}
+
+NACKED void *pthread_getspecific(pthread_key_t key)
+{
+    SYSCALL(PTHREAD_GETSPECIFIC);
+}
+
+static NACKED void *__pthread_next_destructor(void **value)
+{
+    SYSCALL(PTHREAD_NEXT_DESTRUCTOR);
+}
+
+/* Run in the thread that is ending, which is what POSIX asks for and what the
+ * kernel cannot do for it. The kernel hands over one destructor at a time and
+ * says so when there are none left; a destructor that leaves a new value
+ * behind brings back another, so the turns are counted and given up on
+ */
+void __run_tls_destructors(void)
+{
+    int turns = PTHREAD_KEYS_MAX * PTHREAD_DESTRUCTOR_ITERATIONS;
+    void (*destructor)(void *value);
+    void *value;
+
+    while (turns-- > 0) {
+        destructor = __pthread_next_destructor(&value);
+        if (!destructor)
+            return;
+
+        destructor(value);
+    }
 }
 
 /* Tenok has no fork() for these to be run either side of, so there is never
