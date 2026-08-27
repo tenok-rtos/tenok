@@ -57,10 +57,13 @@ extern int *__errno(void);
  * written for a POSIX system compiles, and they follow newlib, which is the
  * library the numbers have to agree with
  */
-#define ENOEXEC 8   /**< Exec format error */
-#define ECHILD 10   /**< No child processes */
-#define ERANGE 34   /**< Result too large */
-#define ELOOP 92    /**< Too many levels of symbolic links */
-#define ENOTSUP 134 /**< Not supported */
+#define ENOEXEC 8        /**< Exec format error */
+#define ECHILD 10        /**< No child processes */
+#define EMLINK 31        /**< Too many links */
+#define EDOM 33          /**< Argument outside the domain of the function */
+#define ERANGE 34        /**< Result too large */
+#define ELOOP 92         /**< Too many levels of symbolic links */
+#define ECONNREFUSED 111 /**< Connection refused */
+#define ENOTSUP 134      /**< Not supported */
 
 #endif
