@@ -462,13 +462,29 @@ int pthread_cond_timedwait(pthread_cond_t *cond,
     return set_error(__pthread_cond_timedwait(cond, mutex, abstime));
 }
 
-static NACKED int __pthread_once(pthread_once_t *once_control,
-                                 void (*init_routine)(void))
+static NACKED int __pthread_once_begin(pthread_once_t *once_control)
 {
-    SYSCALL(PTHREAD_ONCE);
+    SYSCALL(PTHREAD_ONCE_BEGIN);
 }
 
+static NACKED int __pthread_once_end(pthread_once_t *once_control)
+{
+    SYSCALL(PTHREAD_ONCE_END);
+}
+
+/* The routine belongs to the caller and is called from here, where the caller
+ * is, rather than from the kernel. The kernel only says which thread is to
+ * call it, and hears back when it has been called
+ */
 int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
 {
-    return set_error(__pthread_once(once_control, init_routine));
+    if (!once_control || !init_routine)
+        return EINVAL;
+
+    if (__pthread_once_begin(once_control) == 0) {
+        init_routine();
+        __pthread_once_end(once_control);
+    }
+
+    return 0;
 }

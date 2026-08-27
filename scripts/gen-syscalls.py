@@ -63,7 +63,8 @@ syscalls = \
      'pthread_cond_broadcast',
      'pthread_cond_wait',
      'pthread_cond_timedwait',
-     'pthread_once',
+     'pthread_once_begin',
+     'pthread_once_end',
      'sem_post',
      'sem_trywait',
      'sem_wait',
@@ -93,7 +94,7 @@ reserved_events = [
     'SYSCALL_RETURN_EVENT',
     'SIGNAL_CLEANUP_EVENT',
     'THREAD_RETURN_EVENT',
-    'THREAD_ONCE_EVENT']
+]
 
 syscall_cnt = len(syscalls)
 reserved_events_cnt = len(reserved_events)

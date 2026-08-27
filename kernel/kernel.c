@@ -140,11 +140,6 @@ NACKED void signal_cleanup_handler(void)
     SYSCALL(SIGNAL_CLEANUP_EVENT);
 }
 
-NACKED void thread_once_return_handler(void)
-{
-    SYSCALL(THREAD_ONCE_EVENT);
-}
-
 void preempt_count_inc(void)
 {
     preempt_cnt++;
@@ -3030,31 +3025,58 @@ static int sys_pthread_cond_timedwait(pthread_cond_t *cond,
     return 0;
 }
 
-static int sys_pthread_once(pthread_once_t *_once_control,
-                            void (*init_routine)(void))
+/* The routine a once control names is written by the caller and has to run in
+ * user space, so pthread_once() is in two halves with the call between them.
+ * The first says whether this thread is the one to run it, waiting if another
+ * thread got there first; the second says it has been run.
+ */
+static int sys_pthread_once_begin(pthread_once_t *_once_control)
 {
     preempt_disable();
 
-    struct thread_once *once_control = (struct thread_once *) _once_control;
+    struct thread_once *once = (struct thread_once *) _once_control;
 
-    if (once_control->finished)
-        goto leave;
+    /* A once control written down with PTHREAD_ONCE_INIT is all zeros, and a
+     * list of zeros is not yet a list
+     */
+    if (!once->wait_list.next || !once->wait_list.prev)
+        INIT_LIST_HEAD(&once->wait_list);
 
-    if (once_control->wait_list.next == NULL ||
-        once_control->wait_list.prev == NULL) {
-        /* The first time to execute pthread_once() */
-        INIT_LIST_HEAD(&once_control->wait_list);
-    } else {
-        /* pthread_once() is already called */
-        prepare_to_wait(&once_control->wait_list, running_thread, THREAD_WAIT);
-        goto leave;
+    if (once->finished) {
+        preempt_enable();
+        return 1;
     }
 
-    running_thread->once_control = once_control;
-    stage_temporary_handler(running_thread, (uint32_t) init_routine,
-                            (uint32_t) thread_once_return_handler, NULL);
+    if (!once->running) {
+        once->running = true;
+        preempt_enable();
+        return 0;
+    }
 
-leave:
+    /* Another thread is running the routine. Wait for it to say it is done,
+     * so that this call does not return before the routine has been run
+     */
+    prepare_to_wait(&once->wait_list, running_thread, THREAD_WAIT);
+    preempt_enable();
+    schedule();
+
+    return 1;
+}
+
+static int sys_pthread_once_end(pthread_once_t *_once_control)
+{
+    preempt_disable();
+
+    struct thread_once *once = (struct thread_once *) _once_control;
+
+    once->running = false;
+    once->finished = true;
+
+    if (!once->wait_list.next || !once->wait_list.prev)
+        INIT_LIST_HEAD(&once->wait_list);
+
+    wake_up_all(&once->wait_list);
+
     preempt_enable();
     return 0;
 }
@@ -3849,21 +3871,6 @@ static void thread_return_event_handler(void)
     set_need_resched();
 }
 
-static void pthread_once_event_handler(void)
-{
-    /* Restore the stack */
-    running_thread->stack_top =
-        (unsigned long *) running_thread->stack_top_preserved;
-    running_thread->stack_top_preserved = (unsigned long) NULL;
-
-    /* Wake up all waiting threads and mark once variable as complete */
-    struct thread_once *once_control = running_thread->once_control;
-    once_control->finished = true;
-    wake_up_all(&once_control->wait_list);
-
-    set_need_resched();  // XXX
-}
-
 static void setup_syscall(struct thread_info *thread,
                           uint32_t func,
                           uint32_t return_handler,
@@ -3907,9 +3914,6 @@ static void syscall_handler(void)
         return;
     case THREAD_RETURN_EVENT:
         thread_return_event_handler();
-        return;
-    case THREAD_ONCE_EVENT:
-        pthread_once_event_handler();
         return;
     }
 

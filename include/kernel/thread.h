@@ -21,7 +21,8 @@ struct thread_attr {
 
 struct thread_once {
     struct list_head wait_list;
-    bool finished;
+    bool running;  /* A thread is running the routine right now */
+    bool finished; /* The routine has been run and will not be run again */
 };
 
 struct thread_info *current_thread_info(void);

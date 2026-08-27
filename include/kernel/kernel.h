@@ -102,7 +102,6 @@ struct thread_info {
     bool detached;              /* Thread is detached or not */
     bool joinable;              /* Thread is joinable or not */
     char name[THREAD_NAME_MAX]; /* Thread name */
-    struct thread_once *once_control; /* For handling pthread_once_control */
 
     /* Signals */
     struct sigaction *sig_table[SIGNAL_CNT];
