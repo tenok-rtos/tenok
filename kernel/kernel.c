@@ -1681,6 +1681,22 @@ static int sys_readdir(DIR *dirp, struct dirent *dirent)
     return retval;
 }
 
+/* Reading a directory walks a list of the entries it holds, and starting over
+ * is putting the walk back at the front of that list
+ */
+static int sys_rewinddir(DIR *dirp)
+{
+    if (!dirp)
+        return -EFAULT;
+
+    if (!dirp->inode_dir)
+        return -EBADF;
+
+    dirp->dentry_list = dirp->inode_dir->i_dentry.next;
+
+    return 0;
+}
+
 static char *sys_getcwd(char *buf, size_t size)
 {
     int tid = running_thread->tid;

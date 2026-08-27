@@ -314,6 +314,19 @@ struct dirent *readdir(DIR *dirp)
     return &dirp->entry;
 }
 
+static NACKED int __rewinddir(DIR *dirp)
+{
+    SYSCALL(REWINDDIR);
+}
+
+/* POSIX gives this no way to say it failed, so a bad stream is simply one
+ * there is nothing to put back
+ */
+void rewinddir(DIR *dirp)
+{
+    __rewinddir(dirp);
+}
+
 int closedir(DIR *dirp)
 {
     if (!dirp) {

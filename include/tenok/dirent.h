@@ -64,4 +64,12 @@ struct dirent *readdir(DIR *dirp);
  */
 int closedir(DIR *dirp);
 
+/**
+ * @brief  Put the directory stream back at the first entry, so that the
+ *         entries can be read through again
+ * @param  dirp: The directory stream to put back.
+ * @retval None
+ */
+void rewinddir(DIR *dirp);
+
 #endif

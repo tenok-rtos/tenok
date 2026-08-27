@@ -207,6 +207,8 @@ Tenok API List
 
 * closedir()
 
+* rewinddir()
+
 * getcwd()
 
 * chdir()
