@@ -960,7 +960,10 @@ RECURSIVE              = YES
 # lives in the tree so that the firmware can be built, and is described by the
 # comments in its own files rather than by this manual.
 EXCLUDE                = include/busybox \
-                         user/busybox
+                         user/busybox \
+                         include/kernel/syscall.h \
+                         include/kernel/version.h \
+                         include/generated
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

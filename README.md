@@ -24,11 +24,20 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * User-space memory allocation: Dynamic allocation (First-Fit Free List) and Memory pool
 * Software timer and clock
 * Built-in Shell with command completion and history saving
-* BusyBox built into the firmware: the `ash` shell and thirty four applets beside it, called rather than started
 * Root and ROM file systems
 * Real-time plotting and customizable debug messaging with a metalanguage
 * Integrated with MAVLink communication protocol
 * Software-in-the-loop (SIL) simulation with the Gazebo simulator
+
+## External Packages
+
+Packages that are not part of `Tenok` but are built into the firmware. Each one
+stays exactly as its release left it, and what `Tenok` changes lives in a
+[patch repository](https://github.com/tenok-rtos/package-patches) of its own.
+Which of them are built is chosen with `make menuconfig`.
+
+* **[BusyBox](https://tenok-rtos.github.io/md_docs_8_busybox.html)**: the `ash` shell and thirty four applets beside it. `Tenok` has neither `fork()` nor `exec()`, so an applet is called rather than started, and what a process exit would have given back is given back by hand
+* **[DirectFB2](https://tenok-rtos.github.io/md_docs_9_directfb2.html)**: graphics on the board that has a display, drawn through `/dev/fb0`. Seven of its examples are shell commands, among them the turning gears drawn through a software OpenGL
 
 ## Tools
 
@@ -49,6 +58,7 @@ and a facility tool for supporting software-in-the-loop simulation with the Gaze
 * [Run Tenok with Gazebo Simulator](https://tenok-rtos.github.io/md_docs_4_gazebo.html)
 * [Real-time Visualization with rtplot and debug-link](https://tenok-rtos.github.io/md_docs_5_debug_link.html)
 * [BusyBox on Tenok](https://tenok-rtos.github.io/md_docs_8_busybox.html)
+* [DirectFB2 on Tenok](https://tenok-rtos.github.io/md_docs_9_directfb2.html)
 
 ## Resources 
 

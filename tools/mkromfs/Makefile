@@ -7,6 +7,7 @@ CFLAGS :=
 CFLAGS += -g -Wall
 
 CFLAGS += -I../../ \
+          -I../../include \
           -I../../include/common
 
 SRC := ./mkromfs.c
