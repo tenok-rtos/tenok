@@ -22,3 +22,9 @@
 [submodule "lib/portablegl"]
 	path = lib/portablegl
 	url = https://github.com/rswinkle/PortableGL.git
+[submodule "lib/directfb-csource"]
+	path = lib/directfb-csource
+	url = https://github.com/directfb2/directfb-csource.git
+[submodule "lib/directfb-tools"]
+	path = lib/directfb-tools
+	url = https://github.com/directfb2/DirectFB2-tools.git

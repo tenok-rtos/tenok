@@ -289,6 +289,45 @@ $(DFB_SRC:.c=.o): CFLAGS := $(DFB_CFLAGS)
 
 SRC += $(DFB_SRC)
 
+# The board has no file system to read a picture or a font from, so the data
+# the examples draw is turned into C and compiled in. The tools that do it are
+# the ones DirectFB2 ships, built here the same way fluxcomp is.
+DFB_EXAMPLES := $(PROJ_ROOT)/lib/directfb2-examples
+DFB_DATA := $(DFB_EXAMPLES)/data
+
+CSOURCE := $(PROJ_ROOT)/lib/directfb-csource/directfb-csource
+MKDGIFF := $(PROJ_ROOT)/lib/directfb-tools/mkdgiff
+
+$(CSOURCE):
+	@echo "CSOURCE"
+	@$(PROJ_ROOT)/scripts/directfb-csource.sh
+
+$(MKDGIFF): $(DFB_PATCHED)
+	@echo "MKDGIFF"
+	@$(PROJ_ROOT)/scripts/directfb-mkdgiff.sh
+
+# The font of the examples is shipped rendered at every size, which comes to
+# four megabytes where the whole flash is two. It is rendered again here at the
+# one height a screen this wide asks for
+DFB_FONT_HEIGHT := 8
+
+$(DFB_DATA)/decker.tenok.dgiff: $(MKDGIFF) $(DFB_DATA)/decker.ttf
+	@echo "MKDGIFF" $(@F)
+	@$(MKDGIFF) --sizes $(DFB_FONT_HEIGHT) $(DFB_DATA)/decker.ttf >$@
+
+$(DFB_DATA)/decker.h: $(CSOURCE) $(DFB_DATA)/decker.tenok.dgiff
+	@echo "CSOURCE" $(@F)
+	@$(CSOURCE) --raw --name=decker $(DFB_DATA)/decker.tenok.dgiff >$@
+
+$(DFB_DATA)/%.h: $(DFB_DATA)/%.dfiff $(CSOURCE)
+	@echo "CSOURCE" $(@F)
+	@$(CSOURCE) --raw --name=$* $< >$@
+
+DFB_DATA_HDRS := $(DFB_DATA)/decker.h \
+                 $(DFB_DATA)/cursor_red.h \
+                 $(DFB_DATA)/cursor_yellow.h \
+                 $(DFB_DATA)/dfblogo.h
+
 # The shell command that runs a DirectFB2 program. It is built with Tenok's own
 # flags plus the headers of DirectFB2, since it calls into both.
 DFB_SHELL := $(PROJ_ROOT)/user/directfb/dfb_shell.c
@@ -300,3 +339,45 @@ $(DFB_SHELL:.c=.o): CFLAGS += -I$(DFB_DIR) -I$(DFB_DIR)/include -I$(DFB_DIR)/lib
 
 SRC += $(DFB_SHELL)
 
+# The three examples are the same build with a different name: the main() of
+# each is renamed so that the shell command can call it, and the data each
+# draws is compiled in because there is nowhere to read a file from.
+PGL_DIR := $(PROJ_ROOT)/lib/portablegl
+DFBGL_DIR := $(PROJ_ROOT)/lib/directfbgl-portablegl
+
+# df_glgears draws through OpenGL. There is no graphics processor on this
+# board, so the OpenGL is PortableGL, which is a single header that draws with
+# the processor and is told here to keep its own memory small
+DFB_GEARS_CFLAGS := -DOPENGL_HEADER='<idirectfbgl_portablegl.h>' \
+                    -DDFB_OPENGL_IMPLEMENTATION=PGL -DPGL_TINY_MEM \
+                    -I$(DFBGL_DIR) -I$(PGL_DIR)
+
+define DFB_EXAMPLE
+$$(DFB_EXAMPLES)/src/df_$(1).o: $$(DFB_PATCHED) $$(DFB_FLUX_STAMP) \
+    $$(DFB_BUILD_HDRS) $$(DFB_DATA_HDRS)
+$$(DFB_EXAMPLES)/src/df_$(1).o: CFLAGS := $$(DFB_CFLAGS) $(3) \
+    -DUSE_FONT_HEADERS -DUSE_IMAGE_HEADERS -DUSE_VIDEO_HEADERS \
+    -DDFB_FONT_PROVIDER=DGIFF -DDFB_IMAGE_PROVIDER=DFIFF \
+    -DDFB_VIDEO_PROVIDER=DFVFF -DDFB_WINDOW_MANAGER=default \
+    -Dmain=dfb_$(2)_main -DDATADIR='"/"' \
+    -I$$(DFB_EXAMPLES)/src -I$$(DFB_DATA)
+
+SRC += $$(DFB_EXAMPLES)/src/df_$(1).c
+endef
+
+$(eval $(call DFB_EXAMPLE,glgears,gears,$(DFB_GEARS_CFLAGS)))
+$(eval $(call DFB_EXAMPLE,window,window,))
+$(eval $(call DFB_EXAMPLE,fire,fire,))
+
+# The shell commands that run them. They call into DirectFB2 as well as Tenok,
+# and the one that registers the modules has to know that the OpenGL one is
+# there to be registered
+DFB_EXAMPLE_SHELL := $(PROJ_ROOT)/user/directfb/examples_shell.c
+
+$(DFB_EXAMPLE_SHELL:.c=.o): $(DFB_PATCHED) $(DFB_FLUX_STAMP) $(DFB_BUILD_HDRS)
+$(DFB_EXAMPLE_SHELL:.c=.o): CFLAGS += -I$(DFB_DIR) -I$(DFB_DIR)/include \
+    -I$(DFB_DIR)/lib -I$(PROJ_ROOT)/user/directfb
+
+$(PROJ_ROOT)/user/directfb/modules.o: CFLAGS += -DDFB_OPENGL_IMPLEMENTATION=pgl
+
+SRC += $(DFB_EXAMPLE_SHELL)
