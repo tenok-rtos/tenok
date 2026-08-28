@@ -52,7 +52,9 @@ SRC += ./user/tasks/mavlink_task.c
 
 
 # DirectFB2, which draws through /dev/fb0 onto the panel of this board
+ifdef CONFIG_DIRECTFB2
 -include ./user/directfb/directfb.mk
+endif
 
 flash:
 	openocd -f interface/stlink.cfg \

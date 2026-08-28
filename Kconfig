@@ -1,0 +1,54 @@
+# The configuration of Tenok. What a board is made of stays in the makefile of
+# that board; what is written here is what somebody building Tenok chooses.
+
+mainmenu "Tenok Configuration"
+
+menu "Platform"
+
+choice
+	prompt "Board"
+	default PLATFORM_QEMU
+	help
+	  The board the firmware is built for. Every board compiles the same
+	  sources with different pins, clocks and drivers.
+
+config PLATFORM_QEMU
+	bool "QEMU (netduinoplus2)"
+	help
+	  The machine QEMU emulates, which is an STM32F405 with a console on
+	  the first UART. Nothing else of the board is there.
+
+config PLATFORM_STM32F4DISC
+	bool "STM32F4 Discovery"
+
+config PLATFORM_STM32F429DISC
+	bool "STM32F429I Discovery"
+	select HAS_FRAMEBUFFER
+	select HAS_SDRAM
+	help
+	  The board with the 240x320 panel the display controller draws on and
+	  the SDRAM the user space allocates from.
+
+config PLATFORM_DYNAMICS_WIZARD
+	bool "Dynamics Wizard"
+
+endchoice
+
+config PLATFORM
+	string
+	default "qemu" if PLATFORM_QEMU
+	default "stm32f4disc" if PLATFORM_STM32F4DISC
+	default "stm32f429disc" if PLATFORM_STM32F429DISC
+	default "dynamics_wizard" if PLATFORM_DYNAMICS_WIZARD
+
+# What a board brings that another does not, so that what needs it can say so
+config HAS_FRAMEBUFFER
+	bool
+
+config HAS_SDRAM
+	bool
+
+endmenu
+
+source "kernel/Kconfig"
+source "user/Kconfig"

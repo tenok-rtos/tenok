@@ -8,11 +8,37 @@ The following instructions demonstrate the procedures of building Tenok with exa
 ```
 git clone https://github.com/tenok-rtos/tenok.git
 cd tenok
-git submodule update --init --recursive # MAVLink library
+git submodule update --init --recursive
 ./scripts/download-examples.sh # Example ROM files
+make qemu_defconfig            # Choose the board and what is built into it
 make
  ```
  
+### Choosing what is built
+
+The board and everything built into it are chosen in a configuration, which
+lives in `.config` and is not kept in the repository. A defconfig for each
+board is, holding only what differs from the defaults:
+
+```
+make qemu_defconfig
+make stm32f4disc_defconfig
+make stm32f429disc_defconfig
+make dynamics_wizard_defconfig
+```
+
+To change any of it from a menu:
+
+```
+make menuconfig
+```
+
+To write what you changed back as a defconfig of your own:
+
+```
+make savedefconfig
+```
+
 ### 2. Run Tenok with QEMU
 
 Type the following command to emulate Tenok with QEMU:

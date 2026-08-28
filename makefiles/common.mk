@@ -10,7 +10,11 @@ LD_GENERATED := generated.ld
 
 ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
 
+# A target that makes a configuration runs before there is one to say which
+# board this is, and has nothing to build
+ifneq ($(PLATFORM),)
 include ./makefiles/$(PLATFORM).mk
+endif
 
 MSG_DIR   := ./msg
 MSG_BUILD := ./build/msg
@@ -141,7 +145,9 @@ SRC += ./user/debug-link/debug_link.c
 
 -include ./drivers/drivers.mk
 -include ./user/shell/shell.mk
+ifdef CONFIG_BUSYBOX
 -include ./user/busybox/busybox.mk
+endif
 -include ./user/mavlink/mavlink.mk
 -include ./user/benchmarks/benchmarks.mk
 
@@ -174,7 +180,7 @@ FORCE:
 
 .PHONY: FORCE
 
-$(OBJS): $(PLATFORM_STAMP) $(SYSCALL_HDR)
+$(OBJS): $(PLATFORM_STAMP) $(SYSCALL_HDR) $(AUTOCONF)
 
 # What the build knows and the kernel does not: which revision this is, when it
 # was made, and by whom. Only what reads these is made to depend on them, so
@@ -226,7 +232,7 @@ tools/mkromfs/romfs.o: tools/mkromfs/mkromfs.c $(ROM_SRC)
 
 # The script a platform links with is not the script another links with, and
 # the name of the file made from it is the same either way
-$(LD_GENERATED): $(LD_SCRIPT) $(PLATFORM_STAMP)
+$(LD_GENERATED): $(LD_SCRIPT) $(PLATFORM_STAMP) $(AUTOCONF)
 	@echo "CC" $< ">" $@
 	@$(CC) -E -P -x c $(CFLAGS) $<>$@  
 
@@ -243,6 +249,7 @@ check:
 
 clean:
 	rm -rf $(PLATFORM_STAMP)
+	rm -rf include/generated
 	rm -rf $(VERSION_HDR)
 	rm -rf $(LD_GENERATED)
 	rm -rf $(ELF)

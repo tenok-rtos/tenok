@@ -1,0 +1,54 @@
+# What is built into the firmware besides the kernel itself.
+
+menu "User space"
+
+config BUSYBOX
+	bool "BusyBox"
+	default y
+	help
+	  The applets of BusyBox, reached through the shell. Tenok has neither
+	  fork() nor exec(), so every applet is run in process.
+
+menuconfig DIRECTFB2
+	bool "DirectFB2"
+	depends on HAS_FRAMEBUFFER
+	help
+	  The graphics library, which draws through /dev/fb0 onto the panel of
+	  the board. It is built through the path it already has for NuttX.
+
+if DIRECTFB2
+
+config DIRECTFB2_DFB
+	bool "dfb, which draws what it takes to see the display is working"
+	default y
+
+comment "Examples of DirectFB2"
+
+config DIRECTFB2_GEARS
+	bool "gears, the turning gears drawn through OpenGL"
+	help
+	  There is no graphics processor on this board, so the OpenGL is
+	  PortableGL, which draws with the processor like everything else.
+	  It brings the largest part of the firmware with it.
+
+config DIRECTFB2_WINDOW
+	bool "window, which stacks windows on the display layer"
+
+config DIRECTFB2_FIRE
+	bool "fire, which draws a fire straight into the pixels of a surface"
+
+config DIRECTFB2_PALETTE
+	bool "palette, which draws through a palette surface"
+
+config DIRECTFB2_PARTICLE
+	bool "particle, which draws a field of particles"
+
+config DIRECTFB2_MATRIX
+	bool "matrix, which draws through a transformation matrix"
+
+config DIRECTFB2_VKCOLOR
+	bool "vkcolor, which draws the colour keying of a surface"
+
+endif
+
+endmenu

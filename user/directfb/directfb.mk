@@ -330,8 +330,10 @@ DFB_DATA_HDRS := $(DFB_DATA)/decker.h \
 
 # The shell command that runs a DirectFB2 program. It is built with Tenok's own
 # flags plus the headers of DirectFB2, since it calls into both.
-DFB_SHELL := $(PROJ_ROOT)/user/directfb/dfb_shell.c
-DFB_SHELL += $(PROJ_ROOT)/user/directfb/modules.c
+DFB_SHELL := $(PROJ_ROOT)/user/directfb/modules.c
+ifdef CONFIG_DIRECTFB2_DFB
+DFB_SHELL += $(PROJ_ROOT)/user/directfb/dfb_shell.c
+endif
 
 $(DFB_SHELL:.c=.o): $(DFB_PATCHED) $(DFB_FLUX_STAMP) $(DFB_BUILD_HDRS)
 $(DFB_SHELL:.c=.o): CFLAGS += -I$(DFB_DIR) -I$(DFB_DIR)/include -I$(DFB_DIR)/lib \
@@ -365,9 +367,27 @@ $$(DFB_EXAMPLES)/src/df_$(1).o: CFLAGS := $$(DFB_CFLAGS) $(3) \
 SRC += $$(DFB_EXAMPLES)/src/df_$(1).c
 endef
 
+ifdef CONFIG_DIRECTFB2_GEARS
 $(eval $(call DFB_EXAMPLE,glgears,gears,$(DFB_GEARS_CFLAGS)))
+endif
+ifdef CONFIG_DIRECTFB2_WINDOW
 $(eval $(call DFB_EXAMPLE,window,window,))
+endif
+ifdef CONFIG_DIRECTFB2_FIRE
 $(eval $(call DFB_EXAMPLE,fire,fire,))
+endif
+ifdef CONFIG_DIRECTFB2_PALETTE
+$(eval $(call DFB_EXAMPLE,palette,palette,))
+endif
+ifdef CONFIG_DIRECTFB2_PARTICLE
+$(eval $(call DFB_EXAMPLE,particle,particle,))
+endif
+ifdef CONFIG_DIRECTFB2_MATRIX
+$(eval $(call DFB_EXAMPLE,matrix,matrix,))
+endif
+ifdef CONFIG_DIRECTFB2_VKCOLOR
+$(eval $(call DFB_EXAMPLE,vkcolor,vkcolor,))
+endif
 
 # The shell commands that run them. They call into DirectFB2 as well as Tenok,
 # and the one that registers the modules has to know that the OpenGL one is
@@ -378,6 +398,8 @@ $(DFB_EXAMPLE_SHELL:.c=.o): $(DFB_PATCHED) $(DFB_FLUX_STAMP) $(DFB_BUILD_HDRS)
 $(DFB_EXAMPLE_SHELL:.c=.o): CFLAGS += -I$(DFB_DIR) -I$(DFB_DIR)/include \
     -I$(DFB_DIR)/lib -I$(PROJ_ROOT)/user/directfb
 
+ifdef CONFIG_DIRECTFB2_GEARS
 $(PROJ_ROOT)/user/directfb/modules.o: CFLAGS += -DDFB_OPENGL_IMPLEMENTATION=pgl
+endif
 
 SRC += $(DFB_EXAMPLE_SHELL)

@@ -14,6 +14,8 @@
 #include "modules.h"
 #include "shell.h"
 
+#include "kconfig.h"
+
 /* An example draws until it is told to stop, and nothing here tells it to, so
  * it runs in a thread of its own and the shell goes on being a shell. Under
  * every thread that has work to do, and over the idle thread
@@ -91,6 +93,25 @@ static int example_start(const char *name,
                                                                           \
     HOOK_SHELL_CMD(#command, command)
 
+/* Only the examples the build was configured with */
+#ifdef CONFIG_DIRECTFB2_GEARS
 DFB_EXAMPLE(gears, dfb_gears_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_WINDOW
 DFB_EXAMPLE(window, dfb_window_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_FIRE
 DFB_EXAMPLE(fire, dfb_fire_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_PALETTE
+DFB_EXAMPLE(palette, dfb_palette_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_PARTICLE
+DFB_EXAMPLE(particle, dfb_particle_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_MATRIX
+DFB_EXAMPLE(matrix, dfb_matrix_main);
+#endif
+#ifdef CONFIG_DIRECTFB2_VKCOLOR
+DFB_EXAMPLE(vkcolor, dfb_vkcolor_main);
+#endif

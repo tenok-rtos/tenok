@@ -1,0 +1,200 @@
+# What the kernel is sized to. Every one of these was a number written down in
+# kconfig.h, which now says only which name the kernel knows each one by.
+
+menu "Kernel"
+
+comment "Scheduler"
+
+config OS_TICK_FREQ
+	int "Ticks per second"
+	default 100 if PLATFORM_QEMU
+	default 4000
+	range 10 10000
+	help
+	  How often the scheduler is given the chance to change threads. QEMU
+	  is given far fewer, since a tick there costs what a tick on the board
+	  does not.
+
+config THREAD_PRIORITY_MAX
+	int "Highest priority a user thread can be given"
+	default 8
+	range 1 32
+
+choice
+	prompt "Page size"
+	default PAGE_SIZE_64K_SELECT
+	help
+	  How much memory the page allocator hands out, which is also the
+	  largest stack a thread can be given.
+
+config PAGE_SIZE_32K_SELECT
+	bool "32 KiB"
+
+config PAGE_SIZE_64K_SELECT
+	bool "64 KiB"
+
+endchoice
+
+comment "Stacks"
+
+config STACK_SIZE_MIN
+	int "Smallest stack a task or thread is given"
+	default 1024
+	range 256 65536
+	help
+	  What a thread is given when it asks for none, and the least it is
+	  allowed to ask for.
+
+config INIT_STACK_SIZE
+	int "Stack of the init thread"
+	default 4096
+
+config IDLE_STACK_SIZE
+	int "Stack of the idle thread"
+	default 1024
+
+config SOFTIRQD_STACK_SIZE
+	int "Stack of the softirq daemon"
+	default 2048
+
+config FILESYSD_STACK_SIZE
+	int "Stack of the file system daemon"
+	default 2048
+
+config PRINTKD_STACK_SIZE
+	int "Stack of the log daemon"
+	default 1024
+
+comment "Tasks and threads"
+
+config TASK_MAX
+	int "Tasks the system holds at once"
+	default 32
+	range 1 256
+
+config THREAD_MAX
+	int "Threads the system holds at once"
+	default 32
+	range 1 256
+
+config THREAD_NAME_MAX
+	int "Longest name a thread can be given"
+	default 50
+
+config PTHREAD_KEYS_MAX
+	int "Thread-local storage keys"
+	default 8
+	range 1 128
+	help
+	  A key names a slot that every thread has one of, so the count is paid
+	  for by every thread whether it uses one or not.
+
+config PTHREAD_DESTRUCTOR_ITERATIONS
+	int "Turns a thread-local destructor is given"
+	default 4
+	range 1 16
+	help
+	  How many times over a destructor that leaves a new value behind is
+	  called again before the system gives up on it.
+
+comment "Message queues and pipes"
+
+config MQUEUE_MAX
+	int "Message queues the system holds at once"
+	default 16
+
+config MQ_PRIO_MAX
+	int "Message priorities"
+	default 5
+
+config THREAD_PIPE_BUF
+	int "Reply pipe every thread is given"
+	default 100
+	help
+	  What the file system daemon answers a thread through. Every thread
+	  pays for this one, so it is kept small. Too small and the daemon does
+	  not work.
+
+config PIPE_BUF
+	int "How much a pipe holds"
+	default 512
+	help
+	  POSIX also makes this the largest write that reaches a pipe whole.
+	  Only a live pipe pays for it.
+
+comment "Signals"
+
+config SIGNAL_QUEUE_SIZE
+	int "Signals a thread can have waiting"
+	default 5
+
+comment "Standard input and output"
+
+config STDIN_PATH
+	string "Where standard input is read from"
+	default "/dev/console"
+
+config STDOUT_PATH
+	string "Where standard output is written to"
+	default "/dev/console"
+
+config STDERR_PATH
+	string "Where standard error is written to"
+	default "/dev/console"
+
+config PRINT_SIZE_MAX
+	int "Buffer of printf() and printk()"
+	default 100
+
+config USE_TENOK_PRINTF
+	bool "Use the printf() Tenok writes"
+	default y
+	help
+	  Tenok has a printf() of its own, which is smaller than the one the C
+	  library brings. Say no to use the library's instead.
+
+comment "File system"
+
+config NAME_MAX
+	int "Longest file name"
+	default 30
+
+config PATH_MAX
+	int "Longest pathname"
+	default 128
+
+config FILE_OPEN_MAX
+	int "Files a task can have open"
+	default 100
+
+config FILE_MAX
+	int "Files the system can hold"
+	default 100
+
+config INODE_MAX
+	int "Inodes the system can hold"
+	default 100
+
+config MOUNT_MAX
+	int "Storages that can be mounted"
+	default 5
+
+config FS_BLK_SIZE
+	int "Block of the file system"
+	default 128
+
+config FS_BLK_CNT
+	int "Blocks of the file system"
+	default 100
+
+comment "Shell"
+
+config LINE_MAX
+	int "Longest line the shell reads"
+	default 128
+
+config SHELL_HISTORY_MAX
+	int "Lines the shell remembers"
+	default 10
+
+endmenu

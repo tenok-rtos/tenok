@@ -18,3 +18,7 @@ latex/
 include/kernel/version.h
 .platform
 generated.ld
+include/generated/
+.config
+.config.old
+defconfig
