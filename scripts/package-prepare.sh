@@ -19,11 +19,11 @@ fi
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 SOURCE="${ROOT}/lib/${package}"
-SERIES="${ROOT}/lib/busybox-patches/${package}/patches"
+SERIES="${ROOT}/lib/package-patches/${package}/patches"
 
 if [ ! -e "${SOURCE}/.git" ] || [ ! -d "${SERIES}" ]; then
     echo "The submodules are empty. Run:"
-    echo "    git submodule update --init lib/${package} lib/busybox-patches"
+    echo "    git submodule update --init lib/${package} lib/package-patches"
     exit 1
 fi
 

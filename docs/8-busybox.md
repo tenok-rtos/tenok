@@ -79,7 +79,7 @@ by the GPL, while Tenok itself is under the BSD 2-Clause licence.
 
 ```
 lib/busybox            BusyBox 1.38.0, pinned and never modified in git
-lib/busybox-patches    the two patches Tenok needs
+lib/package-patches    the two patches Tenok needs
 configs/busybox.config what is turned on
 user/busybox/          what a process exit would have done
 include/busybox/       the headers BusyBox is compiled against

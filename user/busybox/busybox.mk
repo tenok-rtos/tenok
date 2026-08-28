@@ -73,7 +73,7 @@ endef
 # The BusyBox submodule stays exactly as its release left it, so what Tenok
 # changes is put on before anything is built. Applying it resets the submodule
 # first, which is why it happens once from a stamp and not on every build.
-BB_PATCHES := $(wildcard $(PROJ_ROOT)/lib/busybox-patches/busybox/patches/*.patch)
+BB_PATCHES := $(wildcard $(PROJ_ROOT)/lib/package-patches/busybox/patches/*.patch)
 BB_PATCHED := $(BB_DIR)/.tenok-patched
 
 $(BB_PATCHED): $(BB_PATCHES)

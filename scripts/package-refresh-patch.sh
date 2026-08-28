@@ -27,7 +27,7 @@ fi
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 package="$1"
 SOURCE="${ROOT}/lib/${package}"
-OUTPUT="${ROOT}/lib/busybox-patches/${package}/patches/$2.patch"
+OUTPUT="${ROOT}/lib/package-patches/${package}/patches/$2.patch"
 shift 2
 
 # Only modifications to tracked files are captured. The build leaves generated

@@ -4,9 +4,9 @@
 [submodule "lib/busybox"]
 	path = lib/busybox
 	url = https://git.busybox.net/busybox
-[submodule "lib/busybox-patches"]
-	path = lib/busybox-patches
-	url = https://github.com/tenok-rtos/busybox-patches.git
+[submodule "lib/package-patches"]
+	path = lib/package-patches
+	url = https://github.com/tenok-rtos/package-patches.git
 [submodule "lib/directfb2"]
 	path = lib/directfb2
 	url = https://github.com/directfb2/DirectFB2.git

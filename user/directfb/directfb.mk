@@ -4,7 +4,7 @@ DFB_DIR := $(PROJ_ROOT)/lib/directfb2
 # The DirectFB2 submodule stays exactly as upstream left it, so what Tenok
 # changes is put on before anything is built. Applying it resets the submodule
 # first, which is why it happens once from a stamp and not on every build.
-DFB_PATCHES := $(wildcard $(PROJ_ROOT)/lib/busybox-patches/directfb2/patches/*.patch)
+DFB_PATCHES := $(wildcard $(PROJ_ROOT)/lib/package-patches/directfb2/patches/*.patch)
 DFB_PATCHED := $(DFB_DIR)/.tenok-patched
 
 $(DFB_PATCHED): $(DFB_PATCHES)

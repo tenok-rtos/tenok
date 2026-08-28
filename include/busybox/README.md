@@ -11,4 +11,4 @@ Tenok's own headers when BusyBox is compiled and are never used by Tenok
 itself, so none of Tenok's public headers had to change for the port.
 
 Anything that cannot be solved from here lives in the patch series under
-`lib/busybox-patches`.
+`lib/package-patches/busybox/patches`.
