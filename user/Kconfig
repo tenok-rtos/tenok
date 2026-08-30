@@ -51,4 +51,16 @@ config DIRECTFB2_VKCOLOR
 
 endif
 
+config OPTS
+	bool "Open POSIX Test Suite"
+	help
+	  The conformance tests of POSIX, run by the "opts" shell command. The
+	  suite is fetched rather than kept in the tree:
+
+	      ./scripts/download-posix-tests.sh
+
+	  Which of its tests are built is worked out by the build. A test that
+	  names something Tenok does not have is left out, so the number that
+	  run says what the system has.
+
 endmenu

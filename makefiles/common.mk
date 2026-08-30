@@ -148,6 +148,10 @@ SRC += ./user/debug-link/debug_link.c
 ifdef CONFIG_BUSYBOX
 -include ./user/busybox/busybox.mk
 endif
+
+ifdef CONFIG_OPTS
+-include ./user/opts/opts.mk
+endif
 -include ./user/mavlink/mavlink.mk
 -include ./user/benchmarks/benchmarks.mk
 

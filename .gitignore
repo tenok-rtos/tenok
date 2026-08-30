@@ -22,3 +22,4 @@ include/generated/
 .config
 .config.old
 defconfig
+lib/open-posix-testsuite/
