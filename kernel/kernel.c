@@ -4091,13 +4091,20 @@ static void timers_update(void)
             timer->enabled = false;
         }
 
-        /* Stage the signal handler */
-        if (timer->sev.sigev_notify == SIGEV_SIGNAL) {
-            uint32_t args[4] = {0};
-            sa_handler_t notify_func =
-                (sa_handler_t) timer->sev.sigev_notify_function;
-            enqueue_pending_signal(timer->thread, (uint32_t) notify_func, args);
-        }
+        /* Raise the signal the timer was made to raise.
+         *
+         * POSIX has SIGEV_SIGNAL name a signal, not a function: which function
+         * runs is whatever the thread has since asked to have run for that
+         * signal, and if it has asked for nothing then nothing runs. Naming a
+         * function directly is what SIGEV_THREAD does, and it is not what this
+         * is. Going through the same path a raised signal takes is also what
+         * keeps a timer from staging a handler that was never set: a caller
+         * that fills in the signal and leaves the function empty is asking for
+         * exactly what POSIX says it is asking for, and used to be answered
+         * with a jump to nothing
+         */
+        if (timer->sev.sigev_notify == SIGEV_SIGNAL)
+            handle_signal(timer->thread, timer->sev.sigev_signo);
     }
 }
 
