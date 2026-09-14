@@ -53,15 +53,16 @@
 /* What the controller is given to work with. Static, so that the linker keeps
  * them where a bus master can reach them
  */
-static ETH_DMADescTypeDef rx_desc[ETH_RX_DESC_CNT] __attribute__((aligned(32)));
-static ETH_DMADescTypeDef tx_desc[ETH_TX_DESC_CNT] __attribute__((aligned(32)));
+#define ETH_DMA_MEM __attribute__((section(".eth_dma"), aligned(32)))
+
+static ETH_DMADescTypeDef rx_desc[ETH_RX_DESC_CNT] ETH_DMA_MEM;
+static ETH_DMADescTypeDef tx_desc[ETH_TX_DESC_CNT] ETH_DMA_MEM;
 
 /* What the controller is pointed at when it needs somewhere to put the next
  * frame. There is one for each descriptor and they are handed out in the same
  * order the controller fills them, so the two stay in step
  */
-static uint8_t rx_buf[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]
-    __attribute__((aligned(32)));
+static uint8_t rx_buf[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE] ETH_DMA_MEM;
 static uint32_t rx_buf_next;
 
 /* Where the frame the controller has just finished is described. Only one is

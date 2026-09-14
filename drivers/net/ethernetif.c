@@ -45,7 +45,8 @@
 static struct netif *eth_netif;
 
 /* What goes out. One frame at a time, which the lock makes true */
-static uint8_t tx_buf[ETH_FRAME_MAX] __attribute__((aligned(4)));
+static uint8_t tx_buf[ETH_FRAME_MAX]
+    __attribute__((section(".eth_dma"), aligned(32)));
 
 /* Where a frame is put down between coming off the controller and being
  * copied into what the stack keeps it in. Only the one thread touches it

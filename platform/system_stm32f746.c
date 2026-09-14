@@ -95,6 +95,77 @@ static void clock_init(void)
         ;
 }
 
+/* Where the memory the Ethernet controller reaches begins. Laid out by the
+ * linker so that it is a whole number of the units the protection unit works
+ * in, and aligned to its own size, which that unit requires
+ */
+extern uint32_t _eth_dma_start;
+
+/* The fields of a region's attributes, named the way the architecture names
+ * them rather than by the number of the bit they sit at
+ */
+#define MPU_ATTR(xn, ap, tex, s, c, b)                                         \
+    (((xn) << 28) | ((ap) << 24) | ((tex) << 19) | ((s) << 18) | ((c) << 17) | \
+     ((b) << 16))
+
+/* Normal memory the core may keep a copy of, normal memory it may not, and
+ * memory that is not memory at all
+ */
+#define MPU_NORMAL_CACHED(xn) MPU_ATTR(xn, 3u, 1u, 0u, 1u, 1u)
+#define MPU_NORMAL_UNCACHED(xn) MPU_ATTR(xn, 3u, 1u, 1u, 0u, 0u)
+#define MPU_DEVICE(xn) MPU_ATTR(xn, 3u, 0u, 1u, 0u, 1u)
+
+static void mpu_region(uint32_t region,
+                       uint32_t base,
+                       uint32_t size_log2,
+                       uint32_t attr)
+{
+    MPU->RNR = region;
+    MPU->RBAR = base & MPU_RBAR_ADDR_Msk;
+    MPU->RASR =
+        attr | ((size_log2 - 1u) << MPU_RASR_SIZE_Pos) | MPU_RASR_ENABLE_Msk;
+}
+
+/* Describe memory to the protection unit.
+ *
+ * This is not done to protect anything: the threads of this system share one
+ * address space and are not kept out of each other's memory. It is done
+ * because the unit is also what says which memory the core may keep a copy of,
+ * and one run of memory -- the one the Ethernet controller reads and writes
+ * behind the core's back -- must be left out of that.
+ *
+ * Every region says full access, because a thread here is unprivileged and
+ * losing the background region would otherwise stop it reaching anything at
+ * all. What differs between them is only whether a copy may be kept.
+ */
+static void mpu_init(void)
+{
+    __DMB();
+    MPU->CTRL = 0;
+
+    /* The flash the program is read from */
+    mpu_region(0, 0x08000000u, 20u, MPU_NORMAL_CACHED(0u));
+
+    /* Everything the linker places, which is all of the internal memory */
+    mpu_region(1, 0x20000000u, 19u, MPU_NORMAL_CACHED(0u));
+
+    /* The peripherals, which answer differently every time they are read and
+     * so may never be kept
+     */
+    mpu_region(2, 0x40000000u, 29u, MPU_DEVICE(1u));
+
+    /* The one run of memory shared with a bus master */
+    mpu_region(3, (uint32_t) &_eth_dma_start, 13u, MPU_NORMAL_UNCACHED(1u));
+
+    /* The default map still stands for anything not named above, which only
+     * privileged code reaches
+     */
+    MPU->CTRL = MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+
+    __DSB();
+    __ISB();
+}
+
 void SystemInit(void)
 {
     /* Let the floating point unit be reached */
@@ -103,4 +174,24 @@ void SystemInit(void)
 #endif
 
     clock_init();
+
+    /* Keep what has been executed, so that the flash is asked for it once
+     * rather than every time round a loop.
+     *
+     * Nothing in this system writes the memory it executes from -- what runs
+     * is in flash and stays there -- so there is nothing for the copy the core
+     * keeps to fall out of step with. That is what makes this one safe to turn
+     * on and its counterpart for data not.
+     */
+    SCB_EnableICache();
+
+    /* Said before any copy of data is kept, so that what must not be kept is
+     * already known not to be
+     */
+    mpu_init();
+
+    /* Keep what has been read and written, everywhere the region above has
+     * not said otherwise
+     */
+    SCB_EnableDCache();
 }

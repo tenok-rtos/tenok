@@ -124,6 +124,36 @@ SECTIONS
     PROVIDE (_page_mem_end = .);
   } >RAM
 
+  /* What the Ethernet controller reaches as a bus master.
+   *
+   * The core keeps a copy of what it reads and writes, and the controller
+   * knows nothing of that copy: what the core wrote may still be in it when
+   * the controller reads, and what the controller wrote is not in it when the
+   * core reads. So the whole of what the two share is gathered here and the
+   * protection unit is told to leave this much of memory uncached.
+   *
+   * That unit can only cover a run of memory whose length is a power of two
+   * and whose start is a multiple of that length, which is why this is aligned
+   * and padded rather than merely placed.
+   */
+  .eth_dma (NOLOAD) : ALIGN(8K)
+  {
+    PROVIDE (_eth_dma_start = .);
+    *(.eth_dma)
+    . = ALIGN(8K);
+    PROVIDE (_eth_dma_end = .);
+  } >RAM
+
+  /* The protection unit is told this region is 8 KiB and cannot be told a
+   * length that is not a power of two. Should something later be added to the
+   * section that pushes it past that, the linker would quietly grow it and the
+   * unit would go on covering only the first half -- leaving the rest cached,
+   * shared with a bus master, and wrong in a way nothing reports. So the build
+   * stops here instead.
+   */
+  ASSERT(_eth_dma_end - _eth_dma_start <= 8K,
+         "the .eth_dma section no longer fits the region the MPU marks uncached; grow both together in platform/system_stm32f746.c")
+
   /* Initialized data sections goes into RAM, load LMA copy after code */
   .data : AT ( _sidata )
   {
