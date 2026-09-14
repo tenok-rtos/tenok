@@ -97,3 +97,69 @@ endchoice
 
 endmenu
 
+menu "Network"
+
+config NET
+	bool "Networking"
+	help
+	  A TCP/IP stack, and the Ethernet controller under it. The address the
+	  board answers to is fixed here: nothing on the far end of the cable is
+	  assumed to be handing addresses out.
+
+if NET
+
+config NET_IPV4_ADDR0
+	int "Address, first octet"
+	default 118
+config NET_IPV4_ADDR1
+	int "Address, second octet"
+	default 163
+config NET_IPV4_ADDR2
+	int "Address, third octet"
+	default 201
+config NET_IPV4_ADDR3
+	int "Address, fourth octet"
+	default 12
+
+config NET_IPV4_MASK0
+	int "Mask, first octet"
+	default 255
+config NET_IPV4_MASK1
+	int "Mask, second octet"
+	default 255
+config NET_IPV4_MASK2
+	int "Mask, third octet"
+	default 255
+config NET_IPV4_MASK3
+	int "Mask, fourth octet"
+	default 0
+
+config NET_IPV4_GW0
+	int "Gateway, first octet"
+	default 118
+config NET_IPV4_GW1
+	int "Gateway, second octet"
+	default 163
+config NET_IPV4_GW2
+	int "Gateway, third octet"
+	default 201
+config NET_IPV4_GW3
+	int "Gateway, fourth octet"
+	default 254
+
+config NET_IPV4_DNS0
+	int "Name server, first octet"
+	default 168
+config NET_IPV4_DNS1
+	int "Name server, second octet"
+	default 95
+config NET_IPV4_DNS2
+	int "Name server, third octet"
+	default 1
+config NET_IPV4_DNS3
+	int "Name server, fourth octet"
+	default 1
+
+endif
+
+endmenu

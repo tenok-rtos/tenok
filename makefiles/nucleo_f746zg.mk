@@ -67,6 +67,10 @@ CFLAGS += -I./drivers/net
 SRC += ./drivers/net/eth.c
 SRC += $(ST_LIB)/Src/stm32f7xx_hal_eth.c
 
+ifdef CONFIG_NET
+include ./net/net.mk
+endif
+
 CFLAGS += -I./drivers/boards
 CFLAGS += -I./user/tasks
 
