@@ -53,6 +53,7 @@ Which of them are built is chosen with `make menuconfig`.
 * [Real-time Visualization with rtplot and debug-link](https://tenok-rtos.github.io/md_docs_5_debug_link.html)
 * [BusyBox on Tenok](https://tenok-rtos.github.io/md_docs_8_busybox.html)
 * [DirectFB2 on Tenok](https://tenok-rtos.github.io/md_docs_9_directfb2.html)
+* [STM32F7 and Networking](https://tenok-rtos.github.io/md_docs_10_stm32f7.html)
 
 ## Resources 
 
