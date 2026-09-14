@@ -46,6 +46,37 @@ int open(const char *pathname, int flags, ...)
     return set_errno(__open(pathname, flags, mode));
 }
 
+#ifdef CONFIG_NET
+/* A socket is a file of this system and a socket of the stack at once. The
+ * descriptor and its lifetime are the kernel's; everything done through it is
+ * the stack's, and is done here rather than in the kernel because the stack
+ * answers only a thread
+ */
+int lwip_close(int s);
+ssize_t lwip_read(int s, void *mem, size_t len);
+ssize_t lwip_write(int s, const void *dataptr, size_t size);
+
+static NACKED int __socket_lwip_fd(int fd)
+{
+    SYSCALL(SOCKET_LWIP_FD);
+}
+
+static NACKED int __socket_release(int fd)
+{
+    SYSCALL(SOCKET_RELEASE);
+}
+
+static int sock_of(int fd)
+{
+    return __socket_lwip_fd(fd);
+}
+#else
+static int sock_of(int fd)
+{
+    return -1;
+}
+#endif
+
 static NACKED int __close(int fd)
 {
     SYSCALL(CLOSE);
@@ -53,6 +84,23 @@ static NACKED int __close(int fd)
 
 int close(int fd)
 {
+#ifdef CONFIG_NET
+    int s = sock_of(fd);
+
+    if (s >= 0) {
+        /* The kernel gives the descriptor up and says whether that was the
+         * last one naming the socket. Only then is the socket itself closed,
+         * and it is closed here because closing is asking the stack
+         */
+        int last = __socket_release(fd);
+
+        if (last > 0)
+            lwip_close(s);
+
+        return set_errno(last < 0 ? last : 0);
+    }
+#endif
+
     return set_errno(__close(fd));
 }
 
@@ -162,6 +210,13 @@ static NACKED ssize_t __read(int fd, void *buf, size_t count)
 
 ssize_t read(int fd, void *buf, size_t count)
 {
+#ifdef CONFIG_NET
+    int s = sock_of(fd);
+
+    if (s >= 0)
+        return lwip_read(s, buf, count);
+#endif
+
     return set_errno(__read(fd, buf, count));
 }
 
@@ -177,6 +232,13 @@ static NACKED ssize_t __write(int fd, const void *buf, size_t count)
 
 ssize_t write(int fd, const void *buf, size_t count)
 {
+#ifdef CONFIG_NET
+    int s = sock_of(fd);
+
+    if (s >= 0)
+        return lwip_write(s, buf, count);
+#endif
+
     return set_errno(__write(fd, buf, count));
 }
 

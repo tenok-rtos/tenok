@@ -51,6 +51,8 @@
 #include <mm/page.h>
 #include <mm/slab.h>
 
+#include <kernel/socket.h>
+
 #include "kconfig.h"
 
 #define PRI_RESERVED 2
@@ -319,6 +321,25 @@ static void fd_pipe_give_up(int fd)
                      (fdtable[fd].flags & O_ACCMODE) == O_WRONLY);
 }
 
+/* A socket belongs to nothing but the descriptors that name it either, and is
+ * counted the same way. Closing the last of them closes the socket
+ */
+static void fd_socket_take(int fd)
+{
+#ifdef CONFIG_NET
+    socket_file_take(fdtable[fd].file);
+#endif
+}
+
+static bool fd_socket_give_up(int fd)
+{
+#ifdef CONFIG_NET
+    return socket_file_give_up(fdtable[fd].file);
+#else
+    return false;
+#endif
+}
+
 /* Give the task the lowest descriptor it does not already hold, which is what
  * POSIX promises a caller that closes one and opens another
  */
@@ -336,15 +357,28 @@ static int fd_take(struct task_struct *task, struct file *filp, int flags)
     fdtable[fd].flags = flags;
     fdtable[fd].fd_flags = (flags & O_CLOEXEC) ? FD_CLOEXEC : 0;
     fd_pipe_take(fd);
+    fd_socket_take(fd);
 
     return fd;
+}
+
+static void fd_give_up_socket(struct task_struct *task, int fd, bool *last)
+{
+    if (bitmap_get_bit(bitmap_fds, fd) && bitmap_get_bit(task->bitmap_fds, fd))
+        *last = fd_socket_give_up(fd);
+
+    bitmap_clear_bit(bitmap_fds, fd);
+    bitmap_clear_bit(task->bitmap_fds, fd);
 }
 
 static void fd_give_up(struct task_struct *task, int fd)
 {
     /* A descriptor that is not held names nothing to give up */
-    if (bitmap_get_bit(bitmap_fds, fd) && bitmap_get_bit(task->bitmap_fds, fd))
+    if (bitmap_get_bit(bitmap_fds, fd) &&
+        bitmap_get_bit(task->bitmap_fds, fd)) {
         fd_pipe_give_up(fd);
+        fd_socket_give_up(fd);
+    }
 
     bitmap_clear_bit(bitmap_fds, fd);
     bitmap_clear_bit(task->bitmap_fds, fd);
@@ -1254,6 +1288,103 @@ leave:
     preempt_enable();
     return retval;
 }
+
+#ifdef CONFIG_NET
+/* Take a socket the caller already made and give it a descriptor of this
+ * system. The making is the caller's because it is the stack's, and the stack
+ * may only be spoken to from a thread
+ */
+static int sys_socket_wrap(int lwip_fd)
+{
+    preempt_disable();
+
+    int retval;
+
+    struct file *filp = socket_file_alloc(lwip_fd);
+    if (!filp) {
+        retval = -ENFILE;
+        goto err;
+    }
+
+    struct task_struct *task = current_task_info();
+
+    int fd = fd_take(task, filp, O_RDWR);
+    if (fd < 0) {
+        kfree(filp);
+        retval = fd;
+        goto err;
+    }
+
+    preempt_enable();
+    return fd;
+
+err:
+    preempt_enable();
+    return retval;
+}
+
+/* Which socket of the stack a descriptor names, so that everything only a
+ * socket answers can be passed straight to it
+ */
+static int sys_socket_lwip_fd(int fd)
+{
+    preempt_disable();
+
+    struct task_struct *task = current_task_info();
+    struct file *filp = fd_file(task, fd);
+
+    int retval = filp ? socket_file_lwip_fd(filp) : -1;
+
+    preempt_enable();
+
+    return retval < 0 ? -ENOTSOCK : retval;
+}
+
+/* Give up a descriptor that names a socket, and say whether it was the last
+ * one to. The caller closes the socket itself when it was, for the same
+ * reason it opened it
+ */
+static int sys_socket_release(int fd)
+{
+    preempt_disable();
+
+    struct task_struct *task = current_task_info();
+    struct file *filp = fd_file(task, fd);
+
+    int retval;
+
+    if (!file_is_socket(filp)) {
+        retval = -ENOTSOCK;
+        goto leave;
+    }
+
+    /* Read before the descriptor is given up, which may free the file */
+    bool last = false;
+
+    fd_give_up_socket(task, fd, &last);
+
+    retval = last ? 1 : 0;
+
+leave:
+    preempt_enable();
+    return retval;
+}
+#else
+static int sys_socket_wrap(int lwip_fd)
+{
+    return -ENOSYS;
+}
+
+static int sys_socket_lwip_fd(int fd)
+{
+    return -ENOTSOCK;
+}
+
+static int sys_socket_release(int fd)
+{
+    return -ENOTSOCK;
+}
+#endif /* CONFIG_NET */
 
 static int sys_pipe(int pipefd[2])
 {

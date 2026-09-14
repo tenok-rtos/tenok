@@ -65,6 +65,18 @@ extern int *__errno(void);
 #define ERANGE 34        /**< Result too large */
 #define ELOOP 92         /**< Too many levels of symbolic links */
 #define ECONNREFUSED 111 /**< Connection refused */
+#define ENOTSOCK 128     /**< The file descriptor does not name a socket */
+#define EPROTOTYPE 129   /**< Protocol wrong for the type of socket */
+#define ENOPROTOOPT 109  /**< The option is not one the protocol knows */
+#define EAFNOSUPPORT 97  /**< Address family not supported */
+#define ENETUNREACH 101  /**< No route to the network */
+#define ECONNRESET 104   /**< Connection reset by the peer */
+#define ENOBUFS 105      /**< No buffer space left */
+#define EISCONN 106      /**< The socket is already connected */
+#define ENOTCONN 107     /**< The socket is not connected */
+#define EHOSTUNREACH 113 /**< No route to the host */
+#define EINPROGRESS 115  /**< The operation is under way */
+#define EALREADY 114     /**< The operation is already under way */
 #define ENOTSUP 134      /**< Not supported */
 
 #endif

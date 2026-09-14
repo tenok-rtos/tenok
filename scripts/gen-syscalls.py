@@ -99,6 +99,9 @@ syscalls = \
      'memalign',
      'free',
      'pipe',
+     'socket_wrap',
+     'socket_lwip_fd',
+     'socket_release',
      'realloc',
      'mmap']
 
