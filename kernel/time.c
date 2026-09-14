@@ -324,3 +324,38 @@ clock_t _times(struct tms *buf)
 
     return (clock_t) -1;
 }
+
+/* Ask to be interrupted after so many seconds.
+ *
+ * POSIX gives a process the one of these, so the timer that carries it is made
+ * once and reset afterwards. What it answers is what was left of the last one,
+ * which the timer is able to say.
+ */
+unsigned int alarm(unsigned int seconds)
+{
+    static timer_t alarm_timer;
+    static bool alarm_made;
+
+    if (!alarm_made) {
+        struct sigevent sev = {
+            .sigev_notify = SIGEV_SIGNAL,
+            .sigev_signo = SIGALRM,
+        };
+
+        if (timer_create(CLOCK_MONOTONIC, &sev, &alarm_timer))
+            return 0;
+
+        alarm_made = true;
+    }
+
+    struct itimerspec left = {0};
+    timer_gettime(alarm_timer, &left);
+
+    struct itimerspec next = {
+        .it_value = {.tv_sec = seconds, .tv_nsec = 0},
+        .it_interval = {.tv_sec = 0, .tv_nsec = 0},
+    };
+    timer_settime(alarm_timer, 0, &next, NULL);
+
+    return (unsigned int) left.it_value.tv_sec;
+}

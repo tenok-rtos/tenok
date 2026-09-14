@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +36,17 @@ static unsigned char fd_ref[FD_COUNT];
 
 /* What each descriptor was worth when the applet started */
 static unsigned char fd_saved[FD_COUNT];
+
+/* Where the three streams a program starts with are kept while an applet
+ * runs.
+ *
+ * An applet of BusyBox is a function call here rather than a program of its
+ * own, so nothing takes its descriptors back when it returns. Most leave the
+ * three alone; ping does not -- it moves its socket onto the first of them and
+ * leaves it there, which on a system with processes would end with the process
+ * and here would end with the shell being unable to read.
+ */
+static int fd_std_kept[3];
 
 /* Tenok's system calls report a failure the way POSIX does, so only the
  * errors the layer raises on its own have to be reported from here.
@@ -285,8 +297,13 @@ int utimes(const char *pathname, const struct timeval times[2])
 
 void descriptor_enter(unsigned depth)
 {
-    if (depth == 1)
-        memcpy(fd_saved, fd_ref, sizeof(fd_saved));
+    if (depth != 1)
+        return;
+
+    memcpy(fd_saved, fd_ref, sizeof(fd_saved));
+
+    for (int fd = 0; fd < 3; fd++)
+        fd_std_kept[fd] = dup(fd);
 }
 
 /* Only the outermost return sweeps. Nesting one applet inside another, which
@@ -296,6 +313,29 @@ void descriptor_leave(unsigned depth)
 {
     if (depth != 1)
         return;
+
+    /* An applet that asked to be interrupted later is not around to be
+     * interrupted: ping asks for it, finds what it was waiting for, and
+     * returns without withdrawing the request. On a system with processes the
+     * request would end with the process. Here it would arrive at the shell,
+     * which never asked and has nowhere to take it
+     */
+    alarm(0);
+    signal(SIGALRM, SIG_DFL);
+
+    /* Put back what the three streams were. Closing first rather than letting
+     * the copy do it: what an applet left there may be a socket, and only the
+     * close of this system knows to tell the stack about it
+     */
+    for (int fd = 0; fd < 3; fd++) {
+        if (fd_std_kept[fd] < 0)
+            continue;
+
+        close(fd);
+        dup2(fd_std_kept[fd], fd);
+        close(fd_std_kept[fd]);
+        fd_std_kept[fd] = -1;
+    }
 
     for (int fd = 3; fd < FD_COUNT; fd++) {
         while (fd_ref[fd] > fd_saved[fd])

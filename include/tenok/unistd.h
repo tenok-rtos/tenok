@@ -78,6 +78,13 @@ unsigned int sleep(unsigned int seconds);
 int usleep(useconds_t usec);
 
 /**
+ * @brief  Ask to be interrupted after a number of seconds
+ * @param  seconds: How long to wait, or zero to cancel what was asked before
+ * @retval unsigned int: What was left of the previous request
+ */
+unsigned int alarm(unsigned int seconds);
+
+/**
  * @brief  Close a file descriptor, so that it no longer refers to any file
  *         and may be reused
  * @param  fd: The file descriptor to provide.

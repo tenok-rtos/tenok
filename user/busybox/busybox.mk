@@ -32,6 +32,17 @@ BB_APPLETS := coreutils/basename coreutils/cat coreutils/chmod coreutils/cp \
               editors/cmp shell/ash shell/ash_ptr_hack shell/math \
               shell/shell_common
 
+BB_CONFIG_FRAGMENTS := $(PROJ_ROOT)/configs/busybox.config
+
+# The applets that ask anything of a network, and the parts of libbb only they
+# reach. A system built without one has neither, and the calls they would make
+# are not there to be linked against
+ifdef CONFIG_NET
+BB_LIBBB += inet_cksum xconnect
+BB_APPLETS += networking/ping
+BB_CONFIG_FRAGMENTS += $(PROJ_ROOT)/configs/busybox-net.config
+endif
+
 BB_SRC := $(addprefix $(BB_DIR)/libbb/,$(addsuffix .c,$(BB_LIBBB))) \
           $(addprefix $(BB_DIR)/,$(addsuffix .c,$(BB_APPLETS)))
 
@@ -80,11 +91,16 @@ $(BB_PATCHED): $(BB_PATCHES)
 	@$(PROJ_ROOT)/scripts/package-prepare.sh busybox
 	@touch $@
 
-$(BB_DIR)/.config: $(BB_PATCHED) $(PROJ_ROOT)/configs/busybox.config
+# Also on which board is being built for: the applets a system has depend on
+# what it is built with, and switching from one board to another has to be
+# enough to change them
+$(BB_DIR)/.config: $(BB_PATCHED) $(BB_CONFIG_FRAGMENTS) $(PLATFORM_STAMP) $(AUTOCONF)
 	@echo "BUSYBOX config"
 	@$(MAKE) -C $(BB_DIR) CROSS_COMPILE=$(CROSS_COMPILE) allnoconfig >/dev/null
-	@awk '$(BB_MERGE_CONFIG)' $(PROJ_ROOT)/configs/busybox.config $@ > $@.merged
-	@mv $@.merged $@
+	@for f in $(BB_CONFIG_FRAGMENTS); do \
+		awk '$(BB_MERGE_CONFIG)' $$f $@ > $@.merged; \
+		mv $@.merged $@; \
+	done
 
 # The applet table is derived from the //applet: comments of the applet
 # sources, so a patch that changes one has to regenerate it
