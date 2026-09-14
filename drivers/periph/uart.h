@@ -11,7 +11,7 @@
 #include <kernel/wait.h>
 #include <sys/termios.h>
 
-#include "stm32f4xx.h"
+#include <arch/device.h>
 
 typedef struct {
     /* Tx */

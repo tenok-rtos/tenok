@@ -9,7 +9,8 @@
 #include <kernel/thread.h>
 
 #include "kconfig.h"
-#include "stm32f4xx.h"
+
+#include <arch/device.h>
 
 #define THREAD_PSP 0xFFFFFFFD
 #define INITIAL_XPSR 0x01000000
@@ -131,8 +132,10 @@ void __stack_init(uint32_t **stack_top,
 
 void __platform_init(void)
 {
-    /* Priority range of group 4 is 0-15 */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    /* Give the whole of the priority field to preemption, so that the range
+     * is 0-15 and no interrupt has a subpriority to be ordered by
+     */
+    NVIC_SetPriorityGrouping(3);
     NVIC_SetPriority(MemoryManagement_IRQn, 0);
     NVIC_SetPriority(BusFault_IRQn, 0);
     NVIC_SetPriority(UsageFault_IRQn, 0);
