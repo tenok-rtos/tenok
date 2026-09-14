@@ -29,6 +29,13 @@ config PLATFORM_STM32F429DISC
 	  The board with the 240x320 panel the display controller draws on and
 	  the SDRAM the user space allocates from.
 
+config PLATFORM_NUCLEO_F746ZG
+	bool "NUCLEO-F746ZG"
+	help
+	  The board with a Cortex-M7, for which ST wrote no Standard Peripheral
+	  Library. What it drives its peripherals with is the Low Layer of
+	  STM32Cube.
+
 config PLATFORM_DYNAMICS_WIZARD
 	bool "Dynamics Wizard"
 
@@ -40,6 +47,7 @@ config PLATFORM
 	default "stm32f4disc" if PLATFORM_STM32F4DISC
 	default "stm32f429disc" if PLATFORM_STM32F429DISC
 	default "dynamics_wizard" if PLATFORM_DYNAMICS_WIZARD
+	default "nucleo_f746zg" if PLATFORM_NUCLEO_F746ZG
 
 # What a board brings that another does not, so that what needs it can say so
 config HAS_FRAMEBUFFER
@@ -52,3 +60,40 @@ endmenu
 
 source "kernel/Kconfig"
 source "user/Kconfig"
+
+menu "NUCLEO-F746ZG console"
+	depends on PLATFORM_NUCLEO_F746ZG
+
+choice
+	prompt "Which port the terminal is on"
+	default CONSOLE_VCP
+	help
+	  The board carries one serial port to the host over the same cable that
+	  flashes it, through the debugger at the far end. That is the least to
+	  wire and the most to go wrong: the debugger's serial port is a USB
+	  device of its own and drops off the bus under sustained output on some
+	  hosts. The other choices leave the board on a pin header, to be wired
+	  to a converter of the reader's own.
+
+config CONSOLE_VCP
+	bool "Through the debugger (USART3, PD8/PD9)"
+	help
+	  Nothing to wire. Appears on the host as the same device the debugger
+	  uses.
+
+config CONSOLE_USART6
+	bool "On the header, USART6 (PG14 tx, PG9 rx)"
+	help
+	  The pins an Arduino shield expects its serial port on. Wire tx to the
+	  converter's rx, rx to its tx, and grounds together.
+
+config CONSOLE_USART2
+	bool "On the header, USART2 (PD5 tx, PD6 rx)"
+	help
+	  Port D, which nothing else on this board uses once the terminal is
+	  moved off it. No relationship to the Ethernet pins at all.
+
+endchoice
+
+endmenu
+

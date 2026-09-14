@@ -1,0 +1,39 @@
+The libraries an STM32F7 board is built against
+===============================================
+
+None of these is carried in this repository. `scripts/download-stm32f7-libs.sh`
+fetches each at the commit named below and leaves it as a plain directory --
+nothing here is a submodule, and nothing here is patched, so the only thing
+worth remembering about them is where they came from.
+
+  lib/cmsis-core       https://github.com/STMicroelectronics/cmsis_core.git
+                       afc5ca6af0a49232fde7eb4548dd0962d119ce14   Apache-2.0
+                       The Cortex-M7 core definitions. The CMSIS already in
+                       lib/CMSIS is older than that core and has no header for
+                       it.
+
+  lib/cmsis-device-f7  https://github.com/STMicroelectronics/cmsis_device_f7.git
+                       2352e888e821aa0f4fe549bd5ea81d29c67a3222   Apache-2.0
+                       The register definitions of the part.
+
+  lib/stm32f7xx-ll     https://github.com/STMicroelectronics/stm32f7xx_hal_driver.git
+                       910731a0babb10f4908827de90921e559a825e08   BSD-3-Clause
+                       The Low Layer, which is the half of STM32Cube that
+                       speaks to registers the way the older Standard
+                       Peripheral Library did. ST never wrote a Standard
+                       Peripheral Library for this family.
+
+                       One file of the other half is taken with it:
+                       stm32f7xx_hal_eth.c. The Low Layer has no Ethernet
+                       module -- ST wrote only the higher one for that
+                       peripheral -- and what it asks of the system is three
+                       functions, which drivers/net/eth.c answers.
+
+  lib/lwip             https://github.com/lwip-tcpip/lwip.git
+                       77dcd25a72509eb83f72b033d219b1d40cd8eb95   BSD-3-Clause
+                       STABLE-2_2_1_RELEASE. The TCP/IP stack. What sits it on
+                       this kernel is net/lwip/, which is this tree's own.
+
+All four carry a licence the rest of the tree can take. Unlike BusyBox and
+DirectFB2, which are patched here and whose licences travel with the patches,
+none of them needs a repository of its own to keep it apart.
