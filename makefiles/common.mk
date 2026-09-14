@@ -9,6 +9,7 @@ LD_SCRIPT :=
 LD_GENERATED := generated.ld
 
 ST_LIB := ./lib/STM32F4xx_StdPeriph_Driver
+ST_LIB_INC ?= $(ST_LIB)/inc
 
 # A target that makes a configuration runs before there is one to say which
 # board this is, and has nothing to build
@@ -30,10 +31,13 @@ CFLAGS += -ffunction-sections -fdata-sections
 # assumes. Tenok has its own, reached through names of its own, so the rewrite
 # would step past them into newlib.
 CFLAGS += -fno-builtin-printf -fno-builtin-fprintf
+# What the core of a board is, which the board says and this defaults to the
+# one every board but the newest has
+CPU_FLAGS ?= -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+
 CFLAGS += -O2 -g -mlittle-endian -mthumb \
           -fcommon \
-          -mcpu=cortex-m4 \
-          -mfpu=fpv4-sp-d16 -mfloat-abi=hard \
+          $(CPU_FLAGS) \
           --specs=nano.specs \
           --specs=nosys.specs
 
@@ -44,18 +48,27 @@ CFLAGS += -Wall \
           -Wno-address-of-packed-member \
           -Wno-array-bounds # FIXME
 
-CFLAGS += -D USE_STDPERIPH_DRIVER \
-          -D STM32F4xx \
-          -D ARM_MATH_CM4 \
-          -D __FPU_PRESENT=1 \
-          -D __FPU_USED=1
+# What the driver library of a board is told about the part it drives
+ST_DEFINES ?= -D USE_STDPERIPH_DRIVER -D STM32F4xx -D ARM_MATH_CM4
+
+# What the older parts have to be told about their floating point unit, because
+# the headers that come with them say nothing about it. The newer ones say it
+# themselves and must not be told twice
+FPU_DEFINES ?= -D __FPU_PRESENT=1 -D __FPU_USED=1
+
+CFLAGS += $(ST_DEFINES) $(FPU_DEFINES)
 
 CFLAGS += -Wl,-T,$(LD_GENERATED)
 
 
-CFLAGS += -I./lib/CMSIS/ST/STM32F4xx/Include
-CFLAGS += -I./lib/CMSIS/Include
-CFLAGS += -I$(ST_LIB)/inc
+# Where the register definitions of the part live, and where its driver
+# library does
+CMSIS_DEVICE_INC ?= ./lib/CMSIS/ST/STM32F4xx/Include
+CMSIS_CORE_INC ?= ./lib/CMSIS/Include
+
+CFLAGS += -I$(CMSIS_DEVICE_INC)
+CFLAGS += -I$(CMSIS_CORE_INC)
+CFLAGS += $(addprefix -I,$(ST_LIB_INC))
 
 CFLAGS += -I./lib/mavlink
 CFLAGS += -I./lib/mavlink/common
@@ -74,7 +87,9 @@ CFLAGS += -I./user
 CFLAGS += -I./user/debug-link
 CFLAGS += -I./build/msg
 
-SRC += lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
+# The maths library that came with the older CMSIS, which only the board that
+# flies uses and which only knows the cores up to the Cortex-M4
+CMSIS_DSP_SRC ?= lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
        lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_cos_f32.c \
        lib/CMSIS/DSP_Lib/Source/FastMathFunctions/arm_sin_f32.c \
        lib/CMSIS/DSP_Lib/Source/StatisticsFunctions/arm_power_f32.c \
@@ -90,19 +105,25 @@ SRC += lib/CMSIS/DSP_Lib/Source/CommonTables/arm_common_tables.c \
        lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_trans_f32.c \
        lib/CMSIS/DSP_Lib/Source/MatrixFunctions/arm_mat_inverse_f32.c
 
-SRC += ./lib/CMSIS/system_stm32f4xx.c
+SRC += $(CMSIS_DSP_SRC)
 
-SRC += $(ST_LIB)/src/misc.c \
-       $(ST_LIB)/src/stm32f4xx_rcc.c \
-       $(ST_LIB)/src/stm32f4xx_dma.c \
-       $(ST_LIB)/src/stm32f4xx_flash.c \
-       $(ST_LIB)/src/stm32f4xx_gpio.c \
-       $(ST_LIB)/src/stm32f4xx_usart.c \
-       $(ST_LIB)/src/stm32f4xx_tim.c \
-       $(ST_LIB)/src/stm32f4xx_spi.c \
-       $(ST_LIB)/src/stm32f4xx_i2c.c \
-       $(ST_LIB)/src/stm32f4xx_syscfg.c \
-       $(ST_LIB)/src/stm32f4xx_exti.c
+CMSIS_SYSTEM ?= ./lib/CMSIS/system_stm32f4xx.c
+
+SRC += $(CMSIS_SYSTEM)
+
+ST_LIB_SRC ?= $(ST_LIB)/src/misc.c \
+              $(ST_LIB)/src/stm32f4xx_rcc.c \
+              $(ST_LIB)/src/stm32f4xx_dma.c \
+              $(ST_LIB)/src/stm32f4xx_flash.c \
+              $(ST_LIB)/src/stm32f4xx_gpio.c \
+              $(ST_LIB)/src/stm32f4xx_usart.c \
+              $(ST_LIB)/src/stm32f4xx_tim.c \
+              $(ST_LIB)/src/stm32f4xx_spi.c \
+              $(ST_LIB)/src/stm32f4xx_i2c.c \
+              $(ST_LIB)/src/stm32f4xx_syscfg.c \
+              $(ST_LIB)/src/stm32f4xx_exti.c
+
+SRC += $(ST_LIB_SRC)
 
 SRC += ./kernel/arch/v7m_port.c \
        ./kernel/fs/fs.c \
@@ -113,6 +134,9 @@ SRC += ./kernel/arch/v7m_port.c \
        ./kernel/fs/null_dev.c \
        ./kernel/pwd.c \
        ./kernel/socket.c \
+       kernel/netdb.c \
+       kernel/inet.c \
+       kernel/socket_file.c \
        ./kernel/resource.c \
        ./kernel/sysconf.c \
        ./kernel/signal_posix.c \
@@ -192,8 +216,10 @@ $(VERSION_HDR): FORCE
 
 ./kernel/utsname.o ./user/tasks/shell_task.o: $(VERSION_HDR)
 
+STARTUP ?= ./platform/startup_stm32f4xx.s
+
 ASM := ./kernel/arch/v7m_entry.S \
-       ./platform/startup_stm32f4xx.s
+       $(STARTUP)
 
 all: $(SYSCALL_HDR) msggen $(LD_GENERATED) $(ELF)
 	@$(MAKE) -C ./tools/mkromfs/ -f Makefile

@@ -3,8 +3,11 @@ PROJ_ROOT := $(dir $(lastword $(MAKEFILE_LIST)))/../
 CFLAGS += -I $(PROJ_ROOT)/drivers/devices
 CFLAGS += -I $(PROJ_ROOT)/drivers/periph
 
-SRC += $(PROJ_ROOT)/drivers/periph/uart.c
-SRC += $(PROJ_ROOT)/drivers/periph/pwm.c
-SRC += $(PROJ_ROOT)/drivers/periph/spi.c
-SRC += $(PROJ_ROOT)/drivers/devices/mpu6500.c
-SRC += $(PROJ_ROOT)/drivers/devices/sbus.c
+# The drivers written against the Standard Peripheral Library, which every
+# board but the newest has, along with the parts that only the board that flies
+# carries. A board that has neither says so and names its own instead
+PERIPH_DRV ?= uart.c pwm.c spi.c
+DEVICE_DRV ?= mpu6500.c sbus.c
+
+SRC += $(addprefix $(PROJ_ROOT)/drivers/periph/,$(PERIPH_DRV))
+SRC += $(addprefix $(PROJ_ROOT)/drivers/devices/,$(DEVICE_DRV))
